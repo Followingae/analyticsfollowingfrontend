@@ -44,7 +44,7 @@ export function SelfManagedBranding({
   return (
     <div className="mt-4 space-y-4 rounded-lg border border-dashed p-4">
       <p className="text-sm text-muted-foreground">
-        Team-managed — add the branding creators will see. Optional; falls back to the merchant logo when a merchant is selected.
+        Team-managed. Add the branding creators will see. Optional; falls back to the merchant logo when a merchant is selected.
       </p>
       <div className="grid grid-cols-2 gap-4">
         <Field

@@ -29,11 +29,11 @@
  * is no seat price anywhere: seats are a hard cap per tier and the backend has
  * nothing that sells one.
  *
- * Unlocks are quoted as TWO numbers because there are two gates. The plan funds
- * a number of unlocks (credits / 25) and a separate count cap is the ceiling in
- * a month even after a top-up. Premium is 1,000 included and 2,000 with bought
- * credits; on Free and Standard the two are equal, so top-ups buy no unlocks at
- * all and the page says so. app/core/plans.py.
+ * Unlocks are one number on a paid plan and two words about buying more. The
+ * plan includes an allowance, and above it nothing caps unlocks: credits are
+ * the only limit, so a top-up buys unlocks outright. Free is the one capped
+ * tier, at 5, and that is said as the reason to upgrade rather than as a
+ * refusal. Nothing on this page says what a top-up cannot do. app/core/plans.py.
  *
  * The loading, empty and failed states are three different screens on purpose.
  * A price that did not load is a dash and a disabled button, never a zero and
@@ -53,6 +53,7 @@ import { Check, ArrowRight, Users, Zap, ShieldCheck, Handshake, AlertCircle, Meg
 import { API_CONFIG, ENDPOINTS } from '@/config/api'
 import {
   ANNUAL_DISCOUNT,
+  CREDITS_PER_UNLOCK,
   NO_PRICE,
   formatPlanPrice,
   resolveCurrency,
@@ -85,11 +86,23 @@ interface PricingTier {
   topup_discount?: number
 }
 
+/** The VAT block the API sends alongside the prices. Every amount in this
+ *  response is NET: the card charge is the amount plus 5% UAE VAT, added by
+ *  the tax rate on the Stripe checkout session. So a price shown here without
+ *  a VAT note is a price that does not match the card form it leads to. */
+interface VatInfo {
+  label: string
+  percent: string
+  prices_exclude_vat: boolean
+  note: string
+}
+
 interface PricingResponse {
   success: boolean
   pricing: Record<string, PricingTier>
   currency: string
   annual_discount: number
+  vat?: VatInfo
 }
 
 type FetchState = 'loading' | 'loaded' | 'failed'
@@ -109,6 +122,14 @@ export default function PricingPage() {
   const [annual, setAnnual] = useState(false)
   const [state, setState] = useState<FetchState>('loading')
   const [pricing, setPricing] = useState<PricingResponse | null>(null)
+
+  /** "Excluding VAT 5%", or null when the backend did not tell us the rate.
+   *  Never a hardcoded 5: a rate this page made up would be a rate that can
+   *  silently disagree with what Stripe actually charges. */
+  const vatNote =
+    pricing?.vat?.prices_exclude_vat && pricing.vat.label
+      ? `Excluding ${pricing.vat.label}`
+      : null
   const [tier, setTier] = useState<SelectableTier>('standard')
 
   useEffect(() => {
@@ -340,6 +361,12 @@ export default function PricingPage() {
                 </span>
               </div>
 
+              {vatNote && (
+                <p className="text-xs text-muted-foreground">
+                  {vatNote}, which is added at checkout.
+                </p>
+              )}
+
               {annual && totalAnnual !== null && (
                 <p className="text-xs text-muted-foreground">
                   {formatPlanPrice(totalAnnual, currency)} billed annually, {Math.round(ANNUAL_DISCOUNT * 100)}%
@@ -546,15 +573,11 @@ function PlanCard({
                 produced 500s and 2,000s on a server enforcing 350 and 1,000. */}
             <span>
               {(gates.included ?? 0).toLocaleString()} profile unlocks
-              {(gates.headroom ?? 0) > 0 ? (
-                <span className="block text-muted-foreground">
-                  up to {(gates.cap ?? 0).toLocaleString()} if you top up credits
-                </span>
-              ) : (
-                <span className="block text-muted-foreground">
-                  top-ups cannot take you past this
-                </span>
-              )}
+              <span className="block text-muted-foreground">
+                {gates.unlimited
+                  ? `buy more at ${CREDITS_PER_UNLOCK} credits each, no monthly ceiling`
+                  : 'the Free plan monthly limit'}
+              </span>
             </span>
           </li>
           <li className="flex items-start gap-ds-2">

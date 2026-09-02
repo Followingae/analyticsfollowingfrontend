@@ -31,6 +31,6 @@ export function BriefStatusBadge({ status }: { status: BriefStatus }) {
 
 /** The sentence that turns "Expired" into information. */
 export function expiryLine(reason: ExpiryReason | null | undefined): string {
-  if (!reason) return "It expired. We do not have a reason recorded — ask us and we will find out."
+  if (!reason) return "It expired. We do not have a reason recorded, so ask us and we will find out."
   return EXPIRY_REASONS[reason] ?? "It expired."
 }

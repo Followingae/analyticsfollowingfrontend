@@ -40,7 +40,7 @@ export function SelfManagedToggle({
       <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
         <div className="space-y-0.5">
           <Label htmlFor="self-managed" className="cursor-pointer">
-            No brand account — we manage this
+            No brand account, we manage this
           </Label>
           <p className="text-xs text-muted-foreground">
             For clients who don&apos;t use the platform. The campaign stays hidden from every
@@ -54,7 +54,7 @@ export function SelfManagedToggle({
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            Your team approves and rejects every applicant — there is no 72-hour
+            Your team approves and rejects every applicant, so there is no 72-hour
             auto-approval on a self-managed campaign, so applications wait until someone
             decides.
             {requiresMerchant && " A merchant is still required: cashback is claimed by scanning a receipt at one."}

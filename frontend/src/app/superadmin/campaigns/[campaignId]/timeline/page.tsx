@@ -31,12 +31,12 @@ import { fetchWithAuth } from '@/utils/apiInterceptor'
 
 interface TEvent {
   kind: string; at: string | null; title: string; detail: string
-  state: 'done' | 'active'; round_id?: string; proposal_id?: string
+  state: 'done' | 'active'; area_id?: string; proposal_id?: string
 }
 interface Timeline {
   campaign: Record<string, any>
   proposal: Record<string, any> | null
-  rounds: any[]
+  areas: any[]
   events: TEvent[]
   roster: any[]
   content: { posts: number; deliverables: Record<string, number> }
@@ -330,20 +330,18 @@ export default function CampaignTimelinePage() {
           </Panel>
 
           <div className="space-y-6">
-            {t.rounds.length > 0 && (
+            {t.areas.length > 0 && (
               <Panel title="Sourcing" description="How this roster was found">
-                  {t.rounds.map(r => (
+                  {t.areas.map(r => (
                     <button key={r.id}
-                      onClick={() => router.push(`/work/sourcing/${r.id}`)}
+                      onClick={() => router.push(`/work/areas/${r.id}`)}
                       className="-mx-3 flex w-[calc(100%+1.5rem)] items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-black/[0.035] dark:hover:bg-white/[0.05]">
-                      <Badge variant="outline">Round {r.round_no}</Badge>
+                      {(r.round_no || 1) > 1 && <Badge variant="outline">Round {r.round_no}</Badge>}
                       <span className="min-w-0 flex-1 truncate text-sm">{r.title}</span>
                       <span className="text-xs tabular-nums text-muted-foreground">
                         {r.proposed} proposed · {r.selected} picked
                       </span>
-                      <Badge variant="secondary" className="capitalize">
-                        {String(r.status).replace(/_/g, ' ')}
-                      </Badge>
+                      <Badge variant="secondary">{r.locked_at ? 'Closed' : 'Open'}</Badge>
                     </button>
                   ))}
               </Panel>
@@ -711,7 +709,7 @@ export default function CampaignTimelinePage() {
               <Input value={invUrl} onChange={e => setInvUrl(e.target.value)}
                      placeholder="https://…" />
               <p className="text-[11.5px] text-muted-foreground">
-                The client sees it on their proposal once you send it — filing it tells nobody.
+                The client sees it on their proposal once you send it. Filing it tells nobody.
               </p>
             </div>
           </div>

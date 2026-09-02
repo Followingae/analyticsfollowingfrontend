@@ -760,7 +760,7 @@ export default function ProposalDetailPage() {
                     <p className="rounded-md bg-amber-500/10 p-2.5 text-amber-700 dark:text-amber-400">
                       The client has already picked{" "}
                       {pickedList.filter(i => i.selected_by_user).map(i => "@" + i.username).join(", ")}
-                      {" "}— tell them, or they will look for them.
+                      {". "}Tell them, or they will look for them.
                     </p>
                   )}
                 </div>

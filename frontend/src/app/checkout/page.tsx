@@ -51,17 +51,28 @@ type PaidTier = 'standard' | 'premium'
 type Interval = 'monthly' | 'annual'
 
 interface IntervalPricing {
+  /** NET, exclusive of VAT. Never the figure to put above the pay button. */
   amount: number
   interval: string
   currency?: string
   price_id?: string
   savings?: number
   monthly_equivalent?: number
+  /** VAT and the VAT-inclusive total, computed server-side from `amount` in
+   *  app/core/tax.py. Optional because an older backend does not send them,
+   *  and in that case this page shows no VAT line at all rather than one it
+   *  worked out itself. A wrong VAT line here is worse than none. */
+  vat?: number
+  gross?: number
+  monthly_equivalent_gross?: number
 }
 
 interface PricingResponse {
   pricing: Record<string, { name: string; credits: number; pricing: Record<string, IntervalPricing> }>
   currency: string
+  /** "VAT 5%" and the rate behind it, from app/core/tax.py. Optional so an
+   *  older backend degrades to no VAT line rather than to a made-up one. */
+  vat?: { label: string; percent: string; prices_exclude_vat: boolean; note: string }
 }
 
 const TIER_NAME: Record<PaidTier, string> = { standard: 'Standard', premium: 'Premium' }
@@ -109,6 +120,10 @@ function CheckoutContent() {
   // would have rendered a USD amount with a Dirham in front of it the moment
   // the server was still charging in USD.
   const currency = resolveCurrency(pricing?.currency)
+
+  /** The words beside the VAT amount, from the server. Null when the server
+   *  did not say, in which case the breakdown falls back to a plain "VAT". */
+  const vatLabel = pricing?.vat?.label ?? null
 
   const line = useMemo<IntervalPricing | null>(() => {
     if (!tier || !pricing) return null
@@ -293,14 +308,45 @@ function CheckoutContent() {
 
           <Separator />
 
-          <div className="flex items-baseline justify-between">
-            <span className="font-medium">
-              {interval === 'annual' ? 'Billed today, for the year' : 'Billed monthly'}
-            </span>
-            <span className="text-2xl font-semibold">
-              {formatPlanPrice(billedNow, currency)}
-            </span>
-          </div>
+          {/* The number above the pay button has to be the number Stripe
+              charges. `line.amount` is NET, and the checkout session carries a
+              5% VAT rate, so showing the net alone understated every card
+              charge. Net, VAT and total are shown separately so the client can
+              see where the total came from.
+
+              When the backend sends no `gross` (an older deploy), the single
+              net line is shown as before rather than a VAT figure invented on
+              the client. */}
+          {typeof line.gross === 'number' && typeof line.vat === 'number' ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-baseline justify-between text-sm text-muted-foreground">
+                <span>{interval === 'annual' ? 'Subtotal for the year' : 'Subtotal'}</span>
+                <span>{formatPlanPrice(line.amount, currency)}</span>
+              </div>
+              <div className="flex items-baseline justify-between text-sm text-muted-foreground">
+                <span>{vatLabel ?? 'VAT'}</span>
+                <span>{formatPlanPrice(line.vat, currency)}</span>
+              </div>
+              <Separator />
+              <div className="flex items-baseline justify-between">
+                <span className="font-medium">
+                  {interval === 'annual' ? 'Billed today, for the year' : 'Billed monthly'}
+                </span>
+                <span className="text-2xl font-semibold">
+                  {formatPlanPrice(line.gross, currency)}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-baseline justify-between">
+              <span className="font-medium">
+                {interval === 'annual' ? 'Billed today, for the year' : 'Billed monthly'}
+              </span>
+              <span className="text-2xl font-semibold">
+                {formatPlanPrice(billedNow, currency)}
+              </span>
+            </div>
+          )}
 
           {interval === 'annual' && (
             <p className="text-sm text-muted-foreground">

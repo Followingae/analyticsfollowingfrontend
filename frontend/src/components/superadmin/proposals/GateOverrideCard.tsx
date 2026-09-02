@@ -39,7 +39,7 @@ export function GateOverrideCard({
 
   const save = async (next: boolean) => {
     if (next && reason.trim().length < 8) {
-      toast.error("Say why — it is recorded on the proposal.")
+      toast.error("Say why. It is recorded on the proposal.")
       return
     }
     setBusy(true)
@@ -53,9 +53,9 @@ export function GateOverrideCard({
       setOn(next)
       toast.success(next
         ? (data?.promoted
-            ? "Gate opened — the proposal is now in the client's app"
-            : "Gate opened — the client can select without the paperwork")
-        : "Gate closed — the agreement and advance are required again")
+            ? "Gate opened, the proposal is now in the client's app"
+            : "Gate opened, the client can select without the paperwork")
+        : "Gate closed, the agreement and advance are required again")
       onChanged?.()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not change the gate")
@@ -80,7 +80,7 @@ export function GateOverrideCard({
             </CardTitle>
             <CardDescription>
               {on
-                ? "This client can select creators without a signed agreement or a paid advance. Nothing is marked as signed or paid — the money side still shows what is outstanding."
+                ? "This client can select creators without a signed agreement or a paid advance. Nothing is marked as signed or paid. The money side still shows what is outstanding."
                 : "The client sees the full roster only once the agreement is signed and the advance is paid. Waive it for a brand that is onboarded but slow with paperwork."}
             </CardDescription>
           </div>

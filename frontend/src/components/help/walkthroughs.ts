@@ -165,7 +165,7 @@ export const WALKTHROUGHS: Walkthrough[] = [
       { title: 'Shortlist links',
         body: 'A founder creates the link off the area. Once it exists, anyone can send it on.' },
       { title: 'Proposals do the same job',
-        body: 'For a real quote use a proposal — prices are frozen in it, so nothing shifts under the client.' },
+        body: 'For a real quote use a proposal. Prices are frozen in it, so nothing shifts under the client.' },
       { title: 'If you need something else',
         body: 'Ask a founder. There is usually a neater way to send it than a spreadsheet.' },
     ],
@@ -302,7 +302,7 @@ export const WALKTHROUGHS: Walkthrough[] = [
       { title: 'Paying them',
         body: 'Founders only, and the amount comes from the confirmed rate. Nobody types it twice.' },
       { title: 'Somebody drops out',
-        body: 'Take them off with a reason. The record stays — it matters the next time we book them.' },
+        body: 'Take them off with a reason. The record stays, and it matters the next time we book them.' },
     ],
   },
 

@@ -59,8 +59,8 @@ const readableDay = (value: string | Date) =>
     { timeZone: DUBAI_TZ, day: "numeric", month: "short", year: "numeric" })
 
 const SLIDE_LABEL: Record<string, string> = {
-  app_barter: "App campaigns — barter",
-  app_paid: "App campaigns — paid",
+  app_barter: "App campaigns: barter",
+  app_paid: "App campaigns: paid",
   managed: "Managed campaigns",
   ugc: "UGC",
   waiting: "Waiting on us",
@@ -145,7 +145,7 @@ export default function DisplaysPage() {
   useEffect(() => { load() }, [load])
 
   const create = async () => {
-    if (!label.trim()) return toast.error("Name the screen — where it hangs is the useful name")
+    if (!label.trim()) return toast.error("Name the screen. Where it hangs is the useful name")
     setBusy(true)
     try {
       // Only a money screen carries an expiry, and only when it is left switched on.
@@ -190,7 +190,7 @@ export default function DisplaysPage() {
       const res = await api(`/${d.id}/rotate`, { method: "POST", body: "{}" })
       const path = res?.data?.path
       if (path) navigator.clipboard.writeText(`${window.location.origin}${path}`)
-      toast.success(`New link for "${d.label}" copied. The old one has stopped working — open this one on the screen.`)
+      toast.success(`New link for "${d.label}" copied. The old one has stopped working. Open this one on the screen.`)
       load()
     } catch (e) {
       toast.error((e as Error).message || "Could not issue a new link")
@@ -244,7 +244,7 @@ export default function DisplaysPage() {
                   <div className="space-y-1.5">
                     <Label>Name *</Label>
                     <Input value={label} onChange={(e) => setLabel(e.target.value)}
-                           placeholder="e.g. Office wall — main" />
+                           placeholder="e.g. Office wall, main" />
                   </div>
                   {/* These two settings each sat in a bordered box inside a dialog that
                       already has an edge and a title — four edges around two switches. They
@@ -283,7 +283,7 @@ export default function DisplaysPage() {
                                  className="h-8 w-24"
                                  onChange={(e) => setExpiryDays(Number(e.target.value) || 0)} />
                           <span className="text-xs text-muted-foreground">
-                            days — runs until the end of{" "}
+                            days, runs until the end of{" "}
                             {readableDay(new Date(Date.now() + (expiryDays || 0) * 86400_000))}
                           </span>
                         </div>
@@ -405,7 +405,7 @@ export default function DisplaysPage() {
                             const now = d.expires_at ? dubaiDay(d.expires_at) : ""
                             if (v === now) return
                             patch(d, { expires_at: v ? dubaiEndOfDay(v) : null },
-                                  v ? "End date saved" : "End date cleared — the link is permanent again")
+                                  v ? "End date saved" : "End date cleared, the link is permanent again")
                           }}
                         />
                       </div>
@@ -414,7 +414,7 @@ export default function DisplaysPage() {
                         <Button variant="outline" size="sm" className="gap-1.5" disabled={off}
                                 onClick={() => {
                                   navigator.clipboard.writeText(wallUrl(d))
-                                  toast.success("Link copied — open it on the screen")
+                                  toast.success("Link copied, open it on the screen")
                                 }}>
                           <Copy className="h-3.5 w-3.5" />Copy link
                         </Button>

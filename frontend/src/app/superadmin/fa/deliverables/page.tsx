@@ -152,7 +152,7 @@ export default function FADeliverablesPage() {
 
   const approveContent = (d: Deliverable) => {
     if (!d.campaign_id) return toast.error("No campaign linked")
-    return act(d.id + "ac", () => faDeliverableApi.approveContent(d.campaign_id!, d.id), "Content approved — creator notified")
+    return act(d.id + "ac", () => faDeliverableApi.approveContent(d.campaign_id!, d.id), "Content approved, creator notified")
   }
   const requestEdit = (d: Deliverable, note: string) => {
     if (!d.campaign_id) return toast.error("No campaign linked")
@@ -161,7 +161,7 @@ export default function FADeliverablesPage() {
   // Proof verification is Following-team ONLY — the campaign-scoped /confirm endpoint
   // is intentionally disabled (403) for everyone, so always use the admin verify route.
   const confirm = (d: Deliverable) =>
-    act(d.id + "cf", () => faDeliverableApi.verify(d.id), "Verified — payout released")
+    act(d.id + "cf", () => faDeliverableApi.verify(d.id), "Verified, payout released")
   const reject = (d: Deliverable) =>
     act(d.id + "rj", () => faDeliverableApi.reject(d.id), "Deliverable rejected")
 

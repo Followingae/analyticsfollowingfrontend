@@ -122,7 +122,7 @@ export default function CoveragePage() {
       <div className="space-y-ds-5">
         <PageHead
           title="Where we're thin"
-          sub="Where we are strong, and where to research next. A creator counts only once we hold a cost for them — a name with no rate cannot be quoted."
+          sub="Where we are strong, and where to research next. A creator counts only once we hold a cost for them. A name with no rate cannot be quoted."
           /* The hub header directly above now carries "Add or import creators" as its primary
              button, so the same button here would be the second one on the screen. */
         />
@@ -215,7 +215,7 @@ export default function CoveragePage() {
                               `&countries=${encodeURIComponent(m)}`)}
                             role="button"
                             tabIndex={0}
-                            title={`${cat} · ${m} — open these creators`}
+                            title={`${cat} · ${m}: open these creators`}
                           >
                             {n || '—'}
                             {!!c?.stale && (
@@ -238,7 +238,7 @@ export default function CoveragePage() {
             {hover ? (
               <span>
                 <span className="font-medium capitalize text-foreground">{hover.category} · {hover.market}</span>
-                {' — '}{hover.costed} quotable of {hover.held} held
+                {': '}{hover.costed} quotable of {hover.held} held
                 {hover.stale > 0 && `, ${hover.stale} rates going stale`}
               </span>
             ) : (
@@ -261,7 +261,7 @@ export default function CoveragePage() {
                   `&countries=${encodeURIComponent(g.market)}`)}
               />
             ))}
-            {(data.gaps || []).length === 0 && <Empty>No thin cells — coverage is even.</Empty>}
+            {(data.gaps || []).length === 0 && <Empty>No thin cells, coverage is even.</Empty>}
           </Panel>
 
           <Panel title="Data to tidy" description="Cheap wins that make everything else sharper" flush>

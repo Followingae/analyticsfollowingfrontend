@@ -92,7 +92,7 @@ export function CampaignUpdateDialog({
     if (!chosen) return;
     setHeadline(chosen.headline);
     setSub(chosen.sub);
-    setSubject(`Your campaign has an update — ${chosen.campaign_name}`);
+    setSubject(`Your campaign has an update | ${chosen.campaign_name}`);
   }, [chosen]);
 
   const refreshPreview = useCallback(async () => {
@@ -156,7 +156,7 @@ export function CampaignUpdateDialog({
           </DialogTitle>
           <DialogDescription>
             Tells them their campaign has moved and sends them to it. Built from the campaign&apos;s
-            real state — nothing here goes out on a timer.
+            real state. Nothing here goes out on a timer.
           </DialogDescription>
         </DialogHeader>
 

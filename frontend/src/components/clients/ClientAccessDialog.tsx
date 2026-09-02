@@ -78,7 +78,7 @@ export function ClientAccessDialog({ teamId, open, onOpenChange }: Props) {
       setResetting(true);
       const res = await clientApi.resetPassword(teamId);
       set("password", res.data.password);
-      toast.success("Password reset — new password filled in below");
+      toast.success("Password reset, new password filled in below");
     } catch (e: any) {
       toast.error(e?.message || "Reset failed");
     } finally {

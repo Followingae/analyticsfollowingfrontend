@@ -13,12 +13,15 @@
  *     350 profile unlocks on Standard, the pricing page said 500).
  *  3. The usage meter and top-ups.
  *
- * Unlocks are quoted as TWO numbers, because there are two gates and they are
- * not the same limit. plan.monthly_credits funds a number of unlocks; the
- * separate count cap plan.monthly_profile_limit is the ceiling in a month even
- * after you buy credits. On Free and Standard those are equal, which means a
- * top-up buys no extra unlocks at all, and this screen says so rather than
- * selling a refusal. See app/core/plans.py.
+ * Unlocks. On a paid tier the plan includes a number and the wallet is the only
+ * thing that limits the rest: there is no ceiling to run into, so a top-up buys
+ * unlocks outright. Free keeps a real cap of 5 and this screen says so as the
+ * reason to upgrade rather than as a refusal.
+ *
+ * Read the fields carefully. plan.monthly_profile_limit is the INCLUDED
+ * allowance now, not the cap; the ceiling is usage.profiles_limit, where null
+ * means there is none, with usage.profiles_unlimited to tell that apart from a
+ * value that failed to load. See app/core/plans.py.
  *
  * There is no seat price anywhere on this screen. teams.max_team_members is a
  * hard cap and the backend has no seat product, no price and no endpoint that
@@ -46,8 +49,9 @@ import {
   formatPlanPrice,
   postsAllowanceLabel,
   resolveCurrency,
-  unlockCapNote,
+  unlockAllowanceNote,
   unlockGates,
+  unlockSentence,
 } from '@/config/planPricing'
 import { useCommercialAccount, fmtCount } from '@/hooks/useCommercialAccount'
 import { ModuleRow } from './ModuleRow'
@@ -159,18 +163,17 @@ export function PlanScreen() {
   const currency = resolveCurrency(plan?.currency)
   const managed = account.isManaged
 
-  // The two gates, from the live row. plan.monthly_credits is the FUNDING and
-  // plan.monthly_profile_limit is the CAP: app/core/plans.py derives the second
-  // from the first by a per-tier headroom multiple, and both are enforced
-  // separately (the count gate in user_discovery_service.unlock_profile_for_user,
-  // the money gate in spend_credits_atomic). Showing one without the other is
-  // how the platform ended up with four disagreeing unlock numbers.
+  // What this account may unlock. The included figure comes from the plan block;
+  // the ceiling, and whether there is one at all, comes from the USAGE block,
+  // because plan.monthly_profile_limit is the included allowance now and not a
+  // cap. See the note on unlockGates.
   const gates = unlockGates({
+    includedUnlocks: plan?.included_profile_unlocks,
     monthlyCredits: plan?.monthly_credits,
-    monthlyProfileLimit: plan?.monthly_profile_limit,
+    profilesLimit: usage?.profiles_limit,
+    profilesUnlimited: usage?.profiles_unlimited,
     creditsPerUnlock,
   })
-  const hasHeadroom = (gates.headroom ?? 0) > 0
 
   return (
     <div className="flex flex-col gap-ds-4">
@@ -228,7 +231,7 @@ export function PlanScreen() {
               // The INCLUDED figure leads, because it is the one the plan pays
               // for. The cap is the sentence underneath.
               value={fmtCount(gates.included)}
-              note={unlockCapNote(gates) || 'Included with your plan'}
+              note={unlockAllowanceNote(gates, creditsPerUnlock) || 'Included with your plan'}
             />
             <LimitStat
               icon={Image}
@@ -252,16 +255,13 @@ export function PlanScreen() {
             />
           </div>
 
-          {/* The two gates, said once, in a sentence. An unlock needs BOTH: a
-              count under the cap and 25 credits in the wallet. */}
+          {/* What actually limits an unlock. On a paid tier that is the wallet
+              and nothing else, so this is one sentence rather than two gates. */}
           <p className="text-ds-body-sm text-muted-foreground max-w-prose">
-            An unlock costs {fmtCount(creditsPerUnlock)} credits and counts against your monthly
-            cap, and those are two separate limits.{' '}
-            {gates.included === null || gates.cap === null
-              ? 'We could not load your unlock allowance.'
-              : hasHeadroom
-                ? `Your plan funds ${fmtCount(gates.included)} unlocks a month, and topping up credits can take you to ${fmtCount(gates.cap)}. Past that the cap refuses the unlock whatever your balance is.`
-                : `Your plan funds ${fmtCount(gates.included)} unlocks a month, and the cap is the same number, so topping up credits will not buy you any more of them.`}
+            {unlockSentence(gates, creditsPerUnlock)}
+            {gates.unlimited
+              ? ' Your credit balance is the only thing that limits it.'
+              : ''}
             {usage ? ` ${fmtCount(usage.profiles_used)} used this cycle.` : ''}
           </p>
         </CardContent>
@@ -334,16 +334,14 @@ export function PlanScreen() {
       {!managed && (
         <Card>
           <CardHeader>
-            <CardTitle>{hasHeadroom ? 'Need more unlocks' : 'Top up your credits'}</CardTitle>
+            <CardTitle>Need more unlocks</CardTitle>
             <CardDescription>
-              {/* The honest version of what a top-up buys. Credits land in the
-                  same pooled balance and the count gate is applied on EVERY
-                  unlock regardless of which credits paid for it, so on a tier
-                  with no headroom a top-up buys nothing extra. Selling it as
-                  "more unlocks" there would be selling a refusal. */}
-              {hasHeadroom
-                ? `Bought as unlocks, not credits: one unlock is ${fmtCount(creditsPerUnlock)} credits, and your plan leaves room for ${fmtCount(gates.headroom)} more this month.`
-                : `One unlock is ${fmtCount(creditsPerUnlock)} credits, but your monthly cap of ${fmtCount(gates.cap)} is already covered by the plan. Extra credits will not buy extra unlocks on this plan: they go to post analyses, campaign analysis and exports.`}
+              {/* On a paid tier a top-up buys unlocks outright: there is no
+                  ceiling to run into. On Free there is one, and the honest
+                  answer is the upgrade rather than a pack. */}
+              {gates.unlimited
+                ? `Bought as unlocks, not credits: one unlock is ${fmtCount(creditsPerUnlock)} credits, and there is no monthly ceiling on how many you can add.`
+                : `One unlock is ${fmtCount(creditsPerUnlock)} credits. Free includes ${fmtCount(gates.included)} a month; a paid plan lifts the limit and lets you buy as many as you need.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -366,24 +364,18 @@ export function PlanScreen() {
             {topupState === 'loaded' && topups.length > 0 && (
               <div className="grid gap-ds-3 sm:grid-cols-3">
                 {topups.map((pack) => {
+                  // No clamp. There is no ceiling to clamp against on a paid
+                  // tier, and clamping would advertise fewer unlocks than the
+                  // pack actually buys, which is the same lie the old cap copy
+                  // told in the other direction.
                   const unlocks = creditsPerUnlock > 0 ? Math.floor(pack.credits / creditsPerUnlock) : null
-                  // Only a tier with headroom can turn a pack into unlocks. On
-                  // the others the pack leads with what it really is: credits.
-                  const usableUnlocks =
-                    unlocks === null || gates.headroom === null
-                      ? unlocks
-                      : Math.min(unlocks, gates.headroom)
                   return (
                     <div key={pack.type} className="rounded-ds-surface border p-ds-3">
                       <p className="text-ds-heading">
-                        {hasHeadroom && usableUnlocks !== null
-                          ? `${fmtCount(usableUnlocks)} more unlocks`
-                          : `${fmtCount(pack.credits)} credits`}
+                        {unlocks === null ? NO_PRICE : `${fmtCount(unlocks)} more unlocks`}
                       </p>
                       <p className="text-ds-caption text-muted-foreground mt-0.5">
-                        {hasHeadroom
-                          ? `${fmtCount(pack.credits)} credits`
-                          : 'Spendable on posts, campaign analysis and exports'}
+                        {fmtCount(pack.credits)} credits
                       </p>
                       <p className="text-ds-body-sm font-medium mt-ds-3">
                         {typeof pack.discounted_price === 'number'

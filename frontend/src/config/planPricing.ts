@@ -13,25 +13,29 @@
  * "AED 199" while Stripe charged USD 199 (~AED 731). Limits were worse: four
  * places disagreed, and the one that was enforced was none of them.
  *
- * THE TWO GATES, which is the thing this file exists to keep straight
- * ------------------------------------------------------------------
- * An unlock passes two independent gates (app/core/plans.py, and the two
- * enforcement sites it documents):
+ * WHAT LIMITS AN UNLOCK, and why this is now one story and not two
+ * -----------------------------------------------------------------
+ * An unlock used to pass two independent gates: a count cap on the team, and 25
+ * credits in the wallet. As of the owner's decision on 2026-09-02 the count cap
+ * is REMOVED above the included allowance on every paid tier, so on Standard,
+ * Premium and Managed the wallet is the only thing that limits an unlock. Spend
+ * your included allowance, buy credits, keep going.
  *
- *   the COUNT gate   teams.profiles_used_this_month < teams.monthly_profile_limit
- *   the MONEY gate   credit_wallets.current_balance >= 25
+ * FREE is the one exception and keeps a real cap of 5. It is the trial boundary,
+ * and there is no top-up path on Free to open.
  *
- * Buying credits raises what you can AFFORD and never raises the count cap. So
- * a tier has TWO unlock numbers and they mean different things:
+ * So a tier has an included allowance, and either a ceiling or none:
  *
  *   includedUnlocks  what the plan funds: monthlyCredits / CREDITS_PER_UNLOCK
- *   unlockCap        the ceiling in a month, top-ups included
+ *   unlockCap        the ceiling, or NULL where there is none
  *
- * Premium is 1,000 included and 2,000 with topped-up credits. Standard and Free
- * have NO headroom: bought credits are refused by the count gate with money
- * still in the wallet. Printing one of these as though it were the whole story
- * is what produced four disagreeing numbers, so every surface that quotes
- * unlocks calls `unlockSentence()` or states both.
+ * The old two-gate framing survives ONLY on Free, and no screen should keep it
+ * for the paid tiers: "350 included, buy more at 25 credits each" is the whole
+ * truth there. Every surface that quotes unlocks calls `unlockSentence()`.
+ *
+ * Nothing in this file may say what a top-up CANNOT do. That copy is false on
+ * every paid tier now, and it was always the sentence that stopped someone
+ * buying.
  *
  * CURRENCY COMES FROM THE SERVER
  * ------------------------------
@@ -367,10 +371,16 @@ export const UNLOCK_ACTION_TYPES = ['profile_unlock', 'profile_analysis', 'unloc
 export interface PlanLimits {
   /** app/core/plans.py Plan.max_team_members. A hard cap; seats cannot be bought. */
   seats: number
-  /** The MONEY gate: what the plan funds. monthlyCredits / CREDITS_PER_UNLOCK. */
+  /** What the plan FUNDS: monthlyCredits / CREDITS_PER_UNLOCK. */
   includedUnlocks: number
-  /** The COUNT gate: the ceiling in a month, top-ups included. */
-  unlockCap: number
+  /**
+   * The ceiling on unlocks in a month, or NULL when there is none.
+   *
+   * Null is "no ceiling", not "unknown". Mirrors app/core/plans.py UNLIMITED,
+   * which the API serialises to JSON null via limit_for_api(). Only Free is
+   * capped; every paid tier is unlimited above its included allowance.
+   */
+  unlockCap: number | null
   /** app/core/plans.py Plan.monthly_posts_limit. 0 means NOT METERED. */
   monthlyPosts: number
   monthlyCredits: number
@@ -380,7 +390,8 @@ export interface PlanLimits {
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   // app/core/plans.py PLANS['free']: 125 credits, unlock_cap_multiple 1.0,
-  // posts 0 (not metered), 1 seat.
+  // posts 0 (not metered), 1 seat. The ONLY capped tier: it is the trial
+  // boundary, and there is no top-up path on Free.
   free: {
     seats: 1,
     includedUnlocks: 5,
@@ -389,22 +400,22 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     monthlyCredits: 125,
     topupDiscount: 0,
   },
-  // app/core/plans.py PLANS['standard']: 8,750 credits, unlock_cap_multiple 1.0,
-  // posts 100, 2 seats.
+  // app/core/plans.py PLANS['standard']: 8,750 credits, unlock_cap_multiple
+  // UNLIMITED, posts 100, 2 seats.
   standard: {
     seats: 2,
     includedUnlocks: 350,
-    unlockCap: 350,
+    unlockCap: null,
     monthlyPosts: 100,
     monthlyCredits: 8750,
     topupDiscount: 0,
   },
-  // app/core/plans.py PLANS['premium']: 25,000 credits, unlock_cap_multiple 2.0,
-  // posts 250, 5 seats, 20% off top-ups.
+  // app/core/plans.py PLANS['premium']: 25,000 credits, unlock_cap_multiple
+  // UNLIMITED, posts 250, 5 seats, 20% off top-ups.
   premium: {
     seats: 5,
     includedUnlocks: 1000,
-    unlockCap: 2000,
+    unlockCap: null,
     monthlyPosts: 250,
     monthlyCredits: 25000,
     topupDiscount: 0.2,
@@ -415,75 +426,123 @@ export function getPlanLimits(tier: string): PlanLimits {
   return PLAN_LIMITS[normalizePlanTier(tier)]
 }
 
-/** What the two gates work out to, from whatever numbers a caller has. */
+/**
+ * What an account may unlock.
+ *
+ * There is no `headroom` any more. Headroom only meant something while a
+ * ceiling existed above the funded allowance, and on every paid tier there is
+ * no ceiling at all, so the concept was generating copy that is now false.
+ */
 export interface UnlockGates {
-  /** Unlocks the plan funds. */
+  /** Unlocks the plan funds. Null only when we have no answer at all. */
   included: number | null
-  /** The ceiling, top-ups included. */
+  /** The ceiling. Null when there is none, OR when unknown: read `unlimited`. */
   cap: number | null
-  /** Unlocks reachable only by buying credits. Zero means top-ups buy nothing. */
-  headroom: number | null
+  /** True when nothing caps unlocks above the included allowance. */
+  unlimited: boolean
 }
 
 /**
- * The two gates, from live numbers.
+ * What this account may unlock, from the live billing status.
  *
- * Both are on the billing status: plan.monthly_credits is the funding, and
- * plan.monthly_profile_limit is the cap, which is what that column holds (see
- * app/core/plans.py, Plan.monthly_profile_limit returns unlock_cap). The
- * backend derives the included figure as monthly_credits // 25, and so does
- * this, because the billing status does not send included_profile_unlocks yet
- * even though app/core/plans.py as_limits_dict() produces it.
+ * READ THE FIELD NAMES CAREFULLY, because two of them changed meaning when the
+ * paid tiers were uncapped, and the old reading is silently wrong rather than
+ * loudly wrong:
+ *
+ *   plan.monthly_profile_limit      is NO LONGER the cap. app/core/plans.py
+ *                                   Plan.monthly_profile_limit now returns
+ *                                   included_profile_unlocks, because the
+ *                                   column is integer NOT NULL and ~20 sites
+ *                                   bind it into an INSERT, so the sentinel is
+ *                                   deliberately kept out of it.
+ *   plan.included_profile_unlocks   the funding, now sent explicitly, so
+ *                                   nothing derives credits / 25 any more.
+ *   usage.profiles_limit            THE CAP, and null means no ceiling.
+ *   usage.profiles_unlimited        the flag that tells a real null apart from
+ *                                   a value that failed to load. It is on the
+ *                                   USAGE block, not the plan block.
+ *
+ * Reading plan.monthly_profile_limit as the cap would make every screen compute
+ * a cap equal to the funding, conclude there is no headroom, and print "top-ups
+ * cannot take you past this" to a customer who can now buy as many as they like.
  */
 export function unlockGates(input: {
+  /** plan.included_profile_unlocks. */
+  includedUnlocks?: number | null
+  /** usage.profiles_limit. Null means no ceiling when `unlimited` is true. */
+  profilesLimit?: number | null
+  /** usage.profiles_unlimited. */
+  profilesUnlimited?: boolean | null
+  /** plan.monthly_credits, only as a fallback where the included figure is absent. */
   monthlyCredits?: number | null
-  monthlyProfileLimit?: number | null
   creditsPerUnlock?: number | null
 }): UnlockGates {
   const per =
     input.creditsPerUnlock && input.creditsPerUnlock > 0
       ? input.creditsPerUnlock
       : CREDITS_PER_UNLOCK
+
+  // Prefer what the server states. The division is kept only for a response
+  // that predates included_profile_unlocks being sent.
   const included =
-    typeof input.monthlyCredits === 'number' ? Math.floor(input.monthlyCredits / per) : null
-  const cap = typeof input.monthlyProfileLimit === 'number' ? input.monthlyProfileLimit : null
-  const headroom = included !== null && cap !== null ? Math.max(0, cap - included) : null
-  return { included, cap, headroom }
+    typeof input.includedUnlocks === 'number'
+      ? input.includedUnlocks
+      : typeof input.monthlyCredits === 'number'
+        ? Math.floor(input.monthlyCredits / per)
+        : null
+
+  const unlimited = input.profilesUnlimited === true
+  const cap = unlimited
+    ? null
+    : typeof input.profilesLimit === 'number'
+      ? input.profilesLimit
+      : null
+
+  return { included, cap, unlimited }
 }
 
-/** The same two gates for a tier, from the static table. */
+/** The same, for a tier, from the static table. */
 export function unlockGatesForTier(tier: string): UnlockGates {
   const limits = getPlanLimits(tier)
   return {
     included: limits.includedUnlocks,
     cap: limits.unlockCap,
-    headroom: Math.max(0, limits.unlockCap - limits.includedUnlocks),
+    unlimited: limits.unlockCap === null,
   }
 }
 
 /**
- * The honest unlock sentence, in one place so no screen can print half of it.
+ * The unlock sentence, in one place so no screen can print half of it.
  *
- * With headroom:    "1,000 included, and up to 2,000 a month if you top up."
- * Without headroom: "350 a month. Top-ups cannot take you past it."
+ * Uncapped: "350 profile unlocks included, and you can buy more at 25 credits
+ *            each, with no monthly ceiling."
+ * Capped:   "5 profile unlocks a month, which is the Free plan's limit."
+ *
+ * Nothing here says what a customer CANNOT do. On a paid tier that framing is
+ * now false, and it was always the sentence that stopped someone buying.
  */
-export function unlockSentence(gates: UnlockGates): string {
-  const { included, cap, headroom } = gates
-  if (included === null || cap === null || headroom === null) {
-    return 'We could not load your unlock allowance.'
+export function unlockSentence(
+  gates: UnlockGates,
+  creditsPerUnlock: number = CREDITS_PER_UNLOCK
+): string {
+  const { included, cap, unlimited } = gates
+  if (included === null) return 'We could not load your unlock allowance.'
+  if (unlimited) {
+    return `${included.toLocaleString()} profile unlocks included, and you can buy more at ${creditsPerUnlock} credits each, with no monthly ceiling.`
   }
-  if (headroom > 0) {
-    return `${included.toLocaleString()} profile unlocks included, and up to ${cap.toLocaleString()} a month if you top up the credits for the rest.`
-  }
-  return `${included.toLocaleString()} profile unlocks a month. Top-ups add credit, not headroom: they cannot take you past ${cap.toLocaleString()}.`
+  if (cap === null) return `${included.toLocaleString()} profile unlocks included.`
+  return `${included.toLocaleString()} profile unlocks a month, which is the Free plan's limit. A paid plan lifts it.`
 }
 
 /** The short form, for a stat caption rather than a paragraph. */
-export function unlockCapNote(gates: UnlockGates): string {
-  const { included, cap, headroom } = gates
-  if (included === null || cap === null || headroom === null) return ''
-  if (headroom > 0) return `${cap.toLocaleString()} is the ceiling, with topped-up credits`
-  return 'Top-ups cannot take you past this'
+export function unlockAllowanceNote(
+  gates: UnlockGates,
+  creditsPerUnlock: number = CREDITS_PER_UNLOCK
+): string {
+  const { included, unlimited } = gates
+  if (included === null) return ''
+  if (unlimited) return `Buy more any time, at ${creditsPerUnlock} credits each`
+  return "The Free plan's monthly limit"
 }
 
 /**

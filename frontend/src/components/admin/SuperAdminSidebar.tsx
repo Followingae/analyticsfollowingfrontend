@@ -48,7 +48,6 @@ import {
   Image as ImageIcon,
   Activity,
   Send,
-  Layers,
   Map,
 } from "lucide-react"
 
@@ -145,10 +144,10 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         { title: "Creators & rates", url: "/work/influencers", icon: Users2 },
         { title: "Creators needing a price", url: "/work/influencers/review", icon: Coins,
           badge: badges["needs-price"] },
+        // Brand rosters (Areas) is now the whole supply job: what a client asked us to
+        // source, who we found, who they turned down, and which round we are on. The
+        // separate "Sourcing rounds" entry is gone with the table behind it.
         { title: "Brand rosters", url: "/work/areas", icon: Database },
-        // The other two halves of the supply job, and neither had an entry anywhere: what a
-        // client has asked us to source, and the category and market cells we cannot serve.
-        { title: "Sourcing rounds", url: "/work/sourcing", icon: Layers },
         { title: "Where we're thin", url: "/work/coverage", icon: Map },
         { title: "Campaigns", url: "/work/campaigns", icon: Megaphone },
         { title: "Creators to chase", url: "/work/chasing", icon: ClipboardCheck,
@@ -194,11 +193,8 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         ...(can("influencers") || can("fa") ? [{
           title: "Creators", url: "/work/creators", icon: Users2,
         }] : []),
-        // The supply side of Creators: what a client has asked us to source, and the
-        // category and market cells we cannot serve yet.
-        ...(can("influencers") ? [{
-          title: "Sourcing rounds", url: "/work/sourcing", icon: Layers,
-        }] : []),
+        // The supply side of Creators: the category and market cells we cannot serve yet.
+        // Sourcing itself lives on Brand rosters, above.
         ...(can("influencers") ? [{
           title: "Where we're thin", url: "/work/coverage", icon: Map,
         }] : []),

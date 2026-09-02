@@ -188,7 +188,7 @@ export default function ReportCampaignDetail() {
               <Stat label="Engagement" value={full(totals.engagement)} icon={<Heart className="h-3.5 w-3.5" />}
                     sub={`${full(totals.likes)} likes · ${full(totals.comments)} comments`} />
               <Stat label="Video plays" value={full(totals.views)} icon={<Play className="h-3.5 w-3.5" />}
-                    sub="Instagram play count — not reach" />
+                    sub="Instagram play count, not reach" />
             </section>
 
             {(totals.engagement_rate_by_followers != null || totals.engagement_rate_by_views != null) && (
@@ -353,8 +353,8 @@ export default function ReportCampaignDetail() {
             <AlertDialogHeader>
               <AlertDialogTitle>Revoke this report link?</AlertDialogTitle>
               <AlertDialogDescription>
-                Anyone holding the link for <strong>{campaign.name}</strong> — including the
-                client — will stop being able to open it. You can create a new one, but it
+                Anyone holding the link for <strong>{campaign.name}</strong>, including the
+                client, will stop being able to open it. You can create a new one, but it
                 will be a different URL.
               </AlertDialogDescription>
             </AlertDialogHeader>

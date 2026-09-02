@@ -12,11 +12,14 @@
  * it means NOT METERED (app/core/plans.py posts_limit_for_row), which is why
  * Meter takes the sentence rather than assuming one.
  *
- * Unlocks have TWO limits, not one. The bar runs against the count cap, which
- * is the number that refuses an unlock; the caption says what the plan funds,
- * which is credits divided by 25. Topping up moves the second and never the
- * first, so on Free and Standard, where the two are the same number, a top up
- * buys no unlocks at all and this panel says so rather than selling one.
+ * The unlock bar runs against what the plan FUNDS, not against a ceiling, because
+ * on every paid tier there is no ceiling: the wallet is the only limit. So the
+ * bar can pass 100%, and when it does that is a customer buying more rather than
+ * a warning, which is why it stays neutral instead of turning destructive and
+ * says how many are beyond the allowance instead of how many are left.
+ *
+ * Free is the one tier with a real cap, and there the bar means what it always
+ * meant. The upgrade, not a refusal, is the thing to say.
  */
 
 import { useEffect, useState } from 'react'
@@ -65,12 +68,19 @@ function Meter({
   label,
   note,
   zeroMeans = 'Not included on this plan',
+  canRunOut = true,
 }: {
   used: number
   limit: number
   label: string
   note?: string
   zeroMeans?: string
+  /**
+   * False when `limit` is what the plan FUNDS rather than a ceiling. Going past
+   * a funded allowance is a normal paid state, so the bar must not shout: no
+   * destructive colour, and "of N included" rather than "of N".
+   */
+  canRunOut?: boolean
 }) {
   if (!limit || limit <= 0) {
     return (
@@ -83,7 +93,12 @@ function Meter({
   }
 
   const pct = Math.min((used / limit) * 100, 100)
-  const tight = pct >= 80
+  // "Nearly out" only means something when running out is a thing that can
+  // happen. Where the allowance is a funded figure rather than a ceiling,
+  // passing it is a customer spending money with us, not a warning state, so
+  // the bar stays neutral and never turns destructive.
+  const tight = canRunOut && pct >= 80
+  const over = used > limit
 
   return (
     <div className="space-y-ds-2">
@@ -93,7 +108,10 @@ function Meter({
           <span className={tight ? 'font-medium text-foreground' : 'font-medium'}>
             {used.toLocaleString()}
           </span>
-          <span className="text-muted-foreground"> of {limit.toLocaleString()}</span>
+          <span className="text-muted-foreground">
+            {' '}of {limit.toLocaleString()}
+            {canRunOut ? '' : ' included'}
+          </span>
         </p>
       </div>
       <div className="h-1.5 overflow-hidden rounded-ds-full bg-muted">
@@ -102,6 +120,14 @@ function Meter({
           style={{ width: `${pct}%` }}
         />
       </div>
+      {/* Past the included allowance on a plan with no ceiling. Stated as fact,
+          in the same weight as everything else: this is a good customer buying
+          more, and the UI has no business flagging it. */}
+      {over && !canRunOut ? (
+        <p className="text-ds-caption text-muted-foreground">
+          {(used - limit).toLocaleString()} beyond the included allowance, paid from your credits
+        </p>
+      ) : null}
       {note ? <p className="text-ds-caption text-muted-foreground">{note}</p> : null}
     </div>
   )
@@ -155,11 +181,12 @@ export function UsagePanel({ status, managed }: { status: BillingStatus; managed
   const credited = perUnlock ?? CREDITS_PER_UNLOCK
 
   const gates = unlockGates({
+    includedUnlocks: status.plan?.included_profile_unlocks,
     monthlyCredits: status.plan?.monthly_credits,
-    monthlyProfileLimit: status.plan?.monthly_profile_limit,
+    profilesLimit: usage?.profiles_limit,
+    profilesUnlimited: usage?.profiles_unlimited,
     creditsPerUnlock: credited,
   })
-  const hasHeadroom = (gates.headroom ?? 0) > 0
 
   return (
     <Card>
@@ -170,20 +197,28 @@ export function UsagePanel({ status, managed }: { status: BillingStatus; managed
 
       <CardContent className="space-y-ds-4">
         <div className="grid gap-ds-4 sm:grid-cols-2">
-          {/* The bar is against the CAP, because that is the number that
-              refuses an unlock. The caption says what the plan funds, because
-              that is the number the plan pays for, and they are two different
-              limits. app/core/plans.py. */}
+          {/* The bar runs against what the plan FUNDS, not against a ceiling.
+              On a paid tier there is no ceiling to draw, and the funded figure
+              is the number a customer actually wants to track. Going past it is
+              allowed and normal, so `canRunOut` is false there and the bar never
+              turns red on someone who is simply buying more. */}
           <Meter
             used={usage?.profiles_used ?? 0}
-            limit={usage?.profiles_limit ?? 0}
+            limit={gates.included ?? 0}
             label="Profile unlocks"
-            note={
+            canRunOut={!gates.unlimited}
+            // A null allowance is a request that did not answer, not an
+            // allowance of nothing. Saying "not included on this plan" over a
+            // failed load would tell a paying customer they have none.
+            zeroMeans={
               gates.included === null
-                ? undefined
-                : hasHeadroom
-                  ? `${gates.included.toLocaleString()} funded by the plan, the rest needs topped up credits`
-                  : `${gates.included.toLocaleString()} funded by the plan, and the cap is the same number`
+                ? 'We could not load your allowance'
+                : 'Not included on this plan'
+            }
+            note={
+              gates.unlimited
+                ? `Buy more any time, at ${credited} credits each`
+                : undefined
             }
           />
           <Meter
@@ -197,13 +232,11 @@ export function UsagePanel({ status, managed }: { status: BillingStatus; managed
           />
         </div>
 
-        {/* The second gate, said once. Both have to pass. */}
+        {/* What limits an unlock, said once. */}
         <p className="text-ds-body-sm text-muted-foreground max-w-prose">
-          An unlock needs two things: room under your monthly cap, and {credited} credits in the
-          wallet.{' '}
-          {hasHeadroom
-            ? 'Buying credits covers the second one and never raises the first, so the cap is where unlocks stop whatever your balance is.'
-            : 'Buying credits covers the second one and never raises the first, so on this plan a top up will not buy you more unlocks.'}
+          {gates.unlimited
+            ? `An unlock costs ${credited} credits, and your balance is the only thing that limits how many you take. Past the included allowance they come out of credits you have bought.`
+            : `An unlock costs ${credited} credits. Free includes ${gates.included === null ? NO_FIGURE : gates.included.toLocaleString()} a month; a paid plan lifts the limit and lets you buy as many as you need.`}
         </p>
 
         <Separator />
@@ -242,40 +275,25 @@ export function UsagePanel({ status, managed }: { status: BillingStatus; managed
           <>
             <Separator />
             <div className="space-y-ds-2">
-              {/* Only a plan with headroom can turn a top up into unlocks.
-                  Credits land in the same pooled balance and the count gate is
-                  applied on every unlock regardless, so on Free and Standard a
-                  pack buys post analyses and exports, not unlocks. */}
-              <p className="text-ds-label">
-                {hasHeadroom ? 'More unlocks, on top of the plan' : 'More credits, on top of the plan'}
-              </p>
-              {hasHeadroom ? null : (
+              <p className="text-ds-label">More unlocks, on top of the plan</p>
+              {gates.unlimited ? null : (
                 <p className="text-ds-caption text-muted-foreground max-w-prose">
-                  These do not raise your unlock cap. They cover post analyses, campaign analysis
-                  and exports once the plan credits are gone.
+                  On Free these cover post analyses, campaign analysis and exports. A paid plan
+                  lets them buy unlocks too.
                 </p>
               )}
               <div className="grid gap-ds-2 sm:grid-cols-3">
                 {packs.map((pack) => {
+                  // No clamp. There is no ceiling to clamp against, and
+                  // clamping would advertise fewer unlocks than the pack buys.
                   const unlocks = credited > 0 ? Math.floor(pack.credits / credited) : null
-                  // Never more unlocks than the cap actually leaves room for.
-                  const usable =
-                    unlocks === null || gates.headroom === null
-                      ? unlocks
-                      : Math.min(unlocks, gates.headroom)
                   return (
                     <div key={pack.type} className="rounded-ds-surface border p-ds-3">
                       <p className="text-ds-subheading">
-                        {hasHeadroom
-                          ? usable === null
-                            ? NO_FIGURE
-                            : `${usable.toLocaleString()} unlocks`
-                          : `${pack.credits.toLocaleString()} credits`}
+                        {unlocks === null ? NO_FIGURE : `${unlocks.toLocaleString()} unlocks`}
                       </p>
                       <p className="text-ds-caption text-muted-foreground">
-                        {hasHeadroom
-                          ? `${pack.credits.toLocaleString()} credits`
-                          : 'Not spendable on unlocks at this tier'}
+                        {pack.credits.toLocaleString()} credits
                       </p>
                       <p className="mt-ds-2 text-ds-body-sm font-medium">
                         {typeof pack.discounted_price === 'number'

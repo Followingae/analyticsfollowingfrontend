@@ -88,7 +88,7 @@ export default function JobQueuePage() {
         const body = await res.json().catch(() => null)
         toast.error(res.status === 401 || res.status === 403
           ? "You do not have permission to clean up jobs"
-          : `Could not clean up jobs — ${body?.detail || res.statusText || res.status}`)
+          : `Could not clean up jobs: ${body?.detail || res.statusText || res.status}`)
       }
     } catch {
       toast.error("Failed to cleanup jobs")
@@ -151,7 +151,7 @@ export default function JobQueuePage() {
               <Lock className="h-12 w-12 text-muted-foreground mx-auto mb-ds-3" />
               <h3 className="text-ds-subheading">You do not have permission to see the job queue</h3>
               <p className="text-muted-foreground">
-                The server refused this read, so nothing here is known — not that the queue is empty.
+                The server refused this read, so nothing here is known, not that the queue is empty.
               </p>
               <p className="text-xs text-muted-foreground mt-2">{failure.detail}</p>
           </div>

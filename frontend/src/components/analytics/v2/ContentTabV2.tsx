@@ -20,7 +20,7 @@ const CONFIDENCE_STYLES: Record<BrandConfidence, string> = {
 // Plain-language meaning of each confidence level. Rendered as a visible legend
 // (below) so touch/keyboard users get the same explanation the hover tooltip gives.
 const CONFIDENCE_EXPLAIN: Record<BrandConfidence, string> = {
-  collab: "Formal Instagram Collab — the brand accepted co-authorship.",
+  collab: "Formal Instagram Collab: the brand accepted co-authorship.",
   tagged: "Tagged by the creator in the image.",
   mention: "Mentioned in a caption only.",
 }

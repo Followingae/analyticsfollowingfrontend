@@ -359,7 +359,7 @@ export default function ProposalApprovalPage() {
                     <UserPlus className="mr-1.5 h-4 w-4" /> Add creators from database
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Need a creator not in the database? Add them (with cost prices) from the Influencer Database — a superadmin sets sell pricing before they become selectable.
+                    Need a creator not in the database? Add them (with cost prices) from the Influencer Database. A superadmin sets sell pricing before they become selectable.
                   </p>
                   <Button variant="default" className="w-full" disabled={busy || (ws.influencers || []).length === 0}
                     onClick={() => run(() => proposalApprovalApi.submit(proposalId))}>
@@ -422,7 +422,7 @@ export default function ProposalApprovalPage() {
                   <CardDescription>
                     {wip
                       ? 'The proposal stays in their list, but opening it shows an overlay instead of the creators, and they cannot select or approve. Lift it when you\'re ready for them to look again.'
-                      : 'Adding more creators or re-pricing? Park it. The client keeps the proposal but sees an overlay instead of a half-finished roster — nothing is served to them and nothing can be approved until you lift it.'}
+                      : 'Adding more creators or re-pricing? Park it. The client keeps the proposal but sees an overlay instead of a half-finished roster. Nothing is served to them and nothing can be approved until you lift it.'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -434,7 +434,7 @@ export default function ProposalApprovalPage() {
                         </p>
                       )}
                       <Button disabled={busy} onClick={() => toggleWip(false)}>
-                        Lift — let the client see it again
+                        Lift, let the client see it again
                       </Button>
                     </>
                   ) : (
@@ -443,7 +443,7 @@ export default function ProposalApprovalPage() {
                       <Input
                         value={wipNote}
                         onChange={(e) => setWipNote(e.target.value)}
-                        placeholder="e.g. Adding a few more creators — back to you Tuesday"
+                        placeholder="e.g. Adding a few more creators, back to you Tuesday"
                       />
                       <Button variant="secondary" disabled={busy} onClick={() => toggleWip(true)}>
                         <Construction className="mr-1 h-4 w-4" />
@@ -467,7 +467,7 @@ export default function ProposalApprovalPage() {
                   <CardTitle>Client share link</CardTitle>
                   <CardDescription>
                     {status === 'sent'
-                      ? 'Commercials cleared. The link no longer shows creators — it now asks the client to log in, and the proposal is live in their account.'
+                      ? 'Commercials cleared. The link no longer shows creators. It now asks the client to log in, and the proposal is live in their account.'
                       : 'Internally approved. Share with the client - they see samples + a sign/pay gate.'}
                   </CardDescription>
                 </CardHeader>
@@ -487,7 +487,7 @@ export default function ProposalApprovalPage() {
                     <div className="rounded-md border bg-background p-3">
                       <div className="text-sm font-medium">Quotation link</div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Full roster and pricing straight away, no paperwork needed — the prospect
+                        Full roster and pricing straight away, no paperwork needed. The prospect
                         picks deliverables and confirms. Expires in 30 days.
                       </p>
                       <Button size="sm" variant="outline" className="mt-2" disabled={busy}

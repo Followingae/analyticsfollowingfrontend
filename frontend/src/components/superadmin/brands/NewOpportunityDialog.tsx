@@ -73,7 +73,7 @@ export function NewOpportunityDialog({
         <DialogHeader>
           <DialogTitle>New opportunity</DialogTitle>
           <DialogDescription>
-            A brand you have started talking to. Only the name is required — log it now and
+            A brand you have started talking to. Only the name is required. Log it now and
             fill the rest in as you learn it. No login is created and nothing is sent to them.
           </DialogDescription>
         </DialogHeader>

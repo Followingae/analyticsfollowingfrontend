@@ -64,7 +64,7 @@ export default function ClientShortlistPage() {
         creators: d.creators.map((c: any) => c.id === id ? { ...c, client_verdict: v } : c),
       }))
     } catch {
-      toast.error('That did not save — try again.')
+      toast.error('That did not save. Try again.')
     } finally { setBusy(false) }
   }
 
@@ -78,7 +78,7 @@ export default function ClientShortlistPage() {
       if (!res.ok) throw new Error()
       setDone(true)
     } catch {
-      toast.error('We could not send that — try again.')
+      toast.error('We could not send that. Try again.')
     } finally { setBusy(false) }
   }
 
@@ -99,7 +99,7 @@ export default function ClientShortlistPage() {
       <CheckCircle2 className="h-10 w-10 text-emerald-500" />
       <p className="text-lg font-semibold">Thank you</p>
       <p className="max-w-sm text-sm text-muted-foreground">
-        Your choices are with the team. If you would like to see more options, just say — we
+        Your choices are with the team. If you would like to see more options, just say and we
         will send a fresh set that leaves out anyone you have turned down.
       </p>
     </CardContent></Card></Shell>
@@ -119,7 +119,7 @@ export default function ClientShortlistPage() {
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">{data.title}</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
           {creators.length} creator{creators.length === 1 ? '' : 's'} selected for you. Tick the
-          ones you would like to work with — and if any are not right, a quick word on why helps
+          ones you would like to work with, and if any are not right, a quick word on why helps
           us get the next set closer.
         </p>
         {Object.keys(crit).length > 0 && (

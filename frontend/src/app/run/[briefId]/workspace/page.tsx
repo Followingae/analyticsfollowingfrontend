@@ -323,7 +323,7 @@ function WorkspaceScreen({ briefId, campaignId }: { briefId: string; campaignId:
             onChange={(e) => setReason(e.target.value)}
             rows={4}
             autoFocus
-            placeholder="The logo is cut off in the first three seconds — can you reframe it?"
+            placeholder="The logo is cut off in the first three seconds. Can you reframe it?"
             className="rounded-ds-field"
           />
           <DialogFooter>

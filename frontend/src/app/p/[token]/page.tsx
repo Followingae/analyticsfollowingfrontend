@@ -389,7 +389,7 @@ export default function PublicProposalPage() {
                   <Check className="h-5 w-5 text-primary" />
                 </div>
                 <h2 className="mt-5 text-2xl sm:text-3xl font-semibold tracking-tight">
-                  You&apos;re all set — your creators are ready
+                  You&apos;re all set, your creators are ready
                 </h2>
                 <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground leading-relaxed">
                   Your agreement and advance are confirmed. Sign in to your Following account
@@ -444,7 +444,7 @@ export default function PublicProposalPage() {
                     <div className="font-semibold">Your selection</div>
                     <p className="text-sm text-muted-foreground">
                       {tierState.complete
-                        ? 'All chosen — you can confirm below.'
+                        ? 'All chosen. You can confirm below.'
                         : `${tierState.total_picked} of ${tierState.total_allowed} chosen`}
                     </p>
                   </div>
@@ -498,7 +498,7 @@ export default function PublicProposalPage() {
                         getting more than they bought, so it is said out loud. */}
                     {byTier && inf.above_band && !inf.recommended && (
                       <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11.5px] font-medium text-primary">
-                        <Sparkles className="h-3 w-3" />Upgraded pick — counts as {inf.tier_label}
+                        <Sparkles className="h-3 w-3" />Upgraded pick, counts as {inf.tier_label}
                       </div>
                     )}
                     <div className="mt-5 flex items-center justify-between text-sm">

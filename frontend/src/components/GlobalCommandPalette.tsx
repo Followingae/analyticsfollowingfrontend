@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Activity, Banknote, Bell, BookOpen, Building2, ClipboardCheck, Compass, CreditCard, Database, FileText, Image as ImageIcon, Layers, LayoutDashboard, List, ListChecks, MailCheck, Megaphone, MessageCircle, Plus, Receipt, Send, Settings, Share2, ShieldCheck, Store, Target, UserPlus, Users, Wallet, Wrench } from "lucide-react"
+import { Activity, Banknote, Bell, BookOpen, Building2, ClipboardCheck, Compass, CreditCard, Database, FileText, Image as ImageIcon, LayoutDashboard, List, ListChecks, MailCheck, Megaphone, MessageCircle, Plus, Receipt, Send, Settings, Share2, ShieldCheck, Store, Target, UserPlus, Users, Wallet, Wrench } from "lucide-react"
 import {
   CommandDialog,
   CommandEmpty,
@@ -62,9 +62,10 @@ const OPERATOR_NAV: (CmdEntry & { module?: string })[] = [
   { title: "Creators needing a price", href: "/work/influencers/review", icon: Users,
     module: "influencers", keywords: "waiting room pending price approve creators cost" },
   { title: "Brand rosters", href: "/work/areas", icon: Target,
-    module: "influencers", keywords: "shortlist samples client round" },
-  { title: "Sourcing rounds", href: "/work/sourcing", icon: Layers,
-    module: "influencers", keywords: "round owner due locked dropped sample request sourcing" },
+    module: "influencers",
+    // The old "Sourcing rounds" entry pointed at a screen that no longer exists. Its search
+    // words move here, because this is where that work happens now.
+    keywords: "shortlist samples client round owner due locked dropped turned down sourcing request area" },
   { title: "Office screens", href: "/work/system/displays", icon: List, module: "system" },
   { title: "Approvals", href: "/work/approvals", icon: List, module: "campaigns" },
   { title: "Add / import creators", href: "/work/influencers/add", icon: Plus, module: "influencers" },

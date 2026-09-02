@@ -113,7 +113,7 @@ export function FailedState({
         </EmptyMedia>
         <EmptyTitle>We could not {what}</EmptyTitle>
         <EmptyDescription>
-          This is our side, not yours — nothing about your brief has changed. {error}
+          This is our side, not yours. Nothing about your brief has changed. {error}
         </EmptyDescription>
       </EmptyHeader>
       {onRetry && (

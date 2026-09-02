@@ -322,7 +322,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     const r = await optimise(live, spendable, strategy, p => setTested({ n: p.tested, total: p.total, best: p.best, spend: p.spend }))
     const ids = new Set(r.picks.map(c => c.id))
     setChosen(ids); save(ids); setBuiltSig(sig(ids, strategy))
-    setBuildLog(l => [...l, `Best fit found — ${aed(r.spend)} of ${aed(spendable)}, ${aed(r.leftover)} unspent`])
+    setBuildLog(l => [...l, `Best fit found: ${aed(r.spend)} of ${aed(spendable)}, ${aed(r.leftover)} unspent`])
     await new Promise(r2 => setTimeout(r2, 900))
     setBuilding(false)
   }
@@ -719,7 +719,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
               {picked.length === 0 ? (
                 <div className="rounded-2xl border border-dashed p-5 text-center text-[12.5px] text-muted-foreground">
                   {lockedList.length > 0
-                    ? "Add to your campaign — tap a creator, or let Smart pick build it."
+                    ? "Add to your campaign. Tap a creator, or let Smart pick build it."
                     : "Tap a creator, or let Smart pick build it."}
                 </div>
               ) : (

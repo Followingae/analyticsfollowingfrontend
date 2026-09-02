@@ -71,10 +71,10 @@ function standardAllowance(action: string | undefined): { figure: string; note: 
   switch (action) {
     case 'profile_analysis':
       // app/core/plans.py PLANS['standard']: 8,750 credits funds 350 unlocks,
-      // and unlock_cap_multiple 1.0 makes 350 the ceiling too.
+      // and unlock_cap_multiple UNLIMITED means nothing caps them above that.
       return {
         figure: `${(gates.included ?? 0).toLocaleString()} a month`,
-        note: 'Top-ups cannot take you past it',
+        note: 'Plus as many more as you buy',
       }
     case 'post_analytics':
       // app/core/plans.py PLANS['standard'].monthly_posts_limit

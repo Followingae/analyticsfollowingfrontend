@@ -128,7 +128,7 @@ export function PriceModifierCard({
           <Tag className="h-4 w-4" />Priced add-on
         </CardTitle>
         <CardDescription>
-          An option the client can take per deliverable on a quotation link — for example a
+          An option the client can take per deliverable on a quotation link, for example a
           visit to an event, charged at a higher rate. Leave it off if this campaign has none.
         </CardDescription>
       </CardHeader>

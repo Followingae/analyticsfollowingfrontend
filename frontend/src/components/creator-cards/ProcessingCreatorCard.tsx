@@ -172,7 +172,7 @@ export function ProcessingCreatorCard({ username, startedAt }: ProcessingCreator
         {elapsedSeconds > 30 && (
           <div className="rounded-md border border-primary/20 bg-primary/5 p-2 text-[10px] text-muted-foreground leading-snug">
             <span className="font-medium text-foreground">No need to wait.</span>{' '}
-            You can navigate away — we'll send a notification when @{username} is ready.
+            You can navigate away. We'll send a notification when @{username} is ready.
           </div>
         )}
 

@@ -115,7 +115,7 @@ export function AddOnUptake({
           {taken.length === 0 && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <Minus className="size-3.5" />
-              The client priced without it — the totals on this page carry no uplift.
+              The client priced without it, so the totals on this page carry no uplift.
             </p>
           )}
 
@@ -177,8 +177,8 @@ export function AddOnUptake({
                   {pending?.username} goes from <b>{aed(base)}</b> to{' '}
                   <b>{aed(nextState ? uplifted(base) : base)}</b>
                   {nextState
-                    ? ` — ${aed(uplifted(base) - base)} more.`
-                    : ` — ${aed(uplifted(base) - base)} less.`}
+                    ? `, ${aed(uplifted(base) - base)} more.`
+                    : `, ${aed(uplifted(base) - base)} less.`}
                 </p>
                 {pending?.locked && (
                   <p className="rounded-md bg-amber-500/10 p-2.5 text-amber-700 dark:text-amber-400">

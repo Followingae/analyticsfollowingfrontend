@@ -307,10 +307,10 @@ function DigestPanel() {
   return (
     <div className={`${CARD} flex flex-wrap items-center gap-ds-3 bg-[var(--tone-neutral-wash)] p-ds-3`}>
         <div className="min-w-0">
-          <div className="text-ds-label">Digest — 08:30 and 17:30, Dubai</div>
+          <div className="text-ds-label">Digest: 08:30 and 17:30, Dubai</div>
           <p className="mt-ds-1 text-ds-body text-muted-foreground">
             {previewFailed
-              ? "We could not read what is queued. This is not a count of zero — try again."
+              ? "We could not read what is queued. This is not a count of zero. Try again."
               : preview === null
               ? "Checking what is queued…"
               : preview.recipients === 0
@@ -441,7 +441,7 @@ export default function SuperadminNotificationsPage() {
               Emails are sent via Resend and always CC <span className="font-mono">zain@following.ae</span>. For team
               events that already fan out to every operator, prefer <span className="font-medium">Notify natural
               recipient</span> rather than <span className="font-medium">All superadmins</span> to avoid duplicate
-              emails. Creators (mobile app) are never emailed here — they receive push notifications.
+              emails. Creators (mobile app) are never emailed here. They receive push notifications.
             </div>
         </div>
 

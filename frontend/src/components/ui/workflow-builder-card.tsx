@@ -86,7 +86,7 @@ export const WorkflowBuilderCard = ({
               type="button"
               disabled
               aria-label="More options (coming soon)"
-              title="More options — coming soon"
+              title="More options, coming soon"
               className="cursor-not-allowed text-muted-foreground/40"
             >
               <MoreHorizontal size={20} />

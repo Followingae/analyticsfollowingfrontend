@@ -64,7 +64,7 @@ export function LogTouchDialog({
           }),
         })
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Could not save')
-      toast.success(`Logged — ${brandName || 'this brand'} counts as spoken to today`)
+      toast.success(`Logged: ${brandName || 'this brand'} counts as spoken to today`)
       setNote(''); setNextStep(''); setNextAt(''); setChannel('call')
       onOpenChange(false)
       onLogged?.()

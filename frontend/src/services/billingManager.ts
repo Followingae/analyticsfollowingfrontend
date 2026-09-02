@@ -67,7 +67,15 @@ export interface BillingStatus {
     features: string[]
     description: string
     max_team_members: number
+    /**
+     * NOT the cap. app/core/plans.py Plan.monthly_profile_limit returns the
+     * INCLUDED allowance: the column is integer NOT NULL and ~20 sites bind it
+     * into an INSERT, so the unlimited sentinel is kept out of it on purpose.
+     * The ceiling lives on `usage.profiles_limit`.
+     */
     monthly_profile_limit: number
+    /** What the plan funds. Sent explicitly, so nothing derives credits / 25. */
+    included_profile_unlocks?: number
     monthly_posts_limit: number
     monthly_credits: number
     topup_discount: number
@@ -95,7 +103,15 @@ export interface BillingStatus {
   }
   usage: {
     profiles_used: number
-    profiles_limit: number
+    /**
+     * THE CAP, resolved by app/core/plans.py profile_limit_for_row and
+     * serialised by limit_for_api. NULL means there is no ceiling, which is the
+     * normal state on every paid tier. Read `profiles_unlimited` to tell a real
+     * null apart from a value that failed to load: never treat null as 0, which
+     * would read as "you may unlock nothing".
+     */
+    profiles_limit: number | null
+    profiles_unlimited?: boolean
     posts_used: number
     posts_limit: number
   }

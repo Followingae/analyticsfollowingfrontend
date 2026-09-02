@@ -35,7 +35,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Loader2, Plus, Users, Trash2, ListChecks, Building2, Link2, Rocket, CheckCircle2 } from "lucide-react"
+import { Loader2, Plus, Users, Trash2, ListChecks, Building2, Link2, Rocket, CheckCircle2,
+         Lock, ThumbsDown } from "lucide-react"
 import { toast } from "sonner"
 import { imdListsApi, type ImdListSummary, type AreaBrief } from "@/services/imdListsApi"
 import { clientApi } from "@/services/clientManagementApi"
@@ -77,6 +78,7 @@ function AreasPage() {
   const canStock = can("influencers")
   const [areas, setAreas] = useState<ImdListSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   // Which half of the screen to open on. Business development are sent here for sample packs
   // and landed on client rosters every time, because the link asked for a tab nobody read.
   const params = useSearchParams()
@@ -100,11 +102,14 @@ function AreasPage() {
 
   const load = async () => {
     setLoading(true)
+    setLoadError(null)
     try {
       const res = await imdListsApi.list()
       setAreas(res?.data?.lists ?? [])
     } catch (e) {
-      toast.error((e as Error).message || "Could not load areas")
+      // Held apart from an empty list on purpose. "No brands being sourced for" reads as a
+      // fact about the business; a read that failed is a fact about the request.
+      setLoadError((e as Error).message || "Could not load areas")
     } finally {
       setLoading(false)
     }
@@ -360,6 +365,14 @@ function AreasPage() {
 
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : loadError ? (
+            <div className="flex flex-col items-center gap-ds-2 py-16 text-center">
+              <p className="text-ds-label">Areas did not load</p>
+              <p className="max-w-md text-ds-caption text-muted-foreground">
+                {loadError}. Nothing has been lost, the list simply did not come back.
+              </p>
+              <Button variant="outline" size="sm" className="mt-ds-1" onClick={load}>Try again</Button>
+            </div>
           ) : shown.length === 0 ? (
             /* A dashed card with a bordered circle inside it: two boxes drawn round the
                sentence "there is nothing here". Both come off — the words say it. */
@@ -383,8 +396,21 @@ function AreasPage() {
                         className={`${CARD} group bg-white transition-all hover:-translate-y-0.5 dark:bg-neutral-900/70`}>
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-base">
+                        <CardTitle className="flex flex-wrap items-center gap-ds-2 text-base">
                           <Link href={`/work/areas/${a.id}`} className="hover:underline">{a.name}</Link>
+                          {/* Which pass we are on, and whether it is closed. Only shown once
+                              there has been more than one: "round 1" on every card is a
+                              label that stops being read. */}
+                          {(a.round_no ?? 1) > 1 && (
+                            <span className="rounded-ds-full bg-[var(--tone-info-wash)] px-2 py-0.5 text-ds-caption font-medium">
+                              Round {a.round_no}
+                            </span>
+                          )}
+                          {a.locked_at && (
+                            <span className="inline-flex items-center gap-1 rounded-ds-full bg-[var(--tone-neutral-wash)] px-2 py-0.5 text-ds-caption font-medium text-muted-foreground">
+                              <Lock className="h-3 w-3" />Closed
+                            </span>
+                          )}
                         </CardTitle>
                         {canDestroy && canStock && (
                           <Button size="icon" variant="ghost"
@@ -413,6 +439,13 @@ function AreasPage() {
                         </Badge>
                         {(a.picked_count ?? 0) > 0 && (
                           <Badge className="gap-1">{a.picked_count} picked</Badge>
+                        )}
+                        {/* What the client said no to. The number that decides whether this
+                            area goes round again, so it sits with the other two. */}
+                        {(a.dropped_count ?? 0) > 0 && (
+                          <Badge variant="outline" className="gap-1 text-muted-foreground">
+                            <ThumbsDown className="h-3 w-3" />{a.dropped_count} turned down
+                          </Badge>
                         )}
                         {(a.live_links ?? 0) > 0 && (
                           /* Was its own emerald, a fifth green beside the console's one. */

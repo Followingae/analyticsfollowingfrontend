@@ -70,7 +70,7 @@ export function RosterPanel(p: Props) {
         <p className="text-xs text-muted-foreground mt-0.5">
           {p.addedInfluencers.length === 0
             ? "Nothing added yet"
-            : `Added Influencers (${p.addedInfluencers.length}) — this order is the order they are sent in`}
+            : `Added Influencers (${p.addedInfluencers.length}): this order is the order they are sent in`}
         </p>
       </div>
 

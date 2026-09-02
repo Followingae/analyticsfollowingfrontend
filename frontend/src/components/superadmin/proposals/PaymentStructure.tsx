@@ -251,7 +251,7 @@ export function PaymentStructure({
             {isRetainer ? 'Another split' : 'Another stage'}
           </Button>
           <span className={cn('text-xs', pctTotal === 100 ? 'text-emerald-600' : 'text-amber-600')}>
-            {pctTotal}%{pctTotal !== 100 ? ' — should add up to 100%' : ''}
+            {pctTotal}%{pctTotal !== 100 ? ', should add up to 100%' : ''}
           </span>
         </div>
       </div>

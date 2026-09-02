@@ -551,7 +551,7 @@ export default function LadderPage() {
                         <Input type="number" inputMode="decimal" placeholder="Amount in AED"
                                value={rate} onChange={(e) => setRate(e.target.value)} />
                       </div>
-                      <Textarea rows={2} placeholder="Anything worth remembering — what it covers, who agreed it"
+                      <Textarea rows={2} placeholder="Anything worth remembering: what it covers, who agreed it"
                                 value={rateNote} onChange={(e) => setRateNote(e.target.value)} />
                       <Button className="w-full gap-2" disabled={busy || !rate}
                               onClick={() => act(() => ladderApi.proposeRate(open.id, Number(rate), rateNote), "Sent for confirmation")}>
@@ -680,7 +680,7 @@ export default function LadderPage() {
 
                   {open.stage === "paid" && (
                     <p className="text-ds-body text-muted-foreground">
-                      Finished — posted and paid.
+                      Finished, posted and paid.
                     </p>
                   )}
 
@@ -692,7 +692,7 @@ export default function LadderPage() {
                           They came off the campaign
                         </summary>
                         <div className="mt-3 space-y-2">
-                          <Textarea rows={2} placeholder="Why — it stays on their record"
+                          <Textarea rows={2} placeholder="Why? It stays on their record"
                                     value={dropWhy} onChange={(e) => setDropWhy(e.target.value)} />
                           <Button variant="outline" size="sm" className="w-full gap-2"
                                   disabled={busy || !dropWhy.trim()}
@@ -707,7 +707,7 @@ export default function LadderPage() {
                   {open.defaulted_at && (
                     <div className="flex items-start gap-ds-2 rounded-ds-lg bg-[var(--tone-bad-wash)] p-ds-3 text-ds-caption text-[var(--tone-bad-ink)]">
                       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      <span>Marked missed — the date passed with nothing in.</span>
+                      <span>Marked missed. The date passed with nothing in.</span>
                     </div>
                   )}
                 </div>

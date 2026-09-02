@@ -147,7 +147,7 @@ export default function ReportCampaignsPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="rc-name">Campaign name</Label>
                 <Input id="rc-name" value={name} onChange={(e) => setName(e.target.value)}
-                       placeholder="e.g. Lago Wafers — Summer Launch" />
+                       placeholder="e.g. Lago Wafers: Summer Launch" />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="rc-brand">Brand</Label>

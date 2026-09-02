@@ -209,7 +209,7 @@ function BroadcastsTab({
             <Select value={templateId} onValueChange={setTemplateId}>
               <SelectTrigger><SelectValue placeholder="Choose an approved template" /></SelectTrigger>
               <SelectContent>
-                {active.length === 0 && <div className="p-2 text-sm text-muted-foreground">No active templates — add one first.</div>}
+                {active.length === 0 && <div className="p-2 text-sm text-muted-foreground">No active templates. Add one first.</div>}
                 {active.map(t => (
                   <SelectItem key={t.id} value={t.id}>
                     {t.name} <span className="text-muted-foreground">· {t.category}</span>
@@ -225,7 +225,7 @@ function BroadcastsTab({
                already has one. The caption above them does the fencing. */
             <div className="space-y-ds-2">
               <p className="text-ds-caption font-medium text-muted-foreground">
-                Variables — use {"{{first_name}}"} to personalise
+                Variables: use {"{{first_name}}"} to personalise
               </p>
               {template.variables.map(v => (
                 <div key={v.index} className="space-y-1">
@@ -247,7 +247,7 @@ function BroadcastsTab({
               <SelectContent>
                 <SelectItem value="all_consented">All consented contacts</SelectItem>
                 <SelectItem value="tags">By tag</SelectItem>
-                <SelectItem value="test">Test — specific numbers</SelectItem>
+                <SelectItem value="test">Test: specific numbers</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -734,7 +734,7 @@ function TemplatesTab({ templates, failed, onChange }: {
         <p className="text-ds-body text-muted-foreground">
           Create templates in Twilio&apos;s Content Template Builder (they submit to Meta
           for approval). Click <b>Sync from Twilio</b> to pull them in automatically with
-          their approval status — or add one manually by pasting its <code className="font-mono">HX</code> Content SID.
+          their approval status, or add one manually by pasting its <code className="font-mono">HX</code> Content SID.
         </p>
         <Table>
           <TableHeader>

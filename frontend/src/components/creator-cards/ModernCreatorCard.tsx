@@ -384,7 +384,7 @@ export function ModernCreatorCard({
                         variant="outline"
                         size="sm"
                         disabled
-                        aria-label="Add to list — coming soon"
+                        aria-label="Add to list, coming soon"
                         className="w-full border-2 transition-all duration-200"
                       >
                         <Plus className="h-4 w-4 mr-2" />

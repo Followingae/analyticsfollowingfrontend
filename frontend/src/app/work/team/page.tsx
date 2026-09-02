@@ -73,7 +73,8 @@ export default function TeamConsolePage() {
     return <SuperadminLayout><p className="text-sm text-muted-foreground">Nothing to show.</p></SuperadminLayout>
   }
 
-  const overdue = (data.rounds || []).filter((r: any) =>
+  const areas = data.areas || []
+  const overdue = areas.filter((r: any) =>
     r.due_at && new Date(r.due_at).getTime() < Date.now()).length
 
   return (
@@ -89,7 +90,7 @@ export default function TeamConsolePage() {
                 tone={data.waiting.count ? 'warn' : 'good'}
                 hint={data.waiting.oldest ? `Oldest ${ago(data.waiting.oldest)}` : 'Nothing waiting'}
                 onClick={() => router.push('/work/influencers/review')} />
-          <Stat label="Rounds open" value={data.rounds.length} icon={LayersIcon}
+          <Stat label="Areas open" value={areas.length} icon={LayersIcon}
                 tone={overdue ? 'bad' : 'neutral'}
                 hint={overdue ? `${overdue} overdue` : 'All on time'}
                 onClick={() => router.push('/work/areas')} />
@@ -97,7 +98,7 @@ export default function TeamConsolePage() {
                 icon={UserRound} hint="Across the whole team" />
           <Stat label="Alerts" value={data.alerts.length} icon={Bell}
                 tone={data.alerts.length ? 'warn' : 'good'}
-                hint="Private to leadership — the team never sees these" />
+                hint="Private to leadership. The team never sees these" />
         </StatGrid>
 
         <div className="grid items-start gap-ds-4 lg:grid-cols-2">
@@ -154,8 +155,8 @@ export default function TeamConsolePage() {
           </Panel>
         </div>
 
-        <Panel title="Rounds open now" description="Soonest due first" flush>
-          {data.rounds.map((r: any) => {
+        <Panel title="Areas open now" description="Soonest due first" flush>
+          {areas.map((r: any) => {
             const late = r.due_at && new Date(r.due_at).getTime() < Date.now()
             return (
               <Row
@@ -164,8 +165,10 @@ export default function TeamConsolePage() {
                 title={r.title}
                 meta={
                   <>
-                    Round {r.round_no} · {r.owner_email || 'unassigned'}
+                    {r.client_name || 'No client linked'} · {r.owner_email || 'unassigned'}
+                    {(r.round_no || 1) > 1 && ` · round ${r.round_no}`}
                     {r.awaiting_review > 0 && ` · ${r.awaiting_review} awaiting your review`}
+                    {r.dropped > 0 && ` · ${r.dropped} turned down`}
                   </>
                 }
                 right={
@@ -181,11 +184,11 @@ export default function TeamConsolePage() {
                     </Badge>
                   </>
                 }
-                onClick={() => router.push(`/work/sourcing/${r.id}`)}
+                onClick={() => router.push(`/work/areas/${r.id}`)}
               />
             )
           })}
-          {data.rounds.length === 0 && <Empty>No rounds open.</Empty>}
+          {areas.length === 0 && <Empty>No areas open.</Empty>}
         </Panel>
       </div>
     </SuperadminLayout>

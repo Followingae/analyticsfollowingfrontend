@@ -263,7 +263,7 @@ export function QuoteView({
             <p className="text-sm leading-relaxed">
               <span className="font-semibold">{modifier.label}</span>{' '}
               <span className="text-muted-foreground">({modifierSuffix(modifier)})</span> is
-              available on some deliverables below. Choose it per deliverable — you can take it
+              available on some deliverables below. Choose it per deliverable: you can take it
               on one and not another.
               {modifier.description && (
                 <span className="mt-1 block text-muted-foreground">{modifier.description}</span>

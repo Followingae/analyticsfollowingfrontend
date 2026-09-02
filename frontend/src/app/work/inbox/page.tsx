@@ -38,7 +38,7 @@ import {
   faDeliverableApi, faMemberApi, faReceiptClaimApi, faWithdrawalApi,
 } from '@/services/faAdminApi'
 import { creatorIntakeApi } from '@/services/creatorIntakeApi'
-import { sourcingApi } from '@/services/sourcingApi'
+import { imdListsApi } from '@/services/imdListsApi'
 import { adminProposalApi } from '@/services/adminProposalMasterApi'
 
 // ── reading the answers ──────────────────────────────────────────────────────────────
@@ -109,7 +109,7 @@ export default function InboxPage() {
   const [withdrawals, setWithdrawals] = useState<any[]>([])
   const [newMembers, setNewMembers] = useState<any[]>([])
   const [unpriced, setUnpriced] = useState<any[]>([])
-  const [rounds, setRounds] = useState<any[]>([])
+  const [areas, setAreas] = useState<any[]>([])
   const [toSource, setToSource] = useState<any[]>([])
   const [proposals, setProposals] = useState<any[]>([])
 
@@ -139,7 +139,7 @@ export default function InboxPage() {
       mayMoney ? faWithdrawalApi.listPending() : Promise.resolve(null),
       mayMoney ? faMemberApi.list({ is_approved: 0, limit: 50 }) : Promise.resolve(null),
       mayCreators ? creatorIntakeApi.reviewQueue() : Promise.resolve(null),
-      mayCreators ? sourcingApi.listRounds({ status: 'internal_review' }) : Promise.resolve(null),
+      mayCreators ? imdListsApi.list({ kind: 'client' }) : Promise.resolve(null),
       mayProposals ? adminProposalApi.listProposals({ status: 'pending_internal_review', limit: 50 })
                    : Promise.resolve(null),
       mayProposals ? adminProposalApi.listProposals({ status: 'internal_changes_requested', limit: 50 })
@@ -152,7 +152,11 @@ export default function InboxPage() {
     setWithdrawals(w.status === 'fulfilled' && w.value ? unwrap(w.value, 'withdrawals') : [])
     setNewMembers(m.status === 'fulfilled' && m.value ? unwrap(m.value, 'members') : [])
     setUnpriced(p.status === 'fulfilled' && p.value ? unwrap(p.value, 'items') : [])
-    setRounds(s.status === 'fulfilled' && s.value ? unwrap(s.value, 'items') : [])
+    // Areas with creators nobody has cleared or struck yet. A closed or archived area is
+    // not waiting on anybody, so it is not in an inbox.
+    setAreas(s.status === 'fulfilled' && s.value
+      ? unwrap(s.value, 'lists').filter((a: any) => a.awaiting_count > 0 && !a.locked_at && !a.archived_at)
+      : [])
     // Today already works out, per role, which brands are still waiting on a brief. Only
     // leadership get these back, so no extra gate is needed here.
     setToSource(td.status === 'fulfilled' && td.value
@@ -203,7 +207,7 @@ export default function InboxPage() {
       items: deliverables.map((x: any) => ({
         id: String(x.id),
         title: x.member_name || x.instagram_username || 'Creator',
-        waitingFor: `${String(x.type || 'content').replace(/_/g, ' ')}${x.quantity > 1 ? ` ×${x.quantity}` : ''} — confirm it went live`,
+        waitingFor: `${String(x.type || 'content').replace(/_/g, ' ')}${x.quantity > 1 ? ` ×${x.quantity}` : ''}: confirm it went live`,
         since: x.submitted_at || x.created_at,
         href: '/work/fa/deliverables',
       })),
@@ -217,7 +221,7 @@ export default function InboxPage() {
       items: receipts.map((x: any) => ({
         id: String(x.id),
         title: x.member?.full_name || x.member?.instagram_username || 'Creator',
-        waitingFor: `${x.ai_extracted_merchant || 'Receipt'} — approve or turn down`,
+        waitingFor: `${x.ai_extracted_merchant || 'Receipt'}: approve or turn down`,
         since: x.created_at,
         href: '/work/fa/receipt-claims',
       })),
@@ -231,7 +235,7 @@ export default function InboxPage() {
       items: withdrawals.map((x: any) => ({
         id: String(x.id),
         title: x.member_name || x.account_holder || 'Creator',
-        waitingFor: `${x.bank_name || 'Bank transfer'} — release the payout`,
+        waitingFor: `${x.bank_name || 'Bank transfer'}: release the payout`,
         since: x.requested_at,
         right: x.amount != null ? aed(x.amount) : undefined,
         href: '/work/fa/withdrawals',
@@ -262,7 +266,7 @@ export default function InboxPage() {
         id: String(x.id),
         title: `@${x.username}`,
         waitingFor: x.submitted_by_email
-          ? `Set a sell price — added by ${x.submitted_by_email}`
+          ? `Set a sell price, added by ${x.submitted_by_email}`
           : 'Set a sell price and approve',
         since: x.submitted_at,
         right: x.followers_count ? `${compact(x.followers_count)} followers` : undefined,
@@ -271,22 +275,17 @@ export default function InboxPage() {
     })
 
     if (mayCreators) g.push({
-      key: 'rounds',
+      key: 'areas',
       label: 'Sourcing waiting on a yes or no',
-      description: 'A list of creators is built and cannot go to the client until it is cleared.',
-      // Sourcing rounds are retired — brand rosters replaced them, and the round table is
-      // empty in production, so this group normally has nothing in it. The group heading
-      // therefore opens the roster screen, which is where this work happens now. A row, if
-      // legacy data ever produces one, still opens its own round, because that is the only
-      // screen where that particular verdict can be taken.
+      description: 'Creators are stocked and cannot go to the client until they are cleared.',
       href: '/work/areas',
-      items: rounds.map((x: any) => ({
+      items: areas.map((x: any) => ({
         id: String(x.id),
-        title: `${x.title}${x.round_no ? ` · round ${x.round_no}` : ''}`,
-        waitingFor: `${x.client_name || 'No client linked'} — approve or strike the ${x.proposed || 0} found`,
-        since: x.created_at,
-        right: x.approved ? `${x.approved} cleared` : undefined,
-        href: `/work/sourcing/${x.id}`,
+        title: (x.round_no || 1) > 1 ? `${x.name} · round ${x.round_no}` : x.name,
+        waitingFor: `${x.team_name || 'No client linked'}: clear or strike the ${x.awaiting_count} waiting`,
+        since: x.updated_at,
+        right: x.cleared_count ? `${x.cleared_count} cleared` : undefined,
+        href: `/work/areas/${x.id}`,
       })),
     })
 
@@ -299,8 +298,8 @@ export default function InboxPage() {
         id: String(x.id),
         title: x.campaign_name || x.title || 'Proposal',
         waitingFor: x.status === 'internal_changes_requested'
-          ? `${x.brand_name || x.user_email || 'Client'} — changes asked for, back with the talent manager`
-          : `${x.brand_name || x.user_email || 'Client'} — your approval before it can be sent`,
+          ? `${x.brand_name || x.user_email || 'Client'}: changes asked for, back with the talent manager`
+          : `${x.brand_name || x.user_email || 'Client'}: your approval before it can be sent`,
         since: x.created_at,
         right: x.total_influencers ? `${x.total_influencers} creators` : undefined,
         // The approval workspace, not the proposal page — that is where the decision is taken.
@@ -319,7 +318,7 @@ export default function InboxPage() {
     }
     return g
   }, [mayFa, mayMoney, mayCreators, mayProposals, order,
-      deliverables, receipts, withdrawals, newMembers, unpriced, rounds, proposals])
+      deliverables, receipts, withdrawals, newMembers, unpriced, areas, proposals])
 
   const all = useMemo(() => groups.flatMap(g => g.items), [groups])
   const total = all.length
@@ -359,7 +358,7 @@ export default function InboxPage() {
   const head = (
     <Hub
       title="Waiting on me"
-      sub="Everything waiting on a decision from you, wherever it came from. Longest wait first — each row opens the screen where the decision is made."
+      sub="Everything waiting on a decision from you, wherever it came from. Longest wait first, and each row opens the screen where the decision is made."
       tabs={tabs}
       action={
         <>
@@ -462,7 +461,7 @@ export default function InboxPage() {
             <p className="text-ds-subheading">You are clear</p>
             <p className="text-sm font-medium">Nothing is waiting on a decision from you.</p>
             <p className="max-w-md text-xs text-muted-foreground">
-              Your lists are shown above — open any of them to see what has already been
+              Your lists are shown above. Open any of them to see what has already been
               decided, or what is moving.
             </p>
           </div>
@@ -514,7 +513,7 @@ export default function InboxPage() {
                     onClick={() => router.push(g.href)}
                     className="w-full border-t px-6 py-ds-2 text-left text-xs text-muted-foreground transition-colors hover:bg-black/[0.03] hover:text-foreground dark:hover:bg-white/[0.05]"
                   >
-                    {g.items.length - 8} more waiting — open {g.label.toLowerCase()}
+                    {g.items.length - 8} more waiting, open {g.label.toLowerCase()}
                   </button>
                 )}
                 {g.items.length === 0 && <Empty>Nothing waiting here.</Empty>}

@@ -145,7 +145,7 @@ export default function PayablesPage() {
       <div className="space-y-ds-5">
         <MoneyHubHeader
           title="Creator payments"
-          sub="Record what we owe a creator and follow it through to paid. Recording is not paying — a founder marks a payment paid."
+          sub="Record what we owe a creator and follow it through to paid. Recording is not paying. A founder marks a payment paid."
           action={
             <>
               <Button variant="outline" onClick={exportCsv} disabled={!items.length}>
@@ -283,14 +283,14 @@ export default function PayablesPage() {
           <DialogHeader>
             <DialogTitle>Record a payment</DialogTitle>
             <DialogDescription>
-              What we agreed for this piece of work — which can be less than the rate we hold
+              What we agreed for this piece of work, which can be less than the rate we hold
               on the creator.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label className="text-xs">Title</Label>
-              <Input className="mt-1.5" value={form.title} placeholder="e.g. Boom Challenge — reel fee"
+              <Input className="mt-1.5" value={form.title} placeholder="e.g. Boom Challenge, reel fee"
                      onChange={e => setForm(p => ({ ...p, title: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -320,7 +320,7 @@ export default function PayablesPage() {
             <div>
               <Label className="text-xs">Notes</Label>
               <Textarea className="mt-1.5" rows={2} value={form.notes}
-                        placeholder="Anything worth remembering — bank details go elsewhere"
+                        placeholder="Anything worth remembering. Bank details go elsewhere"
                         onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
             </div>
           </div>

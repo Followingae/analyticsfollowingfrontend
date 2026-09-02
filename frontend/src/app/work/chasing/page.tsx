@@ -79,7 +79,7 @@ export default function ChasingPage() {
             the same decision made once, and it carries the tour's page anchor with it. */}
         <PageHead
           title="Creators to chase"
-          sub={'Everyone we have booked who is waiting on something — a rate, a guide, or the ' +
+          sub={'Everyone we have booked who is waiting on something: a rate, a guide, or the ' +
                'content itself. ' + (late > 0
                  ? `${late} ${late === 1 ? 'is' : 'are'} past their content date.`
                  : 'Nobody is late.')}

@@ -133,7 +133,7 @@ export function ProductionTab({
                   </>
                 ) : (
                   <>
-                    <Field label="Name"><Input value={form.name || ''} onChange={e => setForm((f: any) => ({ ...f, name: e.target.value }))} placeholder={mode === 'shoots' ? 'e.g., Day 1 — Studio' : 'e.g., Launch night'} /></Field>
+                    <Field label="Name"><Input value={form.name || ''} onChange={e => setForm((f: any) => ({ ...f, name: e.target.value }))} placeholder={mode === 'shoots' ? 'e.g., Day 1: Studio' : 'e.g., Launch night'} /></Field>
                     <Field label="Date"><Input type="date" value={form.date || ''} onChange={e => setForm((f: any) => ({ ...f, date: e.target.value }))} /></Field>
                     {mode === 'shoots'
                       ? <Field label="Location"><Input value={form.location || ''} onChange={e => setForm((f: any) => ({ ...f, location: e.target.value }))} /></Field>

@@ -172,7 +172,7 @@ export default function ConfirmForClientPage() {
   const confirm = async () => {
     if (!chosen.length) { toast.error("Choose the creators they confirmed"); return }
     if (byTier && tierState && !tierState.complete) {
-      toast.error(`That is not a full selection — ${tierState.total_picked} of ${tierState.total_allowed} places filled`)
+      toast.error(`That is not a full selection: ${tierState.total_picked} of ${tierState.total_allowed} places filled`)
       return
     }
     setSaving(true)
@@ -266,7 +266,7 @@ export default function ConfirmForClientPage() {
             <p className="mt-1.5 max-w-2xl text-muted-foreground">
               {detail.proposal.campaign_name || detail.proposal.title}
               {detail.proposal.user_email ? ` · ${detail.proposal.user_email}` : ""}
-              {" — "}locking this opens the campaign exactly as their own confirmation would.
+              {". "}Locking this opens the campaign exactly as their own confirmation would.
             </p>
           </div>
 
@@ -370,7 +370,7 @@ export default function ConfirmForClientPage() {
               </Card>
 
               <p className="text-[13px] text-muted-foreground">
-                Leave a cost blank and the quote stands in for now — the campaign will ask for
+                Leave a cost blank and the quote stands in for now, and the campaign will ask for
                 it again before the margin counts as real.
               </p>
             </div>
@@ -405,7 +405,7 @@ export default function ConfirmForClientPage() {
                       id="note"
                       value={note}
                       onChange={e => setNote(e.target.value)}
-                      placeholder="“Approved — go ahead with all four for September.”"
+                      placeholder="“Approved, go ahead with all four for September.”"
                       className="mt-2 min-h-[90px]"
                     />
                     <p className="mt-1.5 text-[12px] text-muted-foreground">
@@ -530,7 +530,7 @@ export default function ConfirmForClientPage() {
                   </p>
                   <p className="flex items-start gap-2">
                     <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                    It is recorded as confirmed by us, with how they told us — never as a click
+                    It is recorded as confirmed by us, with how they told us, never as a click
                     they did not make.
                   </p>
                 </CardContent>

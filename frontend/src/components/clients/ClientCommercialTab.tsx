@@ -100,7 +100,7 @@ export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId
             <CardTitle className="flex items-center gap-2"><FileText className="h-4 w-4" />Agreements</CardTitle>
             <CardDescription>
               Upload the company-signed PDF, then <strong>Send</strong> to show the client “download, sign &amp; email back”.
-              Once their signed copy returns, <strong>Mark signed</strong> (counter-signed / fully executed) — that ticks the
+              Once their signed copy returns, <strong>Mark signed</strong> (counter-signed / fully executed), which ticks the
               agreement gate on the client’s share link. New uploads supersede the prior version.
             </CardDescription>
           </div>
@@ -147,7 +147,7 @@ export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Receipt className="h-4 w-4" />Invoices</CardTitle>
-          <CardDescription>Manual invoicing — paste a Stripe link, upload the QuickBooks PDF, mark paid, attach receipts.</CardDescription>
+          <CardDescription>Manual invoicing: paste a Stripe link, upload the QuickBooks PDF, mark paid, attach receipts.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* create */}
@@ -229,7 +229,7 @@ export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId
                           title="Remove uploaded PDF"
                           className="text-muted-foreground hover:text-destructive disabled:opacity-50"
                           onClick={() => {
-                            if (!window.confirm('Remove the uploaded invoice PDF? The invoice itself stays — you can upload a replacement.')) return
+                            if (!window.confirm('Remove the uploaded invoice PDF? The invoice itself stays. You can upload a replacement.')) return
                             run(() => clientCommercialApi.deleteInvoiceFile(teamId, inv.id))
                           }}
                         ><X className="h-3 w-3" /></button>

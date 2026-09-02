@@ -113,7 +113,7 @@ function AwardScreen({ briefId, offerIds }: { briefId: string; offerIds: string[
                         </ItemContent>
                         <Money
                           fils={offer.price_fils}
-                          missingReason="This creator did not give a price — we cannot award them"
+                          missingReason="This creator did not give a price, so we cannot award them"
                           className="text-ds-label"
                         />
                       </Item>

@@ -151,7 +151,7 @@ export function CreatorDirectoryCard({
               title={
                 row.engagement_rate === null
                   ? "Not known for this creator"
-                  : "Indicative — the measured figure comes with the full analytics"
+                  : "Indicative. The measured figure comes with the full analytics"
               }
             >
               {formatEngagement(row.engagement_rate)}

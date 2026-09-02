@@ -153,7 +153,7 @@ function BrandsPage() {
                 icon={PhoneOff} hint="One to two weeks of silence"
                 onClick={() => setTab('attention')} />
           <Stat label="At risk" value={num(s.at_risk)} tone={s.at_risk ? 'bad' : 'neutral'}
-                icon={TriangleAlert} hint="Over a fortnight — call, do not email"
+                icon={TriangleAlert} hint="Over a fortnight: call, do not email"
                 onClick={() => setTab('attention')} />
         </StatGrid>
 
@@ -201,7 +201,7 @@ function BrandsPage() {
           })}
           {brands.length === 0 && (
             <Empty>
-              {tab === 'attention' ? 'Nobody needs chasing — every brand is warm.'
+              {tab === 'attention' ? 'Nobody needs chasing. Every brand is warm.'
                : tab === 'ours' ? 'Nothing is waiting on us.'
                : 'No clients yet.'}
             </Empty>

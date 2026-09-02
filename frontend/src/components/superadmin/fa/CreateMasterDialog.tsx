@@ -51,7 +51,7 @@ export function CreateMasterDialog({ open, onClose, onCreated }: { open: boolean
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label className="text-xs">Package name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Barter Package — Dec '25" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Barter Package, Dec '25" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">

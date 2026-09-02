@@ -54,9 +54,11 @@ import { toast } from 'sonner'
 import type { BillingStatus } from '@/services/billingManager'
 import {
   formatPlanPrice,
+  CREDITS_PER_UNLOCK,
   postsAllowanceLabel,
   resolveCurrency,
   unlockGates,
+  unlockGatesForTier,
   getPlanLimits,
   normalizePlanTier,
   type PlanTier,
@@ -311,24 +313,28 @@ function PlanColumn({
         ? formatPlanPrice(point.monthlyEquivalent, point.currency || currency)
         : formatPlanPrice(point.amount, point.currency || currency)
 
-  // The two gates. `plan.monthly_credits` is the FUNDING and
-  // `plan.monthly_profile_limit` is the CAP, and app/core/plans.py enforces
-  // them separately: buying credits raises what you can afford and never raises
-  // the count cap. This column used to print the cap alone under the label
-  // "Profile unlocks a month", which promised a Premium customer 2,000 unlocks
-  // when the plan pays for 1,000.
-  const gates = unlockGates({
-    monthlyCredits: live?.plan?.monthly_credits ?? table.monthlyCredits,
-    monthlyProfileLimit: live?.plan?.monthly_profile_limit ?? table.unlockCap,
-  })
-  const headroom = gates.headroom ?? 0
+  // What this plan includes, and whether anything caps it. The static table is
+  // the source for the plans the account is NOT on, since the billing status
+  // only describes the current one. There is no "ceiling" row any more: on
+  // every paid tier there is no ceiling, and a row reading "Ceiling: 350" was
+  // the comparison table's version of the sentence that stopped people buying.
+  const gates = live
+    ? unlockGates({
+        includedUnlocks: live.plan?.included_profile_unlocks,
+        monthlyCredits: live.plan?.monthly_credits,
+        profilesLimit: live.usage?.profiles_limit,
+        profilesUnlimited: live.usage?.profiles_unlimited,
+      })
+    : unlockGatesForTier(tier)
 
   const rows: Array<[string, string]> = [
     ['Seats', String(live?.plan?.max_team_members ?? table.seats)],
     ['Profile unlocks a month', (gates.included ?? 0).toLocaleString()],
     [
-      headroom > 0 ? 'Ceiling with top-ups' : 'Ceiling, top-ups included',
-      (gates.cap ?? 0).toLocaleString(),
+      'More unlocks',
+      gates.unlimited
+        ? `Buy any number, ${CREDITS_PER_UNLOCK} credits each`
+        : 'On a paid plan',
     ],
     [
       'Post analyses a month',

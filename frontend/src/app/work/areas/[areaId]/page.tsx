@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/dialog"
 import {
   ArrowLeft, Loader2, Plus, Search, Users, X, Globe, Check,
-  Download, Link2, Copy, BarChart3, Link as LinkIcon , CheckCircle2, ShieldCheck, Ban} from "lucide-react"
+  Download, Link2, Copy, BarChart3, Link as LinkIcon , CheckCircle2, ShieldCheck, Ban,
+  Lock, RotateCcw, ThumbsDown } from "lucide-react"
 import { toast } from "sonner"
 import { imdListsApi, creatorShareApi, type ImdListCreator, type ImdListSummary } from "@/services/imdListsApi"
 import { proposalApprovalApi } from "@/services/proposalApprovalApi"
@@ -66,6 +67,14 @@ export default function ImdListDetailPage() {
   const [softAddOpen, setSoftAddOpen] = useState(false)
   const [strikeWhy, setStrikeWhy] = useState("")
   const [loading, setLoading] = useState(true)
+  // Error, loading and empty are three states. A read that failed used to fall through to
+  // "Area not found", which tells the operator their work is gone when the truth is that a
+  // request did not come back.
+  const [error, setError] = useState<string | null>(null)
+  // The client turned these down. Destructive and unguessable later, so it takes a reason.
+  const [dropOpen, setDropOpen] = useState(false)
+  const [dropWhy, setDropWhy] = useState("")
+  const [roundBusy, setRoundBusy] = useState(false)
 
   // add-creators picker
   const [open, setOpen] = useState(false)
@@ -82,11 +91,12 @@ export default function ImdListDetailPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const res = await imdListsApi.get(listId)
       setList(res?.data ?? null)
     } catch (e) {
-      toast.error((e as Error).message || "Failed to load list")
+      setError((e as Error).message || "Could not load this area")
     } finally {
       setLoading(false)
     }
@@ -278,7 +288,73 @@ export default function ImdListDetailPage() {
     }
   }
 
-  const clearedCount = (list?.items ?? []).filter(c => c.cleared_at && !c.struck_at).length
+  // ── the round loop ──────────────────────────────────────────────────────────────────
+  // Three things and no more: which pass we are on, who the client turned down and why, and
+  // whether the round is closed.
+
+  const dropMarked = async () => {
+    if (!markedIds.length || !dropWhy.trim()) return
+    setGateBusy(true)
+    try {
+      const res = await imdListsApi.drop(listId, markedIds, dropWhy.trim())
+      toast.success(`${res.data.dropped} recorded as turned down`)
+      setMarked({}); setDropOpen(false); setDropWhy(""); load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not record that")
+    } finally {
+      setGateBusy(false)
+    }
+  }
+
+  const undropOne = async (influencerId: string, username: string) => {
+    try {
+      await imdListsApi.undrop(listId, [influencerId])
+      toast.success(`@${username} is back on the table`)
+      load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not put them back")
+    }
+  }
+
+  const lockRound = async () => {
+    if (!window.confirm(
+      "Close this round? Nothing in it changes again, and the client link stops taking answers."
+    )) return
+    setRoundBusy(true)
+    try {
+      const res = await imdListsApi.lock(listId)
+      toast.success(`Round ${res.data.round_no} closed`, {
+        description: `${res.data.picked} picked, ${res.data.standing} still on the table.`,
+      })
+      load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not close the round")
+    } finally {
+      setRoundBusy(false)
+    }
+  }
+
+  const openNextRound = async () => {
+    setRoundBusy(true)
+    try {
+      const res = await imdListsApi.nextRound(listId)
+      toast.success(`Round ${res.data.round_no} is open`, {
+        description: res.data.already_rejected > 0
+          ? `${res.data.already_rejected} already turned down, still here so nobody is offered twice.`
+          : undefined,
+      })
+      load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not open the next round")
+    } finally {
+      setRoundBusy(false)
+    }
+  }
+
+  const locked = !!list?.locked_at
+  const roundNo = list?.round_no ?? 1
+  const droppedCount = (list?.items ?? []).filter(c => c.dropped_at).length
+  const clearedCount = (list?.items ?? []).filter(c => c.cleared_at && !c.struck_at && !c.dropped_at).length
   const pickedByClient = (list?.items ?? []).filter(c => c.client_verdict === "selected").length
   const pickedCount = Object.keys(picked).length
   const hasMore = results.length < total
@@ -293,13 +369,36 @@ export default function ImdListDetailPage() {
 
           {loading ? (
             <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : error ? (
+            /* A failed read says so and offers the retry. It must never look like an area
+               with nothing in it: one of those means try again, the other means get to work. */
+            <div className="flex flex-col items-center gap-ds-2 py-20 text-center">
+              <p className="text-ds-label">This area did not load</p>
+              <p className="max-w-md text-ds-caption text-muted-foreground">{error}</p>
+              <Button variant="outline" size="sm" className="mt-ds-1" onClick={load}>Try again</Button>
+            </div>
           ) : !list ? (
             <p className="py-20 text-center text-muted-foreground">Area not found.</p>
           ) : (
             <>
               <div className="flex items-end justify-between gap-4 flex-wrap">
                 <div>
-                  <h1 className="text-3xl font-bold">{list.name}</h1>
+                  <div className="flex flex-wrap items-center gap-ds-2">
+                    <h1 className="text-ds-title">{list.name}</h1>
+                    {/* The round is a fact about the area, so it sits with its name. It only
+                        appears once there has been more than one: "round 1" on everything is
+                        a label nobody reads. */}
+                    {roundNo > 1 && (
+                      <span className="rounded-ds-full bg-[var(--tone-info-wash)] px-2.5 py-0.5 text-ds-caption font-medium">
+                        Round {roundNo}
+                      </span>
+                    )}
+                    {locked && (
+                      <span className="inline-flex items-center gap-1 rounded-ds-full bg-[var(--tone-neutral-wash)] px-2.5 py-0.5 text-ds-caption font-medium text-muted-foreground">
+                        <Lock className="h-3 w-3" />Closed
+                      </span>
+                    )}
+                  </div>
                   {list.team_name && (
                     <p className="mt-1 text-sm text-muted-foreground">{list.team_name}</p>
                   )}
@@ -325,6 +424,13 @@ export default function ImdListDetailPage() {
                       <CheckCircle2 className="h-3 w-3" />{clearedCount} cleared to share
                     </Badge>
                     {pickedByClient > 0 && <Badge className="gap-1">{pickedByClient} picked by the client</Badge>}
+                    {/* Who the client turned down is not a footnote. It is the number that
+                        decides whether this area goes round again. */}
+                    {droppedCount > 0 && (
+                      <Badge variant="outline" className="gap-1 text-muted-foreground">
+                        <Ban className="h-3 w-3" />{droppedCount} turned down
+                      </Badge>
+                    )}
                     {list.owner_email && (
                       <Badge variant="outline" className="text-muted-foreground">
                         {list.owner_email.split("@")[0]}
@@ -370,7 +476,25 @@ export default function ImdListDetailPage() {
                       </Button>
                     )
                   )}
-                  {canStock && (
+                  {/* Closing a round and opening the next are the two ends of the loop, so
+                      they are one control that shows whichever one is available. Founders
+                      only: it is the same decision as clearing, made at the other end. */}
+                  {canDestroy && (locked ? (
+                    <Button variant="outline" className="gap-2" disabled={roundBusy}
+                            onClick={openNextRound}>
+                      {roundBusy ? <Loader2 className="h-4 w-4 animate-spin" />
+                                 : <RotateCcw className="h-4 w-4" />}
+                      Open round {roundNo + 1}
+                    </Button>
+                  ) : (
+                    <Button variant="outline" className="gap-2" disabled={roundBusy}
+                            onClick={lockRound}>
+                      {roundBusy ? <Loader2 className="h-4 w-4 animate-spin" />
+                                 : <Lock className="h-4 w-4" />}
+                      Close round {roundNo}
+                    </Button>
+                  ))}
+                  {canStock && !locked && (
                     <>
                       <Button variant="outline" className="gap-2" onClick={() => setSoftAddOpen(true)}>
                         <Plus className="h-4 w-4" />Source new
@@ -383,10 +507,24 @@ export default function ImdListDetailPage() {
                 </div>
               </div>
 
+              {/* A closed round is a state, not a failure, so it is a tint and a sentence
+                  rather than a card or an alert. One hairline above it separates it from the
+                  header without adding another box to the page. */}
+              {locked && (
+                <div className="flex flex-wrap items-baseline gap-ds-2 border-t pt-ds-3 text-ds-caption">
+                  <span className="font-medium text-foreground">Round {roundNo} is closed.</span>
+                  <span className="text-muted-foreground">
+                    Nothing here changes and the client link no longer takes answers.
+                    {list.locked_by_email ? ` Closed by ${list.locked_by_email.split("@")[0]}.` : ""}
+                    {canDestroy ? " Open the next round to keep going." : ""}
+                  </span>
+                </div>
+              )}
+
               {/* The gate. Anyone may stock an area; only a founder decides which of them a
                   client sees, which is what lets the talent team keep adding all week
                   behind a link that is already open. */}
-              {canDestroy && canStock && markedIds.length > 0 && (
+              {canStock && !locked && markedIds.length > 0 && (
                 /* The one edge that earns itself on this screen: a bar that floats over the
                    list needs to say where it ends. Radius from the token scale. */
                 <div className="sticky top-2 z-10 flex flex-wrap items-center gap-ds-2 rounded-ds-lg border bg-background/95 p-ds-2 shadow-sm backdrop-blur">
@@ -396,15 +534,26 @@ export default function ImdListDetailPage() {
                   </span>
                   <div className="ml-auto flex gap-2">
                     <Button size="sm" variant="ghost" onClick={() => setMarked({})}>Cancel</Button>
+                    {/* Recording the client's answer is not a founder's decision, it is
+                        writing down something they have already said, so anyone stocking the
+                        area can do it. Striking and clearing stay leadership's. */}
                     <Button size="sm" variant="outline" className="gap-1.5" disabled={gateBusy}
-                            onClick={() => setStrikeOpen(true)}>
-                      <Ban className="h-3.5 w-3.5" />Take off the table
+                            onClick={() => setDropOpen(true)}>
+                      <ThumbsDown className="h-3.5 w-3.5" />Client turned down
                     </Button>
-                    <Button size="sm" className="gap-1.5" disabled={gateBusy} onClick={clearMarked}>
-                      {gateBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                : <ShieldCheck className="h-3.5 w-3.5" />}
-                      Clear to share
-                    </Button>
+                    {canDestroy && (
+                      <>
+                        <Button size="sm" variant="outline" className="gap-1.5" disabled={gateBusy}
+                                onClick={() => setStrikeOpen(true)}>
+                          <Ban className="h-3.5 w-3.5" />Take off the table
+                        </Button>
+                        <Button size="sm" className="gap-1.5" disabled={gateBusy} onClick={clearMarked}>
+                          {gateBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    : <ShieldCheck className="h-3.5 w-3.5" />}
+                          Clear to share
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -426,11 +575,11 @@ export default function ImdListDetailPage() {
                   {list.items.map((c) => (
                     <div key={c.item_id}
                          className={`group flex items-center gap-ds-3 rounded-ds-lg px-ds-2 py-ds-2 transition-colors ${
-                           c.struck_at ? "opacity-55" : ""
+                           c.struck_at || c.dropped_at ? "opacity-55" : ""
                          } ${marked[c.id]
                            ? "bg-[var(--tone-info-wash)]"
                            : "hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"}`}>
-                      {canDestroy && canStock && (
+                      {canStock && !locked && (
                         <Checkbox
                           checked={!!marked[c.id]}
                           onCheckedChange={(v: boolean | string) => setMarked(prev => {
@@ -467,7 +616,24 @@ export default function ImdListDetailPage() {
                       {/* Our verdict, then theirs. A struck creator keeps their reason on the
                           row: it is what stops the same person going back in front of the
                           same brand next month. */}
-                      {c.struck_at ? (
+                      {c.dropped_at ? (
+                        /* Their no outranks ours on the row, because it is the one that ends
+                           the conversation. The reason is on the row itself rather than in a
+                           tooltip: it is the reason the next round exists, and a round later
+                           nobody remembers to hover. */
+                        <span className="flex shrink-0 items-center gap-1.5">
+                          <Badge variant="outline" className="gap-1 text-muted-foreground">
+                            <ThumbsDown className="h-3 w-3" />
+                            Turned down{c.dropped_in_round ? ` in round ${c.dropped_in_round}` : ""}
+                          </Badge>
+                          {c.dropped_reason && (
+                            <span className="max-w-[16rem] truncate text-ds-caption text-muted-foreground"
+                                  title={c.dropped_reason}>
+                              {c.dropped_reason}
+                            </span>
+                          )}
+                        </span>
+                      ) : c.struck_at ? (
                         <Badge variant="outline" className="shrink-0 gap-1 text-muted-foreground"
                                title={c.struck_reason || undefined}>
                           <Ban className="h-3 w-3" />Struck
@@ -482,10 +648,8 @@ export default function ImdListDetailPage() {
                       {c.client_verdict === "selected" && (
                         <Badge className="shrink-0">Client picked</Badge>
                       )}
-                      {c.client_verdict === "rejected" && (
-                        <Badge variant="outline" className="shrink-0 text-muted-foreground"
-                               title={c.client_reason || undefined}>Client passed</Badge>
-                      )}
+                      {/* A rejection and a drop are the same event, written together, so the
+                          row carries one badge for it rather than two saying the same thing. */}
 
                       <Button
                         size="sm"
@@ -502,13 +666,25 @@ export default function ImdListDetailPage() {
                           : c.share_token ? <Copy className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
                         {c.share_token ? "Copy link" : "Share"}
                       </Button>
-                      <Button
-                        size="icon" variant="ghost"
-                        className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                        onClick={() => removeOne(c.id, c.username)}
-                      >
-                        <X className="h-3.5 w-3.5 text-muted-foreground" />
-                      </Button>
+                      {/* Somebody records the wrong name, or the client changes their mind.
+                          A drop that could not be undone would make people avoid recording
+                          it at all, which costs the loop the information it runs on. */}
+                      {c.dropped_at && canStock && !locked && (
+                        <Button size="sm" variant="ghost"
+                                className="h-7 shrink-0 px-2 text-xs text-muted-foreground"
+                                onClick={() => undropOne(c.id, c.username)}>
+                          Put back
+                        </Button>
+                      )}
+                      {canStock && !locked && (
+                        <Button
+                          size="icon" variant="ghost"
+                          className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                          onClick={() => removeOne(c.id, c.username)}
+                        >
+                          <X className="h-3.5 w-3.5 text-muted-foreground" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -527,12 +703,44 @@ export default function ImdListDetailPage() {
           onAdded={load}
         />
 
+        {/* The client's answer, written down. Same shape as striking, opposite author: this
+            one records what they said, that one records what we decided. */}
+        <Dialog open={dropOpen} onOpenChange={setDropOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                The client turned down {markedIds.length} creator{markedIds.length === 1 ? "" : "s"}
+              </DialogTitle>
+              <DialogDescription>
+                They stay in the area with the reason on their row, so round {roundNo + 1} is built
+                knowing who has already been turned down. You can put them back if this was
+                recorded in error.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-1.5">
+              <Label>What did they say</Label>
+              <Textarea value={dropWhy} rows={3}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDropWhy(e.target.value)}
+                        placeholder="e.g. too small for the launch, worked with a competitor last month, tone is wrong for us" />
+              <p className="text-ds-caption text-muted-foreground">
+                Required. A drop with no reason tells the next round nothing.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDropOpen(false)} disabled={gateBusy}>Cancel</Button>
+              <Button onClick={dropMarked} disabled={gateBusy || !dropWhy.trim()}>
+                {gateBusy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Record it
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={strikeOpen} onOpenChange={setStrikeOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Take {markedIds.length} off the table</DialogTitle>
               <DialogDescription>
-                They stay in the area and keep their research — this only stops them being shown
+                They stay in the area and keep their research. This only stops them being shown
                 to this brand. The reason is what stops them coming back next round.
               </DialogDescription>
             </DialogHeader>

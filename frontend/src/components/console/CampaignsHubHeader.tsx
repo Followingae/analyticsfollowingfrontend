@@ -86,22 +86,25 @@ function StageStrip() {
     // on its own and simply leaves its stage without a number.
     Promise.allSettled([
       get('/api/v1/admin/brands/heartbeat'),
-      get('/api/v1/admin/sourcing/rounds?status=open'),
+      // Areas, not the retired sourcing rounds. `open_rounds` on the heartbeat already
+      // counts a brand's live areas, so this second call only sharpens it with areas that
+      // belong to no brand yet.
+      get('/api/v1/admin/imd-lists?kind=client'),
       get('/api/v1/admin/proposals/stats'),
       get('/api/v1/admin/report-campaigns'),
-    ]).then(([hb, rounds, proposals, reports]) => {
+    ]).then(([hb, areas, proposals, reports]) => {
       if (!active) return
 
       const brands: any[] = value(hb)?.data?.brands ?? []
       const haveBrands = value(hb) !== null
 
-      // A brand nobody has started work on yet: logged, but no round, no proposal, no
+      // A brand nobody has started work on yet: logged, but no area, no proposal, no
       // paperwork and nothing live. That is exactly what "opportunity" means here.
       const opportunity = haveBrands
         ? brands.filter(b => !b.live_campaigns && !b.open_rounds && !b.proposals_out && !b.agreements_out).length
         : null
 
-      const roundItems = value(rounds)?.data?.items
+      const areaItems = value(areas)?.data?.lists
       const stats = value(proposals)?.data
       const reportRows = value(reports)?.data?.campaigns
 
@@ -111,7 +114,8 @@ function StageStrip() {
 
       setCounts({
         opportunity,
-        sourcing: Array.isArray(roundItems) ? roundItems.length
+        sourcing: Array.isArray(areaItems)
+                  ? areaItems.filter((a: any) => !a.locked_at && !a.archived_at).length
                   : haveBrands ? sum(brands, 'open_rounds') : null,
         proposal: typeof stats?.active_proposals === 'number' ? stats.active_proposals
                   : haveBrands ? sum(brands, 'proposals_out') : null,
@@ -178,7 +182,7 @@ export function CampaignsHubHeader({ action }: { action?: React.ReactNode }) {
   return (
     <Hub
       title="Campaigns"
-      sub="Everything we are delivering — the work itself, the app's own campaigns, what production is building, and the reports clients read."
+      sub="Everything we are delivering: the work itself, the app's own campaigns, what production is building, and the reports clients read."
       tabs={TABS}
       action={action}
     >

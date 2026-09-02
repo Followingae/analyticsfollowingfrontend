@@ -111,7 +111,7 @@ export function SelectedCreatorsPanel({
               <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
               <p className="text-[11px] leading-tight text-red-600 dark:text-red-400">
                 <span className="font-semibold">{formatCurrency(overBy)} over budget</span>
-                {" — "}remove a creator or a deliverable, or talk to us about raising it.
+                {": "}remove a creator or a deliverable, or talk to us about raising it.
               </p>
             </div>
           ) : (

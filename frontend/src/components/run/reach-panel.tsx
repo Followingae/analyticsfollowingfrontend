@@ -55,7 +55,7 @@ function Slice({ slice, index }: { slice: ReachSlice; index: number }) {
 
       {uncounted ? (
         <p className="text-ds-body-sm text-muted-foreground">
-          We could not count this population right now. Posting still reaches it — we
+          We could not count this population right now. Posting still reaches it, we
           just cannot tell you how many before you do.
         </p>
       ) : (

@@ -100,7 +100,7 @@ function PriceInline({ creator, onPriced }: { creator: Creator; onPriced: () => 
       <PopoverContent align="end" className="w-72">
         <p className="text-sm font-medium">What do we charge for @{creator.username}?</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          In AED. Fill only the ones we sell — the rest can wait.
+          In AED. Fill only the ones we sell, the rest can wait.
         </p>
         <div className="mt-3 space-y-2">
           {(["reel", "post", "story"] as const).map((d) => (

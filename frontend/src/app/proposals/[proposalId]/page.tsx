@@ -148,7 +148,7 @@ function ProposalPage() {
               {p.status === "approved"
                 ? "This campaign is confirmed"
                 : p.status === "client_confirmed"
-                  ? "Thank you — that's confirmed"
+                  ? "Thank you, that's confirmed"
                   : "Sent back to the team"}
             </h2>
             {(p as { agreed_total_aed?: number }).agreed_total_aed != null && (

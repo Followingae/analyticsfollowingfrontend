@@ -20,7 +20,7 @@ export function SmartDiscovery({
     <Card
       role="button"
       tabIndex={0}
-      aria-label="Creator Discovery — AI-powered insights to find the right voices. Activate to discover now."
+      aria-label="Creator Discovery: AI-powered insights to find the right voices. Activate to discover now."
       onClick={handleActivate}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {

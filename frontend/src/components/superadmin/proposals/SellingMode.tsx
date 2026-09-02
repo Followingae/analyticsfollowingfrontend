@@ -110,7 +110,7 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Could not save')
       setMode(next)
       toast.success(next === 'tiers'
-        ? 'This one is sold by tier — the client will not see prices'
+        ? 'This one is sold by tier, so the client will not see prices'
         : 'Back to selling by budget')
       load()
     } catch (e) {
@@ -131,7 +131,7 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
       const d = (await res.json()).data
       setItems(p => p.map(x => x.id === row.id ? { ...x, ...d } : x))
       if (d.above_band) {
-        toast.success(`@${row.username} counts as ${d.label} — the client sees they are getting more`)
+        toast.success(`@${row.username} counts as ${d.label}, so the client sees they are getting more`)
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not move them')
@@ -162,8 +162,8 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
           <CardTitle className="text-lg">How the client picks</CardTitle>
           <CardDescription>
             {mode === 'tiers'
-              ? 'By tier — they choose a count from each band and never see a price.'
-              : 'By budget — they see every price and pick against a number.'}
+              ? 'By tier: they choose a count from each band and never see a price.'
+              : 'By budget: they see every price and pick against a number.'}
           </CardDescription>
         </div>
         <div className="flex rounded-full border p-0.5">

@@ -402,9 +402,11 @@ function SignupForm() {
           </div>
 
           <ul className="space-y-4 text-sm">
-            {/* The included figure and the cap are the same number on Free
-                (app/core/plans.py PLANS['free'], unlock_cap_multiple 1.0), so
-                there is one honest number to print and no headroom to imply. */}
+            {/* Free is the one tier with a real ceiling, and it equals what the
+                plan funds (app/core/plans.py PLANS['free'], unlock_cap_multiple
+                1.0), so there is exactly one honest number to print here. The
+                paid tiers have no ceiling at all, which is a reason to upgrade
+                and not something this screen needs to argue. */}
             <ValueLine>
               {freeLimits.includedUnlocks} creator profiles a month, unlocked in full
             </ValueLine>

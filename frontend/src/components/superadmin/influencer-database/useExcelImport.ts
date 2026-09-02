@@ -148,7 +148,7 @@ export function useExcelImport(onImported?: () => void) {
           onImported?.()
         } else if (data.skipped_existing_count > 0) {
           toast.info(
-            `Nothing new — all ${data.skipped_existing_count} creators are already in the database`
+            `Nothing new: all ${data.skipped_existing_count} creators are already in the database`
           )
         } else {
           toast.error("Nothing was imported")

@@ -77,7 +77,7 @@ export function CreatorsHubHeader({ className, bare }: { className?: string; bar
     <div className={cn('mb-8', className)}>
       <Hub
         title="Creators"
-        sub="Everyone we can book — who we hold rates for, who still needs a price, where we are thin, and who actually delivers."
+        sub="Everyone we can book: who we hold rates for, who still needs a price, where we are thin, and who actually delivers."
         tabs={tabs}
         action={action}
         bare={bare}

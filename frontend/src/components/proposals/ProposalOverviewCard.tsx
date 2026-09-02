@@ -108,7 +108,7 @@ export function ProposalOverviewCard({
   ]
 
   const description = parked
-    ? (proposal.work_in_progress_note || "Our team is adding the finishing touches — check again shortly.")
+    ? (proposal.work_in_progress_note || "Our team is adding the finishing touches. Check again shortly.")
     : (proposal.description || proposal.campaign_name)
 
   return (

@@ -99,7 +99,7 @@ export default function BrandBrowsePage() {
         <div className="space-y-ds-2">
           <p className="text-sm font-medium">Could not load this client.</p>
           <p className="text-sm text-muted-foreground">
-            {failure}. This is not an all clear — no campaign, round, proposal or invoice
+            {failure}. This is not an all clear. No campaign, round, proposal or invoice
             below is known.
           </p>
           <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
@@ -113,9 +113,9 @@ export default function BrandBrowsePage() {
     return <SuperadminLayout><p className="text-sm text-muted-foreground">Nothing to show.</p></SuperadminLayout>
   }
 
-  const { brand, campaigns = [], rounds = [], proposals = [], invoices = [] } = data
+  const { brand, campaigns = [], areas = [], proposals = [], invoices = [] } = data
   const live = campaigns.filter((c: any) => LIVE.includes(String(c.status)))
-  const openRounds = rounds.filter((r: any) => !['locked', 'dropped'].includes(String(r.status)))
+  const openAreas = areas.filter((r: any) => !r.locked_at && !r.archived_at)
   const out = proposals.filter((p: any) => p.status === 'sent')
   const unpaid = invoices.filter((i: any) => i.status !== 'paid')
 
@@ -143,12 +143,12 @@ export default function BrandBrowsePage() {
                 {/* The next step after logging a brand is asking for creators, so it is a
                     button rather than something to go and find.
                     It used to send everybody to /work/sourcing, which only the influencers
-                    module opens — business development, who log most of these brands, were
+                    module opened, so business development, who log most of these brands, were
                     bounced straight back off it. Sourcing rounds are retired anyway; the
                     roster (Areas) is where this now happens, and Areas is opened by the
                     clients module as well, so nobody is thrown out of it.
-                    Releasing a brand to the talent team is still a founder's call — that is
-                    what the dialog on Areas is gated on — so the button that promises it is
+                    Releasing a brand to the talent team is still a founder's call, which is
+                    what the dialog on Areas is gated on, so the button that promises it is
                     only shown to a founder. Everyone else gets the roster itself, which is
                     a real destination rather than a promise the screen cannot keep. */}
                 {canDestroy ? (
@@ -175,13 +175,10 @@ export default function BrandBrowsePage() {
                 // module, which business development do not hold.
                 onClick={canCampaigns && campaigns[0]
                   ? () => router.push(`/work/campaigns/${campaigns[0].id}/timeline`) : undefined} />
-          <Stat label="Sourcing rounds" value={rounds.length} icon={Layers}
-                tone={openRounds.length ? 'info' : 'neutral'}
-                hint={openRounds.length ? `${openRounds.length} still open` : 'None open'}
-                // /work/sourcing is opened by the influencers module only, so for business
-                // development this tile was a click into a bounce. No link is better than one
-                // that throws you out.
-                onClick={canSource ? () => router.push('/work/sourcing') : undefined} />
+          <Stat label="Sourcing areas" value={areas.length} icon={Layers}
+                tone={openAreas.length ? 'info' : 'neutral'}
+                hint={openAreas.length ? `${openAreas.length} still open` : 'None open'}
+                onClick={canSource ? () => router.push('/work/areas') : undefined} />
           <Stat label="Proposals" value={proposals.length} icon={FileText}
                 hint={out.length ? `${out.length} with the client` : 'None waiting on them'}
                 onClick={can('proposals') ? () => router.push('/work/proposals') : undefined} />
@@ -219,7 +216,7 @@ export default function BrandBrowsePage() {
             </Panel>
           )}
 
-          <Panel title="Campaigns" description="Newest first — opens the campaign's whole story" flush>
+          <Panel title="Campaigns" description="Newest first, opens the campaign's whole story" flush>
             {campaigns.map((c: any) => (
               <Row
                 key={c.id}
@@ -240,29 +237,32 @@ export default function BrandBrowsePage() {
             {campaigns.length === 0 && <Empty>No campaigns yet.</Empty>}
           </Panel>
 
-          <Panel title="Sourcing rounds" description="Every request for creators on this brand" flush>
-            {rounds.map((r: any) => {
-              const closed = ['locked', 'dropped'].includes(String(r.status))
+          <Panel title="Sourcing" description="Every roster we are building for this brand" flush>
+            {areas.map((r: any) => {
+              const closed = !!r.locked_at || !!r.archived_at
               const late = r.due_at && !closed && new Date(r.due_at).getTime() < Date.now()
               return (
                 <Row
                   key={r.id}
                   tone={late ? 'bad' : closed ? 'neutral' : 'info'}
-                  title={`${r.title} · round ${r.round_no}`}
+                  title={(r.round_no || 1) > 1 ? `${r.title} · round ${r.round_no}` : r.title}
                   meta={
                     <>
-                      {String(r.status || '').replace(/_/g, ' ')}
+                      {r.archived_at ? 'archived' : r.locked_at ? 'closed' : 'open'}
                       {` · ${r.proposed}${r.target_count ? ` of ${r.target_count}` : ''} proposed`}
+                      {/* How many this brand has turned down is the number that says whether
+                          the brief is working, so it belongs on the line, not behind a click. */}
+                      {r.dropped > 0 ? ` · ${r.dropped} turned down` : ''}
                       {r.owner_email ? ` · ${r.owner_email}` : ' · unassigned'}
                       {r.due_at ? ` · due ${when(r.due_at)}` : ''}
                     </>
                   }
                   right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                  onClick={canSource ? () => router.push(`/work/sourcing/${r.id}`) : undefined}
+                  onClick={canSource ? () => router.push(`/work/areas/${r.id}`) : undefined}
                 />
               )
             })}
-            {rounds.length === 0 && <Empty>No sourcing rounds for this brand.</Empty>}
+            {areas.length === 0 && <Empty>No sourcing started for this brand.</Empty>}
           </Panel>
 
           <Panel title="Proposals" description="What we have sent, and how it ended" flush>
@@ -309,7 +309,7 @@ export default function BrandBrowsePage() {
               )
             })}
             {invoices.length === 0 && (
-              <Empty>No invoices — or your role does not see them.</Empty>
+              <Empty>No invoices, or your role does not see them.</Empty>
             )}
           </Panel>
         </div>

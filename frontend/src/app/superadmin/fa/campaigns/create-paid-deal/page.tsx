@@ -156,7 +156,7 @@ export default function CreatePaidDealPage() {
                 <SelectTrigger><SelectValue placeholder={selfManaged ? "Choose a merchant (optional)..." : "Choose a merchant..."} /></SelectTrigger>
                 <SelectContent>
                   {merchants.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}{m.category ? ` (${m.category})` : ""}{m.brand_name ? ` — ${m.brand_name}` : ""}</SelectItem>
+                    <SelectItem key={m.id} value={m.id}>{m.name}{m.category ? ` (${m.category})` : ""}{m.brand_name ? ` · ${m.brand_name}` : ""}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

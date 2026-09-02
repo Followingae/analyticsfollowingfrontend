@@ -277,7 +277,7 @@ export default function UserEditPage() {
       setSavingPassword(true)
       const result = await superadminApiService.resetUserPassword(userId, newPassword)
       if (result.success) {
-        toast.success('Password set. Give it to the client — they are not emailed automatically.')
+        toast.success('Password set. Give it to the client. They are not emailed automatically.')
         setNewPassword('')
       } else {
         toast.error(result.error || 'Failed to set password')
@@ -475,7 +475,7 @@ export default function UserEditPage() {
                     onChange={(e) => setBasicInfo(prev => ({ ...prev, email: e.target.value }))}
                   />
                   <p className="text-xs text-muted-foreground">
-                    This is their login. Changing it updates the sign-in address immediately —
+                    This is their login. Changing it updates the sign-in address immediately, so
                     tell them, or they will try the old one.
                   </p>
                 </div>

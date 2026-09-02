@@ -106,7 +106,7 @@ export function CouponManagerDialog({ campaignId, campaignName, open, onOpenChan
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Ticket className="h-5 w-5" />Codes</DialogTitle>
           <DialogDescription>
-            {campaignName ? `${campaignName} — ` : ""}codes are released to creators automatically the moment they&apos;re approved.
+            {campaignName ? `${campaignName}: ` : ""}codes are released to creators automatically the moment they&apos;re approved.
           </DialogDescription>
         </DialogHeader>
 
@@ -142,7 +142,7 @@ export function CouponManagerDialog({ campaignId, campaignName, open, onOpenChan
               />
               <Input
                 value={prefix} onChange={(e) => setPrefix(e.target.value)}
-                placeholder="Prefix (optional) — e.g. BRK" className="flex-1 font-mono text-sm"
+                placeholder="Prefix (optional), e.g. BRK" className="flex-1 font-mono text-sm"
               />
             </div>
             <Button onClick={generate} disabled={generating} className="w-full">

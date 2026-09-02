@@ -153,7 +153,7 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
         </CardTitle>
         <CardDescription>
           {state.total} creator{state.total === 1 ? ' is' : 's are'} booked. No campaign is open
-          yet — record what we are paying each of them, then open it.
+          yet. Record what we are paying each of them, then open it.
         </CardDescription>
       </CardHeader>
 
@@ -217,7 +217,7 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
 
         {!allTyped && (
           <p className="text-xs text-muted-foreground">
-            {live?.missing} still without an agreed cost — the margin above uses the quoted
+            {live?.missing} still without an agreed cost, so the margin above uses the quoted
             figure for those, and the campaign will not open until they are real.
           </p>
         )}

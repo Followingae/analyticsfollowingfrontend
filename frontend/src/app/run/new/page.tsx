@@ -231,7 +231,7 @@ function ComposerScreen() {
                   id="brief-title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ramadan launch — three reels"
+                  placeholder="Ramadan launch, three reels"
                   className="rounded-ds-field"
                 />
               </Field>
@@ -246,7 +246,7 @@ function ComposerScreen() {
                   placeholder="The product, the tone, anything that would change how they price it."
                   className="rounded-ds-field"
                 />
-                <FieldDescription>Optional. Short is fine — this is not a proposal.</FieldDescription>
+                <FieldDescription>Optional. Short is fine. This is not a proposal.</FieldDescription>
               </Field>
 
               <Field>

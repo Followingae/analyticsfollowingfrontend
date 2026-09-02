@@ -221,7 +221,7 @@ export default function GoalsPage() {
                   <div>
                     <p className="text-sm font-medium">Only count complete records</p>
                     <p className="text-xs text-muted-foreground">
-                      Cost, category and market — stops bare handles counting
+                      Cost, category and market: stops bare handles counting
                     </p>
                   </div>
                   <Switch checked={!!rule.quality_required}

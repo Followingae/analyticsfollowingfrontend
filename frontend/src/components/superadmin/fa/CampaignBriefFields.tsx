@@ -102,7 +102,7 @@ export function validateBriefFulfilment(b: BriefState): string | null {
     // how arguments at the table start.
     const hasEntitlement = !!(b.entitlement_label.trim() || b.entitlement_cap_aed.trim())
     if (!hasEntitlement) {
-      return "Say what the dine-in visit covers — venue staff see this before confirming"
+      return "Say what the dine-in visit covers. Venue staff see this before confirming"
     }
   }
   return null
@@ -413,11 +413,11 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
                   <div className="space-y-2"><Label>Spend cap (AED)</Label><Input type="number" min={0} value={value.entitlement_cap_aed} onChange={(e) => set({ entitlement_cap_aed: e.target.value })} placeholder="300" /></div>
                   <p className="text-xs text-muted-foreground rounded-md bg-muted/50 p-3">
                     Generate the codes after creating the campaign. The venue confirms each
-                    walk-in by scanning the creator&apos;s QR and typing their venue code —
+                    walk-in by scanning the creator&apos;s QR and typing their venue code:
                     find it on the merchant&apos;s row under FA → Merchants.
                     <br /><br />
                     Approved creators have <strong>7 days to visit</strong>. They&apos;re
-                    reminded on day 5, and on day 7 an unused spot is released — the seat
+                    reminded on day 5, and on day 7 an unused spot is released. The seat
                     and the code go back to the pool for someone else.
                   </p>
                 </>

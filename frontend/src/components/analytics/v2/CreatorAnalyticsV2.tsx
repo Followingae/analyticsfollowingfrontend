@@ -92,7 +92,7 @@ export function CreatorAnalyticsV2({
           </p>
           <Button onClick={refresh} disabled={refreshing}>
             {refreshing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            {refreshing ? "Analysing — this takes a minute…" : "Analyse now"}
+            {refreshing ? "Analysing, this takes a minute…" : "Analyse now"}
           </Button>
         </CardContent>
       </Card>
@@ -326,7 +326,7 @@ function UnavailableNotice({
               {retrying
                 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 : <RefreshCw className="mr-2 h-4 w-4" />}
-              {retrying ? "Analysing — this takes a minute…" : "Run analysis again"}
+              {retrying ? "Analysing, this takes a minute…" : "Run analysis again"}
             </Button>
           )}
         </div>
@@ -351,7 +351,7 @@ function QualityTab({ data }: { data: Payload }) {
     { label: "Low-effort comments", value: c.signals.low_effort_share,
       hint: "Empty or emoji-only. High shares suggest pods or bot traffic." },
     { label: "Numeric-suffix usernames", value: c.signals.numeric_username_share,
-      hint: "Names like user8604 — a common throwaway/bot pattern." },
+      hint: "Names like user8604, a common throwaway or bot pattern." },
     { label: "No profile photo", value: c.signals.no_avatar_share,
       hint: "Accounts with no avatar." },
   ]

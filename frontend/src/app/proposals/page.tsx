@@ -185,7 +185,7 @@ function ProposalsPageContent() {
                     {
                       icon: ShieldCheck,
                       title: "Approve with confidence",
-                      description: "Select influencers, choose deliverable types, and approve campaigns — all from a single streamlined interface.",
+                      description: "Select influencers, choose deliverable types, and approve campaigns, all from a single streamlined interface.",
                     },
                   ]}
                 />

@@ -135,7 +135,7 @@ export function CampaignBriefingDialog({
             <Mail className="h-4 w-4" /> Campaign briefing email
           </DialogTitle>
           <DialogDescription>
-            Explains approvals, visit logging, content review and their share links — built from the
+            Explains approvals, visit logging, content review and their share links, built from the
             campaigns they actually have live. zain@following.ae is always CC&apos;d.
           </DialogDescription>
         </DialogHeader>
@@ -184,7 +184,7 @@ export function CampaignBriefingDialog({
                 </div>
               )}
               <p className="text-[11px] text-muted-foreground">
-                Only the sections that apply get written — a delivery-only client never sees the
+                Only the sections that apply get written, so a delivery-only client never sees the
                 venue instructions.
               </p>
             </div>

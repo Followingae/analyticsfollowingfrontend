@@ -116,7 +116,7 @@ export function CampaignBars({ className }: { className?: string }) {
             key={r.id}
             type="button"
             onClick={() => router.push(`/campaigns/${r.id}`)}
-            title={`${r.name} — ${r.creators} creator${r.creators === 1 ? '' : 's'}`}
+            title={`${r.name}: ${r.creators} creator${r.creators === 1 ? '' : 's'}`}
             className="group block w-full text-left"
           >
             <div className="flex items-baseline justify-between gap-2">

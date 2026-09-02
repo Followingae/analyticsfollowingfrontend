@@ -128,7 +128,7 @@ export default function ReviewQueuePage() {
     setAmounts({})
     if (c.lane === 'needs_cost') { setCostNote(''); setCosting(c) }
     else if (canSell) setPricing(c)
-    else toast.info('A founder sets the sell price — your part is done')
+    else toast.info('A founder sets the sell price. Your part is done')
   }
 
   const submitCost = async () => {
@@ -139,7 +139,7 @@ export default function ReviewQueuePage() {
     setBusy(true)
     try {
       await creatorIntakeApi.captureCost(costing.id, { cost_pricing: payload, note: costNote })
-      toast.success(`@${costing.username} — cost saved, a founder can price them now`)
+      toast.success(`@${costing.username}: cost saved, a founder can price them now`)
       setCosting(null); setAmounts({}); setCostNote(''); load()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not save the cost')
@@ -166,7 +166,7 @@ export default function ReviewQueuePage() {
     setBusy(true)
     try {
       await creatorIntakeApi.reject(rejecting.id, reason)
-      toast.success(`@${rejecting.username} turned down — their rates are kept`)
+      toast.success(`@${rejecting.username} turned down, their rates are kept`)
       setRejecting(null); setReason(''); load()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not reject')
@@ -447,8 +447,8 @@ export default function ReviewQueuePage() {
           <DialogHeader>
             <DialogTitle>What does @{costing?.username} charge us?</DialogTitle>
             <DialogDescription>
-              The rate they quoted you, in AED. Fill in what you have — you can add the rest
-              later. This does not add them to the database — a founder sets our price next.
+              The rate they quoted you, in AED. Fill in what you have. You can add the rest
+              later. This does not add them to the database, a founder sets our price next.
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
@@ -482,7 +482,7 @@ export default function ReviewQueuePage() {
           <DialogHeader>
             <DialogTitle>Price @{pricing?.username}</DialogTitle>
             <DialogDescription>
-              What we charge a client. Approving adds this creator to the master database —
+              What we charge a client. Approving adds this creator to the master database, and
               from that moment they can go on a proposal.
             </DialogDescription>
           </DialogHeader>
@@ -527,7 +527,7 @@ export default function ReviewQueuePage() {
           <DialogHeader>
             <DialogTitle>Turn down @{rejecting?.username}?</DialogTitle>
             <DialogDescription>
-              They stay in the database with every rate already researched — nothing is lost,
+              They stay in the database with every rate already researched. Nothing is lost,
               and they can be approved later for a different brand.
             </DialogDescription>
           </DialogHeader>

@@ -22,10 +22,10 @@ import { getPlanLimits, unlockGatesForTier } from '@/config/planPricing'
 export type SubscriptionTier = 'free' | 'standard' | 'premium' | 'enterprise'
 
 export interface SubscriptionLimits {
-  /** Unlocks the plan FUNDS. See the two gates in src/config/planPricing.ts. */
+  /** Unlocks the plan FUNDS. */
   profiles: number
-  /** The ceiling on unlocks in a month, topped-up credits included. */
-  profileCap: number
+  /** The ceiling on unlocks in a month, or NULL where there is none. */
+  profileCap: number | null
   /** Post analyses a month. 0 means NOT METERED, not "none allowed". */
   posts: number
   teamMembers: number
@@ -98,12 +98,14 @@ export function getTierDisplayName(tier: string | undefined): string {
 /**
  * Remaining profile unlocks on the plan itself.
  *
- * `limit` is what the plan FUNDS, which is the number a customer can spend
- * without buying anything. `cap` is the separate count gate: the ceiling in a
- * month even with topped-up credits. On Free and Standard they are the same
- * number, so top-ups buy no extra unlocks at all; on Premium the cap is double
- * the included figure. Showing the cap as though it were the allowance would
- * promise 2,000 unlocks to someone whose plan pays for 1,000.
+ * `limit` is what the plan FUNDS, which is the number a customer gets without
+ * buying anything. `cap` is the ceiling, and it is NULL on every paid tier
+ * because there is no ceiling: once the included allowance is spent, bought
+ * credits keep unlocking. Only Free has a real cap.
+ *
+ * `remaining` therefore means "left in the allowance", not "left before you are
+ * refused". On a paid tier it hitting zero is not a wall, and any caller
+ * rendering it should not treat it as one.
  */
 export function calculateRemainingProfiles(
   subscriptionTier: string | undefined,
@@ -111,9 +113,10 @@ export function calculateRemainingProfiles(
 ): {
   remaining: number
   limit: number
-  cap: number
-  /** Unlocks reachable only by buying credits. 0 means top-ups buy nothing. */
-  headroom: number
+  /** The ceiling, or null where there is none. */
+  cap: number | null
+  /** True when nothing caps unlocks above the included allowance. */
+  unlimited: boolean
   tier: SubscriptionTier
   tierDisplay: string
 } {
@@ -125,8 +128,8 @@ export function calculateRemainingProfiles(
   return {
     remaining,
     limit,
-    cap: gates.cap ?? limit,
-    headroom: gates.headroom ?? 0,
+    cap: gates.cap,
+    unlimited: gates.unlimited,
     tier,
     tierDisplay: getTierDisplayName(subscriptionTier),
   }

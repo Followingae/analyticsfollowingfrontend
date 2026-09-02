@@ -122,7 +122,7 @@ export default function FACampaignsPage() {
       await navigator.clipboard.writeText(shareUrl)
       toast.success("Link copied")
     } catch {
-      toast.error("Couldn't copy — select and copy manually")
+      toast.error("Couldn't copy, select and copy manually")
     }
   }
 
@@ -134,7 +134,7 @@ export default function FACampaignsPage() {
       const d = res?.data ?? res
       const q = d?.queued ?? 0
       toast.success(
-        q > 0 ? `Re-analyzing ${q} suggested creator(s)` : "Nothing to re-analyze — all suggested creators are up to date",
+        q > 0 ? `Re-analyzing ${q} suggested creator(s)` : "Nothing to re-analyze, all suggested creators are up to date",
         { description: q > 0 ? "Analytics will fill in over the next few minutes." : undefined },
       )
     } catch (e: any) {
@@ -308,7 +308,7 @@ export default function FACampaignsPage() {
                         size="sm"
                         variant="outline"
                         onClick={(e) => { e.stopPropagation(); router.push(`/superadmin/fa/campaigns/${c.id}`) }}
-                        title="Creator funnel — who's enrolled, approved, submitted, verified"
+                        title="Creator funnel: who's enrolled, approved, submitted, verified"
                       >
                         <Users className="h-3.5 w-3.5 mr-1.5" />
                         Creators
@@ -427,7 +427,7 @@ export default function FACampaignsPage() {
               <DialogHeader>
                 <DialogTitle>Share &quot;{shareTarget?.name}&quot;</DialogTitle>
                 <DialogDescription>
-                  One link for everything — send it to creators or print the QR for cashback. It opens the app if installed, otherwise the store.
+                  One link for everything. Send it to creators or print the QR for cashback. It opens the app if installed, otherwise the store.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex flex-col items-center gap-4">

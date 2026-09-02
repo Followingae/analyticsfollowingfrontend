@@ -127,7 +127,7 @@ export function ConfirmationPanel({ proposalId }: { proposalId: string }) {
             )}
           </div>
           <p className="text-[13px] text-muted-foreground">
-            The client&apos;s copy now shows the roster and this total only — the per-creator
+            The client&apos;s copy now shows the roster and this total only. The per-creator
             prices come off once a proposal is locked.
           </p>
         </CardContent>

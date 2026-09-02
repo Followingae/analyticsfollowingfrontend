@@ -31,7 +31,6 @@ const ROUTE_TITLES: Record<string, string> = {
   "/teams": "Teams",
   // The operating console — everyone internal, not just the founders.
   "/work/today": "Today",
-  "/work/sourcing": "Sourcing",
   "/work/brands": "Brands",
   "/work/coverage": "Coverage",
   "/work/goals": "Goals",

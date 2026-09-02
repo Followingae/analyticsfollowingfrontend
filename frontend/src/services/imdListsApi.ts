@@ -55,8 +55,19 @@ export interface ImdListSummary {
   due_at?: string | null
   target_count?: number | null
   archived_at?: string | null
-  /** How much we have found, how much the client may see, how much they picked. */
+  /**
+   * Which pass we are on, and whether it is closed. A second round is this same area with a
+   * higher number, not a copy of it: one row per creator, ever, so last round's rejections
+   * are still sitting here wearing their reason.
+   */
+  round_no?: number
+  locked_at?: string | null
+  locked_by_email?: string | null
+  /** How much we have found, how much the client may see, how much they turned down. */
   cleared_count?: number
+  dropped_count?: number
+  /** Stocked and waiting on a yes or no from us. The inbox queue. */
+  awaiting_count?: number
   picked_count?: number
   live_links?: number
   client_note?: string | null
@@ -84,6 +95,16 @@ export interface ImdListCreator {
   cleared_by_email?: string | null
   struck_at?: string | null
   struck_reason?: string | null
+  /** The round they came in on, so round three can see who is new since round two. */
+  added_in_round?: number | null
+  /**
+   * Their no, not ours. Struck is us taking someone off the table; dropped is the client
+   * looking and passing. Always carries a reason, and never deletes the row.
+   */
+  dropped_at?: string | null
+  dropped_reason?: string | null
+  dropped_in_round?: number | null
+  dropped_by_email?: string | null
   /** What the client said, straight onto the row we researched. */
   client_verdict?: 'selected' | 'rejected' | null
   client_reason?: string | null
@@ -169,6 +190,30 @@ export const imdListsApi = {
     jfetch(`${BASE}/imd-lists/${id}/strike`, {
       method: 'POST', body: JSON.stringify({ influencer_ids, reason }),
     }),
+
+  /**
+   * The client turned these creators down. The reason is required, here and in the database:
+   * a drop with no reason is the one thing the round loop exists to record, thrown away.
+   */
+  drop: (id: string, influencer_ids: string[], reason: string):
+    Promise<{ data: { dropped: number; round_no: number } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/drop`, {
+      method: 'POST', body: JSON.stringify({ influencer_ids, reason }),
+    }),
+
+  /** Put a dropped creator back. People record the wrong name, and clients change their mind. */
+  undrop: (id: string, influencer_ids: string[]): Promise<{ data: { restored: number } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/undrop`, {
+      method: 'POST', body: JSON.stringify({ influencer_ids }),
+    }),
+
+  /** Close this round. Nothing in it changes again, and the client link stops taking answers. */
+  lock: (id: string): Promise<{ data: { round_no: number; picked: number; dropped: number; standing: number } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/lock`, { method: 'POST', body: '{}' }),
+
+  /** Go round again. Same area, one number higher, every rejection still in it. */
+  nextRound: (id: string): Promise<{ data: { round_no: number; already_rejected: number; still_standing: number } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/next-round`, { method: 'POST', body: '{}' }),
 
   remove: (id: string) => jfetch(`${BASE}/imd-lists/${id}`, { method: 'DELETE' }),
 

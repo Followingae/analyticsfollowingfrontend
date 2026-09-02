@@ -107,7 +107,7 @@ export default function VenueConfirmPage() {
       }
       setData(body?.data ?? null)
     } catch {
-      setError('Network problem — check the connection and try again.')
+      setError('Network problem. Check the connection and try again.')
     } finally {
       setSubmitting(false)
     }
