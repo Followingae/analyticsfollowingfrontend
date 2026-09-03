@@ -136,7 +136,7 @@ export default function SuperadminProposalsPage() {
               </motion.div>
               {showMargin && (
                 <motion.div variants={proposalMotion.staggerItem}>
-                  <StandardMetricCard icon={Coins} label="Margin" value={`⃃${(stats.total_margin ?? 0).toLocaleString()}`} subtitle={`avg ${(stats.avg_margin_percentage ?? 0).toFixed(1)}%`} />
+                  <StandardMetricCard icon={Coins} label="Margin" value={`AED ${(stats.total_margin ?? 0).toLocaleString()}`} subtitle={`avg ${(stats.avg_margin_percentage ?? 0).toFixed(1)}%`} />
                 </motion.div>
               )}
             </motion.div>
@@ -256,7 +256,7 @@ export default function SuperadminProposalsPage() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums text-sm font-medium">
                           {p.total_sell_amount
-                            ? `⃃${p.total_sell_amount.toLocaleString()}`
+                            ? `AED ${p.total_sell_amount.toLocaleString()}`
                             : "--"}
                         </TableCell>
                         {showMargin && (

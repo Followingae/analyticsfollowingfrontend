@@ -26,6 +26,7 @@ import { TmAddCreatorsDialog } from '@/components/proposals/TmAddCreatorsDialog'
 import { SellingMode } from '@/components/superadmin/proposals/SellingMode'
 import { PriceModifierCard } from '@/components/superadmin/proposals/PriceModifierCard'
 import { GateOverrideCard } from '@/components/superadmin/proposals/GateOverrideCard'
+import { Aed } from '@/components/console/primitives'
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   draft: { label: 'Draft', cls: 'bg-muted text-foreground' },
@@ -163,7 +164,7 @@ export default function ProposalApprovalPage() {
           {budgetVisible && ws.proposal?.total_budget != null && (
             <div className="ml-auto text-right">
               <div className="text-xs text-muted-foreground">Total budget</div>
-              <div className="text-lg font-semibold">⃃ {Number(ws.proposal.total_budget).toLocaleString('en-AE')}</div>
+              <div className="text-lg font-semibold"><Aed>{Number(ws.proposal.total_budget).toLocaleString('en-AE')}</Aed></div>
             </div>
           )}
         </div>
@@ -298,7 +299,7 @@ export default function ProposalApprovalPage() {
                           </TableCell>
                           <TableCell>{inf.followers_count ? Number(inf.followers_count).toLocaleString() : '-'}</TableCell>
                           <TableCell>
-                            {rate === '-' ? '-' : `⃃ ${Number(rate).toLocaleString('en-AE')}`}
+                            {rate === '-' ? '-' : `AED ${Number(rate).toLocaleString('en-AE')}`}
                             {discounted && (
                               <span className="ml-2 text-xs text-muted-foreground line-through">
                                 {Number(standard).toLocaleString('en-AE')}

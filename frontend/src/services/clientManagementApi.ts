@@ -46,6 +46,8 @@ export interface Client {
   total_spent: number;
   unpaid_campaigns: number;
   pending_proposals: number;
+  /** 'client' once they are paying, invoiced or working with us; 'lead' before that. */
+  relationship?: 'client' | 'lead';
   account_manager_id: string | null;
   account_manager_name: string | null;
 }
@@ -90,10 +92,18 @@ export interface FinanceSummary {
 }
 
 export const clientApi = {
-  list: (params?: { search?: string; industry?: string; limit?: number; offset?: number }) => {
+  /**
+   * The client book by default. Pass scope 'all' to get the leads as well, each row
+   * carrying `relationship`: a brand we are only talking to has no account yet, so it is
+   * not a client, but it is exactly the thing you pick when you start sourcing for it or
+   * hand a colleague access to it.
+   */
+  list: (params?: { search?: string; industry?: string; scope?: 'clients' | 'all';
+                    limit?: number; offset?: number }) => {
     const qs = new URLSearchParams();
     if (params?.search) qs.set('search', params.search);
     if (params?.industry) qs.set('industry', params.industry);
+    if (params?.scope) qs.set('scope', params.scope);
     if (params?.limit) qs.set('limit', String(params.limit));
     if (params?.offset) qs.set('offset', String(params.offset));
     return authFetch(`${BASE}?${qs.toString()}`);

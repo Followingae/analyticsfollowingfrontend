@@ -52,7 +52,7 @@ const compact = (n: number | null) =>
     : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K` : String(n)
 
 const aed = (v: number | null | undefined) =>
-  v == null ? null : `⃃ ${v.toLocaleString('en-AE')}`
+  v == null ? null : `AED ${v.toLocaleString('en-AE')}`
 
 function Logo({ className = 'h-6 w-auto' }: { className?: string }) {
   return (

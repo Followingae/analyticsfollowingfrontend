@@ -163,7 +163,8 @@ export default function ClientsPage() {
           <Building2 className="h-12 w-12 text-muted-foreground/50" />
           <h3 className="mt-4 text-lg font-medium">No clients found</h3>
           <p className="text-muted-foreground">
-            Clients appear here when you create brand user accounts
+            A brand becomes a client once you create its account, it pays, or it has been
+            sent a proposal. Everyone we are still only talking to is on Brands.
           </p>
         </div>
       ) : (

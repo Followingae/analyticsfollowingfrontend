@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, X, Store, Clock, AlertCircle, ImageOff, ZoomIn } from "lucide-react"
-import { PageHead } from "@/components/console/primitives"
+import { PageHead, Aed } from "@/components/console/primitives"
 import { FaPage, Failed, Loading, Nothing, TONE_BADGE, TONE_TEXT } from "../_ui"
 import { faReceiptClaimApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
@@ -77,7 +77,7 @@ export default function FAReceiptClaimsPage() {
     try {
       const res = await faReceiptClaimApi.approve(id)
       if (res.success) {
-        toast.success(`Approved. ${res.data?.deliverables_created || 0} deliverables created, ⃃ ${res.data?.cashback_amount || 0} cashback now pending.`)
+        toast.success(`Approved. ${res.data?.deliverables_created || 0} deliverables created, AED ${res.data?.cashback_amount || 0} cashback now pending.`)
         load()
       }
     } catch (e: any) {
@@ -192,7 +192,7 @@ export default function FAReceiptClaimsPage() {
 
                       <div className="shrink-0 text-right">
                         <p className="text-xl font-semibold tabular-nums">
-                          ⃃ {claim.ai_extracted_amount?.toFixed(2) ?? "—"}
+                          <Aed>{claim.ai_extracted_amount?.toFixed(2) ?? "—"}</Aed>
                         </p>
                         <p className="text-ds-caption text-muted-foreground">
                           {claim.ai_extracted_date || "No date read"}
@@ -220,7 +220,7 @@ export default function FAReceiptClaimsPage() {
                       )}
                       {claim.cashback_amount > 0 && (
                         <span className={`font-medium ${TONE_TEXT.good}`}>
-                          ⃃ {claim.cashback_amount?.toFixed(2)} cashback
+                          <Aed>{claim.cashback_amount?.toFixed(2)}</Aed> cashback
                         </span>
                       )}
                     </div>

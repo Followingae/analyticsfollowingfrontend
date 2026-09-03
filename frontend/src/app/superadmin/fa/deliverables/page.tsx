@@ -19,6 +19,7 @@ import { FaPage, Failed, Loading, Nothing, TONE_BADGE, TONE_TEXT, type Tone } fr
 import { faDeliverableApi, faCampaignApi } from "@/services/faAdminApi"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
+import { Aed } from "@/components/console/primitives"
 
 interface Deliverable {
   id: string
@@ -245,7 +246,7 @@ function FADeliverables() {
                               <span>{d.type} x{d.quantity}</span>
                               <span>·</span>
                               <span>Due {fmtDate(d.deadline)}</span>
-                              {d.cashback_linked > 0 && <><span>·</span><span className="font-medium">⃃ {d.cashback_linked} linked</span></>}
+                              {d.cashback_linked > 0 && <><span>·</span><span className="font-medium"><Aed>{d.cashback_linked}</Aed> linked</span></>}
                             </div>
                             <div className="flex flex-wrap items-center gap-2 mt-2">
                               <Badge variant="outline" className={`text-[10px] ${TONE_BADGE[meta.tone]}`}>{meta.label}</Badge>

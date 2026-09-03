@@ -26,7 +26,7 @@ const payBadge = (s: string) => {
   if (s === 'partial') return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Partial</Badge>
   return <Badge variant="destructive">Unpaid</Badge>
 }
-const aed = (n: number | null) => (n == null ? '—' : `⃃ ${Number(n).toLocaleString('en-AE')}`)
+const aed = (n: number | null) => (n == null ? '—' : `AED ${Number(n).toLocaleString('en-AE')}`)
 
 export function ClientCommercialTab({ teamId, campaignId, proposalId }: { teamId: string; campaignId?: string; proposalId?: string }) {
   const [docs, setDocs] = useState<ClientDocument[]>([])

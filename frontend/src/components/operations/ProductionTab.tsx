@@ -26,6 +26,7 @@ import { Plus, Trash, Calendar, MapPin, Coins, CheckCircle, Package } from 'luci
 import { operationsApi } from '@/services/operationsApi';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { Aed } from '@/components/console/primitives';
 
 type Mode = 'shoots' | 'events' | 'payouts';
 
@@ -173,7 +174,7 @@ export function ProductionTab({
                   {mode === 'payouts' ? (
                     <>
                       <TableCell className="font-medium">{r.creator_name}</TableCell>
-                      <TableCell className="tabular-nums">{isInternal ? <>⃃ {Number(r.amount || 0).toLocaleString()}</> : "—"}</TableCell>
+                      <TableCell className="tabular-nums">{isInternal ? <Aed>{Number(r.amount || 0).toLocaleString()}</Aed> : "—"}</TableCell>
                       <TableCell><Badge variant={r.status === 'paid' ? 'default' : 'secondary'} className="capitalize">{r.status}</Badge></TableCell>
                       <TableCell className="text-right">
                         {isInternal && r.status !== 'paid' && (

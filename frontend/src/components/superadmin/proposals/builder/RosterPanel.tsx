@@ -63,7 +63,7 @@ export function RosterPanel(p: Props) {
           </h3>
           {total > 0 && (
             <span className="text-sm font-semibold tabular-nums">
-              {AED}{total.toLocaleString()}
+              {AED} {total.toLocaleString()}
             </span>
           )}
         </div>
@@ -200,7 +200,7 @@ export function RosterPanel(p: Props) {
                           >
                             {dt.label}
                             <span className="text-[10px] opacity-70 tabular-nums">
-                              {AED}{price}
+                              {AED} {price}
                             </span>
                           </button>
                           {isActive && (
@@ -237,7 +237,7 @@ export function RosterPanel(p: Props) {
 
                   {subtotal > 0 && (
                     <p className="mt-2 text-xs font-medium text-foreground tabular-nums">
-                      Subtotal: {AED}{subtotal.toLocaleString()}
+                      Subtotal: {AED} {subtotal.toLocaleString()}
                     </p>
                   )}
                 </div>
@@ -252,7 +252,7 @@ export function RosterPanel(p: Props) {
                 {p.addedInfluencers.length !== 1 ? "s" : ""}
               </p>
               <p className="text-lg font-semibold tabular-nums">
-                {AED}{total.toLocaleString()}
+                {AED} {total.toLocaleString()}
               </p>
             </div>
           )}

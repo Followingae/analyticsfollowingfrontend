@@ -220,7 +220,7 @@ export default function CreateBarterPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label className="text-xs">Item Name *</Label>
-                      <Input value={item.name} onChange={(e) => updateBarterItem(i, "name", e.target.value)} placeholder="e.g., ⃃ 200 coupon, Gift basket" />
+                      <Input value={item.name} onChange={(e) => updateBarterItem(i, "name", e.target.value)} placeholder="e.g., AED 200 coupon, Gift basket" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-xs">Estimated Value (AED)</Label>

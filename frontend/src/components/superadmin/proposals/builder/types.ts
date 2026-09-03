@@ -58,8 +58,10 @@ export const CATEGORY_OPTIONS = [
   "Tech", "Lifestyle", "Entertainment", "Sports", "Business",
 ]
 
-/** The dirham sign (U+20C3), used everywhere else in the product. */
-export const AED = "⃃"
+/** The currency mark, spelled out. U+20C3 has no glyph in any system font, so in a plain
+ *  string like this one it renders as an empty box; only the `Aed` primitive, which names the
+ *  Dirham face on the element itself, can draw the sign. */
+export const AED = "AED"
 
 /**
  * A follower count we are willing to put on screen.

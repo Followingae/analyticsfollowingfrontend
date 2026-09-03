@@ -117,7 +117,10 @@ function AreasPage() {
 
   useEffect(() => {
     if (!openStart) return
-    clientApi.list({ limit: 200 })
+    // Leads as well as clients. You source for a brand months before it signs anything,
+    // and this picker read the client book, so the brand you had just logged in order to
+    // source for it was the one brand you could not choose.
+    clientApi.list({ limit: 200, scope: 'all' })
       .then((r: any) => setBrands(r?.data?.clients ?? r?.data ?? []))
       .catch(() => setBrands([]))
   }, [openStart])

@@ -172,7 +172,7 @@ export default function CreatePaidDealPage() {
                     <SelectTrigger><SelectValue placeholder="Select pool..." /></SelectTrigger>
                     <SelectContent>
                       {merchantPools.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.name || p.id} - ⃃ {((p.available_cents || 0) / 100).toLocaleString()}</SelectItem>
+                        <SelectItem key={p.id} value={p.id}>{p.name || p.id} - AED {((p.available_cents || 0) / 100).toLocaleString()}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

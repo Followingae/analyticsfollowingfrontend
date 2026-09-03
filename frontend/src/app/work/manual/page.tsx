@@ -126,6 +126,7 @@ const SLIDES: Slide[] = [
     helps: [
       'Logging the brand is what asks a founder to open the area, so you do not have to chase anyone for it.',
       'A brand nobody has touched in two weeks resurfaces on your Today, so none of your work goes cold quietly.',
+      'A brand you have logged is not a client yet, and it is not in the client list. It becomes one when a superadmin creates its account, it pays, or it is sent a proposal. Until then it lives here, on Brands.',
     ],
     handover: 'It lands on the founders’ Today as “Start sourcing for {brand}”, and turns urgent after three days.',
   },

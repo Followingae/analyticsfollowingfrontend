@@ -36,6 +36,7 @@ import {
   Monitor
 } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, Line, LineChart, Pie, PieChart as RechartsPieChart, Cell, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { Aed } from '@/components/console/primitives'
 
 
 const chartConfig = {
@@ -239,7 +240,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ⃃{dashboardData?.revenue_metrics?.monthly_revenue ? formatNumber(dashboardData.revenue_metrics.monthly_revenue) : '0'}
+              <Aed>{dashboardData?.revenue_metrics?.monthly_revenue ? formatNumber(dashboardData.revenue_metrics.monthly_revenue) : '0'}</Aed>
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
               <ArrowUpRight className="h-3 w-3 text-emerald-500" />

@@ -35,7 +35,9 @@ export function StaffAccessDialog({ staffId, open, onOpenChange, onSaved }: {
         setLoading(true);
         const [d, cl] = await Promise.all([
           staffAdminApi.get(staffId),
-          clientApi.list({ limit: 200 }).then((r: any) => r?.data || r?.clients || []),
+          // Leads included: work on a brand starts long before it becomes a client, and
+          // whoever is doing that work needs to be granted it.
+          clientApi.list({ limit: 200, scope: 'all' }).then((r: any) => r?.data || r?.clients || []),
         ]);
         setDetail(d);
         setClients((cl || []).map((c: any) => ({ id: c.id, name: c.company_name || c.name || c.owner_name || "Client" })));

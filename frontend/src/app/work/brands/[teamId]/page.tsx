@@ -24,7 +24,7 @@ import { useAdminAccess } from '@/hooks/useAdminAccess'
 import { LogTouchDialog } from '@/components/superadmin/brands/LogTouchDialog'
 
 const aed = (n: number | null | undefined) =>
-  n == null ? '—' : `⃃ ${Number(n) >= 10000 ? `${Math.round(Number(n) / 1000)}K` : Math.round(Number(n)).toLocaleString()}`
+  n == null ? '—' : `AED ${Number(n) >= 10000 ? `${Math.round(Number(n) / 1000)}K` : Math.round(Number(n)).toLocaleString()}`
 
 const when = (iso: string | null) =>
   !iso ? '—' : new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })

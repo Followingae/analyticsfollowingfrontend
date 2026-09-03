@@ -173,7 +173,7 @@ export default function VenueConfirmPage() {
               <UtensilsCrossed className="h-3.5 w-3.5" />This visit covers
             </div>
             <p className="mt-1.5 text-base font-medium">
-              {entitlement.label || `Up to ⃃ ${entitlement.cap_aed}`}
+              {entitlement.label || `Up to AED ${entitlement.cap_aed}`}
             </p>
           </section>
         )}

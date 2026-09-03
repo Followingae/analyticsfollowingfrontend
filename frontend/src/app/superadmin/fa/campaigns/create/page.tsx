@@ -146,7 +146,7 @@ export default function CreateCashbackCampaignPage() {
     return p.brand_user_id === derivedBrandId
   })
   const selectedPool = allPools.find((p) => p.id === selectedPoolId)
-  const fmtAed = (cents: number) => `⃃ ${(cents / 100).toLocaleString("en-AE", { minimumFractionDigits: 2 })}`
+  const fmtAed = (cents: number) => `AED ${(cents / 100).toLocaleString("en-AE", { minimumFractionDigits: 2 })}`
 
   // Progress calculation
   const completedSteps = [

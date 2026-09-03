@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent } from "@/components/ui/card"
 import { formatCredits } from "@/utils/creditUtils"
+import { Aed } from "@/components/console/primitives"
 
 interface InsufficientCreditsModalProps {
   isOpen: boolean
@@ -127,7 +128,7 @@ export function InsufficientCreditsModal({
                   <div className="text-xs text-muted-foreground">Basic package</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium text-sm">⃃ 180</div>
+                  <div className="font-medium text-sm"><Aed>180</Aed></div>
                   <div className="text-xs text-green-600">Covers this action</div>
                 </div>
               </div>
@@ -138,7 +139,7 @@ export function InsufficientCreditsModal({
                   <div className="text-xs text-muted-foreground">Popular choice</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium text-sm">⃃ 730</div>
+                  <div className="font-medium text-sm"><Aed>730</Aed></div>
                   <div className="text-xs text-blue-600">Best value</div>
                 </div>
               </div>

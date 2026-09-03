@@ -32,7 +32,7 @@ import { cdnAvatar } from "@/lib/avatar"
 const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/proposals`
 
 const money = (n: number | string | null | undefined) =>
-  n == null ? null : `⃃ ${Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
+  n == null ? null : `AED ${Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
 const compact = (n: number | null | undefined) =>
   n == null ? null : new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(n))
 
@@ -91,7 +91,7 @@ interface Modifier {
   amount_aed: number | null
 }
 
-/** The uplift as the client should read it: "+15%" or "+⃃ 500". */
+/** The uplift as the client should read it: "+15%" or "+AED 500". */
 function modifierSuffix(m: Modifier): string {
   return m.kind === 'percent' ? `+${Number(m.percent_value)}%` : `+${money(m.amount_aed)}`
 }

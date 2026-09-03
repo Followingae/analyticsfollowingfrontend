@@ -40,7 +40,7 @@ async function api(path = '', init?: RequestInit) {
 }
 
 const aed = (n: any) => n == null ? '—'
-  : `⃃ ${Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
+  : `AED ${Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
 
 /* These were a fifth set of hand-picked palette steps, so "owed" was a slightly different
    amber here than the amber on Today. They now name the console tone tokens: decided once,

@@ -13,6 +13,7 @@ import { FaPage, Failed, Loading, Nothing, TONE_BADGE, TONE_TEXT, type Tone } fr
 import { Check, X, Clock, CheckCircle2, XCircle, Instagram } from "lucide-react"
 import { faWithdrawalApi } from "@/services/faAdminApi"
 import { formatCurrencyAED } from "@/components/ui/currency"
+import { Aed } from "@/components/console/primitives"
 import { toast } from "sonner"
 
 type TabKey = "pending" | "completed" | "failed"
@@ -63,7 +64,7 @@ function WithdrawalRow({
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground">
           <span className="font-semibold tabular-nums text-foreground">
-            ⃃ {formatCurrencyAED(Number(w.amount) || 0)}
+            <Aed>{formatCurrencyAED(Number(w.amount) || 0)}</Aed>
           </span>
           <span>·</span>
           <span className="tabular-nums">{w.iban}</span>
