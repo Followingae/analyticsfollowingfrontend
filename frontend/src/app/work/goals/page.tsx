@@ -1,15 +1,15 @@
 'use client'
 
 /**
- * Goals.
+ * Targets.
  *
- * Leadership sets two numbers a month; every daily target derives from how many sourcing
- * rounds are actually open. Pace is shown against elapsed time of day, so being part-way
+ * Leadership sets two numbers a month; every daily target derives from how many brand
+ * rosters are actually open. Pace is shown against elapsed time of day, so being part-way
  * through at lunchtime reads as on track rather than behind.
  */
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from 'recharts'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,12 +19,17 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig,
 } from '@/components/ui/chart'
-import { Minus, Plus, Loader2, Save, Target, Layers, CalendarDays, Users } from 'lucide-react'
+import { Minus, Plus, Loader2, Save, Target, CalendarDays, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
-import { Empty, MiniBar, PageHead, Panel, Row, Stat, StatGrid } from '@/components/console/primitives'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table'
+import {
+  Empty, MiniBar, PageHead, Panel, ScoreDot, Stat, StatGrid,
+} from '@/components/console/primitives'
 
 const BASE = `${API_CONFIG.BASE_URL}/api/v1/admin/goals`
 const CHART: ChartConfig = { count: { label: 'Creators added', color: 'var(--primary)' } }
@@ -60,6 +65,8 @@ export default function GoalsPage() {
   const canSet = isSuperAdmin || isFullAccessStaff
 
   const [today, setToday] = useState<any>(null)
+  /** Why today's figures are absent, when they are. Null means they simply are not. */
+  const [todayFailure, setTodayFailure] = useState<string | null>(null)
   const [team, setTeam] = useState<any[]>([])
   const [rule, setRule] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -70,8 +77,18 @@ export default function GoalsPage() {
       // allSettled, not all: /team is leadership-only, so for a talent manager the 403
       // rejected the whole batch and the screen that tells them their daily target rendered
       // completely empty. One forbidden panel must not take the page with it.
-      const [t, tm, r] = await Promise.allSettled([api('/today'), api('/team'), api('/rules')])
-        .then(rs => rs.map(x => x.status === 'fulfilled' ? x.value : null))
+      //
+      // But a settled rejection is not a quiet day. `today` coming back null used to render
+      // "Nothing added yet." over the chart, which is a sentence about the business printed
+      // from a fact about the network. The refusal is kept so the screen can say which it is.
+      const settled = await Promise.allSettled([api('/today'), api('/team'), api('/rules')])
+      const [t, tm, r] = settled.map(x => x.status === 'fulfilled' ? x.value : null)
+      const todayFailed = settled[0].status === 'rejected'
+      setTodayFailure(todayFailed
+        ? ((settled[0] as PromiseRejectedResult).reason instanceof Error
+            ? (settled[0] as PromiseRejectedResult).reason.message
+            : 'The read did not come back')
+        : null)
       setToday(t?.data ?? null)
       setTeam(tm?.data?.people || [])
       setRule((r?.data?.rules || []).find((x: any) => x.role_key === 'talent_manager') || null)
@@ -101,6 +118,12 @@ export default function GoalsPage() {
   const bump = (k: 'per_open_campaign' | 'baseline_daily', by: number) =>
     setRule((p: any) => ({ ...p, [k]: Math.max(0, (p?.[k] ?? 0) + by) }))
 
+  /** Overdue first: it is the only line on this table anybody has to act on. */
+  const teamRanked = useMemo(
+    () => [...team].sort((a, b) => (b.overdue_rounds || 0) - (a.overdue_rounds || 0)
+                                || (b.added || 0) - (a.added || 0)),
+    [team])
+
   const trail = useMemo(() => (today?.trail || []).map((d: any) => ({
     ...d,
     day: new Date(d.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
@@ -112,8 +135,8 @@ export default function GoalsPage() {
         {/* The loaded band draws no box per figure, so the skeleton does not promise one. */}
         <div className="space-y-ds-5">
           <Skeleton className="h-9 w-40 rounded-ds-lg" />
-          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map(i => (
+          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-3">
+            {[0, 1, 2].map(i => (
               <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
                 <Skeleton className="h-3 w-24 rounded-ds-sm" />
                 <Skeleton className="h-9 w-20 rounded-ds-sm" />
@@ -133,30 +156,46 @@ export default function GoalsPage() {
     <SuperadminLayout>
       <div className="space-y-ds-5">
         <PageHead
-          title="Goals"
-          sub="Set the rules once a month. Daily targets compute themselves from how many brand areas are actually open, so nobody is chasing an arbitrary number."
+          title="Targets"
+          sub="The daily number comes from how many rosters are open, so nobody is chasing an arbitrary one."
         />
 
+        {/* A refusal says so. It used to be indistinguishable from a day on which nobody had
+            added anybody. */}
+        {todayFailure && (
+          <div className="flex flex-col items-start gap-ds-2 border-t pt-ds-3">
+            <p className="text-ds-label">Today&apos;s figures did not load.</p>
+            <p className="text-ds-caption text-muted-foreground">
+              {todayFailure}. Your target and what has been added today are unknown, not zero.
+            </p>
+            <Button variant="outline" size="sm" onClick={load}>Try again</Button>
+          </div>
+        )}
+
         {today?.has_rule && (
-          <StatGrid>
+          /* Three figures, not four. "Open rosters" and "Today's target" were the same fact
+             twice: one tile said "3 rosters open right now" and the tile beside it said
+             "each one raises today's target". The click that only the second one carried
+             moves onto the first. */
+          <StatGrid cols={3}>
             <Stat label="Today's target" value={today.target} icon={Target}
-                  hint={`${today.open_rounds} area${today.open_rounds === 1 ? '' : 's'} open right now`} />
+                  hint={`${today.open_rounds} roster${today.open_rounds === 1 ? '' : 's'} open, plus the baseline`}
+                  onClick={() => router.push('/work/areas')} />
             <Stat label="Added today" value={today.done} icon={Users}
                   tone={p?.tone === 'good' ? 'good' : p?.tone === 'warn' ? 'warn' : p?.tone === 'bad' ? 'bad' : 'neutral'}
                   hint={p?.label} />
             <Stat label="This month" value={today.month_done} icon={CalendarDays}
                   hint={today.quality_required ? 'Only complete records count' : 'All records count'} />
-            {/* The number the whole target is computed from, and the only way to change it
-                is to open or close an area. It was the one figure here you could not click. */}
-            <Stat label="Open areas" value={today.open_rounds} icon={Layers}
-                  hint="Each one raises today's target"
-                  onClick={() => router.push('/work/areas')} />
           </StatGrid>
         )}
 
         <div className="grid items-start gap-ds-4 lg:grid-cols-[1.4fr_1fr]">
           <Panel title="Last 14 days" description="Creators added, against the daily target">
-            {trail.length > 0 ? (
+            {todayFailure && trail.length === 0 ? (
+              <p className="text-ds-caption text-muted-foreground">
+                The last fourteen days did not load, so nothing is known about them.
+              </p>
+            ) : trail.length > 0 ? (
               <ChartContainer config={CHART} className="h-[240px] w-full">
                 <AreaChart data={trail} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
                   <defs>
@@ -171,12 +210,25 @@ export default function GoalsPage() {
                   <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false}
                          className="text-xs" />
                   <ChartTooltip content={<ChartTooltipContent />} />
+                  {/* The panel promised "against the daily target" and then drew one series,
+                      so the comparison the chart exists for was left to the reader. This is
+                      the line the area is supposed to be read against, and it is the one
+                      thing a number cannot show: fourteen days of clearing it or not. */}
+                  {today?.has_rule && today.target > 0 && (
+                    <ReferenceLine
+                      y={today.target}
+                      stroke="var(--tone-warn-dot)"
+                      strokeDasharray="4 4"
+                      label={{ value: `Target ${today.target}`, position: 'insideTopRight',
+                               fontSize: 11, fill: 'var(--tone-warn-ink)' }}
+                    />
+                  )}
                   <Area dataKey="count" type="monotone" stroke="var(--color-count)"
                         strokeWidth={2} fill="url(#goalFill)" />
                 </AreaChart>
               </ChartContainer>
             ) : (
-              <Empty>Nothing added yet.</Empty>
+              <Empty>Nobody has added a creator in the last fortnight.</Empty>
             )}
 
             {p && (
@@ -204,7 +256,7 @@ export default function GoalsPage() {
             <Panel title="Sourcing rules" description="Applies to every talent manager this month">
               <div className="space-y-ds-4">
                 {([
-                  ['per_open_campaign', 'Per open round, per day', 'Until that roster locks'],
+                  ['per_open_campaign', 'Per open roster, per day', 'Until that roster closes'],
                   ['baseline_daily', 'When nothing is open', 'Creators to add to the database each day'],
                 ] as const).map(([k, title, sub]) => (
                   <div key={k} className="flex items-center justify-between gap-ds-3">
@@ -237,7 +289,7 @@ export default function GoalsPage() {
                   /* This sentence was in a dashed box inside a panel that is itself a card:
                      three edges deep for one line of arithmetic. The box comes off. */
                   <p className="text-xs leading-relaxed text-muted-foreground">
-                    {today.open_rounds} area{today.open_rounds === 1 ? '' : 's'} open today →
+                    {today.open_rounds} roster{today.open_rounds === 1 ? '' : 's'} open today,
                     target <strong className="text-foreground">{today.target}</strong> creators.
                   </p>
                 )}
@@ -251,34 +303,59 @@ export default function GoalsPage() {
           )}
         </div>
 
-        <Panel title="The team this month" description="Everyone with an internal role" flush>
-          {team.map(m => (
-            <Row
-              key={m.id}
-              tone={m.overdue_rounds > 0 ? 'bad' : m.added > 0 ? 'good' : 'neutral'}
-              title={
-                <span className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-[11px] font-semibold">
-                    {initials(m.email)}
-                  </span>
-                  {m.email}
-                  <span className="text-xs font-normal capitalize text-muted-foreground">
-                    {String(m.staff_role || '').replace(/_/g, ' ')}
-                  </span>
-                </span>
-              }
-              meta={
-                <span className="pl-[38px]">
-                  {m.added} added this month · {m.costed} with a cost · {m.open_rounds} open area
-                  {m.open_rounds === 1 ? '' : 's'}
-                  {m.overdue_rounds > 0 && ` · ${m.overdue_rounds} overdue`}
-                </span>
-              }
-              right={<MiniBar value={m.costed} max={Math.max(1, m.added)}
-                              tone={m.overdue_rounds > 0 ? 'bad' : 'info'} />}
-            />
-          ))}
-          {team.length === 0 && <Empty>No internal staff accounts yet.</Empty>}
+        {/* Four numbers per person were packed into one line of prose under their address,
+            which is four facts the eye has to parse a sentence to reach. They are columns:
+            the same four numbers, in line with each other down the page, so "who is behind"
+            is a glance rather than a read. Overdue first, because that is the only row on
+            this table anybody has to do something about. */}
+        <Panel title="The team this month" flush>
+          {team.length > 0 ? (
+            <div className="overflow-x-auto px-3 pb-1">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Person</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="text-right">Added</TableHead>
+                    <TableHead>With a cost</TableHead>
+                    <TableHead className="text-right">Open</TableHead>
+                    <TableHead className="text-right">Overdue</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teamRanked.map(m => (
+                    <TableRow key={m.id}>
+                      <TableCell>
+                        <span className="flex items-center gap-2.5">
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold">
+                            {initials(m.email)}
+                          </span>
+                          <span className="font-medium">{m.email}</span>
+                        </span>
+                      </TableCell>
+                      <TableCell className="capitalize text-muted-foreground">
+                        {String(m.staff_role || '').replace(/_/g, ' ')}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{m.added}</TableCell>
+                      <TableCell>
+                        <MiniBar value={m.costed} max={Math.max(1, m.added)}
+                                 tone={m.overdue_rounds > 0 ? 'bad' : 'info'} />
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{m.open_rounds}</TableCell>
+                      <TableCell className="text-right">
+                        {m.overdue_rounds > 0
+                          ? <ScoreDot value={m.overdue_rounds} tone="bad"
+                                      title={`${m.overdue_rounds} overdue`} />
+                          : <span className="text-muted-foreground">0</span>}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <Empty>Nobody has a staff role yet.</Empty>
+          )}
         </Panel>
       </div>
     </SuperadminLayout>

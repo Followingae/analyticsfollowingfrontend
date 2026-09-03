@@ -143,6 +143,30 @@ export const clientApi = {
     URL.revokeObjectURL(url);
   },
 
+  /**
+   * The scope, as a spreadsheet.
+   *
+   * The record used to open this URL in a new tab. It read a token into a variable first and
+   * then never used it, so the tab arrived unauthenticated and the download 401'd. Same
+   * shape as the campaign report below: fetch it with the session we already have, then hand
+   * the browser a blob.
+   */
+  downloadScope: async (teamId: string, year?: string, name?: string) => {
+    const qs = year && year !== 'all' ? `?year=${encodeURIComponent(year)}` : '';
+    const res = await fetchWithAuth(`${BASE}/${teamId}/export${qs}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || 'The scope could not be downloaded');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(name || 'client').replace(/\s+/g, '_')}_scope${year && year !== 'all' ? `_${year}` : ''}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  },
+
   getUgc: (teamId: string) => authFetch(`${BASE}/${teamId}/ugc`),
 
   getFinance: (teamId: string) => authFetch(`${BASE}/${teamId}/finance`),

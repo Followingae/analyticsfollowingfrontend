@@ -9,22 +9,36 @@
  * opens the screen that owns it. Campaigns go to the timeline, rounds to the round, invoices
  * to the client's commercial tab.
  */
+import * as React from 'react'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, ArrowRight, Building2, FileText, Layers, Megaphone, PhoneCall, Receipt } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Layers, PhoneCall } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
-import { Empty, PageHead, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
+import {
+  Aed, Empty, FieldStrip, PageHead, Panel, Row, type Tone,
+} from '@/components/console/primitives'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
 import { LogTouchDialog } from '@/components/superadmin/brands/LogTouchDialog'
 
-const aed = (n: number | null | undefined) =>
-  n == null ? '—' : `AED ${Number(n) >= 10000 ? `${Math.round(Number(n) / 1000)}K` : Math.round(Number(n)).toLocaleString()}`
+/**
+ * Money on this record: the mark and the figure, or a dash where we were told nothing.
+ *
+ * The console has one way to write a dirham and this screen was not using it: the figure was
+ * assembled into a plain string, which is how a bare U+20C3 came to ship here and render as
+ * an empty box. `Aed` names the Dirham face on the element itself, which is the only
+ * arrangement that survives a page with its own font stack.
+ */
+const Money = ({ value }: { value: number | null | undefined }) => {
+  if (value == null) return <>—</>
+  const n = Number(value)
+  return <Aed>{n >= 10000 ? `${Math.round(n / 1000)}K` : Math.round(n).toLocaleString()}</Aed>
+}
 
 const when = (iso: string | null) =>
   !iso ? '—' : new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -79,12 +93,13 @@ export default function BrandBrowsePage() {
         {/* The loaded band draws no box per figure, so the skeleton does not promise one. */}
         <div className="space-y-ds-5">
           <Skeleton className="h-9 w-56 rounded-ds-lg" />
-          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map(i => (
-              <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
-                <Skeleton className="h-3 w-24 rounded-ds-sm" />
-                <Skeleton className="h-9 w-20 rounded-ds-sm" />
-                <Skeleton className="h-3 w-32 rounded-ds-sm" />
+          {/* The loaded record opens with a strip of labelled facts, so the skeleton
+              stands in for that rather than for a band of big numbers. */}
+          <div className="flex flex-wrap gap-x-8 gap-y-3">
+            {[0, 1, 2, 3, 4].map(i => (
+              <div key={i} className="space-y-ds-1">
+                <Skeleton className="h-3 w-20 rounded-ds-sm" />
+                <Skeleton className="h-4 w-28 rounded-ds-sm" />
               </div>
             ))}
           </div>
@@ -128,6 +143,48 @@ export default function BrandBrowsePage() {
   const out = proposals.filter((p: any) => p.status === 'sent')
   const unpaid = invoices.filter((i: any) => i.status !== 'paid')
 
+  /**
+   * Everything on this client that is past a date, from all five lists at once.
+   *
+   * Each of these already existed somewhere below, carried by a tone dot inside whichever
+   * panel owned it, so reading "is anything late on this client" meant scanning five lists
+   * and knowing which colour meant what. The lists keep every row they had; this only lifts
+   * the late ones to the top.
+   */
+  const overdueItems: {
+    tone: Tone; title: React.ReactNode; meta: React.ReactNode; onClick?: () => void
+  }[] = []
+  for (const t of touches) {
+    if (t.next_step_at && new Date(t.next_step_at).getTime() < Date.now()) {
+      overdueItems.push({
+        tone: 'warn',
+        title: t.next_step || 'A next step we promised',
+        meta: `Owed since ${when(t.next_step_at)}${t.by_email ? ` · ${String(t.by_email).split('@')[0]}` : ''}`,
+      })
+    }
+  }
+  for (const r of areas) {
+    const closed = !!r.locked_at || !!r.archived_at
+    if (!closed && r.due_at && new Date(r.due_at).getTime() < Date.now()) {
+      overdueItems.push({
+        tone: 'bad',
+        title: `${r.title} was wanted by ${when(r.due_at)}`,
+        meta: `${r.proposed}${r.target_count ? ` of ${r.target_count}` : ''} found · ${r.owner_email || 'unassigned'}`,
+        onClick: canSource ? () => router.push(`/work/areas/${r.id}`) : undefined,
+      })
+    }
+  }
+  for (const i of invoices) {
+    if (i.status !== 'paid' && i.due_date && new Date(i.due_date).getTime() < Date.now()) {
+      overdueItems.push({
+        tone: 'bad',
+        title: <span className="flex items-center gap-2"><Money value={i.amount_aed} /> overdue</span>,
+        meta: `Was due ${when(i.due_date)}`,
+        onClick: () => router.push(`/work/clients/${teamId}?tab=commercial`),
+      })
+    }
+  }
+
   return (
     <SuperadminLayout>
       <div className="space-y-ds-5">
@@ -138,10 +195,6 @@ export default function BrandBrowsePage() {
           </Button>
           <PageHead
             title={brand.name}
-            sub={`${brand.account_manager_email
-              ? `Looked after by ${brand.account_manager_email}.`
-              : 'No account manager assigned.'} Everything below opens where it lives.${
-              canDestroy ? '' : ' A founder releases a brand to the talent team; the roster is open to you either way.'}`}
             action={
               <>
                 {/* Recording that you spoke to them. The screen has always asked people to
@@ -184,41 +237,55 @@ export default function BrandBrowsePage() {
           />
         </div>
 
-        <StatGrid>
-          {/* A tile counting N opened campaign #1, with nothing to say which one you were
-              about to get. The client's campaigns tab is the list the number is of. */}
-          <Stat label="Campaigns" value={campaigns.length} icon={Megaphone}
-                hint={`${live.length} live right now`}
-                // Same reason as the tile below: the campaign timeline is the campaigns
-                // module, which business development do not hold.
-                onClick={canCampaigns
-                  ? () => router.push(campaigns.length === 1
-                      ? `/work/campaigns/${campaigns[0].id}/timeline`
-                      : `/work/clients/${teamId}?tab=campaigns`) : undefined} />
-          <Stat label="Sourcing areas" value={areas.length} icon={Layers}
-                tone={openAreas.length ? 'info' : 'neutral'}
-                hint={openAreas.length ? `${openAreas.length} still open` : 'None open'}
-                onClick={canSource
-                  ? () => router.push(areas.length === 1
-                      ? `/work/areas/${areas[0].id}` : areasHref()) : undefined} />
-          <Stat label="Proposals" value={proposals.length} icon={FileText}
-                hint={out.length ? `${out.length} with the client` : 'None waiting on them'}
-                onClick={can('proposals')
-                  ? () => router.push(proposals.length === 1
-                      ? `/work/proposals/${proposals[0].id}`
-                      : `/work/clients/${teamId}?tab=proposals`) : undefined} />
-          <Stat label="Invoices" value={invoices.length} icon={Receipt}
-                tone={unpaid.length ? 'warn' : 'good'}
-                hint={invoices.length === 0 ? 'Not visible to your role, or none raised'
-                      : unpaid.length ? `${unpaid.length} unpaid` : 'All settled'} />
-        </StatGrid>
+        {/* A record opens with facts about the record, not with four dashboard tiles.
+            Each tile here was a count with a hint restating the panel directly underneath
+            it: "Campaigns 7 / 2 live right now" sat above a Campaigns panel whose rows each
+            say whether they are live. Five labelled facts in one line, and the lists below
+            keep every click the tiles carried. */}
+        <FieldStrip fields={[
+          { label: 'Account manager', value: brand.account_manager_email || 'Unassigned' },
+          { label: 'Live', value: `${live.length} of ${campaigns.length}` },
+          { label: 'Rosters', value: openAreas.length ? `${openAreas.length} open` : 'None open' },
+          { label: 'Quotes out', value: out.length },
+          {
+            label: 'Unpaid',
+            value: invoices.length === 0
+              ? '—'
+              : unpaid.length
+                ? <span className="text-[var(--tone-bad-ink)]">{unpaid.length}</span>
+                : 'All settled',
+          },
+        ]} />
+
+        {/* What is actually late, gathered from the five lists below it. Every one of these
+            facts was already on the screen, each buried in the third or fourth panel behind
+            a tone dot. Not drawn at all when nothing is late. */}
+        {overdueItems.length > 0 && (
+          <Panel title="Needs you" className="bg-[var(--tone-warn-wash)]" flush>
+            {overdueItems.map((o, i) => (
+              <Row key={i} tone={o.tone} title={o.title} meta={o.meta}
+                   right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
+                   onClick={o.onClick} />
+            ))}
+          </Panel>
+        )}
 
         <div className="grid items-start gap-ds-4 lg:grid-cols-2">
           {/* Conversations first: on most brands, most days, the last thing that happened
               was somebody talking to them — and until now that was the one thing the record
               could not show. Absent when there are none, like every other section here. */}
           {touches.length > 0 && (
-            <Panel title="Conversations" description="What was said, and what we owe them next" flush>
+            <Panel
+              title="Conversations"
+              description="What we owe them next"
+              action={
+                <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs"
+                        onClick={() => setTouchOpen(true)}>
+                  <PhoneCall className="h-3 w-3" />Log a call
+                </Button>
+              }
+              flush
+            >
               {touches.slice(0, 8).map((t: any) => (
                 <Row
                   key={t.id}
@@ -241,7 +308,18 @@ export default function BrandBrowsePage() {
             </Panel>
           )}
 
-          <Panel title="Campaigns" description="Newest first, opens the campaign's whole story" flush>
+          {/* The tile that used to sit above this list carried one destination the rows do
+              not: the client record's own campaigns tab. It moves here rather than going. */}
+          <Panel
+            title="Campaigns"
+            action={canCampaigns && campaigns.length > 0 ? (
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs"
+                      onClick={() => router.push(`/work/clients/${teamId}?tab=campaigns`)}>
+                All {campaigns.length}
+              </Button>
+            ) : undefined}
+            flush
+          >
             {campaigns.map((c: any) => (
               <Row
                 key={c.id}
@@ -259,10 +337,19 @@ export default function BrandBrowsePage() {
                 onClick={canCampaigns ? () => router.push(`/work/campaigns/${c.id}/timeline`) : undefined}
               />
             ))}
-            {campaigns.length === 0 && <Empty>No campaigns yet.</Empty>}
+            {campaigns.length === 0 && <Empty>Nothing running for them yet.</Empty>}
           </Panel>
 
-          <Panel title="Sourcing" description="Every roster we are building for this brand" flush>
+          <Panel
+            title="Rosters"
+            action={canSource ? (
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs"
+                      onClick={() => router.push(areasHref())}>
+                Open the grid
+              </Button>
+            ) : undefined}
+            flush
+          >
             {areas.map((r: any) => {
               const closed = !!r.locked_at || !!r.archived_at
               const late = r.due_at && !closed && new Date(r.due_at).getTime() < Date.now()
@@ -287,10 +374,19 @@ export default function BrandBrowsePage() {
                 />
               )
             })}
-            {areas.length === 0 && <Empty>No sourcing started for this brand.</Empty>}
+            {areas.length === 0 && <Empty>No roster yet.</Empty>}
           </Panel>
 
-          <Panel title="Proposals" description="What we have sent, and how it ended" flush>
+          <Panel
+            title="Quotes"
+            action={can('proposals') && proposals.length > 0 ? (
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs"
+                      onClick={() => router.push(`/work/clients/${teamId}?tab=proposals`)}>
+                All {proposals.length}
+              </Button>
+            ) : undefined}
+            flush
+          >
             {proposals.map((p: any) => (
               <Row
                 key={p.id}
@@ -301,7 +397,9 @@ export default function BrandBrowsePage() {
                 meta={
                   <>
                     {String(p.status || '').replace(/_/g, ' ')}
-                    {p.total_sell_amount != null ? ` · ${aed(p.total_sell_amount)}` : ''}
+                    {p.total_sell_amount != null
+                      ? <> · <Money value={p.total_sell_amount} /></>
+                      : null}
                     {` · updated ${when(p.updated_at)}`}
                   </>
                 }
@@ -309,10 +407,10 @@ export default function BrandBrowsePage() {
                 onClick={can('proposals') ? () => router.push(`/work/proposals/${p.id}`) : undefined}
               />
             ))}
-            {proposals.length === 0 && <Empty>Nothing sent to this brand yet.</Empty>}
+            {proposals.length === 0 && <Empty>No quotes sent.</Empty>}
           </Panel>
 
-          <Panel title="Invoices" description="Raised against this client" flush>
+          <Panel title="Invoices" flush>
             {invoices.map((i: any) => {
               const overdue = i.status !== 'paid' && i.due_date &&
                 new Date(i.due_date).getTime() < Date.now()
@@ -320,7 +418,14 @@ export default function BrandBrowsePage() {
                 <Row
                   key={i.id}
                   tone={i.status === 'paid' ? 'good' : overdue ? 'bad' : 'warn'}
-                  title={`${aed(i.amount_aed)} · ${String(i.status || '').replace(/_/g, ' ')}`}
+                  title={
+                  <span className="flex items-center gap-2">
+                    <Money value={i.amount_aed} />
+                    <span className="text-muted-foreground">
+                      {String(i.status || '').replace(/_/g, ' ')}
+                    </span>
+                  </span>
+                }
                   meta={
                     <>
                       {i.due_date ? `due ${when(i.due_date)}` : 'no due date'}
@@ -335,9 +440,10 @@ export default function BrandBrowsePage() {
                 />
               )
             })}
-            {invoices.length === 0 && (
-              <Empty>No invoices, or your role does not see them.</Empty>
-            )}
+            {/* Two different facts in one sentence: "there are none" and "you may not see
+                them" needed the reader to know which. The list is only drawn for a role that
+                may read it, so an empty one now means exactly what it says. */}
+            {invoices.length === 0 && <Empty>Nothing invoiced yet.</Empty>}
           </Panel>
         </div>
       </div>

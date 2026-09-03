@@ -65,6 +65,25 @@ export interface AreaBrief {
 
   /* What we are offering. Absent means cash, because every area written before this was cash. */
   comp_mode?: 'cash' | 'barter' | 'both'
+  /**
+   * What the client told us they have, and which kind of number it is: the whole campaign,
+   * or every month on a retainer.
+   *
+   * This is a fact the client said out loud, which makes it business development's to
+   * record and sell-side by nature. It is the only money a brief carries.
+   */
+  client_budget?: number
+  client_budget_kind?: 'campaign' | 'monthly'
+  /**
+   * RETIRED. What we would pay one creator.
+   *
+   * Read, never written. A rate per creator already exists per creator in the master
+   * database, with the margin a superadmin set on it, and a creator soft-added by the talent
+   * team is waiting on a superadmin for a sell price. A number typed into a brief was a
+   * second source for the same fact with nothing reconciling the two, which is how four
+   * disagreeing tier tables happened elsewhere in this product. Areas released before the
+   * ruling still carry it and still render it, so nothing already written is lost.
+   */
   budget_per_creator?: number
   barter_items?: BriefBarterItem[]
   /** How the barter reaches them. Same two words as campaigns.fulfilment_mode. */

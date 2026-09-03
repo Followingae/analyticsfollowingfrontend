@@ -17,19 +17,19 @@
  * off the back of.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertCircle, Check, Loader2, ShieldCheck } from 'lucide-react'
+import { AlertCircle, Check, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { cdnAvatar } from '@/lib/avatar'
-import { Aed } from '@/components/console/primitives'
+import { Aed, Panel } from '@/components/console/primitives'
+import { useAdminAccess } from '@/hooks/useAdminAccess'
 import { cn } from '@/lib/utils'
 
 type Row = {
@@ -60,6 +60,18 @@ const money = (n?: number | null) =>
   n == null ? '—' : n.toLocaleString('en-AE', { maximumFractionDigits: 0 })
 
 export function SettleCosts({ campaignId, onSettled }: { campaignId: string; onSettled?: () => void }) {
+  /**
+   * Defence in depth. The server refuses this data outright (creator_ladder_routes.py asks
+   * for SCOPE_LEADERSHIP on both the read and the write), and until now that 403 was the
+   * ONLY thing standing between an account manager and a table of costs, sell prices and
+   * margins. One relaxed dependency on the backend and this component starts rendering the
+   * number its own docstring says talent must never be able to read a sell price off.
+   *
+   * So the gate is stated here too. `canSeeMargin` is the frontend's name for the same
+   * leadership scope, and it is NOT an admin check: the co-founder is role='user' with
+   * staff_role='cofounder', and an admin check has locked her out of her own numbers before.
+   */
+  const { canSeeMargin, loading: gateLoading } = useAdminAccess()
   const [data, setData] = useState<Payload | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -85,7 +97,13 @@ export function SettleCosts({ campaignId, onSettled }: { campaignId: string; onS
     }
   }, [campaignId])
 
-  useEffect(() => { load() }, [load])
+  // Out of scope means the request is never made, so a cost never reaches this browser at
+  // all. Waiting on `gateLoading` first, because "we do not know yet" must not read as yes.
+  useEffect(() => {
+    if (gateLoading) return
+    if (!canSeeMargin) { setLoading(false); return }
+    load()
+  }, [load, gateLoading, canSeeMargin])
 
   /** The running margin as typed, so the effect of a negotiation is visible before saving. */
   const live = useMemo(() => {
@@ -124,40 +142,37 @@ export function SettleCosts({ campaignId, onSettled }: { campaignId: string; onS
     }
   }
 
+  // Absent, not blank: out of scope the panel does not exist, rather than existing empty and
+  // telling an account manager that a margin is being kept from them.
+  if (gateLoading || !canSeeMargin) return null
   if (denied) return null
   if (loading) return <Skeleton className="h-64 w-full rounded-2xl" />
   if (!data || !data.creators.length) return null
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ShieldCheck className="h-[18px] w-[18px] text-muted-foreground" />
-              Confirmed costs
-            </CardTitle>
-            <CardDescription>
-              What we actually pay each creator after negotiating. The margin below is only
-              real once every row is confirmed.
-            </CardDescription>
-          </div>
-          {data.settled ? (
-            <Badge className="rounded-full bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-300">
-              <Check className="mr-1 h-3.5 w-3.5" />All settled
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="rounded-full border-amber-300 text-amber-700 dark:text-amber-400">
-              <AlertCircle className="mr-1 h-3.5 w-3.5" />{data.pending} still open
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="overflow-x-auto rounded-xl border">
+    <Panel
+      title="Confirmed costs"
+      description="The margin is provisional until every row is confirmed."
+      action={
+        data.settled ? (
+          <Badge variant="outline" className="rounded-full border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">
+            <Check className="mr-1 h-3.5 w-3.5" />All settled
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="rounded-full border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]">
+            <AlertCircle className="mr-1 h-3.5 w-3.5" />{data.pending} still open
+          </Badge>
+        )
+      }
+    >
+      <div className="space-y-ds-4">
+        {/* The table sat inside a rounded, bordered well, inside a card that already had an
+            edge. The well is gone; the header rule and the row rules carry the same
+            structure with two fewer edges to cross before reaching a figure. */}
+        <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-[12px] uppercase tracking-wide text-muted-foreground">
-              <tr>
+            <thead className="text-[12px] uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b">
                 <th className="px-4 py-2.5 text-left font-medium">Creator</th>
                 <th className="px-4 py-2.5 text-right font-medium">Quoted cost</th>
                 <th className="px-4 py-2.5 text-right font-medium">Confirmed cost</th>
@@ -171,7 +186,7 @@ export function SettleCosts({ campaignId, onSettled }: { campaignId: string; onS
                 const effective = typed ?? r.confirmed_cost_aed ?? r.quoted_cost_aed
                 const margin = r.sell_aed - effective
                 return (
-                  <tr key={r.id} className="border-t">
+                  <tr key={r.id} className="border-b last:border-0">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2.5">
                         <Avatar className="h-8 w-8">
@@ -183,7 +198,7 @@ export function SettleCosts({ campaignId, onSettled }: { campaignId: string; onS
                         <div className="min-w-0">
                           <div className="truncate font-medium">@{r.username}</div>
                           {r.confirmed && (
-                            <div className="text-[11.5px] text-emerald-600 dark:text-emerald-400">Confirmed</div>
+                            <div className="text-[11.5px] text-[var(--tone-good-ink)]">Confirmed</div>
                           )}
                         </div>
                       </div>
@@ -198,14 +213,15 @@ export function SettleCosts({ campaignId, onSettled }: { campaignId: string; onS
                         placeholder={String(r.quoted_cost_aed || '')}
                         onChange={e => setDraft(d => ({ ...d, [r.id]: e.target.value.replace(/[^\d.]/g, '') }))}
                         className={cn('ml-auto h-9 w-32 text-right tabular-nums',
-                                      !r.confirmed && !draft[r.id] && 'border-amber-300')}
+                                      !r.confirmed && !draft[r.id]
+                                        && 'border-[var(--tone-warn-dot)]')}
                       />
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums">
                       <Aed>{money(r.sell_aed)}</Aed>
                     </td>
                     <td className={cn('px-4 py-2.5 text-right font-medium tabular-nums',
-                                      margin < 0 ? 'text-rose-600 dark:text-rose-400' : '')}>
+                                      margin < 0 && 'text-[var(--tone-bad-ink)]')}>
                       <Aed>{money(margin)}</Aed>
                     </td>
                   </tr>
@@ -215,42 +231,43 @@ export function SettleCosts({ campaignId, onSettled }: { campaignId: string; onS
           </table>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-muted/40 px-4 py-3.5">
-          <div className="flex flex-wrap gap-6 text-sm">
+        {/* Three figures in a tinted well, inside a card that already has an edge. The tint
+            was the only thing grouping them and the gap does that for free, so the totals
+            take the room the padding was using. The sentence that used to sit underneath
+            said what the panel description now says once. */}
+        <div className="flex flex-wrap items-center justify-between gap-ds-4 border-t pt-ds-4">
+          <div className="flex flex-wrap gap-x-ds-5 gap-y-ds-2">
             <div>
-              <div className="text-[11.5px] uppercase tracking-wide text-muted-foreground">We charge</div>
-              <div className="text-base font-semibold tabular-nums"><Aed>{money(live?.sell)}</Aed></div>
+              <p className="text-ds-caption font-medium text-muted-foreground">We charge</p>
+              <p className="mt-ds-1 text-[22px] font-semibold leading-none tracking-[-0.02em] tabular-nums">
+                <Aed>{money(live?.sell)}</Aed>
+              </p>
             </div>
             <div>
-              <div className="text-[11.5px] uppercase tracking-wide text-muted-foreground">We pay</div>
-              <div className="text-base font-semibold tabular-nums"><Aed>{money(live?.cost)}</Aed></div>
+              <p className="text-ds-caption font-medium text-muted-foreground">We pay</p>
+              <p className="mt-ds-1 text-[22px] font-semibold leading-none tracking-[-0.02em] tabular-nums">
+                <Aed>{money(live?.cost)}</Aed>
+              </p>
             </div>
             <div>
-              <div className="text-[11.5px] uppercase tracking-wide text-muted-foreground">Margin</div>
-              <div className={cn('text-base font-semibold tabular-nums',
-                                 (live?.margin ?? 0) < 0 && 'text-rose-600 dark:text-rose-400')}>
+              <p className="text-ds-caption font-medium text-muted-foreground">Margin</p>
+              <p className={cn('mt-ds-1 text-[22px] font-semibold leading-none tracking-[-0.02em] tabular-nums',
+                               (live?.margin ?? 0) < 0 && 'text-[var(--tone-bad-ink)]')}>
                 <Aed>{money(live?.margin)}</Aed>
                 {live?.pct != null && (
                   <span className="ml-1.5 text-[13px] font-normal text-muted-foreground">
                     {live.pct.toFixed(1)}%
                   </span>
                 )}
-              </div>
+              </p>
             </div>
           </div>
-          <Button onClick={save} disabled={saving} className="rounded-xl">
+          <Button onClick={save} disabled={saving} className="rounded-ds-control">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
             Confirm costs
           </Button>
         </div>
-
-        {!data.settled && (
-          <p className="text-[13px] text-muted-foreground">
-            Rows without a confirmed cost fall back to the quote for the running total, so the
-            margin above is provisional until the last one is in.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   )
 }

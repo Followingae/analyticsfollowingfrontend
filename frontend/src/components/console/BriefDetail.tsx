@@ -19,7 +19,7 @@ import { Aed } from '@/components/console/primitives'
 import type { AreaBrief } from '@/services/imdListsApi'
 import {
   briefDeliverables, deliverableLabel, compMode, barterValue,
-  USAGE_LABEL, FULFILMENT_LABEL, briefGaps,
+  USAGE_LABEL, FULFILMENT_LABEL, BUDGET_KIND_TAIL, briefGaps,
 } from '@/lib/areaBrief'
 
 const fmtDate = (iso?: string) => {
@@ -88,7 +88,7 @@ export function BriefDetail({ brief, dueAt }: { brief?: AreaBrief | null; dueAt?
   const due = fmtDate(dueAt || undefined)
 
   const hasWants = !!(lookingFor || b.market || size || b.audience)
-  const hasOffer = !!((mode !== 'barter' && b.budget_per_creator)
+  const hasOffer = !!((mode !== 'barter' && (b.client_budget || b.budget_per_creator))
     || (mode !== 'cash' && (items.length || barter > 0 || b.fulfilment_mode)))
   const hasBack = !!(delivs.length || b.usage_rights || live || due
     || avoid.length || b.exclusivity_days)
@@ -116,8 +116,22 @@ export function BriefDetail({ brief, dueAt }: { brief?: AreaBrief | null; dueAt?
       </Block>
 
       <Block title="What we are offering" show={hasOffer}>
+        {/* The client's own number, and which kind it is. A campaign total and a monthly
+            retainer are spent differently, so the figure never stands on its own. */}
+        {mode !== 'barter' && b.client_budget ? (
+          <Fact label="The client's budget">
+            <span className="flex flex-wrap items-baseline gap-ds-2">
+              <Aed>{Number(b.client_budget).toLocaleString('en-US')}</Aed>
+              <span className="text-muted-foreground">
+                {BUDGET_KIND_TAIL[b.client_budget_kind || 'campaign']}
+              </span>
+            </span>
+          </Fact>
+        ) : null}
+        {/* Retired, and read only for the areas that already carry it. Nothing writes this
+            any more: a creator's rate lives on the creator. */}
         {mode !== 'barter' && b.budget_per_creator ? (
-          <Fact label="Budget per creator">
+          <Fact label="Per creator, as written at release">
             <Aed>{Number(b.budget_per_creator).toLocaleString('en-US')}</Aed>
           </Fact>
         ) : null}

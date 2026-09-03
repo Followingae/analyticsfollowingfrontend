@@ -26,7 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import {
-  ArrowLeft, Loader2, CheckCircle2, Clock, AlertTriangle, FileText, Send,
+  ArrowLeft, Loader2, CheckCircle2, AlertTriangle, FileText, Send,
   Image as ImageIcon, Link2, Banknote, UserMinus, PackageCheck, Truck, Undo2, Boxes, Upload,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -175,27 +175,17 @@ export default function LadderPage() {
                 <ArrowLeft className="h-3.5 w-3.5" />Back to the campaign
               </Link>
               <h1 className="mt-2 text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">Delivery</h1>
+              {/* Four numbers in four outlined pills, two of which the board below already
+                  shows: the product count is the Products panel and the paid count is the
+                  height of the last column. The two that are NOT on the board, how many are
+                  booked and how many are out of time, are the sentence instead. */}
               <p className="mt-1 text-muted-foreground">
-                Every booked creator and where they have got to. Click anyone to do the next thing.
+                {creators.length} booked
+                {waiting.length > 0 && (
+                  <span className="text-[var(--tone-warn-ink)]">, {waiting.length} due or late</span>
+                )}
+                . Click anyone to do the next thing.
               </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary" className="gap-1">{creators.length} booked</Badge>
-              {waiting.length > 0 && (
-                <Badge variant="outline" className="gap-1 text-[var(--tone-warn-ink)]">
-                  <Clock className="h-3 w-3" />{waiting.length} due or late
-                </Badge>
-              )}
-              {shipping.on && (
-                <Badge variant="outline" className="gap-1">
-                  <Truck className="h-3 w-3" />{shipping.got}/{shipping.live} have their product
-                </Badge>
-              )}
-              {byStage.paid?.length > 0 && (
-                <Badge variant="outline" className="gap-1 text-[var(--tone-good-ink)]">
-                  <CheckCircle2 className="h-3 w-3" />{byStage.paid.length} paid
-                </Badge>
-              )}
             </div>
           </div>
 
@@ -220,7 +210,7 @@ export default function LadderPage() {
                           ? `${shipping.sent} sent, ${shipping.got} received of ${shipping.live}.`
                           : shipping.ready
                             ? `${shipping.ready} packed and waiting on a courier.`
-                            : "Nothing packed yet. Mark the batch ready, then send them out one by one."}
+                            : "Nothing packed yet."}
                     </p>
                     <div className="mt-ds-3 flex flex-wrap gap-x-ds-5 gap-y-ds-2">
                       {([["Packed", shipping.ready], ["Sent", shipping.sent], ["Received", shipping.got]] as const).map(
@@ -254,8 +244,7 @@ export default function LadderPage() {
                   <div>
                     <div className="font-medium">Does this campaign send product to the creators?</div>
                     <p className="mt-ds-1 text-ds-body-sm text-muted-foreground">
-                      If it does, we track it per creator — packed, sent, received — and the
-                      client sees exactly that on their own campaign page.
+                      The client sees packed, sent and received on their own page.
                     </p>
                   </div>
                   <div className="flex gap-ds-2">
@@ -663,9 +652,14 @@ export default function LadderPage() {
                         <Label>Payment</Label>
                         <Input placeholder="Reference (optional)"
                                value={payRef} onChange={(e) => setPayRef(e.target.value)} />
+                        {/* `Money` renders nothing when there is no confirmed rate, which
+                            left the button reading "Pay" and a trailing space. */}
                         <Button className="w-full gap-2" disabled={busy}
                                 onClick={() => act(() => ladderApi.paid(open.id, payRef), "Marked paid")}>
-                          <Banknote className="h-4 w-4" />Pay <Money cents={open.agreed_rate_cents} />
+                          <Banknote className="h-4 w-4" />
+                          {open.agreed_rate_cents != null && canSeeCost
+                            ? <>Pay <Money cents={open.agreed_rate_cents} /></>
+                            : 'Pay the agreed rate'}
                         </Button>
                         <p className="text-xs text-muted-foreground">
                           Written to the payables book from the confirmed rate, not typed again.
@@ -673,7 +667,7 @@ export default function LadderPage() {
                       </div>
                     ) : (
                       <p className="text-ds-body text-muted-foreground">
-                        Waiting on a founder to release the payment.
+                        Waiting on a founder.
                       </p>
                     )
                   )}

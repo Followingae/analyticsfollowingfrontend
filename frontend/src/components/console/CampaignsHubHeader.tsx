@@ -59,13 +59,15 @@ type Stage = {
 }
 
 const STAGES: Stage[] = [
-  { key: 'opportunity', label: 'Brand',       hint: 'Talking, nothing started', href: '/work/brands', module: 'clients' },
+  { key: 'opportunity', label: 'Opportunity', hint: 'Talking, nothing started', href: '/work/brands', module: 'clients' },
   { key: 'sourcing',    label: 'Sourcing',    hint: 'Finding the creators',    href: '/work/areas', module: 'influencers' },
   { key: 'proposal',    label: 'Proposal',    hint: 'With the client',         href: '/work/proposals', module: 'proposals' },
   { key: 'paperwork',   label: 'Paperwork',   hint: 'Agreement and advance',   href: '/work/brands', module: 'clients' },
   { key: 'live',        label: 'Live',        hint: 'Being delivered now',     href: '/ops/campaigns', module: 'operations' },
   { key: 'report',      label: 'Report',      hint: 'Measured and shared',     href: '/work/report-campaigns', module: 'campaigns' },
-  { key: 'paid',        label: 'Paid',        hint: 'Invoiced, money not in',  href: '/work/brands', module: 'clients' },
+  /* The cell counts UNPAID invoices, and it was captioned "Paid", which reads backwards:
+     the bigger the number the worse the news. */
+  { key: 'paid',        label: 'Unpaid',      hint: 'Invoiced, not settled',   href: '/work/brands', module: 'clients' },
 ]
 
 const jsonOf = async (res: Response) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status))))
@@ -132,10 +134,14 @@ function StageStrip() {
   return (
     <Panel
       title="Where the work is"
-      description="Seven stages, start to paid. Open a stage to work on it."
+      description="Start to paid. Open a stage to work on it."
       flush
     >
-      <div className="flex gap-2 overflow-x-auto px-6 pb-6 pt-1">
+      {/* Seven bordered tiles, inside a Panel that already has an edge, on a console whose
+          rule is that a band of figures is grouped by the space around it and not by a
+          border each. The borders come off and the chevrons carry the sequence, which is the
+          only thing the boxes were saying that the row itself did not. */}
+      <div className="flex gap-ds-3 overflow-x-auto px-6 pb-6 pt-1">
         {STAGES.map((s, i) => {
           const n = counts[s.key]
           const open = !gateLoading && can(s.module)
@@ -149,8 +155,8 @@ function StageStrip() {
                 disabled={!open}
                 onClick={() => open && router.push(s.href)}
                 className={cn(
-                  'min-w-[124px] flex-1 rounded-lg border px-3 py-3 text-left transition-colors',
-                  open ? 'hover:border-primary/40 hover:bg-muted/40' : 'cursor-default',
+                  'min-w-[112px] flex-1 rounded-ds-lg px-3 py-3 text-left transition-colors',
+                  open ? 'hover:bg-black/[0.035] dark:hover:bg-white/[0.05]' : 'cursor-default',
                 )}
               >
                 <p className="text-[12px] font-medium text-muted-foreground">{s.label}</p>
@@ -182,7 +188,8 @@ export function CampaignsHubHeader({ action }: { action?: React.ReactNode }) {
   return (
     <Hub
       title="Campaigns"
-      sub="Everything we are delivering: the work itself, the app's own campaigns, what production is building, and the reports clients read."
+      /* The old sub listed the four tabs that are drawn immediately beneath it. */
+      sub="Everything we are delivering."
       tabs={TABS}
       action={action}
     >

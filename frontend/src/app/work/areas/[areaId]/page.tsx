@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import * as React from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
@@ -14,11 +15,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table"
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import {
-  ArrowLeft, Loader2, Plus, Search, Users, X, Globe, Check,
-  Download, Link2, Copy, BarChart3, Link as LinkIcon , CheckCircle2, ShieldCheck, Ban,
+  ArrowLeft, Loader2, Plus, Search, X, Globe, Check, MoreHorizontal,
+  Download, Link2, Copy, BarChart3, Link as LinkIcon, ShieldCheck, Ban,
   Lock, RotateCcw, ThumbsDown, Pencil } from "lucide-react"
 import { toast } from "sonner"
 import { imdListsApi, creatorShareApi, type ImdListCreator, type ImdListSummary } from "@/services/imdListsApi"
@@ -26,10 +33,7 @@ import { proposalApprovalApi } from "@/services/proposalApprovalApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { AddCreatorsDialog } from "@/components/superadmin/influencer-database/AddCreatorsDialog"
 import { cdnAvatar } from "@/lib/avatar"
-/* One brief sentence and one brief panel, both built in one place. This file used to carry
-   its own copy of the summary line, drifting from the create screen's copy and from the
-   backend's, and writing a bare U+20C3 for the dirham that rendered as an empty box. */
-import { briefLine } from "@/lib/areaBrief"
+import { FieldStrip, GroupLabel } from "@/components/console/primitives"
 import { BriefDetail } from "@/components/console/BriefDetail"
 import { BriefFields } from "@/components/console/BriefFields"
 import type { AreaBrief } from "@/services/imdListsApi"
@@ -37,8 +41,16 @@ import type { AreaBrief } from "@/services/imdListsApi"
 const ANY_COUNTRY = "__any__"
 const PAGE_SIZE = 40
 
+/**
+ * A count we were given, or a dash.
+ *
+ * `if (!n) return "0"` caught null and undefined alongside a real zero, so a creator whose
+ * follower count we never captured read as a creator with no followers, sitting next to the
+ * 0% engagement that a failed scrape also prints. Both are the same defect: a measurement we
+ * do not have, rendered as a measurement of nothing. A real zero still prints 0.
+ */
 function fmt(n?: number | null) {
-  if (!n) return "0"
+  if (n == null || !Number.isFinite(Number(n))) return "–"
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return String(n)
@@ -98,7 +110,7 @@ export default function ImdListDetailPage() {
       const res = await imdListsApi.get(listId)
       setList(res?.data ?? null)
     } catch (e) {
-      setError((e as Error).message || "Could not load this area")
+      setError((e as Error).message || "Could not load this roster")
     } finally {
       setLoading(false)
     }
@@ -150,7 +162,7 @@ export default function ImdListDetailPage() {
     try {
       const res = await imdListsApi.addItems(listId, ids)
       const { added = 0, skipped = 0 } = res?.data ?? {}
-      toast.success(`Added ${added}${skipped > 0 ? ` — ${skipped} already in this list` : ""}`)
+      toast.success(`Added ${added}${skipped > 0 ? `, ${skipped} were already here` : ""}`)
       setOpen(false)
       load()
     } catch (e) {
@@ -378,8 +390,37 @@ export default function ImdListDetailPage() {
   const who = (email: string) => email.split("@")[0].replace(/[._]/g, " ")
   const handedTo = list?.handed_to ?? []
   const droppedCount = (list?.items ?? []).filter(c => c.dropped_at).length
+  /** Stocked, and neither cleared nor struck: the queue a founder owes this roster. */
+  const awaitingCount = (list?.items ?? []).filter(
+    c => !c.cleared_at && !c.struck_at && !c.dropped_at).length
+  const dueOver = list?.due_at
+    ? Math.floor((Date.now() - new Date(list.due_at).getTime()) / 86_400_000)
+    : 0
   const clearedCount = (list?.items ?? []).filter(c => c.cleared_at && !c.struck_at && !c.dropped_at).length
   const pickedByClient = (list?.items ?? []).filter(c => c.client_verdict === "selected").length
+
+  /**
+   * The list, in the order the work happens rather than the order people were added.
+   *
+   * "Waiting on you" is the queue this screen exists to clear, so it is first. Ruled out is
+   * last, dimmed, and still present: a creator the client turned down is the reason the next
+   * round is built the way it is.
+   */
+  const BANDS = [
+    { key: "waiting" as const, label: "Waiting on you" },
+    { key: "cleared" as const, label: "Cleared to share" },
+    { key: "out" as const, label: "Ruled out" },
+  ]
+  const banded = useMemo(() => {
+    const out: Record<"waiting" | "cleared" | "out", ImdListCreator[]> =
+      { waiting: [], cleared: [], out: [] }
+    for (const c of list?.items ?? []) {
+      if (c.dropped_at || c.struck_at) out.out.push(c)
+      else if (c.cleared_at) out.cleared.push(c)
+      else out.waiting.push(c)
+    }
+    return out
+  }, [list])
   const pickedCount = Object.keys(picked).length
   const hasMore = results.length < total
 
@@ -398,8 +439,8 @@ export default function ImdListDetailPage() {
                   : "/work/areas"}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-3.5 w-3.5" />
-            {list?.kind === "sample" ? "All sample packs"
-             : list?.team_name ? `All areas for ${list.team_name}` : "All areas"}
+            {list?.kind === "sample" ? "All packs"
+             : list?.team_name ? `All rosters for ${list.team_name}` : "All rosters"}
           </Link>
 
           {loading ? (
@@ -408,12 +449,12 @@ export default function ImdListDetailPage() {
             /* A failed read says so and offers the retry. It must never look like an area
                with nothing in it: one of those means try again, the other means get to work. */
             <div className="flex flex-col items-center gap-ds-2 py-20 text-center">
-              <p className="text-ds-label">This area did not load</p>
+              <p className="text-ds-label">This roster did not load</p>
               <p className="max-w-md text-ds-caption text-muted-foreground">{error}</p>
               <Button variant="outline" size="sm" className="mt-ds-1" onClick={load}>Try again</Button>
             </div>
           ) : !list ? (
-            <p className="py-20 text-center text-muted-foreground">Area not found.</p>
+            <p className="py-20 text-center text-muted-foreground">There is no roster at this address.</p>
           ) : (
             <>
               <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -438,34 +479,34 @@ export default function ImdListDetailPage() {
                     <p className="mt-1 text-sm text-muted-foreground">{list.team_name}</p>
                   )}
                   {list.description && <p className="mt-1 text-muted-foreground">{list.description}</p>}
-                  {/* The brief travels with the area, so whoever opens it knows what to look
-                      for without asking the person who released it. */}
-                  {briefLine(list.brief) && (
-                    <p className="mt-ds-2 max-w-xl rounded-ds-md bg-muted px-3 py-2 text-sm">
-                      {briefLine(list.brief)}
-                      {list.due_at && (
-                        <span className="text-muted-foreground">
-                          {" · wanted by "}
-                          {new Date(list.due_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                        </span>
-                      )}
-                    </p>
-                  )}
-                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                    <Badge variant="secondary" className="gap-1">
-                      <Users className="h-3 w-3" />{list.items.length} found
-                    </Badge>
-                    <Badge variant="outline" className="gap-1">
-                      <CheckCircle2 className="h-3 w-3" />{clearedCount} cleared to share
-                    </Badge>
-                    {pickedByClient > 0 && <Badge className="gap-1">{pickedByClient} picked by the client</Badge>}
-                    {/* Who the client turned down is not a footnote. It is the number that
-                        decides whether this area goes round again. */}
-                    {droppedCount > 0 && (
-                      <Badge variant="outline" className="gap-1 text-muted-foreground">
-                        <Ban className="h-3 w-3" />{droppedCount} turned down
-                      </Badge>
-                    )}
+                  {/* The one-line brief used to sit here, in a tinted box, roughly forty
+                      pixels above the whole brief under the heading "The brief". One idea
+                      under two headings, and the reader had to check whether the second one
+                      said anything the first had not. The sentence is the right shape for a
+                      card and for the alert; the screen where the work happens gets the
+                      brief itself, once, below. */}
+                  {/* Five labelled facts rather than four badges and a colour each. The one
+                      that was missing is the one the talent team is actually held to:
+                      how many are stocked and still waiting on a verdict. */}
+                  <div className="mt-ds-3">
+                    <FieldStrip fields={[
+                      { label: 'Found', value: list.items.length },
+                      { label: 'Cleared', value: clearedCount },
+                      { label: 'Waiting on you', value: awaitingCount || '—' },
+                      { label: 'Picked', value: pickedByClient || '—' },
+                      { label: 'Turned down', value: droppedCount || '—' },
+                      {
+                        label: 'Wanted by',
+                        value: list.due_at
+                          ? (dueOver > 0 && !locked
+                              ? <span className="text-[var(--tone-bad-ink)]">
+                                  {dueOver} day{dueOver === 1 ? '' : 's'} late
+                                </span>
+                              : new Date(list.due_at).toLocaleDateString('en-GB',
+                                  { day: 'numeric', month: 'short' }))
+                          : '—',
+                      },
+                    ]} />
                   </div>
                   {/* How this area came to be, in the three names the business already knows:
                       business development logged the brand, a founder released it, and it
@@ -488,65 +529,69 @@ export default function ImdListDetailPage() {
                     </p>
                   )}
                 </div>
+                {/* Seven buttons of equal weight is no ranking at all. One primary, which
+                    is the thing you came here to do, and everything else behind a menu in
+                    the order it is actually reached for. Nothing is gone: every item below
+                    is the same action, on the same gate, that had its own button. */}
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* A list CSV carries sell pricing and public share links and is built to be
-                      forwarded, so only leadership may produce one. The team shares creators
-                      with a client through a proposal instead. */}
-                  {canExport && (
-                    <Button variant="outline" className="gap-2" onClick={exportCsv} disabled={list.items.length === 0}>
-                      <Download className="h-4 w-4" />Export CSV
+                  {listLink && (
+                    <Button variant="outline" className="gap-2" onClick={() => copy(listLink.path)}>
+                      <LinkIcon className="h-4 w-4" />Copy the link
                     </Button>
                   )}
-                  {/* One live link per list. While one exists the button copies it rather
-                      than minting a second, so "turn it off" really does close the list. */}
-                  {listLink ? (
-                    <>
-                      <Button variant="outline" className="gap-2" onClick={() => copy(listLink.path)}>
-                        <LinkIcon className="h-4 w-4" />Copy list link
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon" aria-label="More on this roster">
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
-                      {canDestroy && (
-                        <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-destructive"
-                                disabled={shareBusy} onClick={revokeListLink}>
-                          Turn off
-                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-60">
+                      {canStock && !locked && (
+                        <DropdownMenuItem onClick={() => setSoftAddOpen(true)}>
+                          <Plus className="mr-2 h-4 w-4" />Add by handle
+                        </DropdownMenuItem>
                       )}
-                    </>
-                  ) : (
-                    canDestroy && (
-                      <Button variant="outline" className="gap-2" disabled={clearedCount === 0}
-                              title={clearedCount === 0 ? "Clear someone for sharing first" : undefined}
-                              onClick={() => setShareOpen(true)}>
-                        <LinkIcon className="h-4 w-4" />Share area
-                      </Button>
-                    )
-                  )}
-                  {/* Closing a round and opening the next are the two ends of the loop, so
-                      they are one control that shows whichever one is available. Founders
-                      only: it is the same decision as clearing, made at the other end. */}
-                  {canDestroy && (locked ? (
-                    <Button variant="outline" className="gap-2" disabled={roundBusy}
-                            onClick={openNextRound}>
-                      {roundBusy ? <Loader2 className="h-4 w-4 animate-spin" />
-                                 : <RotateCcw className="h-4 w-4" />}
-                      Open round {roundNo + 1}
-                    </Button>
-                  ) : (
-                    <Button variant="outline" className="gap-2" disabled={roundBusy}
-                            onClick={lockRound}>
-                      {roundBusy ? <Loader2 className="h-4 w-4 animate-spin" />
-                                 : <Lock className="h-4 w-4" />}
-                      Close round {roundNo}
-                    </Button>
-                  ))}
+                      {/* One live link per roster. While one exists the control copies it
+                          rather than minting a second, so "turn it off" really does close
+                          the roster. */}
+                      {canDestroy && !listLink && (
+                        <DropdownMenuItem
+                          disabled={clearedCount === 0}
+                          onClick={() => setShareOpen(true)}
+                        >
+                          <LinkIcon className="mr-2 h-4 w-4" />
+                          {clearedCount === 0 ? 'Share (clear someone first)' : 'Share this roster'}
+                        </DropdownMenuItem>
+                      )}
+                      {canDestroy && listLink && (
+                        <DropdownMenuItem disabled={shareBusy} onClick={revokeListLink}>
+                          <LinkIcon className="mr-2 h-4 w-4" />Turn the link off
+                        </DropdownMenuItem>
+                      )}
+                      {/* Closing a round and opening the next are the two ends of one loop,
+                          so it is one item showing whichever end is available. */}
+                      {canDestroy && (
+                        <DropdownMenuItem disabled={roundBusy}
+                                          onClick={locked ? openNextRound : lockRound}>
+                          {locked
+                            ? <><RotateCcw className="mr-2 h-4 w-4" />Open round {roundNo + 1}</>
+                            : <><Lock className="mr-2 h-4 w-4" />Close round {roundNo}</>}
+                        </DropdownMenuItem>
+                      )}
+                      {/* A CSV carries sell pricing and public share links and is built to be
+                          forwarded, so only leadership may produce one. The team shares
+                          creators with a client through a proposal instead. */}
+                      {canExport && (
+                        <DropdownMenuItem disabled={list.items.length === 0} onClick={exportCsv}>
+                          <Download className="mr-2 h-4 w-4" />Download a spreadsheet
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   {canStock && !locked && (
-                    <>
-                      <Button variant="outline" className="gap-2" onClick={() => setSoftAddOpen(true)}>
-                        <Plus className="h-4 w-4" />Source new
-                      </Button>
-                      <Button className="gap-2" onClick={() => setOpen(true)}>
-                        <Plus className="h-4 w-4" />Add from database
-                      </Button>
-                    </>
+                    <Button className="gap-2" onClick={() => setOpen(true)}>
+                      <Plus className="h-4 w-4" />Add creators
+                    </Button>
                   )}
                 </div>
               </div>
@@ -625,132 +670,182 @@ export default function ImdListDetailPage() {
               {list.items.length === 0 ? (
                 /* A dashed card round the sentence "there is nobody here" — box comes off. */
                 <div className="py-16 text-center">
-                  <p className="font-medium">Nobody in this area yet</p>
-                  <p className="mt-ds-1 text-sm text-muted-foreground">Add creators from the master database, or source new ones by handle.</p>
+                  <p className="font-medium">Nobody on this roster yet</p>
+                  <p className="mt-ds-1 text-sm text-muted-foreground">Add from the database, or by handle.</p>
                 </div>
               ) : (
-                /* Every creator was a bordered, rounded tile. Twenty creators put twenty
-                   boxes on a page that is itself inside a page — and the box was carrying
-                   nothing the list order was not already carrying. The borders come off and
-                   the row groups by whitespace and a hover wash. Selection kept a visible
-                   mark: it was a border plus a grey, it is now the console's info wash, which
-                   reads at a glance and does not add an edge. */
-                <div className="-mx-ds-2 space-y-ds-1">
-                  {list.items.map((c) => (
-                    <div key={c.item_id}
-                         className={`group flex items-center gap-ds-3 rounded-ds-lg px-ds-2 py-ds-2 transition-colors ${
-                           c.struck_at || c.dropped_at ? "opacity-55" : ""
-                         } ${marked[c.id]
-                           ? "bg-[var(--tone-info-wash)]"
-                           : "hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"}`}>
-                      {canStock && !locked && (
-                        <Checkbox
-                          checked={!!marked[c.id]}
-                          onCheckedChange={(v: boolean | string) => setMarked(prev => {
-                            const next = { ...prev }
-                            if (v) next[c.id] = true
-                            else delete next[c.id]
-                            return next
-                          })}
-                          aria-label={`Select @${c.username}`}
-                        />
-                      )}
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage src={cdnAvatar(c.profile_image_url)} />
-                        <AvatarFallback>{(c.username || "?")[0]?.toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium">@{c.username}</div>
-                        <div className="truncate text-xs text-muted-foreground">{c.full_name}</div>
-                      </div>
-                      <div className="shrink-0 text-right text-xs text-muted-foreground">
-                        <div>{fmt(c.followers_count)} followers</div>
-                        {c.engagement_rate != null && <div>{Number(c.engagement_rate).toFixed(1)}% eng</div>}
-                      </div>
-                      {/* Whether we actually measured this creator decides what a share
-                          link would show, so it belongs on the row next to the button. */}
-                      {!c.analytics_status && (
-                        <Badge variant="outline" className="shrink-0 gap-1 text-muted-foreground">
-                          <BarChart3 className="h-3 w-3" />No analytics
-                        </Badge>
-                      )}
-                      {c.country && <Badge variant="secondary" className="shrink-0">{c.country}</Badge>}
-                      {c.tier && <Badge variant="outline" className="shrink-0 capitalize">{c.tier}</Badge>}
+                /* Six badges and three buttons on every row, twenty rows deep.
+                   Followers, engagement, country and tier are the same kind of fact on every
+                   creator, so they are columns: in a column they line up and can be compared
+                   without being read. The four verdict badges were four ways of saying one
+                   thing, so they are one State column, and the reason a creator was turned
+                   down stays on the row where the next round will need it.
 
-                      {/* Our verdict, then theirs. A struck creator keeps their reason on the
-                          row: it is what stops the same person going back in front of the
-                          same brand next month. */}
-                      {c.dropped_at ? (
-                        /* Their no outranks ours on the row, because it is the one that ends
-                           the conversation. The reason is on the row itself rather than in a
-                           tooltip: it is the reason the next round exists, and a round later
-                           nobody remembers to hover. */
-                        <span className="flex shrink-0 items-center gap-1.5">
-                          <Badge variant="outline" className="gap-1 text-muted-foreground">
-                            <ThumbsDown className="h-3 w-3" />
-                            Turned down{c.dropped_in_round ? ` in round ${c.dropped_in_round}` : ""}
-                          </Badge>
-                          {c.dropped_reason && (
-                            <span className="max-w-[16rem] truncate text-ds-caption text-muted-foreground"
-                                  title={c.dropped_reason}>
-                              {c.dropped_reason}
-                            </span>
-                          )}
-                        </span>
-                      ) : c.struck_at ? (
-                        <Badge variant="outline" className="shrink-0 gap-1 text-muted-foreground"
-                               title={c.struck_reason || undefined}>
-                          <Ban className="h-3 w-3" />Struck
-                        </Badge>
-                      ) : c.cleared_at ? (
-                        <Badge variant="outline" className="shrink-0 gap-1 border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">
-                          <ShieldCheck className="h-3 w-3" />Cleared
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="shrink-0 text-muted-foreground">Internal</Badge>
-                      )}
-                      {c.client_verdict === "selected" && (
-                        <Badge className="shrink-0">Client picked</Badge>
-                      )}
-                      {/* A rejection and a drop are the same event, written together, so the
-                          row carries one badge for it rather than two saying the same thing. */}
-
-                      <Button
-                        size="sm"
-                        variant={c.share_token ? "secondary" : "outline"}
-                        className="h-7 shrink-0 gap-1.5 px-2 text-xs"
-                        disabled={sharing === c.username}
-                        onClick={() => share(c.username, c.share_path)}
-                        title={c.share_token
-                          ? `Public link · ${c.share_views ?? 0} view${c.share_views === 1 ? "" : "s"}`
-                          : "Create a public analytics link"}
-                      >
-                        {sharing === c.username
-                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          : c.share_token ? <Copy className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
-                        {c.share_token ? "Copy link" : "Share"}
-                      </Button>
-                      {/* Somebody records the wrong name, or the client changes their mind.
-                          A drop that could not be undone would make people avoid recording
-                          it at all, which costs the loop the information it runs on. */}
-                      {c.dropped_at && canStock && !locked && (
-                        <Button size="sm" variant="ghost"
-                                className="h-7 shrink-0 px-2 text-xs text-muted-foreground"
-                                onClick={() => undropOne(c.id, c.username)}>
-                          Put back
-                        </Button>
-                      )}
-                      {canStock && !locked && (
-                        <Button
-                          size="icon" variant="ghost"
-                          className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                          onClick={() => removeOne(c.id, c.username)}
-                        >
-                          <X className="h-3.5 w-3.5 text-muted-foreground" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+                   The bands are the order the work happens in. Anyone stocked and not yet
+                   ruled on is what this screen is asking a founder for, so they sit at the
+                   top rather than wherever they were added, and the people already ruled out
+                   sit at the bottom, dimmed. */
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {canStock && !locked && <TableHead className="w-8" />}
+                        <TableHead>Creator</TableHead>
+                        <TableHead className="text-right">Followers</TableHead>
+                        <TableHead className="text-right">Engagement</TableHead>
+                        <TableHead>Country</TableHead>
+                        <TableHead>Tier</TableHead>
+                        <TableHead>State</TableHead>
+                        <TableHead className="w-[8.5rem]" />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {BANDS.map(band => {
+                        const rows = banded[band.key]
+                        if (!rows.length) return null
+                        return (
+                          <React.Fragment key={band.key}>
+                            <TableRow className="hover:bg-transparent">
+                              <TableCell colSpan={canStock && !locked ? 8 : 7} className="py-0">
+                                <GroupLabel>{band.label}</GroupLabel>
+                              </TableCell>
+                            </TableRow>
+                            {rows.map((c) => (
+                              <TableRow
+                                key={c.item_id}
+                                className={`group ${c.struck_at || c.dropped_at ? "opacity-55" : ""} ${
+                                  marked[c.id] ? "bg-[var(--tone-info-wash)]" : ""}`}
+                              >
+                                {canStock && !locked && (
+                                  <TableCell>
+                                    <Checkbox
+                                      checked={!!marked[c.id]}
+                                      onCheckedChange={(v: boolean | string) => setMarked(prev => {
+                                        const next = { ...prev }
+                                        if (v) next[c.id] = true
+                                        else delete next[c.id]
+                                        return next
+                                      })}
+                                      aria-label={`Select @${c.username}`}
+                                    />
+                                  </TableCell>
+                                )}
+                                <TableCell>
+                                  <span className="flex items-center gap-ds-3">
+                                    <Avatar className="h-9 w-9">
+                                      <AvatarImage src={cdnAvatar(c.profile_image_url)} />
+                                      <AvatarFallback>{(c.username || "?")[0]?.toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                    <span className="min-w-0">
+                                      <span className="block truncate text-sm font-medium">@{c.username}</span>
+                                      <span className="block truncate text-xs text-muted-foreground">
+                                        {c.full_name}
+                                      </span>
+                                    </span>
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {fmt(c.followers_count)}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                  {/* Whether we actually measured this creator decides what a
+                                      share link would show, so it sits where the measurement
+                                      would have been rather than as a badge further along. */}
+                                  {!c.analytics_status ? (
+                                    <span className="inline-flex items-center gap-1 text-muted-foreground"
+                                          title="Never analysed, so a share link shows no numbers">
+                                      <BarChart3 className="h-3 w-3" />none
+                                    </span>
+                                  ) : c.engagement_rate != null ? (
+                                    `${Number(c.engagement_rate).toFixed(1)}%`
+                                  ) : (
+                                    <span className="text-muted-foreground">–</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground">{c.country || "–"}</TableCell>
+                                <TableCell className="capitalize text-muted-foreground">
+                                  {c.tier || "–"}
+                                </TableCell>
+                                <TableCell>
+                                  {/* Their no outranks ours: it is the one that ends the
+                                      conversation, and its reason is why the next round
+                                      exists. On the row, never in a tooltip: a round later
+                                      nobody remembers to hover. */}
+                                  {c.dropped_at ? (
+                                    <span className="flex flex-col gap-0.5">
+                                      <Badge variant="outline" className="w-fit gap-1 text-muted-foreground">
+                                        <ThumbsDown className="h-3 w-3" />
+                                        Turned down{c.dropped_in_round ? ` in round ${c.dropped_in_round}` : ""}
+                                      </Badge>
+                                      {c.dropped_reason && (
+                                        <span className="max-w-[16rem] truncate text-ds-caption text-muted-foreground"
+                                              title={c.dropped_reason}>
+                                          {c.dropped_reason}
+                                        </span>
+                                      )}
+                                    </span>
+                                  ) : c.struck_at ? (
+                                    <Badge variant="outline" className="gap-1 text-muted-foreground"
+                                           title={c.struck_reason || undefined}>
+                                      <Ban className="h-3 w-3" />Struck
+                                    </Badge>
+                                  ) : c.client_verdict === "selected" ? (
+                                    <Badge>Client picked</Badge>
+                                  ) : c.cleared_at ? (
+                                    <Badge variant="outline" className="gap-1 border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">
+                                      <ShieldCheck className="h-3 w-3" />Cleared
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-muted-foreground">Internal</Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <span className="flex items-center justify-end gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant={c.share_token ? "secondary" : "outline"}
+                                      className="h-7 shrink-0 gap-1.5 px-2 text-xs"
+                                      disabled={sharing === c.username}
+                                      onClick={() => share(c.username, c.share_path)}
+                                      title={c.share_token
+                                        ? `Public link · ${c.share_views ?? 0} view${c.share_views === 1 ? "" : "s"}`
+                                        : "Create a public analytics link"}
+                                    >
+                                      {sharing === c.username
+                                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        : c.share_token ? <Copy className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
+                                      {c.share_token ? "Copy" : "Share"}
+                                    </Button>
+                                    {/* Somebody records the wrong name, or the client changes
+                                        their mind. A drop that could not be undone would make
+                                        people avoid recording it at all, which costs the loop
+                                        the information it runs on. */}
+                                    {c.dropped_at && canStock && !locked && (
+                                      <Button size="sm" variant="ghost"
+                                              className="h-7 shrink-0 px-2 text-xs text-muted-foreground"
+                                              onClick={() => undropOne(c.id, c.username)}>
+                                        Put back
+                                      </Button>
+                                    )}
+                                    {canStock && !locked && (
+                                      <Button
+                                        size="icon" variant="ghost"
+                                        className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                                        onClick={() => removeOne(c.id, c.username)}
+                                        aria-label={`Remove @${c.username}`}
+                                      >
+                                        <X className="h-3.5 w-3.5 text-muted-foreground" />
+                                      </Button>
+                                    )}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </React.Fragment>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </>
@@ -775,7 +870,7 @@ export default function ImdListDetailPage() {
               <DialogTitle>The brief</DialogTitle>
               <DialogDescription>
                 What the team is looking for, what we are offering and what we need back.
-                Everyone working this area reads it, so say the parts you know.
+                Everyone working this roster reads it, so say the parts you know.
               </DialogDescription>
             </DialogHeader>
             <div className="flex max-h-[62vh] flex-col gap-ds-3 overflow-y-auto pr-1">
@@ -801,7 +896,7 @@ export default function ImdListDetailPage() {
                 The client turned down {markedIds.length} creator{markedIds.length === 1 ? "" : "s"}
               </DialogTitle>
               <DialogDescription>
-                They stay in the area with the reason on their row, so round {roundNo + 1} is built
+                They stay on the roster with the reason on their row, so round {roundNo + 1} is built
                 knowing who has already been turned down. You can put them back if this was
                 recorded in error.
               </DialogDescription>
@@ -829,7 +924,7 @@ export default function ImdListDetailPage() {
             <DialogHeader>
               <DialogTitle>Take {markedIds.length} off the table</DialogTitle>
               <DialogDescription>
-                They stay in the area and keep their research. This only stops them being shown
+                They stay on the roster and keep their research. This only stops them being shown
                 to this brand. The reason is what stops them coming back next round.
               </DialogDescription>
             </DialogHeader>
@@ -850,8 +945,8 @@ export default function ImdListDetailPage() {
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[92vh] overflow-hidden p-0">
             <DialogHeader className="border-b p-5">
-              <DialogTitle>Add creators to this list</DialogTitle>
-              <DialogDescription>Anyone already in the list is hidden.</DialogDescription>
+              <DialogTitle>Add creators</DialogTitle>
+              <DialogDescription>Anyone already on this roster is hidden.</DialogDescription>
             </DialogHeader>
 
             <div className="flex flex-col gap-2 border-b p-4 sm:flex-row">
@@ -876,7 +971,7 @@ export default function ImdListDetailPage() {
                 <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
               ) : results.length === 0 ? (
                 <p className="py-10 text-center text-sm text-muted-foreground">
-                  {search || country !== ANY_COUNTRY ? "No creators match these filters." : "Every active creator is already in this list."}
+                  {search || country !== ANY_COUNTRY ? "No creators match these filters." : "Everyone we hold is already on this roster."}
                 </p>
               ) : (
                 <>
@@ -947,10 +1042,10 @@ export default function ImdListDetailPage() {
       <Dialog open={shareOpen} onOpenChange={setShareOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Share this list</DialogTitle>
+            <DialogTitle>Share this roster</DialogTitle>
             <DialogDescription>
-              Anyone with the link sees the creators. No login. Cost prices are never sent.
-              Creators with no sell price are left off a link that shows prices.
+              Anyone with the link sees the cleared creators. No login, and never a cost
+              price. A creator with no sell price is left off a link that shows prices.
             </DialogDescription>
           </DialogHeader>
 

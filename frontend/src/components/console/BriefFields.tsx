@@ -172,10 +172,45 @@ export function BriefFields({ brief, onChange }: {
         </div>
 
         {mode !== 'barter' && (
-          <Field label="Budget per creator (AED)">
-            <Input type="number" placeholder="3000" value={brief.budget_per_creator ?? ''}
-                   onChange={e => set({ budget_per_creator: num(e.target.value) })} />
-          </Field>
+          /* The client's number, and which kind of number it is.
+             There is no per-creator field here on purpose. Every creator in the master
+             database already carries a rate with the margin a superadmin set on it, and a
+             creator the talent team soft-adds is waiting on a superadmin for a sell price.
+             A figure typed here would be a second source for the same fact, reconciled
+             against nothing, and it would be the one people quote. */
+          <div className="flex flex-col gap-ds-2">
+            <div className="grid grid-cols-2 gap-ds-3">
+              <Field label="The client's budget (AED)">
+                <Input type="number" placeholder="50000" value={brief.client_budget ?? ''}
+                       onChange={e => set({ client_budget: num(e.target.value) })} />
+              </Field>
+              <Field label="Which kind">
+                <Select value={brief.client_budget_kind ?? 'campaign'}
+                        onValueChange={(v: string) =>
+                          set({ client_budget_kind: v as 'campaign' | 'monthly' })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="campaign">For this campaign</SelectItem>
+                    <SelectItem value="monthly">Every month</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+            <p className="text-ds-caption text-muted-foreground">
+              What they told us they have. What each creator costs comes from their record in
+              the database, so it is never written here.
+            </p>
+            {/* An area released before the ruling still holds a per-creator figure. It is
+                shown so nobody wonders where it went, and it cannot be edited back into
+                existence. */}
+            {brief.budget_per_creator ? (
+              <p className="text-ds-caption text-muted-foreground">
+                This brief was written with AED{' '}
+                {Number(brief.budget_per_creator).toLocaleString('en-US')} per creator on it.
+                That is kept as written. New briefs take rates from the database instead.
+              </p>
+            ) : null}
+          </div>
         )}
 
         {mode !== 'cash' && (

@@ -208,14 +208,10 @@ export default function CampaignTimelinePage() {
             <ArrowLeft className="mr-1.5 h-4 w-4" />All campaigns
           </Button>
           <div className={cn(CARD, 'relative overflow-hidden bg-white dark:bg-neutral-900/70')}>
-            {/* A pane of glass over a soft wash, the way the reference opens a record. */}
-            <div className="relative overflow-hidden">
-              {/* The wash was three hex literals with a second set for dark, which is a
-                  palette nobody else on the console shares. It names the tone tokens now, so
-                  it follows the theme and flips after dark without a second declaration. */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[var(--tone-info-wash)]
-                              via-[var(--tone-neutral-wash)] to-[var(--tone-good-wash)]" />
-              <div className="absolute inset-0 backdrop-blur-2xl" />
+            {/* The header was a three-stop gradient under a `backdrop-blur-2xl`, which is the
+                only piece of decoration on the console and says nothing about the campaign.
+                One tone wash, which is what every other panel here stands on. */}
+            <div className="relative overflow-hidden bg-[var(--tone-neutral-wash)]">
               <div className="relative flex flex-wrap items-start justify-between gap-4 px-6 py-5">
                 <div className="min-w-0">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -244,14 +240,16 @@ export default function CampaignTimelinePage() {
             </div>
 
             {/* The facts strip — a record that opens with a title and nothing else makes you
-                go looking for what you already came to check. */}
+                go looking for what you already came to check.
+                Creators and Posts used to sit here too, and they are two of the four figures
+                in the band 40 pixels below, where they carry their denominators. Two of five
+                fields restating two of four stats is the same fact told twice on one screen,
+                so the strip keeps the three the band does not have. */}
             <div className="border-t border-black/[0.05] px-6 py-4 dark:border-white/[0.07]">
               <FieldStrip fields={[
                 { label: 'Brand', value: c.brand_name || '—' },
                 { label: 'Starts', value: c.start_date ? when(c.start_date) : '—' },
                 { label: 'Ends', value: c.end_date ? when(c.end_date) : '—' },
-                { label: 'Creators', value: `${confirmed} of ${target}` },
-                { label: 'Posts', value: t.content?.posts ?? 0 },
               ]} />
             </div>
 
@@ -286,20 +284,32 @@ export default function CampaignTimelinePage() {
           <Stat label="Content delivered" value={delivered} icon={Camera}
                 tone={totalDeliv && delivered >= totalDeliv ? 'good' : delivered ? 'info' : 'neutral'}
                 hint={totalDeliv ? `of ${totalDeliv} expected` : 'Nothing expected yet'} />
-          <Stat label="Posts tracked" value={t.content.posts} icon={FileText}
-                hint={`Report: ${c.report_status || 'not sent'}`} />
+          {/* "Report: not sent" was printed whenever `report_status` was simply absent, which
+              is an assertion about our own delivery made off a missing field. */}
+          <Stat label="Posts tracked" value={t.content?.posts ?? '—'} icon={FileText}
+                hint={c.report_status
+                  ? `Report: ${c.report_status}`
+                  : 'Report status not recorded'} />
           <Stat
             label={showMoney ? 'Invoiced' : 'Payment'}
-            value={showMoney ? <Money value={t.money.invoiced} /> : (c.payment_status || 'not paid')}
+            /* Out of the money scope this tile printed the literal words "not paid" whenever
+               `payment_status` was absent: a claim about a client's account, manufactured
+               from a missing value, shown to exactly the people who cannot check it against
+               the invoiced figure because that figure is not theirs to see. */
+            value={showMoney
+              ? <Money value={t.money?.invoiced} />
+              : (c.payment_status || '—')}
             icon={Receipt}
             hint={showMoney
-              ? <><Money value={t.money.collected} /> collected</>
-              : 'What the client has settled'} />
+              ? <><Money value={t.money?.collected} /> collected</>
+              : c.payment_status
+                ? 'What the client has settled'
+                : 'Not recorded on this campaign'} />
         </StatGrid>
 
         <div className="grid gap-6 lg:grid-cols-[340px_1fr] items-start">
           {/* the spine */}
-          <Panel title="The whole story" description="Nothing lives in an inbox">
+          <Panel title="What has happened">
               <ol className="relative space-y-5 pl-6">
                 <span className="absolute left-[7px] top-2 bottom-2 w-px bg-border" aria-hidden />
                 {t.events.map((e, i) => {
@@ -391,8 +401,7 @@ export default function CampaignTimelinePage() {
                       </Button>
                     </div>
                     <p className="text-[12.5px] text-muted-foreground">
-                      Dispatch and receipt are per creator, on the delivery board. Everything
-                      marked here is what the client sees on their own campaign page.
+                      The client sees this on their own campaign page.
                     </p>
                   </div>
                 </Panel>

@@ -17,6 +17,17 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { superadminApiService } from "@/services/superadminApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import {
@@ -242,16 +253,26 @@ export function InfluencerDatabasePage() {
     }
   }, [selectedIds, influencers, fetchData])
 
-  const onDelete = useCallback(async (influencerId: string) => {
-    if (!confirm("Remove this influencer from the database?")) return
+  /* Removing a creator was the one destructive action on this screen that asked with the
+     browser's own dialog: a different typeface, a different place on the screen, and a
+     sentence that could not say what is actually lost. */
+  const [toRemove, setToRemove] = useState<MasterInfluencer | null>(null)
+
+  const onDelete = useCallback((influencerId: string) => {
+    setToRemove(influencers.find((i) => i.id === influencerId) ?? null)
+  }, [influencers])
+
+  const confirmRemove = useCallback(async () => {
+    if (!toRemove) return
     try {
-      await superadminApiService.removeInfluencerFromDatabase(influencerId)
-      toast.success("Influencer removed")
+      await superadminApiService.removeInfluencerFromDatabase(toRemove.id)
+      toast.success(`@${toRemove.username} removed`)
+      setToRemove(null)
       fetchData()
     } catch {
-      toast.error("Failed to remove influencer")
+      toast.error("Could not remove that creator")
     }
-  }, [fetchData])
+  }, [toRemove, fetchData])
 
   const onViewDetails = useCallback((influencer: MasterInfluencer) => {
     router.push(`/creator-analytics/${influencer.username}`)
@@ -395,14 +416,28 @@ export function InfluencerDatabasePage() {
                   {j.message || j.status}
                   {j.progress ? ` · ${j.progress}%` : ""}
                 </span>
-                <button
-                  type="button"
-                  disabled={!isSuperAdmin}
-                  onClick={() => triggerRetry(j.id)}
-                  className="underline underline-offset-2 hover:text-foreground disabled:no-underline disabled:opacity-50"
-                >
-                  Start again
-                </button>
+                {/* Disabled with no reason given is a dead control: the reader is left to
+                    work out whether it is broken or whether they are not allowed. The header
+                    already explains this rule on the same page; the row says it too. */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <button
+                        type="button"
+                        disabled={!isSuperAdmin}
+                        onClick={() => triggerRetry(j.id)}
+                        className="underline underline-offset-2 hover:text-foreground disabled:no-underline disabled:opacity-50"
+                      >
+                        Start again
+                      </button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isSuperAdmin
+                      ? `Start @${j.username} over`
+                      : 'Only a superadmin can start analytics for a creator'}
+                  </TooltipContent>
+                </Tooltip>
                 <button
                   type="button"
                   onClick={() => stopAnalytics(j.id)}
@@ -539,6 +574,22 @@ export function InfluencerDatabasePage() {
 
       {/* The whole row is passed, not just the id: the dialog has to say which of the
           selected creators cannot be quoted, and that needs their pricing. */}
+      <AlertDialog open={!!toRemove} onOpenChange={(o: boolean) => { if (!o) setToRemove(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove @{toRemove?.username}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              They come off the database, with the rates and notes we hold on them. Rosters
+              and proposals they are already on are unaffected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AddToProposalDialog
         open={addToProposalOpen}
         onOpenChange={setAddToProposalOpen}

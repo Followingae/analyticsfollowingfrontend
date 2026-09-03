@@ -18,13 +18,15 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
@@ -35,14 +37,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Loader2, Plus, Users, Trash2, ListChecks, Building2, Link2, Rocket, CheckCircle2,
-         Lock, ThumbsDown } from "lucide-react"
+import { Loader2, Plus, Trash2, ListChecks, Building2, Link2, Rocket, Lock } from "lucide-react"
 import { toast } from "sonner"
 import { imdListsApi, type ImdListSummary, type AreaBrief } from "@/services/imdListsApi"
 import { clientApi } from "@/services/clientManagementApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { CreatorsHubHeader } from "@/components/console/CreatorsHubHeader"
-import { CARD } from "@/components/console/primitives"
+import { MiniBar, ScoreDot } from "@/components/console/primitives"
 import { BriefFields } from "@/components/console/BriefFields"
 // One brief, one sentence, built in one place. There were two copies of this function, one
 // here and one on the area screen, and both wrote a bare U+20C3 for the dirham into a plain
@@ -227,17 +228,20 @@ function AreasPage() {
 
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">Areas</h1>
+              {/* One object, one name. This screen said "Areas", its tabs said "Client
+                  areas", the sidebar and the hub above both say "Brand rosters", and the
+                  brand record said "the sourcing area" in one branch and "the brand roster"
+                  in the other. Roster is the word the navigation already uses. */}
+              <h1 className="text-ds-title">Rosters</h1>
               <p className="mt-1 max-w-2xl text-muted-foreground">
-                One roster per brand, from the day we decide to chase them to the proposal.
-                Sample packs sit alongside, ready to send a prospect on the spot.
+                One roster per brand, plus the packs anyone can send a prospect.
               </p>
             </div>
             <div className="flex gap-2">
               <Dialog open={openPack} onOpenChange={setOpenPack}>
                 {canStock && (
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="gap-2 rounded-full px-5"><Plus className="h-4 w-4" />New sample pack</Button>
+                    <Button variant="outline" className="gap-2 rounded-full px-5"><Plus className="h-4 w-4" />New pack</Button>
                   </DialogTrigger>
                 )}
                 <DialogContent>
@@ -344,12 +348,17 @@ function AreasPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-ds-3">
-            <Tabs value={kind} onValueChange={(v: string) => switchKind(v as Kind)}>
-              <TabsList>
-                <TabsTrigger value="client">Client areas ({counts.client})</TabsTrigger>
-                <TabsTrigger value="sample">Sample packs ({counts.sample})</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            {/* A second tab row under the hub's own was two identical strips doing two
+                different jobs: one is navigation, this is a filter. */}
+            <ToggleGroup type="single" size="sm" variant="outline" value={kind}
+                         onValueChange={(v: string) => { if (v) switchKind(v as Kind) }}>
+              <ToggleGroupItem value="client" aria-label="Brand rosters">
+                Brands ({counts.client})
+              </ToggleGroupItem>
+              <ToggleGroupItem value="sample" aria-label="Sample packs">
+                Packs ({counts.sample})
+              </ToggleGroupItem>
+            </ToggleGroup>
             {/* You were sent here from one brand, so the screen says so rather than looking
                 like the whole roster is this short. */}
             {fromTeam && kind === "client" && (
@@ -368,7 +377,7 @@ function AreasPage() {
             <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : loadError ? (
             <div className="flex flex-col items-center gap-ds-2 py-16 text-center">
-              <p className="text-ds-label">Areas did not load</p>
+              <p className="text-ds-label">Rosters did not load</p>
               <p className="max-w-md text-ds-caption text-muted-foreground">
                 {loadError}. Nothing has been lost, the list simply did not come back.
               </p>
@@ -380,92 +389,136 @@ function AreasPage() {
             <div className="py-16 text-center">
               <ListChecks className="mx-auto h-6 w-6 text-muted-foreground/60" />
               <p className="mt-ds-3 font-medium">
-                {kind === "sample" ? "No sample packs yet"
-                  : fromTeam ? `Nothing being sourced for ${fromBrandName || "this brand"} yet`
-                  : "No brands being sourced for"}
+                {kind === "sample" ? "No packs yet"
+                  : fromTeam ? `No roster for ${fromBrandName || "this brand"} yet`
+                  : "No brand has been released yet"}
               </p>
               <p className="mx-auto mt-ds-1 max-w-md text-sm text-muted-foreground">
                 {kind === "sample"
-                  ? "A pack like “Fitness UAE” lets anyone answer a prospect without waiting on a round."
+                  ? "A pack like “Fitness UAE” lets anyone answer a prospect on the spot."
                   : canDestroy
                   ? "Release a brand with Start sourcing and the talent team is told what to look for."
                   : "A founder releases a brand with the brief, and it appears here for the talent team to work."}
               </p>
             </div>
           ) : (
-            <div className="grid gap-ds-4 sm:grid-cols-2 lg:grid-cols-3">
-              {shown.map((a) => {
-                const line = briefLine(a.brief)
-                return (
-                  <Card key={a.id}
-                        className={`${CARD} group bg-white transition-all hover:-translate-y-0.5 dark:bg-neutral-900/70`}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="flex flex-wrap items-center gap-ds-2 text-base">
-                          <Link href={`/work/areas/${a.id}`} className="hover:underline">{a.name}</Link>
-                          {/* Which pass we are on, and whether it is closed. Only shown once
-                              there has been more than one: "round 1" on every card is a
-                              label that stops being read. */}
-                          {(a.round_no ?? 1) > 1 && (
-                            <span className="rounded-ds-full bg-[var(--tone-info-wash)] px-2 py-0.5 text-ds-caption font-medium">
-                              Round {a.round_no}
+            /* A grid of identical cards says every roster is equally urgent, and it had no
+               room for the one fact that decides which is not: the date it was wanted by.
+               `due_at`, `target_count` and `awaiting_count` were all on the summary and none
+               of them were drawn, so the team held to a deadline could see it only on the
+               founders' own console. A row can carry them, and it sorts. */
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Roster</TableHead>
+                    {kind === "client" && <TableHead>Brand</TableHead>}
+                    <TableHead>Found</TableHead>
+                    <TableHead className="text-right">Cleared</TableHead>
+                    <TableHead className="text-right">Waiting on you</TableHead>
+                    <TableHead className="text-right">Wanted by</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead className="w-8" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {shown.map((a) => {
+                    const line = briefLine(a.brief)
+                    const late = !!a.due_at && !a.locked_at &&
+                      new Date(a.due_at).getTime() < Date.now()
+                    const over = a.due_at
+                      ? Math.floor((Date.now() - new Date(a.due_at).getTime()) / 86_400_000)
+                      : 0
+                    const awaiting = a.awaiting_count ?? 0
+                    return (
+                      <TableRow key={a.id} className="group">
+                        <TableCell className="max-w-[22rem]">
+                          <Link href={`/work/areas/${a.id}`} className="block">
+                            <span className="flex flex-wrap items-center gap-ds-2">
+                              <span className="font-medium hover:underline">{a.name}</span>
+                              {(a.round_no ?? 1) > 1 && (
+                                <span className="rounded-ds-full bg-[var(--tone-info-wash)] px-2 py-0.5 text-ds-caption font-medium">
+                                  Round {a.round_no}
+                                </span>
+                              )}
+                              {a.locked_at && (
+                                <span className="inline-flex items-center gap-1 rounded-ds-full bg-[var(--tone-neutral-wash)] px-2 py-0.5 text-ds-caption font-medium text-muted-foreground">
+                                  <Lock className="h-3 w-3" />Closed
+                                </span>
+                              )}
+                              {(a.live_links ?? 0) > 0 && (
+                                <span className="inline-flex items-center gap-1 rounded-ds-full bg-[var(--tone-good-wash)] px-2 py-0.5 text-ds-caption font-medium text-[var(--tone-good-ink)]">
+                                  <Link2 className="h-3 w-3" />Live link
+                                </span>
+                              )}
+                            </span>
+                            {/* The brief, as the one line it is written to be. The whole of
+                                it is on the roster itself. */}
+                            {(line || a.description) && (
+                              <span className="mt-0.5 block truncate text-ds-caption text-muted-foreground"
+                                    title={line || a.description || undefined}>
+                                {line || a.description}
+                              </span>
+                            )}
+                          </Link>
+                        </TableCell>
+                        {kind === "client" && (
+                          <TableCell className="text-muted-foreground">
+                            {a.team_name || "–"}
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          {/* Found against asked for. Two numbers and the distance between
+                              them, which is what five separate badges were circling. */}
+                          <MiniBar value={a.items_count}
+                                   max={a.target_count || a.items_count || 1}
+                                   tone={late ? "bad" : "info"} />
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {a.cleared_count ?? 0}
+                          {(a.dropped_count ?? 0) > 0 && (
+                            <span className="ml-2 text-ds-caption text-muted-foreground"
+                                  title={`${a.dropped_count} turned down by the client`}>
+                              {a.dropped_count} out
                             </span>
                           )}
-                          {a.locked_at && (
-                            <span className="inline-flex items-center gap-1 rounded-ds-full bg-[var(--tone-neutral-wash)] px-2 py-0.5 text-ds-caption font-medium text-muted-foreground">
-                              <Lock className="h-3 w-3" />Closed
-                            </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {awaiting > 0
+                            ? <ScoreDot value={awaiting} tone="warn"
+                                        title={`${awaiting} stocked and not yet cleared or struck`} />
+                            : <span className="text-muted-foreground">–</span>}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {!a.due_at
+                            ? <span className="text-muted-foreground">–</span>
+                            : late
+                              ? <ScoreDot value={over} suffix="d" tone="bad"
+                                          title={`${over} day${over === 1 ? "" : "s"} past the date`} />
+                              : (
+                                <span className="whitespace-nowrap text-ds-caption text-muted-foreground">
+                                  {new Date(a.due_at).toLocaleDateString("en-GB",
+                                    { day: "numeric", month: "short" })}
+                                </span>
+                              )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {a.owner_email ? a.owner_email.split("@")[0] : "–"}
+                        </TableCell>
+                        <TableCell>
+                          {canDestroy && canStock && (
+                            <Button size="icon" variant="ghost"
+                                    className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                                    onClick={() => setToDelete(a)}>
+                              <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
                           )}
-                        </CardTitle>
-                        {canDestroy && canStock && (
-                          <Button size="icon" variant="ghost"
-                                  className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                                  onClick={() => setToDelete(a)}>
-                            <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                          </Button>
-                        )}
-                      </div>
-                      {a.team_name ? (
-                        <CardDescription className="flex items-center gap-1.5">
-                          <Building2 className="h-3.5 w-3.5" />{a.team_name}
-                        </CardDescription>
-                      ) : a.description ? (
-                        <CardDescription className="line-clamp-2">{a.description}</CardDescription>
-                      ) : null}
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {line && <p className="line-clamp-2 text-xs text-muted-foreground">{line}</p>}
-                      <Link href={`/work/areas/${a.id}`} className="flex flex-wrap items-center gap-1.5">
-                        <Badge variant="secondary" className="gap-1">
-                          <Users className="h-3 w-3" />{a.items_count} found
-                        </Badge>
-                        <Badge variant="outline" className="gap-1">
-                          <CheckCircle2 className="h-3 w-3" />{a.cleared_count ?? 0} cleared
-                        </Badge>
-                        {(a.picked_count ?? 0) > 0 && (
-                          <Badge className="gap-1">{a.picked_count} picked</Badge>
-                        )}
-                        {/* What the client said no to. The number that decides whether this
-                            area goes round again, so it sits with the other two. */}
-                        {(a.dropped_count ?? 0) > 0 && (
-                          <Badge variant="outline" className="gap-1 text-muted-foreground">
-                            <ThumbsDown className="h-3 w-3" />{a.dropped_count} turned down
-                          </Badge>
-                        )}
-                        {(a.live_links ?? 0) > 0 && (
-                          /* Was its own emerald, a fifth green beside the console's one. */
-                          <Badge variant="outline" className="gap-1 border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">
-                            <Link2 className="h-3 w-3" />Live link
-                          </Badge>
-                        )}
-                      </Link>
-                      {a.owner_email && (
-                        <p className="text-xs text-muted-foreground">{a.owner_email.split("@")[0]}</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                )
-              })}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>

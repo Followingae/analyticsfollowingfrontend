@@ -92,7 +92,7 @@ export default function SuperadminCreateCampaignPage() {
         const clientList = data.data || data.clients || data || []
         setClients(Array.isArray(clientList) ? clientList : [])
       } catch {
-        toast.error("Failed to load clients")
+        toast.error("Could not load the client list")
       } finally {
         setLoadingClients(false)
       }
@@ -126,11 +126,11 @@ export default function SuperadminCreateCampaignPage() {
     const url = newPostUrl.trim()
     if (!url) return
     if (!/^https?:\/\/(www\.)?(instagram\.com|instagr\.am)\/(p|reel|tv)\/[\w-]+\/?/i.test(url)) {
-      toast.error("Invalid Instagram URL")
+      toast.error("That is not an Instagram post link")
       return
     }
     if (posts.some((p) => p.url === url)) {
-      toast.error("Already added")
+      toast.error("Already on the list")
       return
     }
     setPosts([...posts, { url, id: `post-${Date.now()}` }])
@@ -203,7 +203,7 @@ export default function SuperadminCreateCampaignPage() {
         }
       }
 
-      toast.success("Campaign created successfully!")
+      toast.success("Campaign created")
 
       // The UGC branch has always opened the campaign it just made; the other one dropped
       // you on the list holding the same id it had used two lines earlier to attach posts.
@@ -230,15 +230,25 @@ export default function SuperadminCreateCampaignPage() {
               href="/superadmin/campaigns"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
             >
-              <ArrowLeft className="h-4 w-4" /> Back to Campaigns
+              <ArrowLeft className="h-4 w-4" /> All campaigns
             </Link>
             <PageHead title="Create a campaign"
-                      sub="A managed campaign for a brand client." />
-            <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">
-              Direct create is for campaigns that don't need the client to approve an influencer list.
-              Need internal approval (talent manager → cofounder → CEO) and a client sign‑off + agreement/invoice before it runs?{' '}
-              <Link href="/superadmin/proposals/create" className="font-medium text-primary hover:underline">Start from a Proposal</Link> instead.
-              Either way you can manage the agreement &amp; invoices per campaign from the client's cockpit.
+                      sub="Runs without the client approving a creator list." />
+            {/* Forty-eight words of prose in a tinted box, before the first field, explaining
+                a routing decision. It is a choice between two doors, so it is drawn as two
+                doors: this page, or the proposal flow. */}
+            <div className="mt-ds-3 flex flex-wrap gap-ds-3 text-sm">
+              <div className="min-w-[220px] flex-1 rounded-ds-lg bg-[var(--tone-neutral-wash)] px-ds-3 py-ds-2">
+                <p className="font-medium">Direct campaign</p>
+                <p className="mt-0.5 text-muted-foreground">Runs straight away. No client sign-off.</p>
+              </div>
+              <Link href="/superadmin/proposals/create"
+                    className="min-w-[220px] flex-1 rounded-ds-lg px-ds-3 py-ds-2 transition-colors hover:bg-black/[0.035] dark:hover:bg-white/[0.05]">
+                <p className="font-medium text-primary">Start from a proposal →</p>
+                <p className="mt-0.5 text-muted-foreground">
+                  Internal approval, then the client signs. Agreement and invoices included.
+                </p>
+              </Link>
             </div>
           </div>
 
@@ -293,9 +303,9 @@ export default function SuperadminCreateCampaignPage() {
                   }`}
                 >
                   <Megaphone className="h-6 w-6 mb-2 text-primary" />
-                  <h3 className="font-semibold">Influencer Campaign</h3>
+                  <h3 className="font-semibold">Influencer</h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Track Instagram posts, engagement, and ROI
+                    Instagram posts and engagement
                   </p>
                 </button>
                 <button
@@ -307,9 +317,9 @@ export default function SuperadminCreateCampaignPage() {
                   }`}
                 >
                   <Upload className="h-6 w-6 mb-2 text-primary" />
-                  <h3 className="font-semibold">UGC Campaign</h3>
+                  <h3 className="font-semibold">UGC</h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Manage creative concepts, models, and video production
+                    Concepts, models and video
                   </p>
                 </button>
               </div>
@@ -320,7 +330,7 @@ export default function SuperadminCreateCampaignPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Campaign Name *</Label>
+                  <Label>Campaign name</Label>
                   <Input
                     value={campaignName}
                     onChange={(e) => setCampaignName(e.target.value)}
@@ -328,7 +338,7 @@ export default function SuperadminCreateCampaignPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Brand Name *</Label>
+                  <Label>Client name</Label>
                   <Input
                     value={brandName}
                     onChange={(e) => setBrandName(e.target.value)}
@@ -349,7 +359,7 @@ export default function SuperadminCreateCampaignPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Budget (AED)</Label>
+                  <Label>Budget</Label>
                   <Input
                     type="number"
                     value={budget || ""}
@@ -360,14 +370,14 @@ export default function SuperadminCreateCampaignPage() {
                 <div className="space-y-2">
                   <Label>
                     <Calendar className="h-3.5 w-3.5 inline mr-1" />
-                    Start Date
+                    Starts
                   </Label>
                   <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>
                     <Calendar className="h-3.5 w-3.5 inline mr-1" />
-                    End Date
+                    Ends
                   </Label>
                   <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                 </div>
@@ -375,7 +385,7 @@ export default function SuperadminCreateCampaignPage() {
 
               {/* Brand Logo */}
               <div className="space-y-2">
-                <Label>Brand Logo</Label>
+                <Label>Logo</Label>
                 <div className="flex items-center gap-4">
                   {logoPreview ? (
                     <div className="relative">
@@ -403,22 +413,22 @@ export default function SuperadminCreateCampaignPage() {
           {campaignType === "influencer" && (
             <Panel
               title="Instagram posts"
-              description="Post URLs to track. Analytics run once the campaign is created."
+              description="Post URLs to track. Analytics run once the campaign exists"
               action={
                   <Dialog open={isAddPostOpen} onOpenChange={setIsAddPostOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm">
-                        <Plus className="h-4 w-4 mr-1" /> Add Post
+                        <Plus className="h-4 w-4 mr-1" /> Add a post
                       </Button>
                     </DialogTrigger>
                     <DialogContent aria-describedby="add-post-description">
                       <DialogHeader>
-                        <DialogTitle>Add Instagram Post</DialogTitle>
-                        <p id="add-post-description" className="text-sm text-muted-foreground">Enter an Instagram post URL to track in this campaign</p>
+                        <DialogTitle>Add a post</DialogTitle>
+                        <p id="add-post-description" className="text-sm text-muted-foreground">Paste the Instagram link</p>
                       </DialogHeader>
                       <div className="space-y-4 pt-4">
                         <div className="space-y-2">
-                          <Label>Instagram Post URL</Label>
+                          <Label>Instagram link</Label>
                           <Input
                             value={newPostUrl}
                             onChange={(e) => setNewPostUrl(e.target.value)}
@@ -426,7 +436,7 @@ export default function SuperadminCreateCampaignPage() {
                             onKeyDown={(e) => e.key === "Enter" && handleAddPost()}
                           />
                         </div>
-                        <Button onClick={handleAddPost} className="w-full">Add Post</Button>
+                        <Button onClick={handleAddPost} className="w-full">Add it</Button>
                       </div>
                     </DialogContent>
                   </Dialog>
@@ -464,7 +474,7 @@ export default function SuperadminCreateCampaignPage() {
               disabled={submitting || !campaignName.trim() || !selectedClientId || !brandName.trim()}
               size="lg"
             >
-              {submitting ? "Creating..." : "Create Campaign"}
+              {submitting ? "Creating..." : "Create the campaign"}
             </Button>
           </div>
         </div>

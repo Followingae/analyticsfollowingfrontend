@@ -7,33 +7,26 @@
  * category full of names with no rate is not coverage, it just looks like it. On a day with
  * no open round, the palest cell is the answer to "what should I be doing".
  *
- * The bar chart and the grid answer different questions and both are needed: the chart ranks
- * categories against each other, the grid says which market inside a category is thin. One
- * without the other sends someone researching the wrong gap.
+ * The chart and the grid used to be two panels, and they were one dataset: `byCategory` is
+ * the row sums of the grid sitting directly beneath it. Ranking the grid's rows by strength
+ * and putting a bar on each one carries the league table INSIDE the thing it was ranking, so
+ * the screen still answers both questions - which category is strongest, and which market
+ * inside it is thin - without asking anyone to hold two pictures at once.
  */
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bar, BarChart, CartesianGrid, Cell as RCell, XAxis, YAxis } from 'recharts'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowRight, Coins, Database, MapPin, TimerReset } from 'lucide-react'
+import { ArrowRight, Coins, Database, TimerReset } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
-import { Empty, PageHead, Panel, Row, Stat, StatGrid } from '@/components/console/primitives'
+import { Empty, MiniBar, PageHead, Panel, Row, Stat, StatGrid } from '@/components/console/primitives'
 import { CreatorsHubHeader } from '@/components/console/CreatorsHubHeader'
 
 interface Cell { category: string; market: string; held: number; costed: number
                  quotable: number; sellable: number; stale: number; stale_unknown: number }
-
-const CHART: ChartConfig = {
-  costed: { label: 'Quotable', color: 'var(--primary)' },
-  // The weakest categories are the point of the screen, so they are greyed rather than
-  // left to blend in with the strong ones.
-  thin: { label: 'Thin', color: 'color-mix(in oklab, var(--muted-foreground) 35%, transparent)' },
-}
 
 export default function CoveragePage() {
   const router = useRouter()
@@ -77,8 +70,8 @@ export default function CoveragePage() {
             four filled tiles promising an edge the loaded screen never draws. */}
         <div className="space-y-ds-5">
           <Skeleton className="h-9 w-48 rounded-ds-lg" />
-          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map(i => (
+          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-3">
+            {[0, 1, 2].map(i => (
               <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
                 <Skeleton className="h-3 w-24 rounded-ds-sm" />
                 <Skeleton className="h-9 w-20 rounded-ds-sm" />
@@ -100,8 +93,21 @@ export default function CoveragePage() {
   const max = Math.max(1, ...cells.filter(c => c.market !== 'unknown').map(c => c.costed))
   const shade = (n: number) => n === 0 ? 0 : Math.min(0.14 + (n / max) * 0.86, 1)
 
-  const uncategorised = cells.filter(c => c.category === 'uncategorised').reduce((a, c) => a + c.held, 0)
-  const noMarket = cells.filter(c => c.market === 'unknown').reduce((a, c) => a + c.held, 0)
+  /**
+   * These two are reduced out of `cells`, so a payload that arrived without its grid made
+   * them 0, and 0 here is not a quiet fact: it renders an explicit all clear, a green dot
+   * and a badge reading "Clear" against "0 creators have no category". The four headline
+   * totals were taught to say "—" and these two, which make the louder claim, were not.
+   */
+  const hasCells = Array.isArray(data.cells)
+  const uncategorised = hasCells
+    ? cells.filter(c => c.category === 'uncategorised').reduce((a, c) => a + c.held, 0)
+    : null
+  const noMarket = hasCells
+    ? cells.filter(c => c.market === 'unknown').reduce((a, c) => a + c.held, 0)
+    : null
+  /* An absent `gaps` key is not an even spread. */
+  const gaps: any[] | null = Array.isArray(data.gaps) ? data.gaps : null
 
   /**
    * "uncategorised" and "unknown" are words this screen PRINTS, not values anybody holds.
@@ -146,12 +152,16 @@ export default function CoveragePage() {
       <div className="space-y-ds-5">
         <PageHead
           title="Where we're thin"
-          sub="Where we are strong, and where to research next. A creator counts only once we hold a cost for them. A name with no rate cannot be quoted."
+          sub="A creator counts only once we hold a rate. A name without one cannot be quoted."
           /* The hub header directly above now carries "Add or import creators" as its primary
              button, so the same button here would be the second one on the screen. */
         />
 
-        <StatGrid>
+        {/* Three figures, not four. "Missing a market" was the fourth, and it was also the
+            second row of "Data to tidy" further down: the same count, the same link and the
+            same sentence printed twice on one screen. It is a tidy job, not a headline, so
+            it lives in exactly one place now. */}
+        <StatGrid cols={3}>
           <Stat label="In the database" value={held ?? '—'} icon={Database}
                 hint={`${categories.length} categories · ${markets.length} markets`}
                 onClick={() => router.push('/work/influencers')} />
@@ -159,60 +169,56 @@ export default function CoveragePage() {
                 tone={quotable == null ? 'neutral' : 'good'} icon={Coins}
                 hint={quotablePct == null
                   ? 'The share we can put in a proposal did not come back'
-                  : `${quotablePct}% of the database has a sell price`
+                  : `${quotablePct}% have a sell price`
                     + (costed != null ? ` · ${costed} have a cost researched` : '')}
                 onClick={() => router.push('/work/influencers?pricing=quotable')} />
           {/* An age nobody has recorded is not an age of zero. Until rates start carrying a
               capture date this reads "not recorded yet" rather than reporting all-clear on
               a column that has never been written. */}
-          <Stat label="Rates over six months old"
+          <Stat label="Rates going stale"
                 value={staleUnknown ? 'Not recorded' : stale ?? '—'}
                 tone={stale == null ? 'neutral' : (stale || staleUnknown) ? 'warn' : 'neutral'}
                 icon={TimerReset}
                 hint={staleUnknown
                   ? `${staleUnknown} rates carry no capture date, so their age is unknown`
-                  : 'Worth re-checking before they go in a proposal'}
+                  : 'Over six months old. Re-check before quoting'}
                 onClick={() => router.push('/work/influencers?stale_costs=true')} />
-          <Stat label="Missing a market" value={noMarket} tone={noMarket ? 'warn' : 'neutral'}
-                icon={MapPin} hint="Market is the first thing a client asks about"
-                onClick={() => router.push(`/work/influencers?countries=${encodeURIComponent(NO_VALUE)}`)} />
         </StatGrid>
 
-        <Panel
-          title="Strength by category"
-          description="Creators we could quote today, strongest first"
-        >
-          <ChartContainer config={CHART} className="h-[260px] w-full">
-            <BarChart data={byCategory} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-border/60" />
-              <XAxis dataKey="category" tickLine={false} axisLine={false} tickMargin={10}
-                     className="text-xs capitalize" />
-              <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false}
-                     className="text-xs" />
-              <ChartTooltip content={<ChartTooltipContent labelClassName="capitalize" />} />
-              <Bar dataKey="costed" radius={[4, 4, 0, 0]} maxBarSize={54}>
-                {byCategory.map(c => (
-                  // The weakest categories are the point of the screen, so they are the ones
-                  // that get flagged rather than blending into the rest of the bars.
-                  <RCell key={c.category}
-                         fill={c.costed <= Math.max(1, max * 0.25)
-                           ? 'var(--color-thin)'
-                           : 'var(--color-costed)'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ChartContainer>
+        {/* The answer first. This list is what the screen is FOR, and it used to sit at the
+            very bottom, underneath two large pictures of the same dataset. */}
+        <Panel title="Research next" description="Thinnest first" flush>
+          {(gaps ?? []).map((g: any, i: number) => (
+            <Row
+              key={i}
+              tone={g.costed === 0 ? 'bad' : 'warn'}
+              title={<span className="capitalize">{g.category} · {g.market}</span>}
+              meta={`${g.costed} quotable of ${g.held} held`}
+              right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
+              onClick={() => router.push(cellHref(g.category, g.market))}
+            />
+          ))}
+          {gaps == null && <Empty>The gap list did not come back.</Empty>}
+          {gaps?.length === 0 && <Empty>Every cell has quotable creators.</Empty>}
         </Panel>
 
+        {/* The bar chart that used to sit above this grid was the grid's own row sums: one
+            dataset, drawn twice, under two headings. Ranking the rows by strength and giving
+            each one a bar puts the league table INSIDE the thing it was ranking, so the
+            screen answers "which category is strongest" and "which market inside it is thin"
+            in one object instead of asking the reader to hold two. */}
         <Panel
           title="Category against market"
-          description="Darker is stronger. Hover a cell for the detail; the pale ones are the backlog."
+          description="Ranked strongest first. Darker is stronger, and the pale cells are the backlog."
         >
           <div className="overflow-x-auto pb-1">
             <table className="border-separate" style={{ borderSpacing: '6px' }}>
               <thead>
                 <tr>
                   <th className="w-36" />
+                  <th className="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Strength
+                  </th>
                   {markets.map(m => (
                     <th key={m} className="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       {m}
@@ -221,9 +227,16 @@ export default function CoveragePage() {
                 </tr>
               </thead>
               <tbody>
-                {categories.map(cat => (
+                {byCategory.map(({ category: cat, costed: catCosted, held: catHeld }) => (
                   <tr key={cat}>
                     <td className="pr-4 text-sm font-medium capitalize">{cat}</td>
+                    {/* The bar the chart used to draw, on the row it belongs to. The fraction
+                        is what matters here, not the absolute: "9 of 12 we hold". */}
+                    <td className="pr-4">
+                      <MiniBar value={catCosted} max={Math.max(1, catHeld)}
+                               tone={catCosted === 0 ? 'bad'
+                                 : catCosted <= Math.max(1, max * 0.25) ? 'warn' : 'good'} />
+                    </td>
                     {markets.map(m => {
                       const c = at(cat, m)
                       const n = c?.costed ?? 0
@@ -272,45 +285,39 @@ export default function CoveragePage() {
                 {hover.stale > 0 && `, ${hover.stale} rates going stale`}
               </span>
             ) : (
-              <span>Shaded by creators we could actually quote, not by how many names we hold.</span>
+              <span>Shaded by who we could quote, not by how many names we hold.</span>
             )}
           </div>
         </Panel>
 
-        <div className="grid items-start gap-ds-4 lg:grid-cols-2">
-          <Panel title="Research next" description="The thinnest cells, weakest first" flush>
-            {(data.gaps || []).map((g: any, i: number) => (
-              <Row
-                key={i}
-                tone={g.costed === 0 ? 'bad' : 'warn'}
-                title={<span className="capitalize">{g.category} · {g.market}</span>}
-                meta={`${g.costed} quotable of ${g.held} held`}
-                right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                onClick={() => router.push(cellHref(g.category, g.market))}
-              />
-            ))}
-            {(data.gaps || []).length === 0 && <Empty>No thin cells, coverage is even.</Empty>}
-          </Panel>
-
-          <Panel title="Data to tidy" description="Cheap wins that make everything else sharper" flush>
+        <div className="grid items-start gap-ds-4">
+          <Panel title="Data to tidy" description="Each one blocks a filter" flush>
+            {/* "Clear" is a claim, and a count reduced out of a grid that never arrived
+                cannot make it. Absent says so; a real zero still reads as clear. */}
             <Row
-              tone={uncategorised ? 'warn' : 'good'}
-              title={`${uncategorised} creators have no category`}
-              meta="They cannot appear in any coverage cell, or in a category filter"
-              right={<Badge variant="outline">{uncategorised ? 'Fix' : 'Clear'}</Badge>}
+              tone={uncategorised == null ? 'neutral' : uncategorised ? 'warn' : 'good'}
+              title={uncategorised == null
+                ? 'How many creators have no category did not come back'
+                : `${uncategorised} creators have no category`}
+              meta="They appear in no cell above"
+              right={<Badge variant="outline">
+                {uncategorised == null ? 'Unknown' : uncategorised ? 'Fix' : 'Clear'}
+              </Badge>}
               onClick={() => router.push(
                 `/work/influencers?categories=${encodeURIComponent(NO_VALUE)}`)}
             />
             <Row
-              tone={noMarket ? 'warn' : 'good'}
-              title={`${noMarket} creators have no market`}
+              tone={noMarket == null ? 'neutral' : noMarket ? 'warn' : 'good'}
+              title={noMarket == null
+                ? 'How many creators have no market did not come back'
+                : `${noMarket} creators have no market`}
               meta="Market is the first thing a client asks about"
-              right={<Badge variant="outline">{noMarket ? 'Fix' : 'Clear'}</Badge>}
+              right={<Badge variant="outline">
+                {noMarket == null ? 'Unknown' : noMarket ? 'Fix' : 'Clear'}
+              </Badge>}
               onClick={() => router.push(
                 `/work/influencers?countries=${encodeURIComponent(NO_VALUE)}`)}
             />
-            {/* "Clear" is a claim, and an absent figure cannot make it — so when the count
-                did not come back the row says that instead of reporting all-clear. */}
             <Row
               tone={stale == null ? 'neutral' : (stale || staleUnknown) ? 'warn' : 'good'}
               title={stale == null
@@ -331,7 +338,7 @@ export default function CoveragePage() {
               <Row
                 tone="warn"
                 title={`${releasedUnpriced} creators are live but have no sell price`}
-                meta="They look ready everywhere, and the proposal picker refuses them"
+                meta="The proposal picker refuses them"
                 right={<Badge variant="outline">Price</Badge>}
                 onClick={() => router.push('/work/influencers?status=active&pricing=unquotable')}
               />

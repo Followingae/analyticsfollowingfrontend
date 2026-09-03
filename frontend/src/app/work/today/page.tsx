@@ -3,44 +3,48 @@
 /**
  * Today — the dashboard a teammate runs their day from.
  *
- * Two rewrites got us here. The first was six competing regions: four gradient stat cards, a
- * row of action cards, a strip of chips, a queue, and a canvas repeating whatever the queue
- * had auto-selected — you read all six to learn one fact. The second overcorrected into a
- * single vertical scroll and threw the dashboard out with the clutter.
+ * Three rewrites got us here. The first was six competing regions. The second overcorrected
+ * into a single scroll. The third put a grid back and, in doing so, drew four cards, five
+ * heading sizes, thirteen hardcoded type sizes and three separate treatments for what was
+ * always one thing: an item with a name, an age and somewhere to go.
  *
- * So: a grid, not a column, and one job at the centre of it.
+ * This is the fourth, and the rule it follows is the one the token file already stated:
+ * whitespace is the grouping mechanism, and a border drawn round a number is a second edge
+ * the eye must cross to read it. So there are no cards on this screen at all.
  *
- *   ┌──────────────────────────────┬───────────────┐
- *   │  the job card                │  the numbers  │   your work, and the shape of it
- *   │  (goal ring · chart · rows)  │  the places   │
- *   ├──────────────────────────────┼───────────────┤
- *   │  waiting on me               │  in flight    │   what is stopped, and what is not
- *   └──────────────────────────────┴───────────────┘
+ *   the greeting, the date, and the screen's one action
+ *   four numbers, unboxed, gaps doing the work a hairline was doing
+ *   Waiting on you        one table
+ *   Running without you   the same table, with an owner column
+ *   the shortcuts, last, as plain links
  *
- * The job card is the simplification that survived: one row per client, the detail folded
- * inside it, so "which brand needs creators today" is answered without reading the screen.
- * Everything else is beside it rather than above it.
+ * Two regions became one. The job card and the queue were listing the same decisions, and
+ * the server reconciled them by deleting queue items whose titles began with certain English
+ * words. They are one list now, so there is nothing to reconcile.
+ *
+ * The age is a number the server sends. It used to be formatted into a sentence there and
+ * regexed back out here, which meant any row whose sentence had no age phrase in it - "AED
+ * 12,000 approved and waiting" - fell through to a neutral dot. Both halves of that round
+ * trip are gone.
  */
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import type { ColumnDef } from '@tanstack/react-table'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from '@/components/ui/accordion'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import {
-  ArrowUpRight, CheckCircle2, ChevronDown, RefreshCw, Search, Sparkles,
-  Users, Layers, FileText, Banknote, Monitor, ClipboardCheck, Building2, Compass,
-} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { DataTable, DataTableColumnHeader } from '@/components/ui2/data-table'
+import { ArrowUpRight, CheckCircle2, GitBranch, RefreshCw, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { useAdminAccess, type AdminModule } from '@/hooks/useAdminAccess'
 import {
-  Aed, CARD, GroupLabel, Ring, RoundButton, ScoreDot, StageBar, type Tone,
+  Aed, MiniBar, PageHead, Ring, RoundButton, ScoreDot, StageBar, Stat, StatGrid, type Tone,
 } from '@/components/console/primitives'
 import { cn } from '@/lib/utils'
 
@@ -57,20 +61,39 @@ const aed = (n: number) =>
   : n >= 10_000 ? `${Math.round(n / 1000)}K`
   : Math.round(n).toLocaleString()
 
-type Item = {
-  urgency?: string; title: string; detail?: string; href?: string
+/** A thing stopped until this person does something. One row, one decision. */
+type Waiting = {
+  urgency?: string
+  title: string
+  reason?: string
+  href?: string | null
   at?: number | null
-}
-
-type FocusRow = {
-  id: string; label: string; href: string
-  stage_label?: string; tone?: Tone; flow?: string | null; at?: number | null
-  value?: number | null; of?: number | null; meta?: string
-  wants_more?: boolean
+  age_days?: number
+  where?: string | null
+  flow?: string | null
+  value?: number | null
+  of?: number | null
+  stage_label?: string | null
+  tone?: Tone
+  kind?: string | null
   actions?: { label: string; href: string }[]
 }
 
-/** The sequences a row can sit in. Named here only to draw them; the server says where. */
+/** A thing running without them. Identical but for `owner`, which is the whole point of it. */
+type Flight = {
+  title: string
+  reason?: string
+  href?: string | null
+  owner: string
+  where?: string | null
+  value?: number | null
+  of?: number | null
+  stage_label?: string | null
+  flow?: string | null
+  at?: number | null
+}
+
+/** The sequences a row can sit in. Named here only to draw them; the server says which. */
 const FLOWS: Record<string, { key: string; label: string }[]> = {
   areas: [
     { key: 'released', label: 'Released' }, { key: 'stocked', label: 'Stocked' },
@@ -92,16 +115,11 @@ const FLOWS: Record<string, { key: string; label: string }[]> = {
   ],
 }
 
-const flowOf = (href?: string) =>
-  !href ? null
-  : /influencers\/review|\/areas/.test(href) ? 'areas'
-  : /proposals/.test(href) ? 'proposals'
-  : /ladder|chasing|campaigns/.test(href) ? 'ladder'
-  : /brands|clients/.test(href) ? 'brands'
-  : null
-
 const PRIMARY: Record<string, { label: string; href: string }> = {
   leadership: { label: 'Sign-offs', href: '/work/approvals' },
+  // A talent manager had no primary action at all, on the one screen whose whole job for
+  // them is finding people. Adding costs nothing, which is exactly why it should be here.
+  talent: { label: 'Add a creator', href: '/work/influencers?new=1' },
   // The clients list holds no owner filter, so this opened everybody's book. Until it
   // does, the label says what the destination actually is.
   account: { label: 'Open the client list', href: '/work/clients' },
@@ -109,107 +127,89 @@ const PRIMARY: Record<string, { label: string; href: string }> = {
 }
 
 const SHORTCUTS: {
-  key: string; label: string; href: string; icon: any
+  key: string; label: string; href: string
   module?: AdminModule; scopes?: string[]
 }[] = [
-  { key: 'areas', label: 'Brand rosters', href: '/work/areas', icon: Layers,
+  { key: 'areas', label: 'Brand rosters', href: '/work/areas',
     scopes: ['leadership', 'talent', 'business_development'] },
-  { key: 'waiting-room', label: 'Needs a price', href: '/work/influencers/review', icon: Users,
+  { key: 'waiting-room', label: 'Needs a price', href: '/work/influencers/review',
     module: 'influencers', scopes: ['leadership', 'talent'] },
-  { key: 'proposals', label: 'Proposals', href: '/work/proposals', icon: FileText, module: 'proposals' },
-  { key: 'campaigns', label: 'Campaigns', href: '/work/campaigns', icon: Sparkles, module: 'campaigns' },
-  { key: 'brands', label: 'Brands', href: '/work/brands', icon: Building2, module: 'clients' },
-  { key: 'approvals', label: 'Sign-offs', href: '/work/approvals', icon: ClipboardCheck,
-    scopes: ['leadership'] },
-  { key: 'payables', label: 'Creator payments', href: '/work/payables', icon: Banknote,
+  { key: 'proposals', label: 'Proposals', href: '/work/proposals', module: 'proposals' },
+  { key: 'campaigns', label: 'Campaigns', href: '/work/campaigns', module: 'campaigns' },
+  { key: 'brands', label: 'Brands', href: '/work/brands', module: 'clients' },
+  { key: 'approvals', label: 'Sign-offs', href: '/work/approvals', scopes: ['leadership'] },
+  { key: 'payables', label: 'Creator payments', href: '/work/payables',
     module: 'influencers', scopes: ['leadership', 'talent'] },
-  { key: 'coverage', label: "Where we're thin", href: '/work/coverage', icon: Compass,
+  { key: 'coverage', label: "Where we're thin", href: '/work/coverage',
     module: 'influencers', scopes: ['leadership', 'talent'] },
-  { key: 'screens', label: 'Office screens', href: '/work/system/displays', icon: Monitor,
+  { key: 'screens', label: 'Office screens', href: '/work/system/displays',
     module: 'system', scopes: ['leadership'] },
 ]
 
-function age(item: Item): { value: string; suffix?: string; tone: Tone; label: string } {
-  if (item.urgency === 'high') return { value: '!', tone: 'bad', label: 'Needs attention now' }
-  const d = (item.detail || '').toLowerCase()
-  const WORDS: Record<string, number> = {
-    a: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
-    eight: 8, nine: 9, ten: 10,
-  }
-  const m = /(\d+|a|one|two|three|four|five|six|seven|eight|nine|ten)\s+(day|week|month)/.exec(d)
-  if (!m) return { value: '·', tone: 'neutral', label: 'No age recorded' }
-  const count = /^\d+$/.test(m[1]) ? Number(m[1]) : (WORDS[m[1]] ?? 1)
-  const days = m[2] === 'week' ? count * 7 : m[2] === 'month' ? count * 30 : count
-  if (days === 0) return { value: 'new', tone: 'good', label: 'Arrived today' }
-  const tone: Tone = days >= 7 ? 'bad' : days >= 3 ? 'warn' : 'good'
-  return { value: String(days), suffix: 'd', tone, label: `Waiting ${days} day${days === 1 ? '' : 's'}` }
-}
-
-function IconButton({ icon: Icon, label, onClick }: { icon: any; label: string; onClick?: () => void }) {
-  return (
-    <button
-      type="button" onClick={onClick} title={label} aria-label={label}
-      className="grid h-10 w-10 place-items-center rounded-full border border-black/[0.06] bg-white
-                 text-muted-foreground transition-colors hover:text-foreground
-                 dark:border-white/[0.08] dark:bg-neutral-900/70"
-    >
-      <Icon className="h-4 w-4" />
-    </button>
-  )
-}
-
-/* The four tones were spelled out here as hex pairs, again, a third set of slightly
-   different greens and ambers. They are now the console tone tokens, defined once in the
-   .console-shell block and therefore unreachable from a client page. */
+/* The tone tokens are defined once in the .console-shell block in globals.css, so amber is
+   a single decision rather than the same guess written out in twenty places. */
 const TONE_BADGE: Record<string, string> = {
   good: 'border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]',
   warn: 'border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]',
   bad: 'border-transparent bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]',
+  info: 'border-transparent bg-[var(--tone-info-wash)] text-[var(--tone-info-ink)]',
   neutral: 'border-transparent bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]',
 }
 
-const TILE_DOT: Record<string, string> = {
-  good: 'bg-[var(--tone-good-dot)]',
-  warn: 'bg-[var(--tone-warn-dot)]',
-  bad: 'bg-[var(--tone-bad-dot)]',
-  neutral: 'bg-[var(--tone-info-dot)]',
+/**
+ * The age badge.
+ *
+ * Every row has a real age now, so the "no age recorded" dot is gone: there is nothing left
+ * for it to mean. Urgency still darkens the badge, because a founder chasing an invoice on
+ * day one is not the same as a roster idle for one day.
+ */
+function Age({ days, urgency }: { days: number; urgency?: string }) {
+  const tone: Tone = urgency === 'high' || days >= 7 ? 'bad' : days >= 3 ? 'warn' : 'good'
+  return (
+    <ScoreDot
+      value={days === 0 ? 'new' : days}
+      suffix={days === 0 ? undefined : 'd'}
+      tone={tone}
+      title={days === 0 ? 'Arrived today' : `Waiting ${days} day${days === 1 ? '' : 's'}`}
+    />
+  )
 }
 
-/**
- * One number from the day's headline.
- *
- * It used to be a card: the CARD hairline and shadow, plus a two-stop gradient wash, plus
- * its own padding. Four of them stacked two-by-two in the side column put a grid of edges
- * beside a panel that already has one, and the numbers inside them were 26px — smaller than
- * the borders were wide, in effect.
- *
- * The shell and the gradient come off. Tone survives as the dot beside the label, which is
- * how every other surface in this console marks state, and the figure grows into the room
- * the padding and border were using.
- */
-function Tile({ label, value, hint, tone = 'neutral', money, onClick }: {
-  label: string; value: React.ReactNode; hint?: string; tone?: string
-  money?: boolean; onClick?: () => void
-}) {
+/** Where a row sits in its sequence, and any second thing you can do to it. One click away,
+ *  so the row stays on one line and the detail is still there for anyone who wants it. */
+function Detail({ row }: { row: Waiting | Flight }) {
+  const flow = row.flow && FLOWS[row.flow] ? FLOWS[row.flow] : null
+  const extra = ('actions' in row ? row.actions || [] : [])
+    .filter(a => a.href && a.href !== row.href)
+  if (!flow && extra.length === 0) return null
+  const at = typeof row.at === 'number' ? Math.max(0, Math.min(row.at, (flow?.length ?? 1) - 1)) : 0
   return (
-    <button
-      type="button" onClick={onClick} disabled={!onClick}
-      className={cn(
-        'rounded-ds-lg px-ds-2 py-ds-2 text-left transition-colors',
-        onClick && 'hover:bg-black/[0.035] focus-visible:outline-none focus-visible:ring-2 ' +
-                   'focus-visible:ring-ring focus-visible:ring-offset-2 dark:hover:bg-white/[0.05]',
-      )}
-    >
-      <span className="flex items-center gap-ds-2">
-        <span className={cn('h-1.5 w-1.5 flex-none rounded-full', TILE_DOT[tone] ?? TILE_DOT.neutral)}
-              aria-hidden />
-        <span className="text-ds-caption font-medium text-muted-foreground">{label}</span>
-      </span>
-      <p className="mt-ds-2 text-[32px] font-semibold leading-none tracking-[-0.025em] tabular-nums">
-        {money ? <Aed>{value}</Aed> : value}
-      </p>
-      {hint && <p className="mt-ds-2 line-clamp-2 text-ds-caption text-muted-foreground">{hint}</p>}
-    </button>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          title="Where this sits"
+          aria-label="Where this sits"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground
+                     transition-colors hover:bg-black/[0.05] hover:text-foreground
+                     dark:hover:bg-white/[0.08]"
+        >
+          <GitBranch className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-auto max-w-sm space-y-ds-3">
+        {flow && <StageBar stages={flow} current={flow[at]?.key || flow[0].key} />}
+        {extra.length > 0 && (
+          <div className="flex flex-wrap gap-ds-2">
+            {extra.map(a => (
+              <Button key={a.label + a.href} size="sm" variant="outline" asChild>
+                <Link href={a.href}>{a.label}</Link>
+              </Button>
+            ))}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   )
 }
 
@@ -219,15 +219,13 @@ export default function Today() {
   const { can } = useAdminAccess()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [open, setOpen] = useState<string | null>(null)
-  const [showAll, setShowAll] = useState(false)
+  const [allFlight, setAllFlight] = useState(false)
 
   const load = async (quiet = false) => {
     try {
       const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/today`)
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed')
       setData((await res.json()).data)
-      if (!quiet) setOpen(null)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not load your day')
     } finally { setLoading(false) }
@@ -236,34 +234,195 @@ export default function Today() {
 
   const first = (user?.full_name || user?.email || '').split(/[\s@]/)[0]
   const headline: any[] = data?.headline || []
-  const needs: Item[] = useMemo(() => data?.needs || [], [data])
-  const moving: Item[] = useMemo(() => data?.moving || [], [data])
-  const focus = data?.focus as { title?: string; kind?: string; rows?: FocusRow[]
-                                 target?: { value: number; of: number } | null } | undefined
-  const rows: FocusRow[] = focus?.rows || []
+  const waiting: Waiting[] = useMemo(() => data?.waiting || [], [data])
+  const moving: Flight[] = useMemo(() => data?.moving || [], [data])
+  const target = data?.target as { value: number; of: number } | null | undefined
   const role: string = data?.role || data?.scope || 'leadership'
   const primary = PRIMARY[role]
   const shortcuts = SHORTCUTS.filter(
     s => (!s.module || can(s.module)) && (!s.scopes || s.scopes.includes(role)))
 
-  // The biggest roster sets the scale, so the bars compare with each other rather than each
-  // filling its own row to the brim and saying nothing.
-  const widest = useMemo(
-    () => Math.max(1, ...rows.map(r => Math.max(r.value ?? 0, r.of ?? 0))), [rows])
+  /**
+   * A column appears when at least one row has something to put in it.
+   *
+   * This screen is the console home for four roles and the shapes genuinely differ: only
+   * talent rosters and account clients carry a real fraction, and leadership decisions carry
+   * none at all. A column that is blank for three roles out of four is furniture, and a
+   * fraction invented so a column can exist is worse than furniture.
+   */
+  const has = <T,>(rows: T[], f: (r: T) => unknown) => rows.some(r => {
+    const v = f(r)
+    return v !== null && v !== undefined && v !== ''
+  })
 
-  const shown = showAll ? needs : needs.slice(0, 7)
-  const money = headline.filter((h: any) => h.format === 'aed')
-  const counts = headline.filter((h: any) => h.format !== 'aed')
+  const waitingCols = useMemo<ColumnDef<Waiting, any>[]>(() => {
+    const cols: ColumnDef<Waiting, any>[] = [
+      {
+        id: 'what',
+        accessorKey: 'title',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="What" />,
+        cell: ({ row }) => {
+          const r = row.original
+          return r.href
+            ? <Link href={r.href} className="font-medium hover:underline">{r.title}</Link>
+            : <span className="font-medium">{r.title}</span>
+        },
+      },
+    ]
+    if (has(waiting, r => r.where)) cols.push({
+      id: 'where',
+      accessorKey: 'where',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Where" />,
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.where || ''}</span>,
+    })
+    if (has(waiting, r => r.of)) cols.push({
+      id: 'progress',
+      accessorFn: r => r.value ?? 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Found" />,
+      cell: ({ row }) => {
+        const r = row.original
+        return typeof r.of === 'number' && r.of > 0
+          ? <MiniBar value={r.value ?? 0} max={r.of} tone="info" />
+          : null
+      },
+    })
+    cols.push({
+      id: 'why',
+      accessorKey: 'reason',
+      header: 'Why it is stopped',
+      cell: ({ row }) => {
+        const r = row.original
+        return (
+          <span className="flex flex-wrap items-center gap-ds-2">
+            {r.stage_label && (
+              <Badge className={cn('whitespace-nowrap', TONE_BADGE[r.tone || 'neutral'])}>
+                {r.stage_label}
+              </Badge>
+            )}
+            <span className="text-muted-foreground">{r.reason}</span>
+          </span>
+        )
+      },
+    })
+    cols.push({
+      id: 'waiting',
+      accessorFn: r => r.age_days ?? 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Waiting" />,
+      cell: ({ row }) => (
+        <Age days={row.original.age_days ?? 0} urgency={row.original.urgency} />
+      ),
+    })
+    cols.push({
+      id: 'open',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const r = row.original
+        return (
+          <div className="flex items-center justify-end gap-1">
+            <Detail row={r} />
+            {r.href && (
+              <RoundButton icon={ArrowUpRight} label={`Open ${r.title}`}
+                           onClick={() => router.push(r.href!)} />
+            )}
+          </div>
+        )
+      },
+    })
+    return cols
+  }, [waiting, router])
+
+  const movingCols = useMemo<ColumnDef<Flight, any>[]>(() => {
+    const cols: ColumnDef<Flight, any>[] = [
+      {
+        id: 'what',
+        accessorKey: 'title',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="What" />,
+        cell: ({ row }) => {
+          const r = row.original
+          return r.href
+            ? <Link href={r.href} className="font-medium hover:underline">{r.title}</Link>
+            : <span className="font-medium">{r.title}</span>
+        },
+      },
+    ]
+    if (has(moving, r => r.of)) cols.push({
+      id: 'progress',
+      accessorFn: r => r.value ?? 0,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Done" />,
+      cell: ({ row }) => {
+        const r = row.original
+        return typeof r.of === 'number' && r.of > 0
+          ? <MiniBar value={r.value ?? 0} max={r.of} tone="good" />
+          : null
+      },
+    })
+    cols.push({
+      id: 'why',
+      accessorKey: 'reason',
+      header: 'Where it stands',
+      cell: ({ row }) => {
+        const r = row.original
+        return (
+          <span className="flex flex-wrap items-center gap-ds-2">
+            {r.stage_label && (
+              <Badge className={cn('whitespace-nowrap', TONE_BADGE.neutral)}>
+                {r.stage_label}
+              </Badge>
+            )}
+            <span className="text-muted-foreground">{r.reason}</span>
+          </span>
+        )
+      },
+    })
+    // The column that stops this reading as a second queue. Three of leadership's rows are
+    // chases that are already late; they are the talent team's chases.
+    cols.push({
+      id: 'owner',
+      accessorKey: 'owner',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Who has it" />,
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">{row.original.owner}</span>
+      ),
+    })
+    cols.push({
+      id: 'open',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const r = row.original
+        return (
+          <div className="flex items-center justify-end gap-1">
+            <Detail row={r} />
+            {r.href && (
+              <RoundButton icon={ArrowUpRight} label={`Open ${r.title}`}
+                           onClick={() => router.push(r.href!)} />
+            )}
+          </div>
+        )
+      },
+    })
+    return cols
+  }, [moving, router])
+
+  const shownFlight = allFlight ? moving : moving.slice(0, 5)
 
   if (loading) {
     return (
       <SuperadminLayout>
-        <div className="space-y-5">
-          <Skeleton className="h-12 w-72 rounded-2xl" />
-          <div className="grid gap-5 lg:grid-cols-12">
-            <Skeleton className="h-[380px] rounded-ds-2xl lg:col-span-8" />
-            <Skeleton className="h-[380px] rounded-ds-2xl lg:col-span-4" />
+        <div className="space-y-ds-5">
+          <Skeleton className="h-12 w-72 rounded-ds-lg" />
+          {/* The loaded band draws no box per figure, so the skeleton does not promise one. */}
+          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
+                <Skeleton className="h-3 w-24 rounded-ds-sm" />
+                <Skeleton className="h-10 w-24 rounded-ds-sm" />
+                <Skeleton className="h-3 w-32 rounded-ds-sm" />
+              </div>
+            ))}
           </div>
+          <Skeleton className="h-[320px] rounded-ds-surface" />
         </div>
       </SuperadminLayout>
     )
@@ -271,313 +430,139 @@ export default function Today() {
 
   return (
     <SuperadminLayout>
-      <div className="space-y-5">
+      <div className="space-y-ds-5">
 
-        {/* ── who, when, what is waiting ─────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-1.5">
-            <h1 data-tour="today-greeting"
-                className="text-[30px] font-semibold leading-[1.05] tracking-[-0.025em] lg:text-[36px]">
-              {greeting()}{first ? `, ${first}` : ''}
-            </h1>
-            <p className="text-[15px] text-muted-foreground">
-              {dayLabel()} ·{' '}
-              {needs.length
-                ? <span className="text-foreground">{needs.length} waiting on you</span>
-                : 'nothing is waiting on you'}
-            </p>
+        {/* who, when, and the one action this screen is for */}
+        <div data-tour="today-greeting">
+          <PageHead
+            title={`${greeting()}${first ? `, ${first}` : ''}`}
+            sub={dayLabel()}
+            action={
+              <>
+                <RoundButton icon={Search} label="Search" onClick={() =>
+                  document.dispatchEvent(
+                    new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))} />
+                <RoundButton icon={RefreshCw} label="Refresh" onClick={() => load(true)} />
+                {primary && (
+                  <Button data-tour="today-add" className="rounded-ds-full"
+                          onClick={() => router.push(primary.href)}>
+                    {primary.label}
+                  </Button>
+                )}
+              </>
+            }
+          />
+        </div>
+
+        {/* the numbers. No box each: the gap is what says these are separate figures. */}
+        {headline.length > 0 && (
+          <div data-tour="today-numbers">
+            <StatGrid cols={4}>
+              {headline.map((h: any) => (
+                <Stat
+                  key={h.label}
+                  label={h.label}
+                  /* A headline the API did not return used to render as a confident AED 0.
+                     A zero that is really an absence is a lie about money, which is the one
+                     thing on this screen nobody should have to double-check. */
+                  value={h.value == null ? '—'
+                    : h.format === 'aed' ? <Aed>{aed(Number(h.value) || 0)}</Aed>
+                    : h.value}
+                  hint={h.hint || undefined}
+                  tone={(h.tone || 'neutral') as Tone}
+                  onClick={h.href ? () => router.push(h.href) : undefined}
+                />
+              ))}
+            </StatGrid>
           </div>
-          <div className="flex items-center gap-2">
-            <IconButton icon={Search} label="Search" onClick={() =>
-              document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))} />
-            <IconButton icon={RefreshCw} label="Refresh" onClick={() => load(true)} />
-            {primary && (
-              <button
-                type="button"
-                data-tour="today-add"
-                onClick={() => router.push(primary.href)}
-                className="rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white
-                           transition-colors hover:bg-neutral-800
-                           dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+        )}
+
+        {/* everything stopped on this person, in one treatment */}
+        <section data-tour="today-queue" className="space-y-ds-3">
+          <div className="flex flex-wrap items-center justify-between gap-ds-3">
+            <h2 className="flex items-center gap-ds-2 text-ds-heading">
+              Waiting on you
+              {waiting.length > 0 && (
+                <span className="text-ds-caption tabular-nums text-muted-foreground">
+                  {waiting.length}
+                </span>
+              )}
+            </h2>
+            {target && (
+              <div className="flex items-center gap-ds-3">
+                <div className="text-right">
+                  <p className="text-ds-caption text-muted-foreground">Today's goal</p>
+                  <p className="text-ds-label tabular-nums">
+                    {target.value} of {target.of}
+                  </p>
+                </div>
+                <Ring
+                  size={60}
+                  pct={Math.min(100, Math.round((target.value / Math.max(target.of, 1)) * 100))}
+                />
+              </div>
+            )}
+          </div>
+
+          {waiting.length > 0 ? (
+            <DataTable
+              columns={waitingCols}
+              data={waiting}
+              hidePagination
+              emptyState="Nothing is waiting on you."
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-ds-2 py-ds-6 text-center">
+              <CheckCircle2 className="h-8 w-8 text-[var(--tone-good-dot)]" />
+              <p className="text-ds-label">Nothing is waiting on you</p>
+            </div>
+          )}
+        </section>
+
+        {/* running without them. Same table, and a column saying whose it is. */}
+        {moving.length > 0 && (
+          <section className="space-y-ds-3">
+            <div className="flex flex-wrap items-center justify-between gap-ds-3">
+              <h2 className="flex items-center gap-ds-2 text-ds-heading">
+                Running without you
+                <span className="text-ds-caption tabular-nums text-muted-foreground">
+                  {moving.length}
+                </span>
+              </h2>
+              {moving.length > 5 && (
+                <Button variant="ghost" size="sm" onClick={() => setAllFlight(v => !v)}>
+                  {allFlight ? 'Show less' : `Show all ${moving.length}`}
+                </Button>
+              )}
+            </div>
+            <DataTable
+              columns={movingCols}
+              data={shownFlight}
+              hidePagination
+              emptyState="Nothing is running."
+            />
+          </section>
+        )}
+
+        {/* The shortcuts. They were a card in the right column competing with the work; the
+            sidebar and Ctrl+K already reach all nine, so they go last and go quiet. */}
+        {shortcuts.length > 0 && (
+          <div data-tour="today-shortcuts"
+               className="flex flex-wrap items-center gap-x-ds-1 gap-y-ds-2 pt-ds-2">
+            {shortcuts.map(s => (
+              <Button
+                key={s.href}
+                data-tour={`shortcut-${s.key}`}
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                onClick={() => router.push(s.href)}
               >
-                {primary.label}
-              </button>
-            )}
+                {s.label}
+              </Button>
+            ))}
           </div>
-        </div>
-
-        {/* ── the desk ───────────────────────────────────────────────────────────── */}
-        <div className="grid items-start gap-5 lg:grid-cols-12">
-
-          {/* the job card — what you do, per client */}
-          {rows.length > 0 && (
-            <section data-tour="today-focus"
-                     className={cn(CARD, 'bg-white lg:col-span-8 dark:bg-neutral-900/70')}>
-              <header className="flex flex-wrap items-center justify-between gap-4 px-6 pb-4 pt-5">
-                <h2 className="text-[19px] font-semibold tracking-[-0.015em]">{focus?.title}</h2>
-                {focus?.target && (
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <p className="text-[12px] text-muted-foreground">Today's goal</p>
-                      <p className="text-[15px] font-semibold tabular-nums">
-                        {focus.target.value} of {focus.target.of}
-                      </p>
-                    </div>
-                    <Ring
-                      size={62}
-                      pct={Math.min(100, Math.round((focus.target.value / Math.max(focus.target.of, 1)) * 100))}
-                    />
-                  </div>
-                )}
-              </header>
-
-              <Accordion type="single" collapsible className="px-3 pb-3">
-                {rows.map(r => (
-                  <AccordionItem key={r.id} value={r.id} className="border-b-0">
-                    <AccordionTrigger className="rounded-2xl px-3 py-3 hover:bg-black/[0.03] hover:no-underline dark:hover:bg-white/[0.05]">
-                      <div className="min-w-0 flex-1 pr-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className="min-w-0 flex-1 truncate text-left text-[14.5px] font-medium">
-                            {r.label}
-                          </span>
-                          <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground">
-                            {typeof r.of === 'number' && r.of > 0
-                              ? `${r.value} of ${r.of}`
-                              : typeof r.value === 'number' ? `${r.value}` : ''}
-                          </span>
-                          {r.stage_label && (
-                            <Badge className={cn('shrink-0 whitespace-nowrap', TONE_BADGE[r.tone || 'neutral'])}>
-                              {r.stage_label}
-                            </Badge>
-                          )}
-                        </div>
-                        {/* The row is its own bar. Filled to what we hold, with the gap to
-                            target behind it — so five brands read as five lengths, and the
-                            chart that used to repeat these same five names is gone. */}
-                        {typeof r.value === 'number' && (
-                          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-black/[0.06] dark:bg-white/[0.10]">
-                            <div
-                              className={cn('h-full rounded-full transition-all duration-700',
-                                            r.wants_more ? 'bg-[var(--console-lime)]' : 'bg-neutral-800 dark:bg-neutral-200')}
-                              style={{ width: `${Math.max(3, ((r.value ?? 0) / widest) * 100)}%` }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-3 pb-4">
-                      {r.flow && FLOWS[r.flow] && (
-                        <div className="mb-3">
-                          <StageBar
-                            stages={FLOWS[r.flow]}
-                            current={FLOWS[r.flow][
-                              typeof r.at === 'number'
-                                ? Math.max(0, Math.min(r.at, FLOWS[r.flow].length - 1))
-                                : Math.max(0, FLOWS[r.flow].findIndex(
-                                    s => s.label.toLowerCase() === (r.stage_label || '').toLowerCase()))
-                            ]?.key || FLOWS[r.flow][0].key}
-                          />
-                        </div>
-                      )}
-                      {r.meta && <p className="text-[13.5px] text-muted-foreground">{r.meta}</p>}
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {(r.actions || [{ label: 'Open', href: r.href }]).map(a => (
-                          <button
-                            key={a.label + a.href}
-                            type="button"
-                            onClick={() => router.push(a.href)}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-neutral-900 px-4 py-2
-                                       text-[13px] font-medium text-white transition-colors hover:bg-neutral-800
-                                       dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-                          >
-                            {a.label}<ArrowUpRight className="h-3.5 w-3.5" />
-                          </button>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </section>
-          )}
-
-          {/* the side column: the numbers, then the places */}
-          <div className={cn('space-y-5', rows.length > 0 ? 'lg:col-span-4' : 'lg:col-span-12')}>
-            {/* -mx cancels the tile's own hover padding so the first column still lines up
-                with the panel below it. The gap is what now says "these are two separate
-                figures", the job the border used to do. */}
-            {(money.length > 0 || counts.length > 0) && (
-              <div data-tour="today-numbers" className="-mx-ds-2 grid grid-cols-2 gap-x-ds-4 gap-y-ds-4">
-                {money.map((h: any) => (
-                  /* Was aed(Number(h.value) || 0), so a headline the API did not return
-                     rendered as a confident AED 0. A zero that is really an absence is a
-                     lie about money, which is the one thing on this screen nobody should
-                     have to double-check. */
-                  <Tile key={h.label} label={h.label}
-                        value={h.value == null ? '—' : aed(Number(h.value) || 0)}
-                        money={h.value != null}
-                        hint={h.hint} tone={h.tone}
-                        onClick={h.href ? () => router.push(h.href) : undefined} />
-                ))}
-                {counts.map((h: any) => (
-                  <Tile key={h.label} label={h.label} value={h.value ?? '—'} hint={h.hint} tone={h.tone}
-                        onClick={h.href ? () => router.push(h.href) : undefined} />
-                ))}
-              </div>
-            )}
-
-            <div data-tour="today-shortcuts" className={cn(CARD, 'bg-white p-3 dark:bg-neutral-900/70')}>
-              <p className="px-2 pb-2 pt-1 text-[11.5px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Go to
-              </p>
-              <div className="grid grid-cols-2 gap-1.5">
-                {shortcuts.map(s => (
-                  <button
-                    key={s.href}
-                    type="button"
-                    data-tour={`shortcut-${s.key}`}
-                    onClick={() => router.push(s.href)}
-                    className="group flex items-center gap-2 rounded-2xl px-2.5 py-2 text-left text-[12.5px]
-                               transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
-                  >
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-black/[0.05]
-                                     transition-colors group-hover:bg-[var(--tone-info-wash)]
-                                     dark:bg-white/[0.08] dark:group-hover:bg-[var(--tone-info-wash)]">
-                      <s.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                    </span>
-                    <span className="min-w-0 truncate">{s.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* what is stopped on you */}
-          {needs.length > 0 && (
-            <section data-tour="today-queue"
-                     className={cn(CARD, 'bg-white lg:col-span-8 dark:bg-neutral-900/70')}>
-              <header className="px-6 pb-3 pt-5">
-                <h2 className="text-[19px] font-semibold tracking-[-0.015em]">Waiting on me</h2>
-              </header>
-              <div className="space-y-1 px-3 pb-4">
-                {shown.map((n, i) => {
-                  const a = age(n)
-                  const previous = i > 0 ? age(shown[i - 1]) : null
-                  const band = a.value === 'new' ? 'Came in today' : a.value === '!' ? 'Needs you now' : 'Waiting'
-                  const prevBand = previous
-                    ? (previous.value === 'new' ? 'Came in today' : previous.value === '!' ? 'Needs you now' : 'Waiting')
-                    : null
-                  const key = `${n.title}-${i}`
-                  const flow = flowOf(n.href)
-                  return (
-                    <div key={key}>
-                      {band !== prevBand && <GroupLabel>{band}</GroupLabel>}
-                      <Collapsible open={open === key} onOpenChange={o => setOpen(o ? key : null)}>
-                        <div className={cn(
-                          'flex items-center gap-2 rounded-2xl border pr-2.5 transition-colors',
-                          open === key
-                            ? 'border-[var(--tone-info-dot)]/50 bg-[var(--tone-info-wash)]'
-                            : 'border-transparent hover:bg-black/[0.03] dark:hover:bg-white/[0.05]',
-                        )}>
-                          <CollapsibleTrigger asChild>
-                            <button type="button"
-                                    className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-2.5 text-left">
-                              <span className="min-w-0 flex-1">
-                                <span className="block truncate text-[14px] font-medium leading-snug">{n.title}</span>
-                                {n.detail && (
-                                  <span className="block truncate text-[12.5px] text-muted-foreground">{n.detail}</span>
-                                )}
-                              </span>
-                              <ScoreDot value={a.value} suffix={a.suffix} tone={a.tone} title={a.label} />
-                            </button>
-                          </CollapsibleTrigger>
-                          {n.href && (
-                            <RoundButton icon={ArrowUpRight} label={`Open ${n.title}`}
-                                         onClick={() => router.push(n.href!)} />
-                          )}
-                        </div>
-                        <CollapsibleContent className="px-3 pb-3 pt-2">
-                          {flow && FLOWS[flow] && (
-                            <StageBar
-                              stages={FLOWS[flow]}
-                              current={FLOWS[flow][
-                                typeof n.at === 'number'
-                                  ? Math.max(0, Math.min(n.at, FLOWS[flow].length - 1)) : 0
-                              ].key}
-                            />
-                          )}
-                          {n.href && (
-                            <button
-                              type="button"
-                              onClick={() => router.push(n.href!)}
-                              className="mt-3 inline-flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-2
-                                         text-[13px] font-medium text-white transition-colors hover:bg-neutral-800
-                                         dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-                            >
-                              Open it <ArrowUpRight className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </CollapsibleContent>
-                      </Collapsible>
-                    </div>
-                  )
-                })}
-
-                {needs.length > 7 && !showAll && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAll(true)}
-                    className="mt-1 w-full rounded-2xl px-3 py-2.5 text-[13px] text-muted-foreground
-                               transition-colors hover:bg-black/[0.03] hover:text-foreground dark:hover:bg-white/[0.05]"
-                  >
-                    Show {needs.length - 7} more
-                  </button>
-                )}
-              </div>
-            </section>
-          )}
-
-          {/* running without you */}
-          {moving.length > 0 && (
-            <section className={cn(CARD, 'bg-white lg:col-span-4 dark:bg-neutral-900/70')}>
-              <Collapsible defaultOpen>
-                <CollapsibleTrigger className="group flex w-full items-center gap-2 px-5 pb-2 pt-4 text-left">
-                  <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90" />
-                  <span className="text-[15.5px] font-semibold tracking-[-0.01em]">In flight</span>
-                  <span className="text-[13px] text-muted-foreground">· {moving.length}</span>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="space-y-0.5 px-2 pb-3">
-                    {moving.slice(0, 8).map((m, i) => (
-                      <button
-                        key={`${m.title}-${i}`}
-                        type="button"
-                        onClick={m.href ? () => router.push(m.href!) : undefined}
-                        className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left
-                                   transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13.5px] font-medium">{m.title}</span>
-                          {m.detail && (
-                            <span className="block truncate text-[12px] text-muted-foreground">{m.detail}</span>
-                          )}
-                        </span>
-                        {m.href && <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
-                      </button>
-                    ))}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            </section>
-          )}
-
-          {needs.length === 0 && rows.length === 0 && (
-            <div className={cn(CARD, 'bg-white py-14 text-center lg:col-span-12 dark:bg-neutral-900/70')}>
-              <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500/70" />
-              <p className="mt-3 text-sm font-medium">Nothing is waiting on you</p>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </SuperadminLayout>
   )

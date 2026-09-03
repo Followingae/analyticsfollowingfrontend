@@ -5,8 +5,14 @@
  *
  * The list is the whole screen: a campaign is a name, a client, a type, a state, and how
  * much of it exists yet. Each of those was a card with a border round it, which put four
- * edges between two campaigns that differ by one word. They are rows now, and the four
- * counts above them are figures with room rather than tiles.
+ * edges between two campaigns that differ by one word. They are rows now, and the counts
+ * above them are figures with room rather than tiles.
+ *
+ * The band used to hold four numbers, three of which were the status Select drawn as tiles
+ * and one of which contradicted the pipeline strip directly above it. It holds what the list
+ * cannot say at a glance instead: what is in flight, and what is running out of time. The
+ * rows carry the end date, so "which one is slipping" is answered here rather than by
+ * opening eight delivery boards.
  */
 
 import { useState, useEffect } from "react"
@@ -18,7 +24,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, Activity, CheckCircle2, Megaphone, Layers } from "lucide-react"
+import { Search, Plus, Activity, CalendarClock, Megaphone } from "lucide-react"
 import { toast } from "sonner"
 import { tokenManager } from "@/utils/tokenManager"
 import { Empty, Panel, Row, Stat, StatGrid, type Tone } from "@/components/console/primitives"
@@ -35,6 +41,11 @@ const STATUS: Record<string, { label: string; tone: Tone; cls: string }> = {
   draft: { label: "Draft", tone: "neutral", cls: "border-transparent bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]" },
   archived: { label: "Archived", tone: "neutral", cls: "border-transparent bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]" },
 }
+
+/* Absent is absent. `??` rather than `||`, so a genuine zero survives and a field the
+   endpoint never sent comes back as null for the row to leave out. */
+const creatorCt = (c: any): number | null => c.creator_count ?? c.creators_count ?? null
+const postCt = (c: any): number | null => c.post_count ?? c.posts_count ?? null
 
 const typeLabels: Record<string, string> = {
   influencer: "Influencer",
@@ -94,19 +105,51 @@ export default function SuperadminCampaignsPage() {
     return (c.name?.toLowerCase().includes(search.toLowerCase()) || c.brand_name?.toLowerCase().includes(search.toLowerCase()))
   })
 
-  const activeCt = campaigns.filter(c => c.status === "active").length
-  const completedCt = campaigns.filter(c => c.status === "completed").length
+  /* Counted off `filtered`, not `campaigns`. The two Selects are applied server-side but the
+     search box is applied here, so typing a letter used to leave the band saying 84 above a
+     list showing eleven rows. */
+  const activeCt = filtered.filter(c => c.status === "active").length
+
+  /** How a campaign's end date reads today, in the delivery board's vocabulary. */
+  const endState = (c: any): { text: string; cls: string } | null => {
+    if (!c.end_date || c.status === "completed" || c.status === "archived") return null
+    const end = new Date(String(c.end_date).slice(0, 10) + "T00:00:00")
+    if (Number.isNaN(end.getTime())) return null
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const days = Math.round((end.getTime() - today.getTime()) / 86_400_000)
+    if (days < 0) return { text: `ended ${Math.abs(days)}d ago`, cls: "text-[var(--tone-bad-ink)]" }
+    if (days === 0) return { text: "ends today", cls: "text-[var(--tone-warn-ink)]" }
+    if (days <= 7) return { text: `ends in ${days}d`, cls: "text-[var(--tone-warn-ink)]" }
+    return { text: `ends ${end.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`, cls: "" }
+  }
+
+  /* Soonest deadline first among the live ones, so the row that needs attention is at the
+     top rather than wherever the query happened to put it. */
+  const ordered = [...filtered].sort((a, b) => {
+    const rank = (s: string) => (s === "active" ? 0 : s === "paused" ? 1 : s === "draft" ? 2 : 3)
+    const byStatus = rank(a.status) - rank(b.status)
+    if (byStatus) return byStatus
+    if (!a.end_date && !b.end_date) return 0
+    if (!a.end_date) return 1
+    if (!b.end_date) return -1
+    return a.end_date < b.end_date ? -1 : a.end_date > b.end_date ? 1 : 0
+  })
+
+  const endingSoon = filtered.filter(c => {
+    const e = endState(c)
+    return c.status === "active" && e && e.cls !== ""
+  }).length
 
   const filters = (
     <div className="flex flex-wrap items-center gap-ds-2">
       <div className="relative w-full max-w-sm flex-1">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search campaigns..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <Input placeholder="Search by campaign or client" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
       </div>
       <Select value={statusFilter} onValueChange={setStatusFilter}>
         <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Status</SelectItem>
+          <SelectItem value="all">Any status</SelectItem>
           <SelectItem value="active">Active</SelectItem>
           <SelectItem value="completed">Completed</SelectItem>
           <SelectItem value="paused">Paused</SelectItem>
@@ -116,7 +159,7 @@ export default function SuperadminCampaignsPage() {
       <Select value={typeFilter} onValueChange={setTypeFilter}>
         <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Types</SelectItem>
+          <SelectItem value="all">Any type</SelectItem>
           <SelectItem value="influencer">Influencer</SelectItem>
           <SelectItem value="ugc">UGC</SelectItem>
           <SelectItem value="cashback">Cashback</SelectItem>
@@ -163,28 +206,30 @@ export default function SuperadminCampaignsPage() {
           </div>
         ) : (
           <>
-            {/* The counts describe what came back for the filters that are set, which is
-                what the person is looking at, rather than a blanket total of everything. */}
-            <StatGrid>
-              <Stat label="Campaigns here" value={campaigns.length} icon={Megaphone}
-                    hint={statusFilter === "all" && typeFilter === "all"
+            {/* Three of the four figures here were the status Select rendered as tiles:
+                Active, Completed, Draft-or-paused, sitting directly above the control that
+                sets exactly those values. And "Active" was the same idea as the pipeline
+                strip's "Live" cell 200 pixels up, computed from a different endpoint, so the
+                two disagreed in public. What is left is what the list cannot show at a
+                glance: how much work is in flight, and how much of it is running out of
+                time. */}
+            <StatGrid cols={3}>
+              <Stat label="Live now" value={activeCt} tone={activeCt ? "good" : "neutral"}
+                    icon={Activity} hint="Being delivered today"
+                    onClick={() => setStatusFilter("active")} />
+              <Stat label="Ending this week" value={endingSoon}
+                    tone={endingSoon ? "warn" : "neutral"} icon={CalendarClock}
+                    hint="Live, and out of time within seven days" />
+              <Stat label="Campaigns here" value={filtered.length} icon={Megaphone}
+                    hint={statusFilter === "all" && typeFilter === "all" && !search
                       ? "Every campaign on the books"
                       : "Matching the filters set below"} />
-              <Stat label="Active" value={activeCt} tone={activeCt ? "good" : "neutral"}
-                    icon={Activity} hint="Being delivered right now"
-                    onClick={() => setStatusFilter("active")} />
-              <Stat label="Completed" value={completedCt} icon={CheckCircle2}
-                    hint="Delivered and closed"
-                    onClick={() => setStatusFilter("completed")} />
-              <Stat label="Draft or paused" value={campaigns.length - activeCt - completedCt}
-                    tone={campaigns.length - activeCt - completedCt ? "warn" : "neutral"}
-                    icon={Layers} hint="Started, not running" />
             </StatGrid>
 
             {filters}
 
             <Panel title="Campaigns" description="Open one for its timeline" flush>
-              {filtered.map((c: any) => {
+              {ordered.map((c: any) => {
                 const s = STATUS[c.status] || { label: c.status, tone: "neutral" as Tone, cls: "" }
                 return (
                   /* Opening a campaign means opening the campaign, not its posts. The record is
@@ -212,8 +257,15 @@ export default function SuperadminCampaignsPage() {
                     meta={
                       <>
                         {c.brand_name || "No client on it"}
-                        {" · "}{c.creator_count || c.creators_count || 0} creators
-                        {" · "}{c.post_count || c.posts_count || 0} posts
+                        {/* `|| 0` asserted "0 creators, 0 posts" whenever the list endpoint
+                            simply did not send those fields. A count nobody sent is not a
+                            count of nothing, so the fact is left out instead. */}
+                        {creatorCt(c) != null && <>{" · "}{creatorCt(c)} creators</>}
+                        {postCt(c) != null && <>{" · "}{postCt(c)} posts</>}
+                        {(() => {
+                          const e = endState(c)
+                          return e ? <>{" · "}<span className={e.cls}>{e.text}</span></> : null
+                        })()}
                       </>
                     }
                     actions={
@@ -244,7 +296,7 @@ export default function SuperadminCampaignsPage() {
                   />
                 )
               })}
-              {filtered.length === 0 && (
+              {ordered.length === 0 && (
                 <Empty>
                   {search || statusFilter !== "all" || typeFilter !== "all"
                     ? "No campaign matches those filters."

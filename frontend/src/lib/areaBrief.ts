@@ -99,6 +99,24 @@ export const FULFILMENT_LABEL: Record<string, string> = {
   dine_in: 'they visit',
 }
 
+/**
+ * Which kind of number the client gave us.
+ *
+ * A total for one campaign and a monthly retainer are spent differently and are quoted
+ * against differently, so the sentence has to say which one it is. "AED 50,000" alone is two
+ * different briefs.
+ */
+export const BUDGET_KIND_LABEL: Record<string, string> = {
+  campaign: 'For this campaign',
+  monthly: 'Every month',
+}
+
+/** The same fact, as it reads at the end of a clause in the one-line brief. */
+export const BUDGET_KIND_TAIL: Record<string, string> = {
+  campaign: 'for the campaign',
+  monthly: 'a month',
+}
+
 /** The total of a barter package, per creator. Derived, never stored: an item's value can
  *  change and a stored total would keep quoting the old one. */
 export function barterValue(b?: AreaBrief | null): number {
@@ -147,9 +165,16 @@ export function briefLine(b?: AreaBrief | null): string {
      and follower count will never say so. */
   if (b.audience) bits.push(`reaching ${b.audience}`)
 
-  /* What we are offering. */
+  /* What we are offering.
+     The client's budget is the only money a brief carries now. A per-creator rate is not a
+     brief field: it exists per creator in the master database with the margin a superadmin
+     set on it. Areas released before that ruling still hold `budget_per_creator`, and it is
+     still read here so an old brief reads exactly as it always did. */
   const mode = compMode(b)
   const pay: string[] = []
+  if (mode !== 'barter' && b.client_budget) {
+    pay.push(`${money(Number(b.client_budget))} ${BUDGET_KIND_TAIL[b.client_budget_kind || 'campaign']}`)
+  }
   if (mode !== 'barter' && b.budget_per_creator) {
     pay.push(`${money(Number(b.budget_per_creator))} each`)
   }
@@ -209,9 +234,12 @@ export function briefGaps(b?: AreaBrief | null): string[] {
   const c = b || {}
   if (!(c.categories || []).length) gaps.push('what kind of creator')
   const mode = compMode(c)
-  if (mode === 'cash' && !c.budget_per_creator) gaps.push('what we pay')
+  /* An older area that carries a per-creator figure is not missing its money, so it is
+     accepted here even though nothing writes it any more. */
+  const hasCash = !!(c.client_budget || c.budget_per_creator)
+  if (mode === 'cash' && !hasCash) gaps.push("the client's budget")
   if (mode === 'barter' && !(c.barter_items || []).length) gaps.push('what they get')
-  if (mode === 'both' && !c.budget_per_creator && !(c.barter_items || []).length) gaps.push('what we pay')
+  if (mode === 'both' && !hasCash && !(c.barter_items || []).length) gaps.push("the client's budget")
   if (!briefDeliverables(c).length) gaps.push('what we need back')
   if (!c.usage_rights) gaps.push('usage rights')
   if (!c.live_from && !c.live_to) gaps.push('when it goes live')

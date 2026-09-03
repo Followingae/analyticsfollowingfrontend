@@ -159,9 +159,13 @@ export default function InboxPage() {
       : [])
     // Today already works out, per role, which brands are still waiting on a brief. Only
     // leadership get these back, so no extra gate is needed here.
+    //
+    // This filtered for titles beginning "Write the sourcing brief for". The endpoint has
+    // never emitted that sentence - it says "Start sourcing" - so the group below has been
+    // empty since the day it was written, and no rename would have been noticed. `kind` is
+    // the machine's own name for the item and cannot be broken by rewording a title.
     setToSource(td.status === 'fulfilled' && td.value
-      ? ((td.value as any)?.data?.needs || []).filter((n: any) =>
-          typeof n.title === 'string' && n.title.startsWith('Write the sourcing brief for'))
+      ? ((td.value as any)?.data?.waiting || []).filter((n: any) => n.kind === 'brief')
       : [])
     setProposals([
       ...(pir.status === 'fulfilled' && pir.value ? (pir.value as any).proposals || [] : []),
@@ -192,9 +196,11 @@ export default function InboxPage() {
       href: '/work/areas',
       items: toSource.map((n: any, i: number) => ({
         id: `to-source-${i}`,
-        title: String(n.title || '').replace(/^Write the sourcing brief for /, ''),
-        waitingFor: n.detail || 'no brief yet',
-        since: undefined,
+        // The brand is its own field now, so the title no longer has to be sliced out of a
+        // sentence, and the age arrives as a number instead of being thrown away.
+        title: n.where || n.title || 'A brand',
+        waitingFor: n.reason || 'no area open yet',
+        since: new Date(Date.now() - (Number(n.age_days) || 0) * DAY).toISOString(),
         href: n.href || '/work/areas',
       })),
     })
@@ -231,7 +237,7 @@ export default function InboxPage() {
 
     if (mayMoney) g.push({
       key: 'withdrawals',
-      label: 'Creator app payouts',
+      label: 'Creator payouts',
       description: 'Money already earned, sitting in their app balance until someone sends the transfer.',
       href: '/work/fa/withdrawals',
       items: withdrawals.map((x: any) => ({
@@ -246,7 +252,7 @@ export default function InboxPage() {
 
     if (mayMoney) g.push({
       key: 'members',
-      label: 'New creators on the app',
+      label: 'New creators',
       description: 'Signed up and waiting to be let in. Until then they cannot apply to anything.',
       href: '/work/fa/members',
       items: newMembers.map((x: any) => ({
@@ -261,7 +267,7 @@ export default function InboxPage() {
 
     if (mayCreators) g.push({
       key: 'price',
-      label: 'Creators needing a price',
+      label: 'Creators to price',
       description: 'Found by the team. Invisible to clients and unusable in a proposal until priced.',
       href: '/work/influencers/review',
       items: unpriced.map((x: any) => ({
@@ -278,7 +284,7 @@ export default function InboxPage() {
 
     if (mayCreators) g.push({
       key: 'areas',
-      label: 'Sourcing waiting on a yes or no',
+      label: 'Rosters to clear',
       description: 'Creators are stocked and cannot go to the client until they are cleared.',
       href: '/work/areas',
       items: areas.map((x: any) => ({
@@ -293,7 +299,7 @@ export default function InboxPage() {
 
     if (mayProposals) g.push({
       key: 'proposals',
-      label: 'Proposals waiting on approval',
+      label: 'Proposals to approve',
       description: 'Built internally and stopped: nothing reaches the client until it is approved.',
       href: '/work/proposals',
       items: proposals.map((x: any) => ({
@@ -341,16 +347,16 @@ export default function InboxPage() {
   // Tabs are the screens that own these decisions — the inbox tells you where to go, they are
   // still where the work happens, and each stays reachable whether or not it has anything in it.
   const tabs: HubTab[] = [
-    { label: 'Waiting on me', href: '/work/inbox' },
+    { label: 'All', href: '/work/inbox' },
     { label: 'Content to check', href: '/work/fa/deliverables?stage=proof_submitted', module: 'fa',
       count: deliverables.length },
     { label: 'Cashback receipts', href: '/work/fa/receipt-claims', module: 'fa', when: mayMoney,
       count: receipts.length },
-    { label: 'Creator app payouts', href: '/work/fa/withdrawals', module: 'fa', when: mayMoney,
+    { label: 'Creator payouts', href: '/work/fa/withdrawals', module: 'fa', when: mayMoney,
       count: withdrawals.length },
-    { label: 'New creators on the app', href: '/work/fa/members', module: 'fa', when: mayMoney,
+    { label: 'New creators', href: '/work/fa/members', module: 'fa', when: mayMoney,
       count: newMembers.length },
-    { label: 'Creators needing a price', href: '/work/influencers/review', module: 'influencers',
+    { label: 'Creators to price', href: '/work/influencers/review', module: 'influencers',
       count: unpriced.length },
     { label: 'Brand rosters', href: '/work/areas', module: 'influencers' },
     { label: 'Proposals', href: '/work/proposals', module: 'proposals', count: proposals.length },
@@ -360,7 +366,7 @@ export default function InboxPage() {
   const head = (
     <Hub
       title="Waiting on me"
-      sub="Everything waiting on a decision from you, wherever it came from. Longest wait first, and each row opens the screen where the decision is made."
+      sub="Everything waiting on a decision from you. Longest wait first."
       tabs={tabs}
       action={
         <>
@@ -432,28 +438,29 @@ export default function InboxPage() {
         {head}
 
         <StatGrid cols={3}>
+          {/* A hint that restates its own number is deleted; a hint that adds a fact is
+              kept. "0" over "all 8 of your lists are clear" was the screen saying the same
+              nothing twice, which is the note the founder left on the sibling screen. */}
           <Stat
             label="Waiting on me"
             value={total}
             icon={Layers}
             tone={total ? 'warn' : 'good'}
-            hint={total
-              ? `across ${liveGroups.length} of your ${groups.length} lists`
-              : `all ${groups.length} of your lists are clear`}
+            hint={total ? `across ${liveGroups.length} of your ${groups.length} lists` : ''}
           />
           <Stat
             label="Longest wait"
             value={oldest ? (oldest.days === 0 ? 'today' : `${oldest.days}d`) : '—'}
             icon={TimerOff}
             tone={oldest ? toneFor(oldest.days) : 'good'}
-            hint={oldest ? `${oldest.group} · ${oldest.item.title}` : 'Nothing has been sitting'}
+            hint={oldest ? `${oldest.group} · ${oldest.item.title}` : ''}
           />
           <Stat
-            label="Sitting over three days"
+            label="Over three days"
             value={stale}
             icon={Clock}
             tone={stale ? 'bad' : 'good'}
-            hint={stale ? 'Someone is almost certainly chasing these' : 'Nothing has gone stale'}
+            hint=""
           />
         </StatGrid>
 
@@ -500,7 +507,7 @@ export default function InboxPage() {
                             </span>
                           )}
                           <Badge variant="outline" className="tabular-nums">
-                            {w.days == null ? 'no date' : `waited ${w.text}`}
+                            {w.days == null ? '·' : w.days === 0 ? 'today' : `${w.days}d`}
                           </Badge>
                           <ArrowRight className="h-4 w-4 text-muted-foreground" />
                         </>

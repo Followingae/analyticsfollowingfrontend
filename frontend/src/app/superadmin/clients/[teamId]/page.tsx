@@ -1,5 +1,4 @@
 'use client'
-import { tokenManager } from '@/utils/tokenManager';
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -37,12 +36,20 @@ import { ClientAccessDialog } from '@/components/clients/ClientAccessDialog';
 import { CampaignBriefingDialog } from '@/components/clients/CampaignBriefingDialog';
 import { CampaignUpdateDialog } from '@/components/clients/CampaignUpdateDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/clientManagementApi';
 import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab';
 import { ClientModulesTab } from '@/components/clients/ClientModulesTab';
 import { ClientManagementTermsTab } from '@/components/clients/ClientManagementTermsTab';
-import { Aed, Panel, Stat, StatGrid } from '@/components/console/primitives';
+import {
+  Aed, FieldStrip, PageHead, Panel, Stat, StatGrid, type Tone,
+} from '@/components/console/primitives';
 
 /**
  * A figure we were never given is a dash, not a zero.
@@ -64,21 +71,25 @@ const Money = ({ value }: { value: number | null | undefined }) => {
   return n === null ? <>—</> : <Aed>{n}</Aed>;
 };
 
-/**
- * One figure in a summary strip: a caption, and the number under it.
- *
- * Smaller than a `Stat` because these sit inside a tab rather than at the top of a page, but
- * built the same way — grouped by the gap, tone carried by a dot beside the caption so the
- * state reads without the colour.
- */
-const SCOPE_DOT: Record<string, string> = {
+/** The console decides a state colour once; this is the dot that carries it in a strip. */
+const SCOPE_DOT: Record<Tone, string> = {
+  neutral: 'bg-[var(--tone-neutral-dot)]',
   good: 'bg-[var(--tone-good-dot)]',
   warn: 'bg-[var(--tone-warn-dot)]',
   bad: 'bg-[var(--tone-bad-dot)]',
   info: 'bg-[var(--tone-info-dot)]',
 };
+
+/**
+ * One figure in a summary strip.
+ *
+ * This was a second figure component sitting beside `Stat`, differing from it only in font
+ * size, which is two ways to spell one decision: the same argument the type scale makes
+ * about nine sizes that should have been six. It is now `Stat` with the console's own tone
+ * dot and hint, at the smaller size a strip inside a tab wants.
+ */
 const ScopeFigure = ({ label, value, tone, money }: {
-  label: string; value: number | null | undefined; tone?: keyof typeof SCOPE_DOT; money?: boolean
+  label: string; value: number | null | undefined; tone?: Tone; money?: boolean
 }) => (
   <div className="px-ds-2 py-ds-2">
     <div className="flex items-center gap-ds-2">
@@ -90,7 +101,6 @@ const ScopeFigure = ({ label, value, tone, money }: {
     </p>
   </div>
 );
-
 
 const statusBadge = (status: string) => {
   const map: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
@@ -164,9 +174,26 @@ function ClientDetailPage() {
   // Scope, because the record ignored where it was asked to open.
   const search = useSearchParams();
   // 'management' renders below but was missing here, so ?tab=management silently opened Scope.
-  const TABS = ['scope','campaigns','proposals','barter','ugc','commercial','modules','management','finance','activity'];
+  /**
+   * Five tabs, not ten.
+   *
+   * Ten equal options is no ranking at all, and three of them were halves of a subject
+   * another tab already owned: UGC and barter are work, like campaigns, and the finance
+   * figures sat two tabs away from the agreement they belong to. Nothing is deleted. Each
+   * old tab becomes a section inside the tab that owns its subject, and every old ?tab=
+   * value still opens the right one, so a link sent six months ago still lands where it
+   * meant to.
+   */
+  const TABS = ['scope', 'work', 'quotes', 'money', 'setup'];
+  const TAB_ALIASES: Record<string, string> = {
+    campaigns: 'work', ugc: 'work', barter: 'work',
+    proposals: 'quotes',
+    commercial: 'money', finance: 'money',
+    modules: 'setup', management: 'setup', activity: 'setup',
+  };
   const asked = search?.get('tab') || '';
-  const [activeTab, setActiveTab] = useState(TABS.includes(asked) ? asked : 'scope');
+  const [activeTab, setActiveTab] = useState(
+    TABS.includes(asked) ? asked : (TAB_ALIASES[asked] || 'scope'));
   const [scopeYear, setScopeYear] = useState<string>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -219,6 +246,13 @@ function ClientDetailPage() {
   /** Bumped by "Try again", so a retry re-runs the same read without changing the filters. */
   const [reloadKey, setReloadKey] = useState(0);
 
+  /* Arriving on ?tab=quotes used to render an empty Quotes tab: the fetch hung off the
+     click, and there had not been one. */
+  useEffect(() => {
+    if (!loading && activeTab !== 'scope') loadTabData(activeTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
   useEffect(() => {
     if (!teamId) return;
     const load = async () => {
@@ -246,27 +280,35 @@ function ClientDetailPage() {
     load();
   }, [teamId, scopeYear, reloadKey]);
 
+  /**
+   * Open a tab, and fetch what it needs the first time it is opened.
+   *
+   * Three subjects now share a tab, so a tab pulls whatever its sections need rather than
+   * one endpoint each. The guards are unchanged: nothing is re-fetched once it is held.
+   */
   const loadTabData = async (tab: string) => {
     setActiveTab(tab);
-    if (tab === 'ugc' && !ugcData) {
-      try {
-        const res = await clientApi.getUgc(teamId);
-        setUgcData(res.data);
-      } catch (err) { console.error(err); }
+    if (tab === 'work') {
+      if (!ugcData) {
+        try {
+          const res = await clientApi.getUgc(teamId);
+          setUgcData(res.data);
+        } catch (err) { console.error(err); }
+      }
+      if (events.length === 0) {
+        try {
+          const res = await clientApi.getEvents(teamId);
+          setEvents(res.data || []);
+        } catch (err) { console.error(err); }
+      }
     }
-    if (tab === 'barter' && events.length === 0) {
-      try {
-        const res = await clientApi.getEvents(teamId);
-        setEvents(res.data || []);
-      } catch (err) { console.error(err); }
-    }
-    if (tab === 'proposals' && proposals.length === 0) {
+    if (tab === 'quotes' && proposals.length === 0) {
       try {
         const res = await clientApi.getProposals(teamId);
         setProposals(res.data || []);
       } catch (err) { console.error(err); }
     }
-    if (tab === 'activity' && activity.length === 0) {
+    if (tab === 'setup' && activity.length === 0) {
       try {
         const res = await clientApi.getActivity(teamId, 100);
         setActivity(res.data || []);
@@ -302,7 +344,7 @@ function ClientDetailPage() {
       <SuperadminLayout>
         <div className="flex-1 space-y-3">
           <Button variant="ghost" size="sm" className="-ml-2 gap-1.5"
-                  onClick={() => router.push('/superadmin/clients')}>
+                  onClick={() => router.push('/work/clients')}>
             <ArrowLeft className="h-4 w-4" />Back to clients
           </Button>
           <p className="text-sm font-medium">Could not open this client.</p>
@@ -321,7 +363,7 @@ function ClientDetailPage() {
       <SuperadminLayout>
         <div className="flex-1 space-y-3">
           <Button variant="ghost" size="sm" className="-ml-2 gap-1.5"
-                  onClick={() => router.push('/superadmin/clients')}>
+                  onClick={() => router.push('/work/clients')}>
             <ArrowLeft className="h-4 w-4" />Back to clients
           </Button>
           <p className="text-sm text-muted-foreground">
@@ -336,7 +378,7 @@ function ClientDetailPage() {
     <SuperadminLayout><div className="flex-1 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/superadmin/clients')}>
+        <Button variant="ghost" size="icon" onClick={() => router.push('/work/clients')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="relative group">
@@ -363,40 +405,61 @@ function ClientDetailPage() {
             onChange={handleLogoSelected}
           />
         </div>
-        <div>
-          <h1 className="text-2xl font-bold">{client.company_name || client.name}</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant="outline">{client.subscription_tier}</Badge>
-            {client.industry && <Badge variant="secondary">{client.industry}</Badge>}
-            <span className="text-sm text-muted-foreground">
-              {client.total_campaigns} campaigns
-            </span>
-          </div>
+        {/* The record's own title, at the console's title size rather than a hand-set one,
+            and its four or five standing facts underneath. The tier and the industry were
+            badges, which is colour spent on something that is not a state. */}
+        <div className="min-w-0 flex-1">
+          <h1 className="text-ds-title truncate">{client.company_name || client.name}</h1>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        {/* One decision reads as one button. Three outline buttons of equal weight, two of
+            them both called "Campaign something" and both sending an email, made the reader
+            stop and compare. Access stays out in front because it is the one that changes
+            who can get in. */}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAccessOpen(true)}>
-            <ShieldCheck className="h-4 w-4" /> Manage access
+            <ShieldCheck className="h-4 w-4" />Access
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setBriefingOpen(true)}>
-            <Mail className="h-4 w-4" /> Campaign briefing
-          </Button>
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setUpdateOpen(true)}>
-            <Mail className="h-4 w-4" /> Campaign update
-          </Button>
-          <span className="text-xs text-muted-foreground whitespace-nowrap">Account Manager</span>
-          <Select value={client.account_manager_id || 'unassigned'} onValueChange={handleAssignAM}>
-            <SelectTrigger className="h-8 w-52 text-sm">
-              <SelectValue placeholder="Unassigned" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="unassigned">Unassigned</SelectItem>
-              {staff.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.full_name || s.email}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Mail className="h-4 w-4" />Email them
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setBriefingOpen(true)}>
+                Send a briefing
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setUpdateOpen(true)}>
+                Send an update
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+
+      {/* The standing facts about this client, including the account manager, who was a
+          bare dropdown wedged between two buttons with a five-word label in front of it. */}
+      <FieldStrip fields={[
+        { label: 'Plan', value: client.subscription_tier },
+        { label: 'Industry', value: client.industry || '—' },
+        { label: 'Campaigns', value: client.total_campaigns ?? '—' },
+        {
+          label: 'Account manager',
+          value: (
+            <Select value={client.account_manager_id || 'unassigned'} onValueChange={handleAssignAM}>
+              <SelectTrigger className="-ml-3 h-7 w-56 border-0 bg-transparent px-3 text-[14px] font-medium shadow-none hover:bg-black/[0.035] dark:hover:bg-white/[0.05]">
+                <SelectValue placeholder="Unassigned" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {staff.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.full_name || s.email}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ),
+        },
+      ]} />
 
       <ClientAccessDialog teamId={teamId} open={accessOpen} onOpenChange={setAccessOpen} />
       <CampaignBriefingDialog
@@ -418,12 +481,12 @@ function ClientDetailPage() {
           said only "these are four of the same kind of thing in a row", which is what the
           gap already says. The numbers take the room the padding was using. */}
       <StatGrid>
-        <Stat label="Total budget" value={<Money value={client.total_budget} />} icon={Coins}
+        <Stat label="Budget" value={<Money value={client.total_budget} />} icon={Coins}
               hint="What they have committed with us" />
-        <Stat label="Total spent" value={<Money value={client.total_spent} />} icon={TrendingUp}
+        <Stat label="Spent" value={<Money value={client.total_spent} />} icon={TrendingUp}
               hint={client.total_budget > 0 && client.total_spent != null
                 ? `${Math.round((client.total_spent / client.total_budget) * 100)}% of the budget`
-                : 'Against the budget above'} />
+                : undefined} />
         <Stat label="Live campaigns" value={client.active_campaigns ?? '—'} icon={Activity}
               tone={client.active_campaigns ? 'good' : 'neutral'}
               hint="Running for them right now" />
@@ -439,17 +502,12 @@ function ClientDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={loadTabData}>
-        <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-10">
+        <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-5">
           <TabsTrigger value="scope"><FileText className="mr-1.5 h-3.5 w-3.5" />What we agreed</TabsTrigger>
-          <TabsTrigger value="campaigns"><Building2 className="mr-1.5 h-3.5 w-3.5" />Campaigns</TabsTrigger>
-          <TabsTrigger value="proposals"><Users className="mr-1.5 h-3.5 w-3.5" />Proposals</TabsTrigger>
-          <TabsTrigger value="barter"><Calendar className="mr-1.5 h-3.5 w-3.5" />Barter & Events</TabsTrigger>
-          <TabsTrigger value="ugc"><Video className="mr-1.5 h-3.5 w-3.5" />UGC</TabsTrigger>
-          <TabsTrigger value="commercial"><Coins className="mr-1.5 h-3.5 w-3.5" />Agreement &amp; invoices</TabsTrigger>
-          <TabsTrigger value="modules"><Boxes className="mr-1.5 h-3.5 w-3.5" />What they can use</TabsTrigger>
-          <TabsTrigger value="management"><Handshake className="mr-1.5 h-3.5 w-3.5" />Management deal</TabsTrigger>
-          <TabsTrigger value="finance"><TrendingUp className="mr-1.5 h-3.5 w-3.5" />Money in</TabsTrigger>
-          <TabsTrigger value="activity"><Activity className="mr-1.5 h-3.5 w-3.5" />Activity</TabsTrigger>
+          <TabsTrigger value="work"><Building2 className="mr-1.5 h-3.5 w-3.5" />Work</TabsTrigger>
+          <TabsTrigger value="quotes"><Users className="mr-1.5 h-3.5 w-3.5" />Quotes</TabsTrigger>
+          <TabsTrigger value="money"><Coins className="mr-1.5 h-3.5 w-3.5" />Money</TabsTrigger>
+          <TabsTrigger value="setup"><Boxes className="mr-1.5 h-3.5 w-3.5" />Setup</TabsTrigger>
         </TabsList>
 
         {/* SCOPE TAB - The "All Scope" spreadsheet replacement */}
@@ -457,17 +515,18 @@ function ClientDetailPage() {
           <QuotaProgressCard teamId={teamId} editable />
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h2 className="text-ds-subheading">Project Scope</h2>
-              <Badge variant="outline">{scope.length} projects</Badge>
-            </div>
+            {/* The tab is called "What we agreed", so a heading saying the same thing again
+                in different words is a line the eye reads to learn nothing. */}
+            <p className="text-ds-label text-muted-foreground">
+              {scope.length} project{scope.length === 1 ? '' : 's'}
+            </p>
             <div className="flex items-center gap-2">
               <Select value={scopeYear} onValueChange={setScopeYear}>
                 <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="All Years" />
+                  <SelectValue placeholder="Every year" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Years</SelectItem>
+                  <SelectItem value="all">Every year</SelectItem>
                   <SelectItem value="2026">2026</SelectItem>
                   <SelectItem value="2025">2025</SelectItem>
                 </SelectContent>
@@ -475,17 +534,14 @@ function ClientDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  const token = (tokenManager.getTokenSync() || localStorage.getItem('access_token'));
-                  const yearParam = scopeYear && scopeYear !== 'all' ? `?year=${scopeYear}` : '';
-                  window.open(
-                    `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/admin/clients/${teamId}/export${yearParam}`,
-                    '_blank'
-                  );
-                }}
+                onClick={() =>
+                  clientApi
+                    .downloadScope(teamId, scopeYear, client.company_name || client.name)
+                    .catch((err) => alert(err instanceof Error ? err.message : 'Download failed'))
+                }
               >
                 <FileText className="mr-1.5 h-3.5 w-3.5" />
-                Export Excel
+                Download the scope
               </Button>
             </div>
           </div>
@@ -526,7 +582,7 @@ function ClientDetailPage() {
                   {scope.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                        No campaigns found for this client
+                        Nothing agreed yet
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -615,9 +671,10 @@ function ClientDetailPage() {
           </Card>
         </TabsContent>
 
-        {/* CAMPAIGNS TAB */}
-        <TabsContent value="campaigns" className="space-y-4">
-          <h2 className="text-ds-subheading">All Campaigns</h2>
+        {/* WORK: campaigns, the events behind them, and the UGC they consume. Three
+            sections of one subject, which is what they were before they were three tabs. */}
+        <TabsContent value="work" className="space-y-ds-5">
+          <h2 className="text-ds-subheading">Campaigns</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {scope.map((c) => (
               <Card key={c.id} className="hover:shadow-md transition-shadow">
@@ -647,58 +704,9 @@ function ClientDetailPage() {
               </Card>
             ))}
           </div>
-        </TabsContent>
-
-        {/* PROPOSALS TAB */}
-        <TabsContent value="proposals" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-ds-subheading">Proposals</h2>
-            <Button variant="outline" size="sm" onClick={() => router.push('/superadmin/proposals/create')}>
-              Create Proposal
-            </Button>
-          </div>
-          {proposals.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No proposals for this client yet.</p>
-          ) : (
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Campaign</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Influencers</TableHead>
-                      <TableHead>Value</TableHead>
-                      <TableHead className="text-right">Approval</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {proposals.map((p) => (
-                      <TableRow key={p.id} className="cursor-pointer hover:bg-muted/40"
-                        onClick={() => router.push(`/superadmin/proposals/${p.id}`)}>
-                        <TableCell className="font-medium">{p.campaign_name || p.title}</TableCell>
-                        <TableCell><Badge variant="outline">{String(p.status).replace(/_/g, ' ')}</Badge></TableCell>
-                        <TableCell>{p.influencer_count}</TableCell>
-                        <TableCell className="tabular-nums"><Money value={p.total_sell_amount ?? p.total_budget} /></TableCell>
-                        <TableCell className="text-right">
-                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); router.push(`/superadmin/proposals/${p.id}/approval`); }}>
-                            Workflow <ChevronRight className="ml-1 h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* BARTER & EVENTS TAB */}
-        <TabsContent value="barter" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-ds-subheading">Barter & Events</h2>
-            <Badge variant="outline">{events.length} events</Badge>
+          <div className="flex items-center justify-between border-t pt-ds-4">
+            <h2 className="text-ds-subheading">Barter and events</h2>
+            <Badge variant="outline">{events.length}</Badge>
           </div>
           {events.length === 0 ? (
             <p className="text-sm text-muted-foreground">No events yet. Events are created in Operations.</p>
@@ -736,11 +744,7 @@ function ClientDetailPage() {
               </ScrollArea>
             </Card>
           )}
-        </TabsContent>
-
-        {/* UGC TAB */}
-        <TabsContent value="ugc" className="space-y-4">
-          <h2 className="text-ds-subheading">UGC Overview</h2>
+          <h2 className="text-ds-subheading border-t pt-ds-4">UGC</h2>
           {ugcData ? (
             <>
               {/* The same five-figure strip as the scope tab, so the two tabs read as one
@@ -793,25 +797,56 @@ function ClientDetailPage() {
           )}
         </TabsContent>
 
-        {/* COMMERCIAL TAB */}
-        <TabsContent value="commercial" className="space-y-4">
-          <ClientCommercialTab teamId={teamId} />
+        {/* QUOTES: what we have proposed to them, and where each one stands. */}
+        <TabsContent value="quotes" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-ds-subheading">Quotes</h2>
+            <Button variant="outline" size="sm" onClick={() => router.push('/work/proposals/create')}>
+              New quote
+            </Button>
+          </div>
+          {proposals.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No quotes yet.</p>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Campaign</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Influencers</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead className="text-right">Approval</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {proposals.map((p) => (
+                      <TableRow key={p.id} className="cursor-pointer hover:bg-muted/40"
+                        onClick={() => router.push(`/work/proposals/${p.id}`)}>
+                        <TableCell className="font-medium">{p.campaign_name || p.title}</TableCell>
+                        <TableCell><Badge variant="outline">{String(p.status).replace(/_/g, ' ')}</Badge></TableCell>
+                        <TableCell>{p.influencer_count}</TableCell>
+                        <TableCell className="tabular-nums"><Money value={p.total_sell_amount ?? p.total_budget} /></TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); router.push(`/work/proposals/${p.id}/approval`); }}>
+                            Workflow <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
-        {/* MODULES TAB: which of the four products this client holds, and how each is billed */}
-        <TabsContent value="modules" className="space-y-4">
-          <ClientModulesTab teamId={teamId} clientName={client.company_name || client.name} />
-        </TabsContent>
-
-        {/* MANAGEMENT TAB: the retainer and the service charge we run this client on, and
-            what having a deal at all means for what they are charged elsewhere */}
-        <TabsContent value="management" className="space-y-4">
-          <ClientManagementTermsTab teamId={teamId} clientName={client.company_name || client.name} />
-        </TabsContent>
-
-        {/* FINANCE TAB */}
-        <TabsContent value="finance" className="space-y-4">
-          {/* No finance figures means the section is not drawn at all: no placeholder card,
+        {/* MONEY: the agreement and its invoices, and the totals they add up to.
+            These were "Agreement & invoices" and "Money in", two tabs apart, which
+            asked the reader to hold one half in their head while looking at the other. */}
+        <TabsContent value="money" className="space-y-ds-5">
+                  {/* No finance figures means the section is not drawn at all: no placeholder card,
               no row of zeroes standing in for money nobody has told us about. */}
           {finance ? (
             <div className="grid grid-cols-1 items-start gap-ds-4 md:grid-cols-2">
@@ -842,11 +877,22 @@ function ClientDetailPage() {
               anything is owed.
             </p>
           )}
+          <div className="border-t pt-ds-4">
+                  <ClientCommercialTab teamId={teamId} />
+          </div>
         </TabsContent>
 
-        {/* ACTIVITY TAB */}
-        <TabsContent value="activity" className="space-y-4">
-          <h2 className="text-ds-subheading">Activity Timeline</h2>
+        {/* SETUP: what this client holds, what we run them on, and what has happened.
+            None of it is read daily, and all of it is read when something is wrong. */}
+        <TabsContent value="setup" className="space-y-ds-5">
+                  <ClientModulesTab teamId={teamId} clientName={client.company_name || client.name} />
+          <div className="border-t pt-ds-4">
+        {/* MANAGEMENT TAB: the retainer and the service charge we run this client on, and
+            what having a deal at all means for what they are charged elsewhere */}
+          <ClientManagementTermsTab teamId={teamId} clientName={client.company_name || client.name} />
+          </div>
+          <div className="border-t pt-ds-4">
+                  <h2 className="text-ds-subheading">Activity</h2>
           {activity.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nothing has happened on this client yet.</p>
           ) : (
@@ -871,6 +917,7 @@ function ClientDetailPage() {
               </ScrollArea>
             </Card>
           )}
+          </div>
         </TabsContent>
       </Tabs>
 

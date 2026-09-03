@@ -23,7 +23,11 @@ import { useAdminAccess } from '@/hooks/useAdminAccess'
 export function useMoneyTabs(): HubTab[] {
   const { can, canSeeCost, loading } = useAdminAccess()
   const all: HubTab[] = [
-    { label: 'Client invoices', href: '/work/billing', module: 'billing' },
+    /* "Client invoices" is what this tab promised and what the screen behind it cannot
+       deliver: the billing endpoints serve the credit wallet ledger, not invoices. Client
+       invoice money lives on the campaign timeline, against the instalment it settles. The
+       tab is named for what is actually there. */
+    { label: 'Client credits', href: '/work/billing', module: 'billing' },
     // Cost, not just creators — see the note above.
     { label: 'Creator payments', href: '/work/payables', module: 'influencers', when: canSeeCost },
     { label: 'Creator app balances', href: '/work/fa/wallets', module: 'fa', when: canSeeCost },

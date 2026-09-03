@@ -13,12 +13,17 @@ import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowRight, Building2, HeartPulse, PhoneOff, Plus, TriangleAlert } from 'lucide-react'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table'
+import { ArrowRight, Building2, PhoneOff, Plus, TriangleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
-import { Empty, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
+import {
+  Empty, Panel, ScoreDot, Stat, StatGrid, type Tone,
+} from '@/components/console/primitives'
 import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
 import { NewOpportunityDialog } from '@/components/superadmin/brands/NewOpportunityDialog'
 
@@ -106,8 +111,8 @@ function BrandsPage() {
           {/* The band this stands in for no longer draws a box per figure, so neither does
               the skeleton: label, number and hint at the gap the real StatGrid uses, rather
               than four filled tiles promising an edge the loaded screen never draws. */}
-          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map(i => (
+          <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-3">
+            {[0, 1, 2].map(i => (
               <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">
                 <Skeleton className="h-3 w-24 rounded-ds-sm" />
                 <Skeleton className="h-9 w-20 rounded-ds-sm" />
@@ -146,7 +151,7 @@ function BrandsPage() {
     <SuperadminLayout>
       <div className="space-y-ds-5">
         <ClientsHubHeader
-          note="How long since anything moved, and who owes the next step. Silence is measured from real activity in the platform, so a conversation you had off-platform has to be logged to count."
+          note="Silence is measured from activity in here. If you spoke to them, log it."
           action={
             <Button onClick={() => setNewOpen(true)}>
               <Plus className="mr-1.5 h-4 w-4" />Log a new brand
@@ -154,66 +159,118 @@ function BrandsPage() {
           }
         />
 
-        <StatGrid>
-          <Stat label="Active clients" value={num(s.total)} icon={Building2}
-                hint={`${ours} waiting on us`} onClick={() => setTab('all')} />
-          <Stat label="Healthy" value={num(s.healthy)} tone="good" icon={HeartPulse}
-                hint="Something moved in the last week" />
-          <Stat label="Going quiet" value={num(s.quiet)} tone={s.quiet ? 'warn' : 'neutral'}
-                icon={PhoneOff} hint="One to two weeks of silence"
-                onClick={() => setTab('attention')} />
+        {/* Two figures, not four.
+            "Active clients" is the count the hub header above already prints, and "Healthy"
+            is the total minus the two below it: a number nobody has ever acted on, sitting
+            in the second most prominent position on the screen. What is left is the two
+            states somebody has to do something about. */}
+        <StatGrid cols={3}>
+          <Stat label="Gone quiet" value={num(s.quiet)} tone={s.quiet ? 'warn' : 'neutral'}
+                icon={PhoneOff} hint="A week or more"
+                onClick={() => switchTab('attention')} />
           <Stat label="At risk" value={num(s.at_risk)} tone={s.at_risk ? 'bad' : 'neutral'}
-                icon={TriangleAlert} hint="Over a fortnight: call, do not email"
-                onClick={() => setTab('attention')} />
+                icon={TriangleAlert} hint="Two weeks. Call them"
+                onClick={() => switchTab('attention')} />
+          <Stat label="Waiting on us" value={ours} tone={ours ? 'warn' : 'good'}
+                icon={Building2} hint={`Of ${num(s.total)} on the books`}
+                onClick={() => switchTab('ours')} />
         </StatGrid>
 
-        <Tabs value={tab} onValueChange={v => switchTab(v as typeof tab)}>
-          <TabsList>
-            <TabsTrigger value="all">All brands</TabsTrigger>
-            <TabsTrigger value="attention">Needs attention</TabsTrigger>
-            <TabsTrigger value="ours">Waiting on us</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        <Panel title="Heartbeat" description="Longest silence first" flush>
-          {brands.map((b: any) => {
-            const h = HEALTH[b.health as keyof typeof HEALTH] || HEALTH.unknown
-            const open: string[] = []
-            if (b.live_campaigns) open.push(`${b.live_campaigns} live`)
-            if (b.open_rounds) open.push(`${b.open_rounds} round${b.open_rounds === 1 ? '' : 's'}`)
-            if (b.awaiting_client_verdict) open.push(`${b.awaiting_client_verdict} awaiting verdict`)
-            if (b.agreements_out) open.push('agreement out')
-            if (b.unpaid_invoices) open.push(`${b.unpaid_invoices} unpaid`)
-            return (
-              <Row
-                key={b.id}
-                tone={h.tone}
-                title={
-                  <span className="flex items-center gap-2">
-                    {b.name}
-                    <Badge variant="outline" className={h.cls}>{quiet(b.days_quiet)} quiet</Badge>
-                    {b.whose_move === 'client'
-                      ? <Badge variant="outline">Their move</Badge>
-                      : <Badge>Our move</Badge>}
-                  </span>
-                }
-                meta={
-                  <>
-                    {b.account_manager_email || 'unassigned'}
-                    {open.length > 0 && ` · ${open.join(' · ')}`}
-                    {b.last_feedback && ` · “${b.last_feedback}”`}
-                  </>
-                }
-                right={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
-                onClick={() => router.push(`/work/brands/${b.id}`)}
-              />
-            )
-          })}
-          {brands.length === 0 && (
+        {/* The filter used to be a second tab row underneath the hub's own, which is two
+            identical-looking strips doing two different jobs. It belongs to the list, so it
+            sits in the list's header. */}
+        <Panel
+          title="Brands"
+          description="Longest silence first"
+          action={
+            <ToggleGroup type="single" value={tab} size="sm" variant="outline"
+                         onValueChange={(v: string) => { if (v) switchTab(v as typeof tab) }}>
+              <ToggleGroupItem value="all" aria-label="Every brand">All</ToggleGroupItem>
+              <ToggleGroupItem value="attention" aria-label="Brands that need chasing">
+                Needs chasing
+              </ToggleGroupItem>
+              <ToggleGroupItem value="ours" aria-label="Brands waiting on us">Ours</ToggleGroupItem>
+            </ToggleGroup>
+          }
+          flush
+        >
+          {brands.length > 0 ? (
+            /* Seven facts a row is not a sentence, it is a table. The run-on meta line put
+               the account manager, up to five open items and the client's last words behind
+               a middot each, so the one that matters was found by reading rather than by
+               looking down a column. */
+            <div className="overflow-x-auto px-3 pb-1">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Brand</TableHead>
+                    <TableHead>Silent</TableHead>
+                    <TableHead>Whose move</TableHead>
+                    <TableHead>Account manager</TableHead>
+                    <TableHead>Open</TableHead>
+                    <TableHead className="min-w-[180px]">Last word</TableHead>
+                    <TableHead className="w-8" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {brands.map((b: any) => {
+                    const h = HEALTH[b.health as keyof typeof HEALTH] || HEALTH.unknown
+                    const open: string[] = []
+                    if (b.live_campaigns) open.push(`${b.live_campaigns} live`)
+                    if (b.open_rounds) open.push(`${b.open_rounds} roster${b.open_rounds === 1 ? '' : 's'}`)
+                    if (b.awaiting_client_verdict) open.push(`${b.awaiting_client_verdict} awaiting verdict`)
+                    if (b.agreements_out) open.push('agreement out')
+                    if (b.unpaid_invoices) open.push(`${b.unpaid_invoices} unpaid`)
+                    return (
+                      <TableRow key={b.id} className="cursor-pointer"
+                                onClick={() => router.push(`/work/brands/${b.id}`)}>
+                        <TableCell className="font-medium">{b.name}</TableCell>
+                        <TableCell>
+                          {/* The number of days is the fact the whole screen is sorted on,
+                              so it is the mark, not a phrase inside a badge. */}
+                          <span className="flex items-center gap-2">
+                            <ScoreDot
+                              value={b.days_quiet == null ? '?' : b.days_quiet}
+                              suffix={b.days_quiet == null ? undefined : 'd'}
+                              tone={h.tone}
+                              title={`${quiet(b.days_quiet)} since anything moved`}
+                            />
+                            <span className="hidden text-xs text-muted-foreground lg:inline">
+                              {h.label}
+                            </span>
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {b.whose_move === 'client'
+                            ? <Badge variant="outline">Theirs</Badge>
+                            : <Badge>Ours</Badge>}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {b.account_manager_email || 'unassigned'}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {open.length ? open.join(' · ') : '–'}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          <span className="block max-w-[24rem] truncate"
+                                title={b.last_feedback || undefined}>
+                            {b.last_feedback ? `“${b.last_feedback}”` : '–'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
             <Empty>
               {tab === 'attention' ? 'Nobody needs chasing. Every brand is warm.'
                : tab === 'ours' ? 'Nothing is waiting on us.'
-               : 'No clients yet.'}
+               : 'No brands logged yet.'}
             </Empty>
           )}
         </Panel>
