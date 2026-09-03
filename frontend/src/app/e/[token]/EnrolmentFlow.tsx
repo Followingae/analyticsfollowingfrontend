@@ -27,6 +27,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { API_CONFIG } from '@/config/api'
+import { LocationPicker, mapsAvailable, type PickedPlace } from './LocationPicker'
 
 const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/enrolment`
 
@@ -1470,17 +1471,15 @@ function StepBank({ sub, post, busy, err, onDone }: {
 
 
 /**
- * Where the product goes, with a map pin.
+ * Where the product goes.
  *
  * A typed address is not a delivery instruction in the UAE. Buildings repeat, streets are
- * often unnamed, and every courier here works off a shared pin, so this collects both: the
- * text goes on the label, the pin gets somebody to the door.
+ * often unnamed, and every courier here navigates to a pin. Both are collected: the text
+ * goes on the label, the pin gets somebody to the door.
  *
- * NO GOOGLE MAPS KEY IS USED, because the project has none and adding one means a billed
- * account somebody has to provision. Two routes that need no key and cover the real cases:
- * the browser's own geolocation for "I am standing there", and pasting the Maps link they
- * would have WhatsApped anyway. With a Maps JS key this could gain in-page search and a
- * draggable pin; without one it still captures a precise, courier-usable location.
+ * The pin comes from a real map you open, pan and fine-tune. Where no Maps key is
+ * configured, or the script cannot load, this falls back to the browser's own rough fix and
+ * a pasted Maps link, because a creator who cannot load a map must still be able to finish.
  */
 function DeliveryBlock({ brand, value, onChange, show, errs }: {
   brand?: string | null
@@ -1489,20 +1488,21 @@ function DeliveryBlock({ brand, value, onChange, show, errs }: {
   show: boolean
   errs: { line: string | null; city: string | null; phone: string | null }
 }) {
+  const [mapOpen, setMapOpen] = useState(false)
   const [locating, setLocating] = useState(false)
-  const [pinNote, setPinNote] = useState<string | null>(null)
+  const [note, setNote] = useState<string | null>(null)
+  const canMap = mapsAvailable()
 
   const hasPin = value.lat != null && value.lng != null
-  const pinUrl = hasPin
-    ? `https://www.google.com/maps?q=${value.lat},${value.lng}`
-    : (value.maps || null)
+  const pinUrl = hasPin ? `https://www.google.com/maps?q=${value.lat},${value.lng}` : (value.maps || null)
 
-  const locate = () => {
+  /** The no-map path: a rough browser fix, honest about being rough. */
+  const roughLocate = () => {
     if (!navigator.geolocation) {
-      setPinNote('This browser cannot share a location. Paste a Maps link instead.')
+      setNote('This browser cannot share a location. Paste a Maps link instead.')
       return
     }
-    setLocating(true); setPinNote(null)
+    setLocating(true); setNote(null)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         onChange({
@@ -1510,12 +1510,12 @@ function DeliveryBlock({ brand, value, onChange, show, errs }: {
           lng: Number(pos.coords.longitude.toFixed(6)),
           source: 'browser',
         })
-        setPinNote(`Pin saved, accurate to about ${Math.round(pos.coords.accuracy)} metres.`)
+        setNote(`Pin saved, accurate to about ${Math.round(pos.coords.accuracy)} metres.`)
         setLocating(false)
       },
       (e) => {
         setLocating(false)
-        setPinNote(e.code === e.PERMISSION_DENIED
+        setNote(e.code === e.PERMISSION_DENIED
           ? 'You blocked location access. Paste a Maps link instead, or type the address.'
           : 'Could not get a location. Paste a Maps link instead.')
       },
@@ -1523,12 +1523,91 @@ function DeliveryBlock({ brand, value, onChange, show, errs }: {
     )
   }
 
+  const took = (p: PickedPlace) => {
+    onChange({
+      lat: p.lat, lng: p.lng, source: 'map',
+      // Only prefill what is still empty. Somebody who has already typed "Apt 1204, tower B"
+      // knows their building better than a reverse geocode does.
+      line: value.line.trim() ? value.line : p.line,
+      city: value.city.trim() ? value.city : p.city,
+    })
+    setNote(p.address ? `Pin set: ${p.address}` : 'Pin set.')
+    setMapOpen(false)
+  }
+
   return (
     <>
-      <div style={{
-        marginTop: 22, fontSize: 11, fontWeight: 800, letterSpacing: '.14em',
-        color: '#5E5E66',
-      }}>WHERE PRODUCT GOES</div>
+      <div style={{ marginTop: 22, fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#5E5E66' }}>
+        WHERE PRODUCT GOES
+      </div>
+
+      {/* The pin first: it is the accurate half, and the typed fields read as a correction
+          to it rather than the other way round. */}
+      <div style={{ marginTop: 10, background: '#121215', borderRadius: 20, padding: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ flex: 'none', display: 'flex' }}>{I.pin}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
+              {hasPin ? 'Your pin is set' : 'Drop a map pin'}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: '#8A8A93', marginTop: 2, lineHeight: 1.45 }}>
+              This is what the courier navigates to.
+            </div>
+          </div>
+          {(hasPin || value.maps) && (
+            <div style={{ width: 24, height: 24, borderRadius: '50%', background: GRAD.addr, display: 'grid', placeItems: 'center', flex: 'none' }}>
+              {I.tick('#fff')}
+            </div>
+          )}
+        </div>
+
+        {canMap ? (
+          <button onClick={() => setMapOpen(true)} style={{
+            width: '100%', marginTop: 13, borderRadius: 16, padding: '14px 16px',
+            background: hasPin ? '#1C1C20' : '#fff', color: hasPin ? '#fff' : '#050506',
+            border: 'none', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700,
+            minHeight: 44, cursor: 'pointer',
+          }}>{hasPin ? 'Adjust the pin on the map' : 'Open the map'}</button>
+        ) : (
+          <>
+            <button onClick={roughLocate} disabled={locating} style={{
+              width: '100%', marginTop: 13, borderRadius: 16, padding: '14px 16px',
+              background: '#1C1C20', color: '#fff', border: 'none', fontFamily: 'inherit',
+              fontSize: 14.5, fontWeight: 700, minHeight: 44, cursor: locating ? 'default' : 'pointer',
+            }}>{locating ? 'Finding you…' : hasPin ? 'Update my pin' : 'Use my current location'}</button>
+
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ flex: 1, height: 1, background: '#1E1E22' }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#5E5E66', letterSpacing: '.08em' }}>OR</span>
+              <div style={{ flex: 1, height: 1, background: '#1E1E22' }} />
+            </div>
+
+            <input
+              value={value.maps}
+              onChange={(e) => onChange({ maps: e.target.value, source: 'link' })}
+              placeholder="Paste a Google Maps link"
+              autoCapitalize="off" autoCorrect="off" spellCheck={false}
+              style={{
+                width: '100%', marginTop: 12, background: '#0E0E11', borderRadius: 14,
+                border: '1px solid #1E1E22', padding: '13px 14px', fontSize: 13.5,
+                fontWeight: 600, color: '#fff', outline: 'none', fontFamily: 'inherit',
+              }}
+            />
+          </>
+        )}
+
+        {note && (
+          <div style={{ marginTop: 10, fontSize: 12.5, fontWeight: 600, color: '#8A8A93', lineHeight: 1.45 }}>
+            {note}
+          </div>
+        )}
+        {pinUrl && (
+          <a href={pinUrl} target="_blank" rel="noopener noreferrer" style={{
+            display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700,
+            color: '#5FE0FF', textDecoration: 'none',
+          }}>Open the pin to check it</a>
+        )}
+      </div>
 
       <div style={{ marginTop: 10, background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
         <Row icon={I.pin} label="Address" error={show ? errs.line : null}>
@@ -1542,68 +1621,17 @@ function DeliveryBlock({ brand, value, onChange, show, errs }: {
         </Row>
       </div>
 
-      {/* The pin */}
-      <div style={{ marginTop: 10, background: '#121215', borderRadius: 20, padding: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ flex: 'none', display: 'flex' }}>{I.pin}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Drop a map pin</div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: '#8A8A93', marginTop: 2, lineHeight: 1.45 }}>
-              This is what the courier actually navigates to.
-            </div>
-          </div>
-          {(hasPin || value.maps) && (
-            <div style={{ width: 24, height: 24, borderRadius: '50%', background: GRAD.addr, display: 'grid', placeItems: 'center', flex: 'none' }}>
-              {I.tick('#fff')}
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={locate}
-          disabled={locating}
-          style={{
-            width: '100%', marginTop: 13, borderRadius: 16, padding: '14px 16px',
-            background: '#1C1C20', color: '#fff', border: 'none', fontFamily: 'inherit',
-            fontSize: 14.5, fontWeight: 700, minHeight: 44, cursor: locating ? 'default' : 'pointer',
-          }}
-        >{locating ? 'Finding you…' : hasPin ? 'Update my pin' : 'Use my current location'}</button>
-
-        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ flex: 1, height: 1, background: '#1E1E22' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#5E5E66', letterSpacing: '.08em' }}>OR</span>
-          <div style={{ flex: 1, height: 1, background: '#1E1E22' }} />
-        </div>
-
-        <input
-          value={value.maps}
-          onChange={(e) => onChange({ maps: e.target.value, source: 'link' })}
-          placeholder="Paste a Google Maps link"
-          autoCapitalize="off" autoCorrect="off" spellCheck={false}
-          style={{
-            width: '100%', marginTop: 12, background: '#0E0E11', borderRadius: 14,
-            border: '1px solid #1E1E22', padding: '13px 14px', fontSize: 13.5,
-            fontWeight: 600, color: '#fff', outline: 'none', fontFamily: 'inherit',
-          }}
-        />
-
-        {pinNote && (
-          <div style={{ marginTop: 10, fontSize: 12.5, fontWeight: 600, color: '#8A8A93', lineHeight: 1.45 }}>
-            {pinNote}
-          </div>
-        )}
-        {pinUrl && (
-          <a href={pinUrl} target="_blank" rel="noopener noreferrer" style={{
-            display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700,
-            color: '#5FE0FF', textDecoration: 'none',
-          }}>Open the pin to check it</a>
-        )}
-      </div>
-
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, fontSize: 12.5, fontWeight: 600, color: '#7E7E87', lineHeight: 1.4 }}>
         <span style={{ flex: 'none' }}>{I.box}</span>
         {brand ? `${brand} is sending product for this campaign.` : 'Where we send product for this campaign.'}
       </div>
+
+      <LocationPicker
+        open={mapOpen}
+        initial={{ lat: value.lat, lng: value.lng }}
+        onClose={() => setMapOpen(false)}
+        onPick={took}
+      />
     </>
   )
 }
