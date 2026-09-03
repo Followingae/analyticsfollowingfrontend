@@ -106,9 +106,7 @@ const niceDate = (iso?: string | null) => {
   return isNaN(d.getTime()) ? null : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-/** A sticker that fails to nothing. Three of the four PNGs could not be exported from the
- *  design project, so a missing file must cost the layout nothing rather than leaving a
- *  broken-image glyph in the middle of the page. */
+/** A sticker that fails to nothing rather than leaving a broken-image glyph mid-page. */
 function Sticker({ src, style, className }: { src: string; style: React.CSSProperties; className?: string }) {
   const [ok, setOk] = useState(true)
   if (!ok) return null
@@ -116,9 +114,11 @@ function Sticker({ src, style, className }: { src: string; style: React.CSSPrope
   return <img src={src} alt="" style={style} className={className} onError={() => setOk(false)} />
 }
 
+/** The design's own wordmark, black, inverted to white exactly as the design does it. */
 function Logo({ h = 15, className = '' }: { h?: number; className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src="/followinglogo.svg" alt="Following" style={{ height: h, filter: 'invert(1)', opacity: 0.95 }} className={className} />
+  return <img src="/enrolment/following-logo.png" alt="Following"
+              style={{ height: h, width: 'auto', filter: 'invert(1)', opacity: 0.95 }} className={className} />
 }
 
 /** The Inflink wordmark. The design uses it in three places on the phone and a text
@@ -184,14 +184,30 @@ function Shell({ children, head = true, animKey }: {
 // ---------------------------------------------------------------------------------------
 // Small pieces of the design's chrome
 // ---------------------------------------------------------------------------------------
-const Row = ({ icon, label, children, last }: { icon: React.ReactNode; label: string; children: React.ReactNode; last?: boolean }) => (
-  <div style={{
-    display: 'flex', alignItems: 'center', gap: 13, padding: '13px 16px', minHeight: 44,
-    borderBottom: last ? 'none' : '1px solid #1E1E22',
-  }}>
-    <span style={{ flex: 'none', display: 'flex' }}>{icon}</span>
-    <span style={{ fontSize: 13.5, fontWeight: 600, color: '#8A8A93', flex: 'none' }}>{label}</span>
-    <span style={{ flex: 1, textAlign: 'right' }}>{children}</span>
+const BAD = '#FF7A5C'
+
+/**
+ * One row of a card. Turns red and explains itself when the value in it is wrong.
+ *
+ * The error lives ON the row rather than in a summary at the bottom, because a creator
+ * looking at four fields needs to know WHICH one, and a list of messages under a form is a
+ * second thing to map back onto the first.
+ */
+const Row = ({ icon, label, children, last, error }: {
+  icon: React.ReactNode; label: string; children: React.ReactNode; last?: boolean; error?: string | null
+}) => (
+  <div style={{ borderBottom: last ? 'none' : '1px solid #1E1E22' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 16px', minHeight: 44 }}>
+      <span style={{ flex: 'none', display: 'flex' }}>{icon}</span>
+      <span style={{ fontSize: 13.5, fontWeight: 600, color: error ? BAD : '#8A8A93', flex: 'none' }}>{label}</span>
+      <span style={{ flex: 1, textAlign: 'right' }}>{children}</span>
+    </div>
+    {error && (
+      <div style={{
+        padding: '0 16px 11px', fontSize: 12.5, fontWeight: 600, color: BAD,
+        textAlign: 'right', lineHeight: 1.4, animation: 'eFade .22s ease both',
+      }}>{error}</div>
+    )}
   </div>
 )
 
@@ -201,19 +217,29 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'inherit', padding: 0, minWidth: 0,
 }
 
-const CTA = ({ onClick, disabled, busy, children, tone = 'light' }: {
-  onClick?: () => void; disabled?: boolean; busy?: boolean; children: React.ReactNode; tone?: 'light' | 'dark'
+/**
+ * The button at the bottom of a step.
+ *
+ * `disabled` is used ONLY while a request is in flight. A greyed out button that will not
+ * say why is the thing this page was doing wrong: somebody fills in three of four fields,
+ * presses nothing, and has to guess. So the button stays live, and pressing it with an
+ * invalid form is what reveals the errors.
+ */
+const CTA = ({ onClick, disabled, busy, children, tone = 'light', muted }: {
+  onClick?: () => void; disabled?: boolean; busy?: boolean; children: React.ReactNode
+  tone?: 'light' | 'dark'; muted?: boolean
 }) => (
   <button
     onClick={onClick}
     disabled={disabled || busy}
     style={{
       width: '100%', marginTop: 16, borderRadius: 20, padding: 18, textAlign: 'center',
-      fontSize: 16.5, fontWeight: 700, minHeight: 44, border: 'none', cursor: disabled ? 'default' : 'pointer',
-      fontFamily: 'inherit',
-      background: disabled ? '#1C1C20' : tone === 'light' ? '#fff' : '#17171A',
-      color: disabled ? '#5E5E66' : tone === 'light' ? '#050506' : '#fff',
-      transition: 'background .2s ease, color .2s ease',
+      fontSize: 16.5, fontWeight: 700, minHeight: 44, border: 'none',
+      cursor: (disabled || busy) ? 'default' : 'pointer', fontFamily: 'inherit',
+      background: muted ? '#1C1C20' : tone === 'light' ? '#fff' : '#17171A',
+      color: muted ? '#5E5E66' : tone === 'light' ? '#050506' : '#fff',
+      opacity: busy ? 0.7 : 1,
+      transition: 'background .2s ease, color .2s ease, opacity .2s ease',
     }}
   >
     {busy ? 'One moment…' : children}
@@ -222,8 +248,64 @@ const CTA = ({ onClick, disabled, busy, children, tone = 'light' }: {
 
 const ErrLine = ({ children }: { children?: React.ReactNode }) =>
   children ? (
-    <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 700, color: '#FF7A5C', lineHeight: 1.4 }}>{children}</div>
+    <div style={{
+      marginTop: 12, fontSize: 12.5, fontWeight: 700, color: BAD, lineHeight: 1.4,
+      animation: 'eFade .22s ease both',
+    }}>{children}</div>
   ) : null
+
+// ---------------------------------------------------------------------------------------
+// Validation, in one place so the four steps cannot disagree about what "valid" means.
+// Each returns the message to show, or null.
+// ---------------------------------------------------------------------------------------
+const vName = (v: string) =>
+  !v.trim() ? 'We need your name for the agreement.'
+    : v.trim().length < 2 ? 'That looks too short.'
+      : !v.trim().includes(' ') ? 'Please give your full name, first and last.' : null
+
+const vEmail = (v: string) =>
+  !v.trim() ? 'We need an email to send your agreement to.'
+    : !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(v.trim()) ? 'That does not look like an email address.' : null
+
+const vMobile = (v: string) =>
+  !v.trim() ? null
+    : v.replace(/[^\d]/g, '').length < 7 ? 'That does not look like a phone number.' : null
+
+const vDob = (v: string) => {
+  if (!v) return 'We need your date of birth to sign an agreement with you.'
+  const d = new Date(v)
+  if (isNaN(d.getTime())) return 'That is not a real date.'
+  const today = new Date()
+  let age = today.getFullYear() - d.getFullYear()
+  const m = today.getMonth() - d.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--
+  if (age < 0) return 'That date is in the future.'
+  // Said here as well as on the server. The server is what actually refuses; this is so
+  // nobody fills in a signature and a bank account before being told.
+  if (age < 18) return 'You need to be 18 or older to sign a campaign agreement.'
+  if (age > 100) return 'Please check that date.'
+  return null
+}
+
+/** ISO 13616 mod-97, the same check the server runs, so the answer matches. */
+const ibanValid = (raw: string) => {
+  const c = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]+$/.test(c)) return false
+  const r = c.slice(4) + c.slice(0, 4)
+  let rem = 0
+  for (const ch of r) rem = (rem * (ch >= '0' && ch <= '9' ? 10 : 100) + parseInt(ch, 36)) % 97
+  return rem === 1
+}
+
+const vIban = (v: string) => {
+  const c = v.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  if (!c) return 'We need an IBAN to pay you.'
+  if (c.length < 15) return 'An IBAN is at least 15 characters.'
+  if (c.length > 34) return 'That is longer than any IBAN.'
+  if (c.startsWith('AE') && c.length !== 23) return `A UAE IBAN is 23 characters, this one is ${c.length}.`
+  if (!ibanValid(c)) return 'That IBAN does not pass the checksum. Check it for a typo.'
+  return null
+}
 
 // Icons, traced from the design's own inline SVG so nothing shifts by a pixel.
 const I = {
@@ -532,6 +614,8 @@ export default function EnrolmentFlow({ token }: { token: string }) {
             }} />
           ))}
           <Sticker src="/enrolment/sticker-youin.png" style={{ position: 'absolute', left: '50%', marginLeft: -78, top: 120, width: 156, animation: 'ePop .9s cubic-bezier(.16,1.02,.3,1) .1s both' }} />
+          <Sticker src="/enrolment/sticker-coin.png" className="eBob" style={{ position: 'absolute', left: 12, top: 320, width: 96 }} />
+          <Sticker src="/enrolment/sticker-bolt.png" style={{ position: 'absolute', right: 22, top: 318, width: 62, animation: 'ePop .7s cubic-bezier(.16,1.02,.3,1) .6s both' }} />
 
           <div style={{ position: 'absolute', left: 0, right: 0, top: '46%', padding: '0 34px', textAlign: 'center', animation: 'eFade .8s ease .5s both' }}>
             <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1 }}>
@@ -812,29 +896,48 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
   const [email, setEmail] = useState(sub.email || '')
   const [mobile, setMobile] = useState(sub.mobile || '')
   const [handle, setHandle] = useState(sub.instagram_handle || (d.creator_handle || '').replace(/^@/, ''))
-  const [stage, setStage] = useState<'form' | 'code'>(sub.email_verified_at ? 'form' : 'form')
+  const [stage, setStage] = useState<'form' | 'code'>('form')
   const [code, setCode] = useState('')
   const [sentTo, setSentTo] = useState<string | null>(null)
+  // `show` flips on the first failed press. Before that a half typed email is not an
+  // error, it is somebody still typing, and shouting at them mid word is worse than
+  // silence. After it, errors update live so a correction clears immediately.
+  const [show, setShow] = useState(false)
 
-  const canSend = name.trim().length > 1 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())
+  const errs = {
+    name: vName(name),
+    email: vEmail(email),
+    mobile: vMobile(mobile),
+  }
+  const bad = Object.values(errs).some(Boolean)
 
   return (
     <>
       {stage === 'form' ? (
         <>
           <div style={{ background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
-            <Row icon={I.user} label="Name"><input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" /></Row>
-            <Row icon={I.mail} label="Email"><input style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" inputMode="email" autoCapitalize="off" /></Row>
-            <Row icon={I.phone} label="Mobile"><input style={inputStyle} value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="+971 50 000 0000" inputMode="tel" /></Row>
-            <Row icon={I.at} label="Instagram" last><input style={inputStyle} value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="yourhandle" autoCapitalize="off" /></Row>
+            <Row icon={I.user} label="Name" error={show ? errs.name : null}>
+              <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" />
+            </Row>
+            <Row icon={I.mail} label="Email" error={show ? errs.email : null}>
+              <input style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" inputMode="email" autoCapitalize="off" autoCorrect="off" />
+            </Row>
+            <Row icon={I.phone} label="Mobile" error={show ? errs.mobile : null}>
+              <input style={inputStyle} value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="+971 50 000 0000" inputMode="tel" />
+            </Row>
+            <Row icon={I.at} label="Instagram" last>
+              <input style={inputStyle} value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="yourhandle" autoCapitalize="off" autoCorrect="off" />
+            </Row>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, fontSize: 12.5, fontWeight: 600, color: '#7E7E87', lineHeight: 1.4 }}>
             <span style={{ flex: 'none' }}>{I.shield}</span>Your email becomes your Inflink login.
           </div>
           <ErrLine>{err}</ErrLine>
-          <CTA disabled={!canSend} busy={busy} onClick={async () => {
+          <CTA busy={busy} onClick={async () => {
+            setShow(true)
+            if (bad) return
             const r = await post('details', { full_name: name.trim(), email: email.trim().toLowerCase(), mobile: mobile.trim() || null, instagram_handle: handle.trim() || null })
-            if (r.ok) { setSentTo(email.trim().toLowerCase()); setStage('code') }
+            if (r.ok) { setSentTo(email.trim().toLowerCase()); setStage('code'); setShow(false) }
           }}>Save my details</CTA>
         </>
       ) : (
@@ -844,17 +947,22 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
           </div>
           <input
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onChange={(e) => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setShow(false) }}
             inputMode="numeric"
+            autoComplete="one-time-code"
             placeholder="000000"
             style={{
-              width: '100%', marginTop: 20, background: '#121215', border: 'none', borderRadius: 20,
+              width: '100%', marginTop: 20, background: '#121215',
+              border: `1.5px solid ${show && code.length !== 6 ? BAD : 'transparent'}`,
+              borderRadius: 20,
               padding: '22px 16px', textAlign: 'center', fontSize: 34, fontWeight: 700, letterSpacing: '.22em',
               color: '#fff', outline: 'none', fontFamily: 'inherit',
             }}
           />
-          <ErrLine>{err}</ErrLine>
-          <CTA disabled={code.length !== 6} busy={busy} onClick={async () => {
+          <ErrLine>{err || (show && code.length !== 6 ? 'The code is 6 digits.' : null)}</ErrLine>
+          <CTA busy={busy} onClick={async () => {
+            setShow(true)
+            if (code.length !== 6) return
             const r = await post('verify', { code })
             if (r.ok) onDone(r.data)
           }}>Confirm my email</CTA>
@@ -887,7 +995,17 @@ function StepSign({ d, sub, post, busy, err, openAgreement, onDone }: {
     { icon: I.chev, label: 'Submit by', v: niceDate(d.submit_by) || '—' },
     { icon: I.shield, label: 'Usage', v: d.usage_terms || '—' },
   ]
-  const on = ticks.a && ticks.b && ticks.c && !!dob && sigName.trim().length > 1
+  const [show, setShow] = useState(false)
+  const errs = {
+    dob: vDob(dob),
+    sigName: vName(sigName),
+    // The drawn mark is what makes this a signature rather than a tick. The server accepts
+    // a typed name alone, but a creator who has not drawn anything has almost always just
+    // not noticed the pad, so this asks rather than silently accepting a weaker signature.
+    sig: drawn ? null : 'Draw your signature above.',
+    ticks: (ticks.a && ticks.b && ticks.c) ? null : 'Tick all three to sign.',
+  }
+  const bad = Object.values(errs).some(Boolean)
 
   if (signed) {
     return (
@@ -942,32 +1060,55 @@ function StepSign({ d, sub, post, busy, err, openAgreement, onDone }: {
             display: 'flex', alignItems: 'center', gap: 13, padding: '15px 16px', minHeight: 44,
             borderBottom: '1px solid #1E1E22', cursor: 'pointer',
           }}>
-            <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: '#E4E4EA' }}>{label}</span>
+            <span style={{
+              flex: 1, fontSize: 14.5, fontWeight: 600,
+              color: show && !ticks[k] ? BAD : '#E4E4EA',
+            }}>{label}</span>
             <div style={{
               width: 26, height: 26, borderRadius: '50%', flex: 'none',
               background: ticks[k] ? '#FFFFFF' : 'transparent',
-              border: `1.8px solid ${ticks[k] ? '#FFFFFF' : '#3A3A42'}`,
+              border: `1.8px solid ${ticks[k] ? '#FFFFFF' : show ? BAD : '#3A3A42'}`,
               display: 'grid', placeItems: 'center', transition: 'background .18s ease, border-color .18s ease',
             }}>
               <span style={{ opacity: ticks[k] ? 1 : 0 }}>{I.tick()}</span>
             </div>
           </div>
         ))}
-        <Row icon={I.user} label="Date of birth" last>
-          <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} style={{ ...inputStyle, colorScheme: 'dark' }} />
+        <Row icon={I.user} label="Date of birth" last error={show ? errs.dob : null}>
+          <input type="date" value={dob} onChange={(e) => setDob(e.target.value)}
+                 max={new Date().toISOString().slice(0, 10)}
+                 style={{ ...inputStyle, colorScheme: 'dark' }} />
         </Row>
       </div>
 
       <div style={{ marginTop: 10 }}>
-        <SignaturePad onChange={setDrawn} />
-        <div style={{ marginTop: 8, background: '#121215', borderRadius: 16, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 13 }}>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: '#8A8A93', flex: 'none' }}>Type your name</span>
+        <SignaturePad onChange={setDrawn} invalid={show && !!errs.sig} />
+        {show && errs.sig && (
+          <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 600, color: BAD, animation: 'eFade .22s ease both' }}>
+            {errs.sig}
+          </div>
+        )}
+        <div style={{
+          marginTop: 8, background: '#121215', borderRadius: 16, padding: '13px 16px',
+          display: 'flex', alignItems: 'center', gap: 13,
+          border: `1.5px solid ${show && errs.sigName ? BAD : 'transparent'}`,
+        }}>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: show && errs.sigName ? BAD : '#8A8A93', flex: 'none' }}>Type your name</span>
           <input style={inputStyle} value={sigName} onChange={(e) => setSigName(e.target.value)} placeholder="Your full name" />
         </div>
+        {show && errs.sigName && (
+          <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 600, color: BAD, animation: 'eFade .22s ease both' }}>
+            {errs.sigName}
+          </div>
+        )}
       </div>
 
-      <ErrLine>{err}</ErrLine>
-      <CTA disabled={!on} busy={busy} onClick={async () => {
+      {/* The three tick rows turn red on their own, but red with no words is a colour, not
+          a reason, so the sentence is said once here. */}
+      <ErrLine>{err || (show ? errs.ticks : null)}</ErrLine>
+      <CTA busy={busy} onClick={async () => {
+        setShow(true)
+        if (bad) return
         const r = await post('sign', {
           signature_name: sigName.trim(), signature_image: drawn, date_of_birth: dob,
           agreed_terms: true, agreed_electronic: true, agreed_age: true,
@@ -979,7 +1120,9 @@ function StepSign({ d, sub, post, busy, err, openAgreement, onDone }: {
 }
 
 /** A signature pad. Pointer events so a finger, a stylus and a mouse are the same code. */
-function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) => void }) {
+function SignaturePad({ onChange, invalid }: {
+  onChange: (dataUrl: string | null) => void; invalid?: boolean
+}) {
   const ref = useRef<HTMLCanvasElement | null>(null)
   const drawing = useRef(false)
   const [has, setHas] = useState(false)
@@ -1008,7 +1151,10 @@ function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) => void
 
   return (
     <div>
-      <div style={{ position: 'relative', background: '#121215', borderRadius: 16, overflow: 'hidden' }}>
+      <div style={{
+        position: 'relative', background: '#121215', borderRadius: 16, overflow: 'hidden',
+        border: `1.5px solid ${invalid ? BAD : 'transparent'}`, transition: 'border-color .2s ease',
+      }}>
         <canvas
           ref={ref}
           style={{ display: 'block', width: '100%', height: 132, touchAction: 'none', cursor: 'crosshair' }}
@@ -1033,7 +1179,7 @@ function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) => void
         />
         {!has && (
           <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', fontSize: 13.5, fontWeight: 600, color: '#5E5E66' }}>
-            Sign here with your finger
+            <span style={{ color: invalid ? BAD : '#5E5E66' }}>Sign here with your finger</span>
           </div>
         )}
       </div>
@@ -1061,30 +1207,54 @@ function StepBank({ sub, post, busy, err, onDone }: {
   const [iban, setIban] = useState('')
   const [swift, setSwift] = useState('')
 
+  const [show, setShow] = useState(false)
   const clean = iban.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
   const outsideUAE = clean.length >= 2 && !clean.startsWith('AE')
-  const ok = holder.trim().length > 1 && clean.length >= 15 && (!outsideUAE || swift.trim().length >= 8)
+  const errs = {
+    // NOT vName: that insists on a first and last name, which is right for the person
+    // signing and wrong for an account holder, who may bank as a single trading name.
+    holder: !holder.trim() ? 'We need the name on the account.'
+      : holder.trim().length < 2 ? 'That looks too short.' : null,
+    iban: vIban(iban),
+    swift: outsideUAE && swift.trim().length < 8
+      ? 'Outside the UAE we need a SWIFT or BIC code, 8 or 11 characters.' : null,
+  }
+  const bad = Object.values(errs).some(Boolean)
+  // The green line is only ever shown when the IBAN genuinely passes the checksum. It used
+  // to appear on any 15 characters, which told somebody their typo was fine.
+  const ibanGood = !errs.iban
 
   return (
     <>
       <div style={{ background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
-        <Row icon={I.user} label="Holder"><input style={inputStyle} value={holder} onChange={(e) => setHolder(e.target.value)} placeholder="Name on the account" /></Row>
-        <Row icon={I.bank} label="IBAN" last>
-          <input style={inputStyle} value={iban} onChange={(e) => setIban(e.target.value.toUpperCase())} placeholder="AE00 0000 0000 0000 0000 000" autoCapitalize="characters" />
+        <Row icon={I.user} label="Holder" error={show ? errs.holder : null}>
+          <input style={inputStyle} value={holder} onChange={(e) => setHolder(e.target.value)} placeholder="Name on the account" />
+        </Row>
+        <Row icon={I.bank} label="IBAN" last error={show ? errs.iban : null}>
+          <input style={inputStyle} value={iban} onChange={(e) => setIban(e.target.value.toUpperCase())} placeholder="AE00 0000 0000 0000 0000 000" autoCapitalize="characters" autoCorrect="off" />
         </Row>
       </div>
 
       {outsideUAE && (
-        <div style={{ marginTop: 10, background: '#121215', borderRadius: 16, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 13, minHeight: 44 }}>
-          <span style={{ flex: 'none' }}>{I.bank}</span>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: '#8A8A93', flex: 'none' }}>SWIFT</span>
-          <input style={inputStyle} value={swift} onChange={(e) => setSwift(e.target.value.toUpperCase())} placeholder="Needed outside the UAE" autoCapitalize="characters" />
-        </div>
+        <>
+          <div style={{
+            marginTop: 10, background: '#121215', borderRadius: 16, padding: '13px 16px',
+            display: 'flex', alignItems: 'center', gap: 13, minHeight: 44,
+            border: `1.5px solid ${show && errs.swift ? BAD : 'transparent'}`,
+          }}>
+            <span style={{ flex: 'none' }}>{I.bank}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: show && errs.swift ? BAD : '#8A8A93', flex: 'none' }}>SWIFT</span>
+            <input style={inputStyle} value={swift} onChange={(e) => setSwift(e.target.value.toUpperCase())} placeholder="Needed outside the UAE" autoCapitalize="characters" autoCorrect="off" />
+          </div>
+          {show && errs.swift && (
+            <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 600, color: BAD, animation: 'eFade .22s ease both' }}>{errs.swift}</div>
+          )}
+        </>
       )}
 
-      {clean.length >= 15 && !err && (
+      {ibanGood && !err && (
         <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 700, color: '#1FD16B', lineHeight: 1.4 }}>
-          {clean.startsWith('AE') && clean.length === 23 ? 'Looks like a UAE IBAN, 23 characters.' : `${clean.length} characters.`}
+          {clean.startsWith('AE') ? 'IBAN checks out, UAE, 23 characters.' : `IBAN checks out, ${clean.slice(0, 2)}.`}
         </div>
       )}
       <ErrLine>{err}</ErrLine>
@@ -1092,7 +1262,9 @@ function StepBank({ sub, post, busy, err, onDone }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, fontSize: 12.5, fontWeight: 600, color: '#7E7E87', lineHeight: 1.4 }}>
         <span style={{ flex: 'none' }}>{I.shield}</span>Finance and the bank only. Never the brand.
       </div>
-      <CTA disabled={!ok} busy={busy} onClick={async () => {
+      <CTA busy={busy} onClick={async () => {
+        setShow(true)
+        if (bad) return
         const r = await post('bank', { bank_holder: holder.trim(), bank_iban: clean, bank_swift: swift.trim() || null, bank_country: clean.slice(0, 2) })
         if (r.ok) onDone(r.data)
       }}>Save bank details</CTA>
@@ -1110,21 +1282,38 @@ function StepAddr({ d, sub, post, busy, err, onDone }: {
   const [line, setLine] = useState(sub.address_line || '')
   const [city, setCity] = useState(sub.address_city || '')
   const [phone, setPhone] = useState(sub.address_phone || sub.mobile || '')
-  const ok = line.trim().length > 2 && city.trim().length > 1
+  const [show, setShow] = useState(false)
+  const errs = {
+    line: !line.trim() ? 'We need somewhere to send the product.'
+      : line.trim().length < 6 ? 'Add the building and street, not just a number.' : null,
+    city: !city.trim() ? 'Which city?' : city.trim().length < 2 ? 'That looks too short.' : null,
+    // Required here even though the mobile on step one is optional: a courier cannot
+    // deliver without a number to call on the day.
+    phone: !phone.trim() ? 'The courier needs a number to call on the day.' : vMobile(phone),
+  }
+  const bad = Object.values(errs).some(Boolean)
 
   return (
     <>
       <div style={{ background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
-        <Row icon={I.pin} label="Address"><input style={inputStyle} value={line} onChange={(e) => setLine(e.target.value)} placeholder="Building, street, apartment" /></Row>
-        <Row icon={I.city} label="City"><input style={inputStyle} value={city} onChange={(e) => setCity(e.target.value)} placeholder="Dubai" /></Row>
-        <Row icon={I.phone} label="Phone" last><input style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+971 50 000 0000" inputMode="tel" /></Row>
+        <Row icon={I.pin} label="Address" error={show ? errs.line : null}>
+          <input style={inputStyle} value={line} onChange={(e) => setLine(e.target.value)} placeholder="Building, street, apartment" />
+        </Row>
+        <Row icon={I.city} label="City" error={show ? errs.city : null}>
+          <input style={inputStyle} value={city} onChange={(e) => setCity(e.target.value)} placeholder="Dubai" />
+        </Row>
+        <Row icon={I.phone} label="Phone" last error={show ? errs.phone : null}>
+          <input style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+971 50 000 0000" inputMode="tel" />
+        </Row>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, fontSize: 12.5, fontWeight: 600, color: '#7E7E87', lineHeight: 1.4 }}>
         <span style={{ flex: 'none' }}>{I.box}</span>
         {d.brand ? `${d.brand} is sending product for this campaign.` : 'Where we send product for this campaign.'}
       </div>
       <ErrLine>{err}</ErrLine>
-      <CTA disabled={!ok} busy={busy} onClick={async () => {
+      <CTA busy={busy} onClick={async () => {
+        setShow(true)
+        if (bad) return
         const r = await post('address', { address_line: line.trim(), address_city: city.trim(), address_phone: phone.trim() || null })
         if (r.ok) onDone(r.data)
       }}>Save address</CTA>
@@ -1134,6 +1323,11 @@ function StepAddr({ d, sub, post, busy, err, onDone }: {
 
 // The design's own keyframes, kept verbatim including the reduced-motion opt out.
 const keyframes = `
+/* The page is dark edge to edge, but html and body still carry the app's own light
+   background. On iOS that is exactly what the rubber band shows when you scroll past the
+   end: a white flash under a black page. Set here rather than in the root layout so it
+   applies to this route only and nothing else in the product changes colour. */
+html,body{background:#050506;}
 @keyframes eFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes ePop{0%{opacity:0;transform:scale(.72)}62%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
 @keyframes eBob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-13px) rotate(3deg)}}

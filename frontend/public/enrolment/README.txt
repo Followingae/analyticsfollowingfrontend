@@ -1,12 +1,26 @@
-Enrolment page stickers.
+Enrolment page assets.
 
-sticker-bolt.png came through intact from the Claude Design project.
+These are the real files from the Claude Design project "Inflink Mobile App", taken from
+the handoff export rather than read through the design API. The API caps a single file read
+at 256 KiB, and three of these stickers are larger than that, so they came back truncated
+and would have rendered as broken images.
 
-sticker-coin.png, sticker-signed.png and sticker-youin.png are MISSING: each is
-larger than the 256 KiB cap on reading a file out of the design project, so they
-arrived truncated and would have rendered as broken images. Export them from the
-design project and drop them in here with those exact names.
+What the enrolment design actually references, and where:
 
-The page does not depend on them. Every sticker is rendered through <Sticker>,
-which fails silently to nothing if the file is absent, so the layout is correct
-either way and simply gains the stickers the moment the files land.
+  following-logo.png       the header on every screen, and the splash "partners with
+                           Inflink" row. Black wordmark, inverted to white in CSS exactly
+                           as the design does it.
+  inflink-logo-white.png   the celebration card, the app screen, and the expired screen.
+  sticker-coin.png         splash, and the celebration screen.
+  sticker-signed.png       splash, and the receipt header.
+  sticker-bolt.png         splash, and the celebration screen.
+  sticker-youin.png        splash, and the celebration screen.
+
+cover-studio.png is NOT here on purpose. The design uses it as the talent manager's
+portrait on the cancelled screen. It is a stock photograph, and putting a stranger's face
+next to a real colleague's name in front of a creator presents someone who does not exist,
+so that avatar renders the assigned talent member's initials instead. It was also 3.8 MB
+for a 40 pixel circle.
+
+Every sticker renders through <Sticker>, which fails silently to nothing if a file is
+missing. The layout is correct either way.
