@@ -77,6 +77,9 @@ interface Payload {
   agreement_body?: string
   steps?: StepKey[]
   wants_address?: boolean
+  ready_to_submit?: boolean
+  completed_count?: number
+  step_count?: number
   done?: Record<StepKey, boolean>
   retract_reason?: string | null
   talent_name?: string | null
@@ -407,6 +410,9 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   const steps = useMemo<StepKey[]>(() => (data?.steps?.length ? data.steps : ['email', 'sign', 'bank']), [data])
   const done = data?.done ?? ({} as Record<StepKey, boolean>)
   const count = steps.filter((s) => done[s]).length
+  // Every step saved but nothing submitted yet. The server is the authority; the
+  // local fallback keeps the button honest between a save and the next payload.
+  const ready = data?.ready_to_submit ?? (count === steps.length && !data?.submitted?.completed_at)
 
   // The first unfinished card, so a creator coming back lands where they stopped rather
   // than on a card they already ticked.
@@ -478,13 +484,23 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   }, [data, done, steps, active])
 
   const advance = useCallback((justDone: StepKey, fresh?: Payload) => {
-    const d = fresh?.done ?? {}
-    const nowDone = { ...done, ...d, [justDone]: true } as Record<StepKey, boolean>
-    if (steps.every((s) => nowDone[s])) { setScreen('done'); setOpen(null); return }
-    const nextIdx = steps.findIndex((s) => !nowDone[s])
-    setActive(nextIdx < 0 ? 0 : nextIdx)
-    setOpen(null)
-    setScreen('deck')
+    const d2 = fresh?.done ?? {}
+    const nowDone = { ...done, ...d2, [justDone]: true } as Record<StepKey, boolean>
+    const next = steps.find((k) => !nowDone[k])
+    if (!next) {
+      // Everything is saved. Back to the deck, where the button is now green and says
+      // Submit. Deliberately NOT straight to the celebration: nothing is submitted until
+      // they say so, and jumping past that would be the old silent behaviour again.
+      setOpen(null); setGate(null); setScreen('deck')
+      setActive(steps.length - 1)
+      return
+    }
+    // Straight into the next card's form. Bouncing back to the deck between every step
+    // makes somebody tap twice to carry on with a thing they are already doing.
+    setGate(null); setErr(null)
+    setOpen(next)
+    setActive(steps.indexOf(next))
+    setScreen('step')
   }, [done, steps])
 
   if (loading) {
@@ -910,21 +926,43 @@ export default function EnrolmentFlow({ token }: { token: string }) {
             there by padding. On a short phone the padded version put the button below the
             fold and the deck looked like it had no controls. */}
         <div style={{ position: 'absolute', left: 22, right: 22, bottom: 30 }}>
-          <div style={{ display: 'flex', gap: 7 }}>
-            {steps.map((k, i) => (
-              <div key={k} onClick={() => setActive(i)} style={{
-                height: 7, width: i === active ? 26 : 7, borderRadius: 99, cursor: 'pointer',
-                background: done[k] ? '#1FD16B' : i === active ? '#FFFFFF' : '#2E2E34',
-                transition: 'width .4s ease, background .3s ease',
-              }} />
-            ))}
+          {/* A count, not dots. Dots say "there are some steps"; a number says how many
+              are left, which is the only thing somebody halfway through wants to know. */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: ready ? '#1FD16B' : '#fff' }}>
+              Completed {count} / {steps.length}
+            </span>
+            {!ready && (
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: '#7E7E87' }}>
+                {steps.length - count === 1 ? 'one left' : `${steps.length - count} left`}
+              </span>
+            )}
           </div>
-          <div style={{ display: 'flex', gap: 9, marginTop: 16 }}>
+
+          <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
             <button onClick={() => setActive((p) => (p + steps.length - 1) % steps.length)} style={{ width: 52, height: 52, borderRadius: '50%', background: '#17171A', display: 'grid', placeItems: 'center', flex: 'none', border: 'none', cursor: 'pointer' }}>{I.left}</button>
-            <button onClick={() => openStep(steps[active])} style={{
-              flex: 1, background: '#fff', color: '#050506', borderRadius: 20, padding: 17, textAlign: 'center',
-              fontSize: 16, fontWeight: 700, minHeight: 44, border: 'none', fontFamily: 'inherit', cursor: 'pointer',
-            }}>{done[steps[active]] ? 'Review this step' : 'Open this step'}</button>
+            {/* One button. Grey while anything is outstanding, and pressing it then takes
+                you to the first thing that is; green and submitting once nothing is. */}
+            <button
+              onClick={async () => {
+                if (!ready) {
+                  const firstOpen = steps.find((k) => !done[k])
+                  if (firstOpen) openStep(firstOpen)
+                  return
+                }
+                const r = await post('submit')
+                if (r.ok) setScreen('done')
+              }}
+              disabled={busy}
+              style={{
+                flex: 1, borderRadius: 20, padding: 17, textAlign: 'center',
+                fontSize: 16, fontWeight: 700, minHeight: 44, border: 'none',
+                fontFamily: 'inherit', cursor: busy ? 'default' : 'pointer',
+                background: ready ? '#1FD16B' : '#1C1C20',
+                color: ready ? '#04170C' : '#5E5E66',
+                transition: 'background .3s ease, color .3s ease',
+              }}
+            >{busy ? 'One moment…' : ready ? 'Submit' : 'Submit'}</button>
             <button onClick={() => setActive((p) => (p + 1) % steps.length)} style={{ width: 52, height: 52, borderRadius: '50%', background: '#17171A', display: 'grid', placeItems: 'center', flex: 'none', border: 'none', cursor: 'pointer' }}>{I.right}</button>
           </div>
           <button
@@ -990,16 +1028,11 @@ export default function EnrolmentFlow({ token }: { token: string }) {
         <div style={{
           width: '100%', maxWidth: 430, padding: '16px 22px 22px',
           background: 'linear-gradient(to top,#050506 62%,rgba(5,5,6,0))',
+          textAlign: 'center',
         }}>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {steps.map((sk, i) => (
-              <div key={sk} style={{
-                flex: 1, height: 5, borderRadius: 99,
-                background: done[sk] ? '#1FD16B' : sk === key ? '#FFFFFF' : '#2E2E34',
-                transition: 'background .3s ease',
-              }} />
-            ))}
-          </div>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: count === steps.length ? '#1FD16B' : '#8A8A93' }}>
+            Completed {count} / {steps.length}
+          </span>
         </div>
       </div>
     </Shell>
