@@ -258,6 +258,45 @@ const ErrLine = ({ children }: { children?: React.ReactNode }) =>
 // Validation, in one place so the four steps cannot disagree about what "valid" means.
 // Each returns the message to show, or null.
 // ---------------------------------------------------------------------------------------
+/**
+ * The API's error codes, as sentences.
+ *
+ * The public routes answer with machine strings: `email_not_verified`, `code_wrong`,
+ * `link_expired`. Those are for logs and for this map. Putting one on screen shouts
+ * EMAIL_NOT_VERIFIED at somebody who was trying to sign a contract, which is what happened,
+ * and it is worse than saying nothing because it reads like the page broke.
+ *
+ * Anything not listed falls through to its own text, so a message the server writes for a
+ * human (the IBAN checksum line, for instance) still reaches them unchanged.
+ */
+const SAYS: Record<string, string> = {
+  email_not_verified: 'Confirm your email first. It is how we know this agreement is yours.',
+  invalid_email: 'That does not look like an email address.',
+  no_email_yet: 'Enter your details first.',
+  no_code: 'We have not sent you a code yet.',
+  code_wrong: 'That code is not right. Check the email again.',
+  code_expired: 'That code has expired. Ask for a new one.',
+  code_used: 'That code has already been used. Ask for a new one.',
+  too_many_attempts: 'Too many tries. Ask for a new code.',
+  too_many_codes: 'Too many codes requested. Wait a few minutes and try again.',
+  already_signed: 'You have already signed this one.',
+  not_all_agreed: 'Tick all three to sign.',
+  invalid_dob: 'Please check your date of birth.',
+  under_18: 'You need to be 18 or older to sign a campaign agreement.',
+  not_signed: 'Nothing has been signed yet.',
+  link_expired: 'This link has expired. Ask whoever sent it for a new one.',
+  link_not_live: 'This link is not active. Ask whoever sent it for a new one.',
+  link_not_found: 'This link does not work. Check with whoever sent it.',
+  link_reported: 'This link has been closed.',
+}
+const saysWhat = (detail: unknown) =>
+  typeof detail === 'string'
+    ? (SAYS[detail] ?? (/^[a-z0-9_]+$/.test(detail)
+        // An unmapped machine code is a bug in this map, not copy. Never show it.
+        ? 'That did not go through. Try again.'
+        : detail))
+    : 'That did not go through. Try again.'
+
 const vName = (v: string) =>
   !v.trim() ? 'We need your name for the agreement.'
     : v.trim().length < 2 ? 'That looks too short.'
@@ -342,6 +381,8 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   // also what re-enables the CSS transition so the release snaps instead of jumping.
   const [drag, setDrag] = useState<number | null>(null)
   const dragFrom = useRef<{ x: number; y: number } | null>(null)
+  // Why a locked card sent you somewhere else. Shown at the top of the step it sent you to.
+  const [gate, setGate] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -360,7 +401,6 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   const steps = useMemo<StepKey[]>(() => (data?.steps?.length ? data.steps : ['email', 'sign', 'bank', 'addr']), [data])
   const done = data?.done ?? ({} as Record<StepKey, boolean>)
   const count = steps.filter((s) => done[s]).length
-  const left = steps.length - count
 
   // The first unfinished card, so a creator coming back lands where they stopped rather
   // than on a card they already ticked.
@@ -381,9 +421,13 @@ export default function EnrolmentFlow({ token }: { token: string }) {
       const j = await r.json().catch(() => ({}))
       if (!r.ok) {
         if (r.status === 451) { setScreen('under'); return { ok: false as const } }
-        // FastAPI puts the message in `detail`, and for these routes it is written to be
-        // read by the creator, so it is shown rather than replaced with a generic line.
-        setErr(typeof j?.detail === 'string' ? j.detail : 'That did not go through. Try again.')
+        // FastAPI puts a machine code in `detail`. `saysWhat` turns it into a sentence; a
+        // code that reaches the screen is a bug in that map, not a message.
+        setErr(saysWhat(j?.detail))
+        // A link that died under them, or an identity gate, is not a field level problem.
+        // Re-reading the link puts the page on the right screen instead of leaving them on
+        // a form that can no longer be submitted.
+        if (r.status === 410 || j?.detail === 'email_not_verified') await load()
         return { ok: false as const }
       }
       if (j?.data) setData(j.data)
@@ -395,6 +439,37 @@ export default function EnrolmentFlow({ token }: { token: string }) {
       setBusy(false)
     }
   }, [token])
+
+  /**
+   * Open a card.
+   *
+   * The deck lets you tap any step in any order, and that is right: it is a deck, not a
+   * wizard. But three of the four steps cannot be WRITTEN until the email behind them is
+   * confirmed, because an agreement signed by an unverified address is signed by nobody,
+   * and bank details from an unverified address are the exact fraud a forwarded link
+   * invites. The server refuses those writes and always will.
+   *
+   * So the gate is honest here instead of being discovered at the bottom of a filled in
+   * form. Tapping a locked card says why in a sentence and takes you to the step that
+   * unlocks it, rather than opening a form that cannot be submitted.
+   */
+  const openStep = useCallback((k: StepKey) => {
+    setErr(null)
+    const verified = !!data?.submitted?.email
+      && !!(data as Payload & { submitted?: { email_verified_at?: string | null } })
+        .submitted?.email_verified_at
+    if (k !== 'email' && !verified && !done.email) {
+      setGate('Confirm your email first. It is how we know the agreement is yours.')
+      setOpen('email')
+      setActive(steps.indexOf('email') < 0 ? 0 : steps.indexOf('email'))
+      setScreen('step')
+      return
+    }
+    setGate(null)
+    setOpen(k)
+    setActive(steps.indexOf(k) < 0 ? active : steps.indexOf(k))
+    setScreen('step')
+  }, [data, done, steps, active])
 
   const advance = useCallback((justDone: StepKey, fresh?: Payload) => {
     const d = fresh?.done ?? {}
@@ -729,9 +804,9 @@ export default function EnrolmentFlow({ token }: { token: string }) {
 
   // ---- the deck ----------------------------------------------------------------------
   if (screen === 'deck') {
-    const headline = count === 0
-      ? `${steps.length} steps to\nget you paid.`
-      : left === 0 ? 'All done.' : left === 1 ? 'One step left.' : `${left} steps left.`
+    // NOTE: the design computes a `deckHead` line ("Four steps to get you paid") in its
+    // state and never renders it anywhere in the markup. It is dead code in the mock, not
+    // part of the screen, and putting it on the page was my invention.
     return (
       <Shell animKey="deck">
         <div style={{ padding: '22px 22px 0' }}>
@@ -741,18 +816,17 @@ export default function EnrolmentFlow({ token }: { token: string }) {
             </div>
             <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.12em', color: '#8A8A93', textTransform: 'uppercase' }}>{d.brand}</div>
           </div>
-          <div style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-.035em', lineHeight: 1.05, marginTop: 12 }}>{d.campaign}</div>
+          <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-.035em', lineHeight: 1.05, marginTop: 12 }}>{d.campaign}</div>
           {d.fee_aed_cents != null && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 14 }}>
               <div style={{ width: 30, height: 30, borderRadius: 10, background: '#131316', display: 'grid', placeItems: 'center', flex: 'none' }}>{I.wallet}</div>
               <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-.02em' }}>{money(d.fee_aed_cents)}</div>
             </div>
           )}
-          <div style={{ marginTop: 18, fontSize: 13, fontWeight: 600, color: '#8A8A93', whiteSpace: 'pre-line' }}>{headline}</div>
         </div>
 
         <div
-          style={{ overflow: 'hidden', marginTop: 18, touchAction: 'pan-y' }}
+          style={{ overflow: 'hidden', marginTop: 22, touchAction: 'pan-y' }}
           onPointerDown={(e) => { dragFrom.current = { x: e.clientX, y: e.clientY } }}
           onPointerMove={(e) => {
             if (!dragFrom.current) return
@@ -784,12 +858,21 @@ export default function EnrolmentFlow({ token }: { token: string }) {
               const isDone = done[k]
               const act = i === active
               return (
-                <div key={k} onClick={() => setActive(i)} style={{
-                  width: 262, height: 352, flex: 'none', borderRadius: 30, background: GRAD[k],
-                  position: 'relative', overflow: 'hidden', opacity: act ? 1 : .5,
-                  transform: `scale(${act ? 1 : .93})`, cursor: 'pointer',
-                  transition: 'transform .52s cubic-bezier(.22,1,.36,1), opacity .4s ease',
-                }}>
+                <div
+                  key={k}
+                  onClick={() => {
+                    // A drag that moved is a swipe, not a tap. Without this, letting go
+                    // after sliding the deck opens whatever card is under your finger.
+                    if (drag !== null && Math.abs(drag) > 6) return
+                    if (act) openStep(k)      // the front card opens
+                    else setActive(i)          // any other card comes to the front first
+                  }}
+                  style={{
+                    width: 262, height: 352, flex: 'none', borderRadius: 30, background: GRAD[k],
+                    position: 'relative', overflow: 'hidden', opacity: act ? 1 : .5,
+                    transform: `scale(${act ? 1 : .93})`, cursor: 'pointer',
+                    transition: 'transform .52s cubic-bezier(.22,1,.36,1), opacity .4s ease',
+                  }}>
                   <svg width="262" height="352" viewBox="0 0 262 352" fill="none" style={{ position: 'absolute', inset: 0 }}>
                     <path d="M-20 268C40 250 96 214 118 158C140 102 196 66 282 74" stroke="rgba(255,255,255,.55)" strokeWidth="15" strokeLinecap="round" />
                     <ellipse cx="214" cy="286" rx="96" ry="76" fill="rgba(255,255,255,.14)" />
@@ -817,7 +900,10 @@ export default function EnrolmentFlow({ token }: { token: string }) {
           </div>
         </div>
 
-        <div style={{ padding: '26px 22px 30px' }}>
+        {/* Absolutely positioned at bottom 30, as the design has it, rather than pushed
+            there by padding. On a short phone the padded version put the button below the
+            fold and the deck looked like it had no controls. */}
+        <div style={{ position: 'absolute', left: 22, right: 22, bottom: 30 }}>
           <div style={{ display: 'flex', gap: 7 }}>
             {steps.map((k, i) => (
               <div key={k} onClick={() => setActive(i)} style={{
@@ -829,7 +915,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
           </div>
           <div style={{ display: 'flex', gap: 9, marginTop: 16 }}>
             <button onClick={() => setActive((p) => (p + steps.length - 1) % steps.length)} style={{ width: 52, height: 52, borderRadius: '50%', background: '#17171A', display: 'grid', placeItems: 'center', flex: 'none', border: 'none', cursor: 'pointer' }}>{I.left}</button>
-            <button onClick={() => { setOpen(steps[active]); setScreen('step'); setErr(null) }} style={{
+            <button onClick={() => openStep(steps[active])} style={{
               flex: 1, background: '#fff', color: '#050506', borderRadius: 20, padding: 17, textAlign: 'center',
               fontSize: 16, fontWeight: 700, minHeight: 44, border: 'none', fontFamily: 'inherit', cursor: 'pointer',
             }}>{done[steps[active]] ? 'Review this step' : 'Open this step'}</button>
@@ -861,7 +947,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
           <path d="M-20 140C64 124 136 90 178 40C220 -10 306 -8 410 26" stroke="rgba(255,255,255,.42)" strokeWidth="16" strokeLinecap="round" />
           <ellipse cx="322" cy="150" rx="104" ry="66" fill="rgba(255,255,255,.13)" />
         </svg>
-        <button onClick={() => { setScreen('deck'); setOpen(null); setErr(null) }} style={{
+        <button onClick={() => { setScreen('deck'); setOpen(null); setErr(null); setGate(null) }} style={{
           position: 'absolute', left: 18, top: 14, width: 44, height: 44, borderRadius: '50%',
           background: 'rgba(0,0,0,.26)', backdropFilter: 'blur(8px)', display: 'grid', placeItems: 'center',
           border: 'none', cursor: 'pointer',
@@ -875,11 +961,41 @@ export default function EnrolmentFlow({ token }: { token: string }) {
         </div>
       </div>
 
-      <div style={{ padding: '17px 22px 40px' }}>
+      <div style={{ padding: '17px 22px 46px' }}>
+        {gate && (
+          <div style={{
+            marginBottom: 14, background: '#131316', borderRadius: 16, padding: '13px 16px',
+            fontSize: 13, fontWeight: 600, color: '#C8C8D0', lineHeight: 1.5,
+            animation: 'eFade .3s ease both',
+          }}>{gate}</div>
+        )}
         {key === 'email' && <StepEmail d={d} sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('email', f)} />}
         {key === 'sign' && <StepSign d={d} sub={sub} post={post} busy={busy} err={err} openAgreement={() => setScreen('agreement')} onDone={(f) => advance('sign', f)} />}
         {key === 'bank' && <StepBank sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('bank', f)} />}
         {key === 'addr' && <StepAddr d={d} sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('addr', f)} />}
+      </div>
+
+      {/* The design's own progress strip along the bottom of a step, which the port had
+          dropped: the four dots as full width bars, over a fade so content scrolls under
+          it rather than colliding with it. */}
+      <div style={{
+        position: 'fixed', left: 0, right: 0, bottom: 0, display: 'flex', justifyContent: 'center',
+        pointerEvents: 'none',
+      }}>
+        <div style={{
+          width: '100%', maxWidth: 430, padding: '16px 22px 22px',
+          background: 'linear-gradient(to top,#050506 62%,rgba(5,5,6,0))',
+        }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {steps.map((sk, i) => (
+              <div key={sk} style={{
+                flex: 1, height: 5, borderRadius: 99,
+                background: done[sk] ? '#1FD16B' : sk === key ? '#FFFFFF' : '#2E2E34',
+                transition: 'background .3s ease',
+              }} />
+            ))}
+          </div>
+        </div>
       </div>
     </Shell>
   )
