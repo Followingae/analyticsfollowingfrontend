@@ -74,6 +74,7 @@ interface Payload {
   steps?: StepKey[]
   done?: Record<StepKey, boolean>
   retract_reason?: string | null
+  talent_name?: string | null
   submitted?: Submitted
 }
 
@@ -118,6 +119,66 @@ function Sticker({ src, style, className }: { src: string; style: React.CSSPrope
 function Logo({ h = 15, className = '' }: { h?: number; className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element
   return <img src="/followinglogo.svg" alt="Following" style={{ height: h, filter: 'invert(1)', opacity: 0.95 }} className={className} />
+}
+
+/** The Inflink wordmark. The design uses it in three places on the phone and a text
+ *  substitute is not the mark: it is a different typeface at a different weight. */
+function InflinkLogo({ h = 16, opacity = 1 }: { h?: number; opacity?: number }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src="/enrolment/inflink-logo-white.png" alt="Inflink"
+              style={{ height: h, width: 'auto', display: 'block', opacity }} />
+}
+
+/**
+ * The phone shell and the header that sits on top of EVERY screen.
+ *
+ * Both are declared at module scope, and that is load bearing rather than tidiness. They
+ * used to be arrow functions inside the component, which makes React see a NEW component
+ * type on every render: the whole subtree unmounts and remounts, so a step form lost the
+ * values somebody had just typed the moment any parent state changed.
+ *
+ * In the design the header sits OUTSIDE every `sc-if`, so it renders on all ten screens.
+ * It carries z-index 9 and the screens are absolutely positioned with no z-index of their
+ * own, which is what lets a full bleed splash pass underneath it rather than over it.
+ */
+function Shell({ children, head = true, animKey }: {
+  children: React.ReactNode; head?: boolean; animKey?: string
+}) {
+  return (
+    <div style={{
+      minHeight: '100dvh', background: '#050506', color: '#fff',
+      fontFamily: "'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif",
+      display: 'flex', justifyContent: 'center',
+    }}>
+      <style>{keyframes}</style>
+      <div style={{ width: '100%', maxWidth: 430, position: 'relative', overflow: 'hidden', minHeight: '100dvh' }}>
+        {head && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '18px 22px 0', position: 'relative', zIndex: 9,
+          }}>
+            <Logo />
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.03em', color: '#9A9AA2' }}>
+              Digital Creator Enrolment
+            </div>
+          </div>
+        )}
+        {/* `key` on the moving part, so React swaps the node and the entrance animation
+            replays. Without it the element is reused and the keyframe never runs again,
+            which is why the screens snapped rather than arrived.
+
+            OPACITY ONLY, deliberately. Half these screens position themselves with
+            `inset: 0` against the container above, and any non-none transform on this
+            wrapper would make IT their containing block for the 0.42s the animation runs,
+            so the splash would lay itself out against a shrink-wrapped box and jump into
+            place when the animation ended. The per-element rise still happens: the design's
+            own dFade keyframes do it on the content inside. */}
+        <div key={animKey} style={{ animation: 'eScreen .34s ease both' }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------------------
@@ -195,6 +256,10 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [reporting, setReporting] = useState(false)
+  // Live finger offset while dragging the deck, in px. Null when not dragging, which is
+  // also what re-enables the CSS transition so the release snaps instead of jumping.
+  const [drag, setDrag] = useState<number | null>(null)
+  const dragFrom = useRef<{ x: number; y: number } | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -259,26 +324,6 @@ export default function EnrolmentFlow({ token }: { token: string }) {
     setScreen('deck')
   }, [done, steps])
 
-  // ---- shell ------------------------------------------------------------------------
-  const Shell = ({ children }: { children: React.ReactNode }) => (
-    <div style={{
-      minHeight: '100dvh', background: '#050506', color: '#fff',
-      fontFamily: "'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif",
-      display: 'flex', justifyContent: 'center',
-    }}>
-      <div style={{ width: '100%', maxWidth: 430, position: 'relative', overflow: 'hidden', minHeight: '100dvh' }}>
-        {children}
-      </div>
-    </div>
-  )
-
-  const Head = () => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px 0', position: 'relative', zIndex: 9 }}>
-      <Logo />
-      <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.03em', color: '#9A9AA2' }}>Digital Creator Enrolment</div>
-    </div>
-  )
-
   if (loading) {
     return <Shell><div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: '#5E5E66', fontSize: 14 }}>Loading…</div></Shell>
   }
@@ -289,13 +334,16 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   // ---- edge states -------------------------------------------------------------------
   if (d.view === 'expired') {
     return (
-      <Shell>
+      <Shell animKey="expired">
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 44px', textAlign: 'center' }}>
           <div style={{ width: 66, height: 66, borderRadius: 22, background: '#17171A', display: 'grid', placeItems: 'center' }}>
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v5" /><path d="M12 16h.01" /></svg>
           </div>
           <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-.025em', marginTop: 22 }}>This link does not work</div>
           <div style={{ fontSize: 14, fontWeight: 500, color: '#8A8A93', marginTop: 10, lineHeight: 1.55 }}>Check with whoever sent it to you.</div>
+        </div>
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 32, display: 'flex', justifyContent: 'center' }}>
+          <InflinkLogo h={17} opacity={0.4} />
         </div>
       </Shell>
     )
@@ -304,7 +352,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   if (d.view === 'cancelled' || d.view === 'notme') {
     const isNotMe = d.view === 'notme'
     return (
-      <Shell>
+      <Shell animKey="dead">
         <div style={{ padding: '60px 30px 0', textAlign: 'center' }}>
           <div style={{ width: 66, height: 66, borderRadius: 22, background: '#17171A', margin: '0 auto', display: 'grid', placeItems: 'center' }}>
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
@@ -326,13 +374,25 @@ export default function EnrolmentFlow({ token }: { token: string }) {
         <div style={{ margin: '12px 24px 0', background: '#131316', borderRadius: 18, padding: '15px 17px', fontSize: 13, fontWeight: 500, color: '#B4B4BC', lineHeight: 1.55 }}>
           If you already signed, your agreement is kept and marked terminated. Anything owed to you will be settled.
         </div>
+        {d.talent_name && (
+          <div style={{ margin: '12px 24px 0', background: '#131316', borderRadius: 18, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: '50%', flex: 'none', display: 'grid', placeItems: 'center',
+              background: 'linear-gradient(150deg,#2A2A32,#17171A)', fontSize: 14, fontWeight: 800, color: '#C8C8D0',
+            }}>{d.talent_name.slice(0, 2).toUpperCase()}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{d.talent_name}, talent manager</div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: '#8A8A93' }}>Following</div>
+            </div>
+          </div>
+        )}
       </Shell>
     )
   }
 
   if (screen === 'under') {
     return (
-      <Shell>
+      <Shell animKey="under">
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 34px' }}>
           <div style={{ width: 66, height: 66, borderRadius: 22, background: '#17171A', display: 'grid', placeItems: 'center' }}>
             <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="1.8" strokeLinecap="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5" /><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5" /></svg>
@@ -365,7 +425,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
       ...(sub.address_city ? [{ t: 'Delivery address', v: sub.address_city, grad: GRAD.addr }] : []),
     ]
     return (
-      <Shell>
+      <Shell animKey="receipt">
         <div style={{ padding: '22px 22px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
             <Sticker src="/enrolment/sticker-signed.png" style={{ width: 52 }} />
@@ -423,9 +483,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   // ---- splash ------------------------------------------------------------------------
   if (screen === 'splash') {
     return (
-      <Shell>
-        <style>{keyframes}</style>
-        <Head />
+      <Shell animKey="splash">
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
           <div className="eGlow" style={{ position: 'absolute', top: -90, left: -70, width: 330, height: 330, borderRadius: '50%', background: 'radial-gradient(circle,rgba(166,61,232,.55),transparent 68%)', filter: 'blur(42px)' }} />
           <div className="eGlow" style={{ position: 'absolute', top: 150, right: -90, width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,77,10,.45),transparent 68%)', filter: 'blur(44px)' }} />
@@ -462,8 +520,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   if (screen === 'done') {
     const first = (sub.full_name || d.creator_name || '').split(' ')[0]
     return (
-      <Shell>
-        <style>{keyframes}</style>
+      <Shell animKey="done">
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
           <div className="eGlow" style={{ position: 'absolute', top: -70, left: '50%', marginLeft: -160, width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle,rgba(31,209,107,.5),transparent 68%)', filter: 'blur(44px)' }} />
           <div className="eGlow" style={{ position: 'absolute', bottom: 60, right: -70, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,122,217,.42),transparent 70%)', filter: 'blur(44px)' }} />
@@ -502,7 +559,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
 
           <div style={{ position: 'absolute', left: 24, right: 24, bottom: 26, background: '#17171B', border: '1px solid #26262C', borderRadius: 22, padding: 18, boxShadow: '0 18px 44px -20px rgba(0,0,0,.8)', animation: 'eFade .8s ease .95s both' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-.03em', color: '#fff' }}>inflink</span>
+              <InflinkLogo h={16} />
               <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.1em', color: '#7E7E87' }}>NEXT</span>
             </div>
             <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: '-.02em', lineHeight: 1.3, marginTop: 11 }}>
@@ -535,9 +592,9 @@ export default function EnrolmentFlow({ token }: { token: string }) {
       { t: 'Get booked by other brands', dd: 'Brands on Inflink can book you directly.', grad: GRAD.addr },
     ]
     return (
-      <Shell>
+      <Shell animKey="app">
         <div style={{ padding: '26px 24px 0' }}>
-          <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.03em' }}>inflink</span>
+          <InflinkLogo h={22} />
           <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-.035em', lineHeight: 1.06, marginTop: 26 }}>Your account is<br />already made</div>
           <div style={{ fontSize: 14.5, fontWeight: 500, color: '#9A9AA2', marginTop: 12, lineHeight: 1.55 }}>
             Sign in with <span style={{ color: '#fff', fontWeight: 700 }}>{sub.email}</span> and everything here is waiting.
@@ -570,7 +627,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   // ---- the agreement, in full --------------------------------------------------------
   if (screen === 'agreement') {
     return (
-      <Shell>
+      <Shell animKey="agreement">
         <div style={{ padding: '22px 22px 40px' }}>
           <button onClick={() => setScreen('step')} style={{
             width: 44, height: 44, borderRadius: '50%', background: '#17171A', display: 'grid', placeItems: 'center',
@@ -592,8 +649,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
       ? `${steps.length} steps to\nget you paid.`
       : left === 0 ? 'All done.' : left === 1 ? 'One step left.' : `${left} steps left.`
     return (
-      <Shell>
-        <style>{keyframes}</style>
+      <Shell animKey="deck">
         <div style={{ padding: '22px 22px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
             <div style={{ width: 26, height: 26, borderRadius: 8, background: 'linear-gradient(150deg,#1FD16B,#0E7A3A)', display: 'grid', placeItems: 'center', flex: 'none' }}>
@@ -611,8 +667,35 @@ export default function EnrolmentFlow({ token }: { token: string }) {
           <div style={{ marginTop: 18, fontSize: 13, fontWeight: 600, color: '#8A8A93', whiteSpace: 'pre-line' }}>{headline}</div>
         </div>
 
-        <div style={{ overflow: 'hidden', marginTop: 18 }}>
-          <div style={{ display: 'flex', gap: 16, paddingLeft: 22, transform: `translateX(${-active * 278}px)`, transition: 'transform .52s cubic-bezier(.22,1,.36,1)' }}>
+        <div
+          style={{ overflow: 'hidden', marginTop: 18, touchAction: 'pan-y' }}
+          onPointerDown={(e) => { dragFrom.current = { x: e.clientX, y: e.clientY } }}
+          onPointerMove={(e) => {
+            if (!dragFrom.current) return
+            const dx = e.clientX - dragFrom.current.x
+            const dy = e.clientY - dragFrom.current.y
+            // Let a vertical scroll win. Without this the deck grabs every attempt to
+            // scroll the page and the screen feels stuck.
+            if (Math.abs(dy) > Math.abs(dx)) { dragFrom.current = null; setDrag(null); return }
+            // Resist past the ends so the deck feels bounded rather than broken.
+            const atEnd = (dx > 0 && active === 0) || (dx < 0 && active === steps.length - 1)
+            setDrag(atEnd ? dx * 0.28 : dx)
+          }}
+          onPointerUp={() => {
+            if (drag !== null && Math.abs(drag) > 56) {
+              setActive((p) => Math.min(steps.length - 1, Math.max(0, p + (drag < 0 ? 1 : -1))))
+            }
+            dragFrom.current = null; setDrag(null)
+          }}
+          onPointerCancel={() => { dragFrom.current = null; setDrag(null) }}
+          onPointerLeave={() => { dragFrom.current = null; setDrag(null) }}
+        >
+          <div style={{
+            display: 'flex', gap: 16, paddingLeft: 22,
+            transform: `translateX(${-active * 278 + (drag ?? 0)}px)`,
+            // No transition while a finger is down, or the cards lag behind it.
+            transition: drag === null ? 'transform .52s cubic-bezier(.22,1,.36,1)' : 'none',
+          }}>
             {steps.map((k, i) => {
               const isDone = done[k]
               const act = i === active
@@ -688,8 +771,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   const def = DEFS[key]
 
   return (
-    <Shell>
-      <style>{keyframes}</style>
+    <Shell animKey={`step-${key}`}>
       <div style={{ height: 158, background: GRAD[key], position: 'relative', overflow: 'hidden' }}>
         <svg width="430" height="158" viewBox="0 0 390 158" fill="none" style={{ position: 'absolute', inset: 0, width: '100%' }} preserveAspectRatio="none">
           <path d="M-20 140C64 124 136 90 178 40C220 -10 306 -8 410 26" stroke="rgba(255,255,255,.42)" strokeWidth="16" strokeLinecap="round" />
@@ -1058,6 +1140,7 @@ const keyframes = `
 @keyframes eTwinkle{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
 @keyframes eConf{0%{opacity:0;transform:translateY(-40px) rotate(0)}10%{opacity:1}100%{opacity:.85;transform:translateY(700px) rotate(460deg)}}
 @keyframes eGlow{0%,100%{opacity:.5}50%{opacity:.85}}
+@keyframes eScreen{from{opacity:0}to{opacity:1}}
 .eBob{animation:eBob 5s ease-in-out infinite}
 .eTw{animation:eTwinkle 3.2s ease-in-out infinite;display:block}
 .eGlow{animation:eGlow 6s ease-in-out infinite}
