@@ -8,18 +8,19 @@
  * because it is always about one creator you are already looking at, and sending somebody
  * to a separate screen to do it loses the row they came from.
  *
- * WHAT IS PREFILLED AND WHY IT IS STILL EDITABLE. Everything comes from the proposal:
- * brand, campaign, deliverables, fee, deadline. All of it can be overridden here, because
- * the number the creator is offered is the negotiated cost and that is a conversation the
- * talent team has, not something the proposal always knows. What is typed here is frozen
- * onto the link, so an edit to the proposal afterwards cannot move a signed deal.
+ * THE FEE IS NOT TYPED HERE. It is the negotiated cost leadership already settled on the
+ * campaign's costs screen, shown read only with the name of whoever agreed it. Letting the
+ * person sending the link retype it would put cost control back in the hands it was
+ * deliberately taken out of, and the proposal's own quote is the WRONG number: on the live
+ * Lago campaign the quote and the settled rate differ on most of the roster.
+ *
+ * THERE IS NO APPROVAL STEP. Setting that cost was the approval. Everything else here is
+ * presentation the talent team may reasonably adjust: how the brand and campaign are named
+ * to the creator, the deadline, the usage line, the payment split.
  *
  * THE TWO STEPS THAT CANNOT BE SWITCHED OFF. Identity and signature are locked on. An
  * agreement signed by somebody we cannot name is not an agreement, so the toggles for those
  * are disabled here and the server forces them on regardless of what this sends.
- *
- * WHO SEES WHAT HAPPENS ON SAVE. Leadership creates a live link. Anybody else creates a
- * request, and the dialog says so before they press the button rather than after.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -165,7 +166,7 @@ export function CreateEnrolmentDialog({
 
   // ---- the after state --------------------------------------------------------------
   if (result) {
-    const live = result.status === "live"
+    const live = true
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-[560px]">
@@ -233,6 +234,13 @@ export function CreateEnrolmentDialog({
 
         {!loading && pre && (
           <div className="space-y-6">
+            {pre.ready === false && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
+                <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600" />
+                <span>{pre.not_ready_reason || "This creator is not ready to be enrolled yet."}</span>
+              </div>
+            )}
+
             {blocked && (
               <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
                 <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-600" />
@@ -276,10 +284,15 @@ export function CreateEnrolmentDialog({
                 <Input value={deliverables} onChange={(e) => setDeliverables(e.target.value)} placeholder="1 Reel, 3 Stories" />
               </div>
               <div className="space-y-1.5">
-                <Label>Their fee (AED)</Label>
-                <Input value={feeAed} onChange={(e) => setFeeAed(e.target.value)} inputMode="decimal" placeholder="4500" />
+                <Label>Their fee</Label>
+                <div className="flex h-9 items-center rounded-md border bg-muted/40 px-3 text-sm font-semibold tabular-nums">
+                  {feeCents != null
+                    ? `AED ${(feeCents / 100).toLocaleString("en-AE")}`
+                    : "Not settled"}
+                </div>
                 <p className="text-[11px] text-muted-foreground">
-                  What we pay them, not what we charge the brand.
+                  The negotiated cost{pre.fee_agreed_by_name ? `, settled by ${pre.fee_agreed_by_name}` : ""}.
+                  Change it on the campaign's costs screen, not here.
                 </p>
               </div>
               <div className="space-y-1.5">
@@ -380,19 +393,18 @@ export function CreateEnrolmentDialog({
               </div>
             )}
 
-            <div className={`rounded-lg border p-3 text-sm ${createsLive ? "border-emerald-500/30 bg-emerald-500/5" : "border-amber-500/30 bg-amber-500/5"}`}>
-              {createsLive
-                ? "You can approve your own links, so this one goes live the moment you save it."
-                : "This goes to a superadmin for approval before it works. You will be emailed the link once it is approved."}
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
+              This goes live the moment you save it. There is no approval step: settling the
+              cost was the approval, and this link carries that exact number.
             </div>
           </div>
         )}
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={submit} disabled={saving || loading || !pre || !!blocked}>
+          <Button onClick={submit} disabled={saving || loading || !pre || !!blocked || pre?.ready === false}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {createsLive ? "Create the link" : "Send for approval"}
+            Create the link
           </Button>
         </DialogFooter>
       </DialogContent>

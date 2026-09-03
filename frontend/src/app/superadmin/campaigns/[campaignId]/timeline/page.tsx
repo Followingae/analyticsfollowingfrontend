@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
          DialogDescription } from '@/components/ui/dialog'
 import { ladderApi } from '@/services/ladderApi'
 import { CreateEnrolmentDialog } from "@/components/enrolment/CreateEnrolmentDialog"
+import { enrolmentApi } from "@/services/enrolmentApi"
 import { cdnAvatar } from '@/lib/avatar'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
@@ -85,6 +86,7 @@ export default function CampaignTimelinePage() {
   // with the other state and not beside the roster: the roster renders after an early
   // return, and a hook below that return is a hook that does not always run.
   const [enrolFor, setEnrolFor] = useState<string | null>(null)
+  const [bulking, setBulking] = useState(false)
   const [invNumber, setInvNumber] = useState('')
   const [invUrl, setInvUrl] = useState('')
   const [addingPayment, setAddingPayment] = useState(false)
@@ -561,7 +563,33 @@ export default function CampaignTimelinePage() {
                         </button>
                       </>
                     ) : 'Everyone on this campaign'}
-              action={<Users className="h-4 w-4 text-muted-foreground" />}
+              action={
+                <div className="flex items-center gap-2">
+                  {/* Enrolling a roster is what actually happens the morning after costs are
+                      settled. Doing it one dialog at a time is fifty dialogs. */}
+                  {t.roster.some(r => r.proposal_influencer_id && r.rate_agreed_at && !r.enrolment_id) && (
+                    <Button size="sm" variant="outline" disabled={bulking}
+                            onClick={async () => {
+                              setBulking(true)
+                              try {
+                                const res = await enrolmentApi.bulkCreate(String(campaignId))
+                                toast.success(res.summary)
+                                if (res.skipped_no_cost.length) {
+                                  toast.message('Waiting on a cost', {
+                                    description: res.skipped_no_cost.join(', '),
+                                  })
+                                }
+                                await load()
+                              } catch (e) {
+                                toast.error(e instanceof Error ? e.message : 'Could not create the links')
+                              } finally { setBulking(false) }
+                            }}>
+                      {bulking ? 'Creating…' : 'Enrol everyone priced'}
+                    </Button>
+                  )}
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </div>
+              }
               flush
             >
                 <div className="overflow-x-auto">
@@ -646,11 +674,15 @@ export default function CampaignTimelinePage() {
                                 {r.enrolment_status === 'completed' ? 'Signed'
                                   : r.enrolment_status === 'live' ? 'Sent' : 'Awaiting approval'}
                               </Button>
-                            ) : r.proposal_influencer_id ? (
+                            ) : r.proposal_influencer_id && r.rate_agreed_at ? (
                               <Button variant="outline" size="sm" className="h-7 px-2 text-xs"
                                       onClick={() => setEnrolFor(r.proposal_influencer_id)}>
                                 Enrol
                               </Button>
+                            ) : r.proposal_influencer_id ? (
+                              // No settled cost means no fee to put in front of them. Saying
+                              // so beats a button that fails when pressed.
+                              <span className="text-xs text-muted-foreground">Set cost first</span>
                             ) : (
                               <span className="text-xs text-muted-foreground">&mdash;</span>
                             )}

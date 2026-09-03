@@ -65,7 +65,20 @@ export interface Prefill {
   field_config?: Record<string, { on: boolean; required: boolean; locked?: boolean }>
   talent_options?: TalentOption[]
   creates_live?: boolean
+  fee_is_negotiated?: boolean
+  fee_agreed_at?: string | null
+  fee_agreed_by_name?: string | null
+  rate_note?: string | null
+  ready?: boolean
+  not_ready_reason?: string | null
   existing_link?: { id: string; token: string; status: EnrolmentStatus } | null
+}
+
+export interface BulkResult {
+  created: { handle: string; url: string }[]
+  already_had_one: string[]
+  skipped_no_cost: string[]
+  summary: string
 }
 
 export interface EnrolmentDetail {
@@ -132,6 +145,11 @@ export const enrolmentApi = {
   create: (body: Record<string, unknown>) =>
     call<{ id: string; token: string; status: EnrolmentStatus; url: string }>('', {
       method: 'POST', body: JSON.stringify(body),
+    }),
+
+  bulkCreate: (campaignId: string, body?: { assigned_talent_id?: string | null; product_sent?: boolean }) =>
+    call<BulkResult>(`/campaigns/${campaignId}/bulk`, {
+      method: 'POST', body: JSON.stringify(body ?? {}),
     }),
 
   approve: (id: string) => call<{ status: string; url: string }>(`/${id}/approve`, { method: 'POST' }),
