@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
          DialogDescription } from '@/components/ui/dialog'
 import { ladderApi } from '@/services/ladderApi'
+import { CreateEnrolmentDialog } from "@/components/enrolment/CreateEnrolmentDialog"
 import { cdnAvatar } from '@/lib/avatar'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
@@ -80,6 +81,10 @@ export default function CampaignTimelinePage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [invoiceFor, setInvoiceFor] = useState<Instalment | null>(null)
+  // Which confirmed creator the enrolment popup is open for. Null closes it. Declared
+  // with the other state and not beside the roster: the roster renders after an early
+  // return, and a hook below that return is a hook that does not always run.
+  const [enrolFor, setEnrolFor] = useState<string | null>(null)
   const [invNumber, setInvNumber] = useState('')
   const [invUrl, setInvUrl] = useState('')
   const [addingPayment, setAddingPayment] = useState(false)
@@ -570,6 +575,7 @@ export default function CampaignTimelinePage() {
                         {showSell && <th className="px-3 pb-2 text-left font-medium">Sell</th>}
                         {ships && <th className="px-3 pb-2 text-left font-medium">Product</th>}
                         <th className="px-6 pb-2 text-left font-medium">Where they are</th>
+                        <th className="px-3 pb-2 text-left font-medium">Paperwork</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -630,10 +636,29 @@ export default function CampaignTimelinePage() {
                                 : 'Booked'}
                             </Badge>
                           </td>
+                          {/* The enrolment link: the agreement, their details, bank and address.
+                              Raised from here because this is the roster the talent team stands
+                              on, and a creator with no confirmed proposal row cannot have one. */}
+                          <td className="px-3 py-2.5">
+                            {r.enrolment_id ? (
+                              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs"
+                                      onClick={() => router.push(`/work/enrolments/${r.enrolment_id}`)}>
+                                {r.enrolment_status === 'completed' ? 'Signed'
+                                  : r.enrolment_status === 'live' ? 'Sent' : 'Awaiting approval'}
+                              </Button>
+                            ) : r.proposal_influencer_id ? (
+                              <Button variant="outline" size="sm" className="h-7 px-2 text-xs"
+                                      onClick={() => setEnrolFor(r.proposal_influencer_id)}>
+                                Enrol
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">&mdash;</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                       {t.roster.length === 0 && (
-                        <tr><td colSpan={3 + (showCost ? 1 : 0) + (showSell ? 1 : 0) + (ships ? 1 : 0)}
+                        <tr><td colSpan={4 + (showCost ? 1 : 0) + (showSell ? 1 : 0) + (ships ? 1 : 0)}
                                 className="px-6 py-8 text-center text-muted-foreground">
                           No creators on this campaign yet.
                         </td></tr>
@@ -741,6 +766,15 @@ export default function CampaignTimelinePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* The enrolment popup. Reloading the timeline on create is what turns the row's
+          "Enrol" button into "Sent", so the roster tells the truth without a refresh. */}
+      <CreateEnrolmentDialog
+        proposalInfluencerId={enrolFor}
+        open={!!enrolFor}
+        onOpenChange={(v) => { if (!v) setEnrolFor(null) }}
+        onCreated={() => load()}
+      />
     </SuperadminLayout>
   )
 }

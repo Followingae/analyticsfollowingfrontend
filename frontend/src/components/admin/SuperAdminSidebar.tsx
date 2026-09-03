@@ -49,6 +49,7 @@ import {
   Activity,
   Send,
   Map,
+  FileSignature,
 } from "lucide-react"
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -152,6 +153,10 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         { title: "Campaigns", url: "/work/campaigns", icon: Megaphone },
         { title: "Creators to chase", url: "/work/chasing", icon: ClipboardCheck,
           badge: badges["chasing"] },
+        // The paperwork after a brand confirms a creator. It is the talent team's own queue:
+        // they create the links and chase them, and they confirm the payee before anything pays.
+        { title: "Enrolments", url: "/work/enrolments", icon: FileSignature,
+          badge: badges["enrolments"] },
         { title: "Creator payments", url: "/work/payables", icon: Banknote,
           badge: badges["payables"] },
         { title: "My target", url: "/work/goals", icon: BarChart3 },
@@ -192,6 +197,12 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         }] : []),
         ...(can("influencers") || can("fa") ? [{
           title: "Creators", url: "/work/creators", icon: Users2,
+        }] : []),
+        // Enrolment links carry an approval queue only leadership can clear, so this must be
+        // reachable for them and not only for the talent team who create the links.
+        ...(can("influencers") || can("proposals") ? [{
+          title: "Enrolments", url: "/work/enrolments", icon: FileSignature,
+          badge: badges["enrolments"],
         }] : []),
         // The supply side of Creators: the category and market cells we cannot serve yet.
         // Sourcing itself lives on Brand rosters, above.

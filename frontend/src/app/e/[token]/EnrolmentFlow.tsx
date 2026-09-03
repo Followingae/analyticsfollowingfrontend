@@ -1,0 +1,1066 @@
+'use client'
+
+/**
+ * The creator's enrolment page, ported from the Claude Design canvas
+ * "Digital Creator Enrolment".
+ *
+ * The design is a card deck: four steps, swipeable, each one a gradient card that ticks
+ * over as it is finished, plus a run of edge states around it. That structure is kept
+ * exactly, including the motion, the gradients and the copy. What changes is that every
+ * step now talks to the API and can fail, which a mock cannot.
+ *
+ * Three things the design did not have to deal with and this does.
+ *
+ * ORDER IS NOT FIXED. The mock always ran email, sign, bank, address. A real link may have
+ * bank or address switched off by whoever created it, and a returning creator may have
+ * finished two of the four already. The deck is built from `steps` and `done` off the API,
+ * so a three-step link renders three cards rather than four with one stuck.
+ *
+ * NOTHING IS TYPED TWICE. The mock showed finished values as static text. Here each step is
+ * a real form that keeps what the creator entered, so coming back to a step shows what they
+ * put in rather than a placeholder.
+ *
+ * THE SERVER DECIDES. Age, IBAN checksum and completion are all checked server side and the
+ * screen renders what comes back. The under-18 screen appears because the API refused, not
+ * because the browser did arithmetic on a date.
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { API_CONFIG } from '@/config/api'
+
+const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/enrolment`
+
+// ---------------------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------------------
+type StepKey = 'email' | 'sign' | 'bank' | 'addr'
+
+interface PaymentTerm { pct?: number; label?: string; amount_aed_cents?: number }
+
+interface Submitted {
+  full_name?: string | null
+  email?: string | null
+  mobile?: string | null
+  instagram_handle?: string | null
+  email_verified_at?: string | null
+  date_of_birth?: string | null
+  signed_at?: string | null
+  bank_holder?: string | null
+  bank_last4?: string | null
+  bank_country?: string | null
+  bank_status?: string | null
+  address_line?: string | null
+  address_city?: string | null
+  address_country?: string | null
+  address_phone?: string | null
+  completed_at?: string | null
+  has_agreement?: boolean
+}
+
+interface Payload {
+  view: 'flow' | 'receipt' | 'expired' | 'cancelled' | 'notme'
+  brand?: string | null
+  campaign?: string | null
+  creator_handle?: string | null
+  creator_name?: string | null
+  deliverables_summary?: string | null
+  fee_aed_cents?: number | null
+  submit_by?: string | null
+  usage_terms?: string | null
+  payment_terms?: PaymentTerm[]
+  product_sent?: boolean
+  agreement_version?: number
+  agreement_body?: string
+  steps?: StepKey[]
+  done?: Record<StepKey, boolean>
+  retract_reason?: string | null
+  submitted?: Submitted
+}
+
+// ---------------------------------------------------------------------------------------
+// The design's tokens, verbatim
+// ---------------------------------------------------------------------------------------
+const GRAD: Record<StepKey, string> = {
+  email: 'linear-gradient(160deg,#0A6BFF,#5FE0FF)',
+  sign: 'linear-gradient(160deg,#FF3D00,#FF9500)',
+  bank: 'linear-gradient(160deg,#0E7A3A,#1FD16B)',
+  addr: 'linear-gradient(160deg,#A63DE8,#FF7AD9)',
+}
+
+const DEFS: Record<StepKey, { kick: string; title: string; meta: string; big: string; sub: string }> = {
+  email: { kick: 'STEP 01', title: 'Your\ndetails', meta: 'Name, email, mobile', big: 'Your details', sub: 'So we can reach you' },
+  sign: { kick: 'STEP 02', title: 'Sign the\nagreement', meta: '2 minutes', big: 'Sign the deal', sub: 'The terms in short' },
+  bank: { kick: 'STEP 03', title: 'Where money\nlands', meta: 'IBAN and name', big: 'Where money lands', sub: 'Your bank account' },
+  addr: { kick: 'STEP 04', title: 'Where product\ngoes', meta: 'Delivery address', big: 'Where product goes', sub: 'Your delivery address' },
+}
+
+const CONF_COLS = ['#0A6BFF', '#FF9500', '#1FD16B', '#FF7AD9']
+
+const money = (cents?: number | null) =>
+  cents == null ? null : `AED ${(cents / 100).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
+
+const niceDate = (iso?: string | null) => {
+  if (!iso) return null
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? null : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+/** A sticker that fails to nothing. Three of the four PNGs could not be exported from the
+ *  design project, so a missing file must cost the layout nothing rather than leaving a
+ *  broken-image glyph in the middle of the page. */
+function Sticker({ src, style, className }: { src: string; style: React.CSSProperties; className?: string }) {
+  const [ok, setOk] = useState(true)
+  if (!ok) return null
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="" style={style} className={className} onError={() => setOk(false)} />
+}
+
+function Logo({ h = 15, className = '' }: { h?: number; className?: string }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src="/followinglogo.svg" alt="Following" style={{ height: h, filter: 'invert(1)', opacity: 0.95 }} className={className} />
+}
+
+// ---------------------------------------------------------------------------------------
+// Small pieces of the design's chrome
+// ---------------------------------------------------------------------------------------
+const Row = ({ icon, label, children, last }: { icon: React.ReactNode; label: string; children: React.ReactNode; last?: boolean }) => (
+  <div style={{
+    display: 'flex', alignItems: 'center', gap: 13, padding: '13px 16px', minHeight: 44,
+    borderBottom: last ? 'none' : '1px solid #1E1E22',
+  }}>
+    <span style={{ flex: 'none', display: 'flex' }}>{icon}</span>
+    <span style={{ fontSize: 13.5, fontWeight: 600, color: '#8A8A93', flex: 'none' }}>{label}</span>
+    <span style={{ flex: 1, textAlign: 'right' }}>{children}</span>
+  </div>
+)
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', background: 'transparent', border: 'none', outline: 'none',
+  textAlign: 'right', fontSize: 15, fontWeight: 700, color: '#fff',
+  fontFamily: 'inherit', padding: 0, minWidth: 0,
+}
+
+const CTA = ({ onClick, disabled, busy, children, tone = 'light' }: {
+  onClick?: () => void; disabled?: boolean; busy?: boolean; children: React.ReactNode; tone?: 'light' | 'dark'
+}) => (
+  <button
+    onClick={onClick}
+    disabled={disabled || busy}
+    style={{
+      width: '100%', marginTop: 16, borderRadius: 20, padding: 18, textAlign: 'center',
+      fontSize: 16.5, fontWeight: 700, minHeight: 44, border: 'none', cursor: disabled ? 'default' : 'pointer',
+      fontFamily: 'inherit',
+      background: disabled ? '#1C1C20' : tone === 'light' ? '#fff' : '#17171A',
+      color: disabled ? '#5E5E66' : tone === 'light' ? '#050506' : '#fff',
+      transition: 'background .2s ease, color .2s ease',
+    }}
+  >
+    {busy ? 'One moment…' : children}
+  </button>
+)
+
+const ErrLine = ({ children }: { children?: React.ReactNode }) =>
+  children ? (
+    <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 700, color: '#FF7A5C', lineHeight: 1.4 }}>{children}</div>
+  ) : null
+
+// Icons, traced from the design's own inline SVG so nothing shifts by a pixel.
+const I = {
+  user: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.6" /><path d="M5 20a7 7 0 0114 0" /></svg>,
+  mail: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" /><path d="M4 7l8 6 8-6" /></svg>,
+  phone: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5" /><path d="M11 18h2" /></svg>,
+  at: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4" /><path d="M16 12v1.5a2.5 2.5 0 005 0V12a9 9 0 10-3.5 7.1" /></svg>,
+  bank: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9l8-4.5L20 9M5 9v9h14V9M8 12v3M12 12v3M16 12v3M4 19.5h16" /></svg>,
+  pin: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 21s-7-5.4-7-11a7 7 0 0114 0c0 5.6-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>,
+  city: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20V8l6-4v16M10 20V11h10v9M4 20h17M13.5 14h3M13.5 17h3" /></svg>,
+  shield: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#7E7E87" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /></svg>,
+  box: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#7E7E87" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6.5" width="12" height="11" rx="2.5" /><path d="M15 10.5l6-3v9l-6-3" /></svg>,
+  doc: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3h7l5 5v12a1.5 1.5 0 01-1.5 1.5h-10A1.5 1.5 0 016 20V4.5A1.5 1.5 0 017.5 3z" /><path d="M14 3v5h5" /></svg>,
+  chev: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5E5E66" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>,
+  back: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>,
+  left: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>,
+  right: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>,
+  wallet: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1FD16B" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="6" width="17" height="13" rx="3" /><path d="M3.5 9h13a1.5 1.5 0 010 3h-13" /></svg>,
+  tick: (stroke = '#0B0B0C', w = 3) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>,
+  star: (size: number, fill: string) => <svg width={size} height={size} viewBox="0 0 24 24" fill={fill}><path d="M12 2l2.1 6.4L20.5 12l-6.4 2.1L12 22l-2.1-7.9L3.5 12l6.4-3.6L12 2z" /></svg>,
+}
+
+// ---------------------------------------------------------------------------------------
+export default function EnrolmentFlow({ token }: { token: string }) {
+  const [data, setData] = useState<Payload | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [screen, setScreen] = useState<'splash' | 'deck' | 'step' | 'done' | 'app' | 'under' | 'agreement'>('splash')
+  const [active, setActive] = useState(0)
+  const [open, setOpen] = useState<StepKey | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const [reporting, setReporting] = useState(false)
+
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch(`${PUBLIC}/${token}`)
+      const j = await r.json()
+      setData(j?.data ?? { view: 'expired' })
+    } catch {
+      setData({ view: 'expired' })
+    } finally {
+      setLoading(false)
+    }
+  }, [token])
+
+  useEffect(() => { load() }, [load])
+
+  const steps = useMemo<StepKey[]>(() => (data?.steps?.length ? data.steps : ['email', 'sign', 'bank', 'addr']), [data])
+  const done = data?.done ?? ({} as Record<StepKey, boolean>)
+  const count = steps.filter((s) => done[s]).length
+  const left = steps.length - count
+
+  // The first unfinished card, so a creator coming back lands where they stopped rather
+  // than on a card they already ticked.
+  useEffect(() => {
+    if (!data || screen !== 'splash') return
+    const i = steps.findIndex((s) => !done[s])
+    setActive(i < 0 ? 0 : i)
+  }, [data, steps, done, screen])
+
+  const post = useCallback(async (path: string, body?: unknown) => {
+    setBusy(true); setErr(null)
+    try {
+      const r = await fetch(`${PUBLIC}/${token}/${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body ?? {}),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        if (r.status === 451) { setScreen('under'); return { ok: false as const } }
+        // FastAPI puts the message in `detail`, and for these routes it is written to be
+        // read by the creator, so it is shown rather than replaced with a generic line.
+        setErr(typeof j?.detail === 'string' ? j.detail : 'That did not go through. Try again.')
+        return { ok: false as const }
+      }
+      if (j?.data) setData(j.data)
+      return { ok: true as const, data: j?.data as Payload | undefined }
+    } catch {
+      setErr('No connection. Check your signal and try again.')
+      return { ok: false as const }
+    } finally {
+      setBusy(false)
+    }
+  }, [token])
+
+  const advance = useCallback((justDone: StepKey, fresh?: Payload) => {
+    const d = fresh?.done ?? {}
+    const nowDone = { ...done, ...d, [justDone]: true } as Record<StepKey, boolean>
+    if (steps.every((s) => nowDone[s])) { setScreen('done'); setOpen(null); return }
+    const nextIdx = steps.findIndex((s) => !nowDone[s])
+    setActive(nextIdx < 0 ? 0 : nextIdx)
+    setOpen(null)
+    setScreen('deck')
+  }, [done, steps])
+
+  // ---- shell ------------------------------------------------------------------------
+  const Shell = ({ children }: { children: React.ReactNode }) => (
+    <div style={{
+      minHeight: '100dvh', background: '#050506', color: '#fff',
+      fontFamily: "'Urbanist', system-ui, -apple-system, 'Segoe UI', sans-serif",
+      display: 'flex', justifyContent: 'center',
+    }}>
+      <div style={{ width: '100%', maxWidth: 430, position: 'relative', overflow: 'hidden', minHeight: '100dvh' }}>
+        {children}
+      </div>
+    </div>
+  )
+
+  const Head = () => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px 0', position: 'relative', zIndex: 9 }}>
+      <Logo />
+      <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.03em', color: '#9A9AA2' }}>Digital Creator Enrolment</div>
+    </div>
+  )
+
+  if (loading) {
+    return <Shell><div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: '#5E5E66', fontSize: 14 }}>Loading…</div></Shell>
+  }
+
+  const d = data as Payload
+  const sub = d.submitted ?? {}
+
+  // ---- edge states -------------------------------------------------------------------
+  if (d.view === 'expired') {
+    return (
+      <Shell>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 44px', textAlign: 'center' }}>
+          <div style={{ width: 66, height: 66, borderRadius: 22, background: '#17171A', display: 'grid', placeItems: 'center' }}>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v5" /><path d="M12 16h.01" /></svg>
+          </div>
+          <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-.025em', marginTop: 22 }}>This link does not work</div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: '#8A8A93', marginTop: 10, lineHeight: 1.55 }}>Check with whoever sent it to you.</div>
+        </div>
+      </Shell>
+    )
+  }
+
+  if (d.view === 'cancelled' || d.view === 'notme') {
+    const isNotMe = d.view === 'notme'
+    return (
+      <Shell>
+        <div style={{ padding: '60px 30px 0', textAlign: 'center' }}>
+          <div style={{ width: 66, height: 66, borderRadius: 22, background: '#17171A', margin: '0 auto', display: 'grid', placeItems: 'center' }}>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.025em', marginTop: 22, lineHeight: 1.16 }}>
+            {isNotMe ? <>This link has<br />been closed</> : <>This campaign was<br />cancelled</>}
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: '#8A8A93', marginTop: 12, lineHeight: 1.55 }}>
+            {isNotMe
+              ? 'Thanks for telling us. Nobody can use it now.'
+              : `${d.brand || 'The brand'} cancelled this campaign.`}
+          </div>
+        </div>
+        {d.retract_reason && (
+          <div style={{ margin: '24px 24px 0', background: '#131316', borderRadius: 18, padding: '15px 17px', fontSize: 13, fontWeight: 500, color: '#B4B4BC', lineHeight: 1.55 }}>
+            {d.retract_reason}
+          </div>
+        )}
+        <div style={{ margin: '12px 24px 0', background: '#131316', borderRadius: 18, padding: '15px 17px', fontSize: 13, fontWeight: 500, color: '#B4B4BC', lineHeight: 1.55 }}>
+          If you already signed, your agreement is kept and marked terminated. Anything owed to you will be settled.
+        </div>
+      </Shell>
+    )
+  }
+
+  if (screen === 'under') {
+    return (
+      <Shell>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 34px' }}>
+          <div style={{ width: 66, height: 66, borderRadius: 22, background: '#17171A', display: 'grid', placeItems: 'center' }}>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8A8A93" strokeWidth="1.8" strokeLinecap="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5" /><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5" /></svg>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.12, marginTop: 24 }}>We cannot sign this<br />with you yet</div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: '#8A8A93', marginTop: 14, lineHeight: 1.55 }}>
+            You need to be 18 or older to sign a campaign agreement. Nothing has been saved.
+          </div>
+          <div style={{ background: '#131316', borderRadius: 18, padding: '15px 17px', fontSize: 12.5, fontWeight: 500, color: '#B4B4BC', lineHeight: 1.55, marginTop: 22 }}>
+            If that was a mistake, contact the person who sent you this link and they can reissue it.
+          </div>
+        </div>
+        <button onClick={() => { setScreen('step'); setOpen('sign') }} style={{
+          position: 'absolute', left: 24, right: 24, bottom: 32, background: '#17171A', border: 'none',
+          borderRadius: 20, padding: 19, textAlign: 'center', fontSize: 16, fontWeight: 700, minHeight: 44,
+          color: '#fff', fontFamily: 'inherit', cursor: 'pointer',
+        }}>Go back</button>
+      </Shell>
+    )
+  }
+
+  // ---- receipt -----------------------------------------------------------------------
+  if (d.view === 'receipt' && screen !== 'done' && screen !== 'app') {
+    const pending = sub.bank_status === 'pending'
+    const rows = [
+      { t: 'Campaign', v: `${d.deliverables_summary || ''}${d.fee_aed_cents != null ? `, ${money(d.fee_aed_cents)}` : ''}`, grad: GRAD.sign },
+      { t: 'Email', v: sub.email || '—', grad: GRAD.email },
+      { t: 'Agreement', v: sub.signed_at ? `Signed ${niceDate(sub.signed_at)}, version ${d.agreement_version ?? 1}` : '—', grad: GRAD.sign },
+      ...(sub.bank_last4 ? [{ t: 'Bank details', v: `${sub.bank_country || ''} ending ${sub.bank_last4}, ${pending ? 'being checked' : 'confirmed'}`, grad: GRAD.bank }] : []),
+      ...(sub.address_city ? [{ t: 'Delivery address', v: sub.address_city, grad: GRAD.addr }] : []),
+    ]
+    return (
+      <Shell>
+        <div style={{ padding: '22px 22px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+            <Sticker src="/enrolment/sticker-signed.png" style={{ width: 52 }} />
+            <div>
+              <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.03em' }}>{pending ? 'Almost there' : 'All done'}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 500, color: '#8A8A93', marginTop: 2 }}>
+                {pending ? `Signed ${niceDate(sub.signed_at)}, one check left` : `Completed ${niceDate(sub.completed_at)}`}
+              </div>
+            </div>
+          </div>
+        </div>
+        {pending && (
+          <div style={{ margin: '18px 22px 0', background: GRAD.sign, borderRadius: 18, padding: '16px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7.5V12l3 2" /></svg>
+              <div style={{ fontSize: 15.5, fontWeight: 700, color: '#fff' }}>We are checking your bank details</div>
+            </div>
+            <div style={{ fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,.88)', marginTop: 7, lineHeight: 1.5 }}>
+              Someone from the talent team will message you to confirm the holder name and the last four digits. This is normal, and it is how we make sure the money reaches you.
+            </div>
+          </div>
+        )}
+        <div style={{ padding: '20px 22px 0', display: 'flex', flexDirection: 'column', gap: 9 }}>
+          {rows.map((r) => (
+            <div key={r.t} style={{ background: '#131316', borderRadius: 16, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: r.grad, display: 'grid', placeItems: 'center', flex: 'none' }}>
+                {I.tick('#fff')}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{r.t}</div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: '#8A8A93', marginTop: 1 }}>{r.v}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ padding: '16px 22px 120px', fontSize: 12, fontWeight: 600, color: '#7E7E87', lineHeight: 1.5 }}>
+          Values are masked. We cannot tell who is opening this link.
+        </div>
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, display: 'flex', justifyContent: 'center', padding: '0 0 30px' }}>
+          <div style={{ width: '100%', maxWidth: 430, padding: '0 22px', display: 'flex', gap: 9 }}>
+            <a href={`${PUBLIC}/${token}/agreement.pdf`} style={{
+              flex: 1, background: '#131316', borderRadius: 18, padding: 16, textAlign: 'center',
+              fontSize: 14.5, fontWeight: 700, minHeight: 44, color: '#fff', textDecoration: 'none',
+            }}>Agreement PDF</a>
+            <a href="https://inflink.ae" style={{
+              flex: 1, background: '#fff', color: '#050506', borderRadius: 18, padding: 16, textAlign: 'center',
+              fontSize: 14.5, fontWeight: 700, minHeight: 44, textDecoration: 'none',
+            }}>Open Inflink</a>
+          </div>
+        </div>
+      </Shell>
+    )
+  }
+
+  // ---- splash ------------------------------------------------------------------------
+  if (screen === 'splash') {
+    return (
+      <Shell>
+        <style>{keyframes}</style>
+        <Head />
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+          <div className="eGlow" style={{ position: 'absolute', top: -90, left: -70, width: 330, height: 330, borderRadius: '50%', background: 'radial-gradient(circle,rgba(166,61,232,.55),transparent 68%)', filter: 'blur(42px)' }} />
+          <div className="eGlow" style={{ position: 'absolute', top: 150, right: -90, width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,77,10,.45),transparent 68%)', filter: 'blur(44px)' }} />
+          <div className="eGlow" style={{ position: 'absolute', bottom: -60, left: 40, width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle,rgba(10,107,255,.42),transparent 70%)', filter: 'blur(46px)' }} />
+
+          <Sticker src="/enrolment/sticker-coin.png" className="eBob" style={{ position: 'absolute', left: -30, top: 150, width: 132 }} />
+          <Sticker src="/enrolment/sticker-signed.png" style={{ position: 'absolute', right: -24, top: 132, width: 112, transform: 'rotate(9deg)', animation: 'ePop .8s cubic-bezier(.16,1.02,.3,1) .5s both' }} />
+          <Sticker src="/enrolment/sticker-bolt.png" style={{ position: 'absolute', left: 24, bottom: 238, width: 74, animation: 'ePop .7s cubic-bezier(.16,1.02,.3,1) .8s both' }} />
+          <Sticker src="/enrolment/sticker-youin.png" className="eBob" style={{ position: 'absolute', right: 16, bottom: 226, width: 134 }} />
+
+          <div style={{ position: 'absolute', left: 0, right: 0, top: '34%', padding: '0 30px', textAlign: 'center' }}>
+            <div style={{ fontSize: 52, fontWeight: 800, letterSpacing: '-.05em', lineHeight: .96, animation: 'eFade .8s ease .1s both' }}>
+              You just<br />got a brand<br />deal.
+            </div>
+          </div>
+
+          <div style={{ position: 'absolute', left: 26, right: 26, bottom: 34, animation: 'eFade .8s ease .95s both' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 18 }}>
+              <Logo h={13} />
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: '#8A8A93' }}>partners with Inflink</span>
+            </div>
+            <button onClick={() => setScreen('deck')} style={{
+              width: '100%', background: '#fff', color: '#050506', borderRadius: 20, padding: 19,
+              textAlign: 'center', fontSize: 16.5, fontWeight: 700, minHeight: 44, border: 'none',
+              fontFamily: 'inherit', cursor: 'pointer',
+            }}>Open my deal</button>
+          </div>
+        </div>
+      </Shell>
+    )
+  }
+
+  // ---- celebration -------------------------------------------------------------------
+  if (screen === 'done') {
+    const first = (sub.full_name || d.creator_name || '').split(' ')[0]
+    return (
+      <Shell>
+        <style>{keyframes}</style>
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+          <div className="eGlow" style={{ position: 'absolute', top: -70, left: '50%', marginLeft: -160, width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle,rgba(31,209,107,.5),transparent 68%)', filter: 'blur(44px)' }} />
+          <div className="eGlow" style={{ position: 'absolute', bottom: 60, right: -70, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle,rgba(255,122,217,.42),transparent 70%)', filter: 'blur(44px)' }} />
+          {Array.from({ length: 20 }, (_, i) => (
+            <div key={i} style={{
+              position: 'absolute', top: -30, left: 6 + i * 19.5, width: 7, height: 11, borderRadius: 2,
+              background: CONF_COLS[i % 4],
+              animation: `eConf ${(5.4 + (i % 5) * 0.7).toFixed(1)}s linear ${((i % 8) * 0.45).toFixed(2)}s infinite`,
+            }} />
+          ))}
+          <Sticker src="/enrolment/sticker-youin.png" style={{ position: 'absolute', left: '50%', marginLeft: -78, top: 120, width: 156, animation: 'ePop .9s cubic-bezier(.16,1.02,.3,1) .1s both' }} />
+
+          <div style={{ position: 'absolute', left: 0, right: 0, top: '46%', padding: '0 34px', textAlign: 'center', animation: 'eFade .8s ease .5s both' }}>
+            <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-.04em', lineHeight: 1 }}>
+              All done{first ? <>,<br />{first}.</> : '.'}
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: '#9A9AA2', marginTop: 14, lineHeight: 1.55 }}>
+              Signed and your payment details are in.
+            </div>
+          </div>
+
+          {(d.payment_terms?.length ?? 0) > 0 && (
+            <div style={{ position: 'absolute', left: 24, right: 24, top: '64%', background: '#131316', borderRadius: 18, padding: '4px 16px', animation: 'eFade .8s ease .75s both' }}>
+              {d.payment_terms!.map((t, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0',
+                  borderBottom: i < d.payment_terms!.length - 1 ? '1px solid #1E1E22' : 'none',
+                }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', background: i === 0 ? GRAD.email : GRAD.bank, borderRadius: 7, padding: '4px 7px', flex: 'none' }}>{t.pct}%</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', flex: 'none' }}>{money(t.amount_aed_cents)}</span>
+                  <span style={{ flex: 1, textAlign: 'right', fontSize: 11.5, fontWeight: 500, color: '#8A8A93' }}>{t.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ position: 'absolute', left: 24, right: 24, bottom: 26, background: '#17171B', border: '1px solid #26262C', borderRadius: 22, padding: 18, boxShadow: '0 18px 44px -20px rgba(0,0,0,.8)', animation: 'eFade .8s ease .95s both' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-.03em', color: '#fff' }}>inflink</span>
+              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.1em', color: '#7E7E87' }}>NEXT</span>
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#fff', letterSpacing: '-.02em', lineHeight: 1.3, marginTop: 11 }}>
+              Get invited to campaigns automatically
+            </div>
+            <button onClick={() => setScreen('app')} style={{
+              width: '100%', marginTop: 14, background: '#fff', color: '#050506', borderRadius: 16, padding: 16,
+              textAlign: 'center', fontSize: 15.5, fontWeight: 700, minHeight: 44, border: 'none', fontFamily: 'inherit', cursor: 'pointer',
+            }}>Set up my Inflink</button>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 11 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7E7E87' }}>Free to join</span>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: '#7E7E87' }}>Paid on approval</span>
+            </div>
+          </div>
+          <button onClick={() => { setScreen('deck'); load() }} style={{
+            position: 'absolute', right: 26, top: 26, fontSize: 13, fontWeight: 700, color: '#8A8A93',
+            background: 'none', border: 'none', fontFamily: 'inherit', cursor: 'pointer',
+          }}>Later</button>
+        </div>
+      </Shell>
+    )
+  }
+
+  // ---- the Inflink sell --------------------------------------------------------------
+  if (screen === 'app') {
+    const sells = [
+      { t: 'A wallet with a real balance', dd: 'See what you earned and every line of it.', grad: GRAD.bank },
+      { t: 'Withdraw to your bank', dd: 'You start it, we process it.', grad: GRAD.email },
+      { t: 'Track your deals', dd: 'Briefs, approvals and deadlines in one place.', grad: GRAD.sign },
+      { t: 'Get booked by other brands', dd: 'Brands on Inflink can book you directly.', grad: GRAD.addr },
+    ]
+    return (
+      <Shell>
+        <div style={{ padding: '26px 24px 0' }}>
+          <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-.03em' }}>inflink</span>
+          <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: '-.035em', lineHeight: 1.06, marginTop: 26 }}>Your account is<br />already made</div>
+          <div style={{ fontSize: 14.5, fontWeight: 500, color: '#9A9AA2', marginTop: 12, lineHeight: 1.55 }}>
+            Sign in with <span style={{ color: '#fff', fontWeight: 700 }}>{sub.email}</span> and everything here is waiting.
+          </div>
+        </div>
+        <div style={{ padding: '24px 24px 0', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {sells.map((s) => (
+            <div key={s.t} style={{ display: 'flex', alignItems: 'flex-start', gap: 13 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 12, background: s.grad, flex: 'none' }} />
+              <div>
+                <div style={{ fontSize: 14.5, fontWeight: 700 }}>{s.t}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 500, color: '#8A8A93', marginTop: 1, lineHeight: 1.45 }}>{s.dd}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ padding: '36px 24px 32px' }}>
+          <a href={`https://inflink.ae/join?email=${encodeURIComponent(sub.email || '')}`} style={{
+            display: 'block', background: '#fff', color: '#050506', borderRadius: 20, padding: 19,
+            textAlign: 'center', fontSize: 16.5, fontWeight: 700, minHeight: 44, textDecoration: 'none',
+          }}>Complete my signup</a>
+          <div style={{ textAlign: 'center', fontSize: 12, fontWeight: 500, color: '#7E7E87', marginTop: 12, lineHeight: 1.45 }}>
+            You can do this later. Your campaign runs either way.
+          </div>
+        </div>
+      </Shell>
+    )
+  }
+
+  // ---- the agreement, in full --------------------------------------------------------
+  if (screen === 'agreement') {
+    return (
+      <Shell>
+        <div style={{ padding: '22px 22px 40px' }}>
+          <button onClick={() => setScreen('step')} style={{
+            width: 44, height: 44, borderRadius: '50%', background: '#17171A', display: 'grid', placeItems: 'center',
+            border: 'none', cursor: 'pointer', marginBottom: 18,
+          }}>{I.back}</button>
+          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.03em' }}>The agreement</div>
+          <div style={{ fontSize: 12.5, fontWeight: 500, color: '#8A8A93', marginTop: 6 }}>Version {d.agreement_version ?? 1}</div>
+          <div style={{ marginTop: 22, fontSize: 14.5, fontWeight: 400, color: '#C8C8D0', lineHeight: 1.72, whiteSpace: 'pre-wrap' }}>
+            {d.agreement_body}
+          </div>
+        </div>
+      </Shell>
+    )
+  }
+
+  // ---- the deck ----------------------------------------------------------------------
+  if (screen === 'deck') {
+    const headline = count === 0
+      ? `${steps.length} steps to\nget you paid.`
+      : left === 0 ? 'All done.' : left === 1 ? 'One step left.' : `${left} steps left.`
+    return (
+      <Shell>
+        <style>{keyframes}</style>
+        <div style={{ padding: '22px 22px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <div style={{ width: 26, height: 26, borderRadius: 8, background: 'linear-gradient(150deg,#1FD16B,#0E7A3A)', display: 'grid', placeItems: 'center', flex: 'none' }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', letterSpacing: '-.02em' }}>{(d.brand || '?').trim()[0]?.toUpperCase()}</span>
+            </div>
+            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.12em', color: '#8A8A93', textTransform: 'uppercase' }}>{d.brand}</div>
+          </div>
+          <div style={{ fontSize: 34, fontWeight: 700, letterSpacing: '-.035em', lineHeight: 1.05, marginTop: 12 }}>{d.campaign}</div>
+          {d.fee_aed_cents != null && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 14 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 10, background: '#131316', display: 'grid', placeItems: 'center', flex: 'none' }}>{I.wallet}</div>
+              <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-.02em' }}>{money(d.fee_aed_cents)}</div>
+            </div>
+          )}
+          <div style={{ marginTop: 18, fontSize: 13, fontWeight: 600, color: '#8A8A93', whiteSpace: 'pre-line' }}>{headline}</div>
+        </div>
+
+        <div style={{ overflow: 'hidden', marginTop: 18 }}>
+          <div style={{ display: 'flex', gap: 16, paddingLeft: 22, transform: `translateX(${-active * 278}px)`, transition: 'transform .52s cubic-bezier(.22,1,.36,1)' }}>
+            {steps.map((k, i) => {
+              const isDone = done[k]
+              const act = i === active
+              return (
+                <div key={k} onClick={() => setActive(i)} style={{
+                  width: 262, height: 352, flex: 'none', borderRadius: 30, background: GRAD[k],
+                  position: 'relative', overflow: 'hidden', opacity: act ? 1 : .5,
+                  transform: `scale(${act ? 1 : .93})`, cursor: 'pointer',
+                  transition: 'transform .52s cubic-bezier(.22,1,.36,1), opacity .4s ease',
+                }}>
+                  <svg width="262" height="352" viewBox="0 0 262 352" fill="none" style={{ position: 'absolute', inset: 0 }}>
+                    <path d="M-20 268C40 250 96 214 118 158C140 102 196 66 282 74" stroke="rgba(255,255,255,.55)" strokeWidth="15" strokeLinecap="round" />
+                    <ellipse cx="214" cy="286" rx="96" ry="76" fill="rgba(255,255,255,.14)" />
+                  </svg>
+                  <span className="eTw" style={{ position: 'absolute', left: 26, top: 120 }}>{I.star(26, 'rgba(255,255,255,.92)')}</span>
+                  <span className="eTw" style={{ position: 'absolute', right: 38, top: 52 }}>{I.star(17, 'rgba(255,255,255,.8)')}</span>
+                  <span className="eTw" style={{ position: 'absolute', left: 120, bottom: 126 }}>{I.star(13, 'rgba(255,255,255,.7)')}</span>
+
+                  <div style={{ position: 'absolute', left: 22, top: 22, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ background: 'rgba(255,255,255,.22)', backdropFilter: 'blur(8px)', borderRadius: 999, padding: '7px 12px', fontSize: 11, fontWeight: 800, letterSpacing: '.06em', color: '#fff' }}>
+                      {`STEP 0${i + 1}`}
+                    </div>
+                    {isDone && (
+                      <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#fff', display: 'grid', placeItems: 'center' }}>{I.tick()}</div>
+                    )}
+                  </div>
+                  <div style={{ position: 'absolute', left: 22, right: 22, bottom: 24 }}>
+                    <div style={{ fontSize: 27, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.06, color: '#fff', whiteSpace: 'pre-line' }}>{DEFS[k].title}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,.82)', marginTop: 7 }}>{isDone ? 'Done' : DEFS[k].meta}</div>
+                  </div>
+                </div>
+              )
+            })}
+            <div style={{ width: 22, flex: 'none' }} />
+          </div>
+        </div>
+
+        <div style={{ padding: '26px 22px 30px' }}>
+          <div style={{ display: 'flex', gap: 7 }}>
+            {steps.map((k, i) => (
+              <div key={k} onClick={() => setActive(i)} style={{
+                height: 7, width: i === active ? 26 : 7, borderRadius: 99, cursor: 'pointer',
+                background: done[k] ? '#1FD16B' : i === active ? '#FFFFFF' : '#2E2E34',
+                transition: 'width .4s ease, background .3s ease',
+              }} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 9, marginTop: 16 }}>
+            <button onClick={() => setActive((p) => (p + steps.length - 1) % steps.length)} style={{ width: 52, height: 52, borderRadius: '50%', background: '#17171A', display: 'grid', placeItems: 'center', flex: 'none', border: 'none', cursor: 'pointer' }}>{I.left}</button>
+            <button onClick={() => { setOpen(steps[active]); setScreen('step'); setErr(null) }} style={{
+              flex: 1, background: '#fff', color: '#050506', borderRadius: 20, padding: 17, textAlign: 'center',
+              fontSize: 16, fontWeight: 700, minHeight: 44, border: 'none', fontFamily: 'inherit', cursor: 'pointer',
+            }}>{done[steps[active]] ? 'Review this step' : 'Open this step'}</button>
+            <button onClick={() => setActive((p) => (p + 1) % steps.length)} style={{ width: 52, height: 52, borderRadius: '50%', background: '#17171A', display: 'grid', placeItems: 'center', flex: 'none', border: 'none', cursor: 'pointer' }}>{I.right}</button>
+          </div>
+          <button
+            onClick={async () => {
+              if (reporting) return
+              if (!confirm('Tell us this deal is not yours? The link is killed straight away and the person who sent it is alerted.')) return
+              setReporting(true)
+              await post('report', { reason: 'Reported from the enrolment page' })
+              await load()
+            }}
+            style={{ width: '100%', marginTop: 18, background: 'none', border: 'none', fontSize: 12.5, fontWeight: 600, color: '#5E5E66', fontFamily: 'inherit', cursor: 'pointer' }}
+          >Not your deal?</button>
+        </div>
+      </Shell>
+    )
+  }
+
+  // ---- a step ------------------------------------------------------------------------
+  const key = (open ?? steps[active]) as StepKey
+  const def = DEFS[key]
+
+  return (
+    <Shell>
+      <style>{keyframes}</style>
+      <div style={{ height: 158, background: GRAD[key], position: 'relative', overflow: 'hidden' }}>
+        <svg width="430" height="158" viewBox="0 0 390 158" fill="none" style={{ position: 'absolute', inset: 0, width: '100%' }} preserveAspectRatio="none">
+          <path d="M-20 140C64 124 136 90 178 40C220 -10 306 -8 410 26" stroke="rgba(255,255,255,.42)" strokeWidth="16" strokeLinecap="round" />
+          <ellipse cx="322" cy="150" rx="104" ry="66" fill="rgba(255,255,255,.13)" />
+        </svg>
+        <button onClick={() => { setScreen('deck'); setOpen(null); setErr(null) }} style={{
+          position: 'absolute', left: 18, top: 14, width: 44, height: 44, borderRadius: '50%',
+          background: 'rgba(0,0,0,.26)', backdropFilter: 'blur(8px)', display: 'grid', placeItems: 'center',
+          border: 'none', cursor: 'pointer',
+        }}>{I.back}</button>
+        <div style={{ position: 'absolute', right: 18, top: 25, background: 'rgba(0,0,0,.24)', backdropFilter: 'blur(8px)', borderRadius: 999, padding: '8px 13px', fontSize: 11, fontWeight: 800, letterSpacing: '.06em', color: '#fff' }}>
+          {`STEP 0${steps.indexOf(key) + 1}`}
+        </div>
+        <div style={{ position: 'absolute', left: 22, right: 22, bottom: 20 }}>
+          <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1.04, color: '#fff' }}>{def.big}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.82)', marginTop: 5 }}>{def.sub}</div>
+        </div>
+      </div>
+
+      <div style={{ padding: '17px 22px 40px' }}>
+        {key === 'email' && <StepEmail d={d} sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('email', f)} />}
+        {key === 'sign' && <StepSign d={d} sub={sub} post={post} busy={busy} err={err} openAgreement={() => setScreen('agreement')} onDone={(f) => advance('sign', f)} />}
+        {key === 'bank' && <StepBank sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('bank', f)} />}
+        {key === 'addr' && <StepAddr d={d} sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('addr', f)} />}
+      </div>
+    </Shell>
+  )
+}
+
+// ---------------------------------------------------------------------------------------
+// Step 1 — details, then the code
+// ---------------------------------------------------------------------------------------
+function StepEmail({ d, sub, post, busy, err, onDone }: {
+  d: Payload; sub: Submitted; post: (p: string, b?: unknown) => Promise<{ ok: boolean; data?: Payload }>
+  busy: boolean; err: string | null; onDone: (f?: Payload) => void
+}) {
+  const [name, setName] = useState(sub.full_name || d.creator_name || '')
+  const [email, setEmail] = useState(sub.email || '')
+  const [mobile, setMobile] = useState(sub.mobile || '')
+  const [handle, setHandle] = useState(sub.instagram_handle || (d.creator_handle || '').replace(/^@/, ''))
+  const [stage, setStage] = useState<'form' | 'code'>(sub.email_verified_at ? 'form' : 'form')
+  const [code, setCode] = useState('')
+  const [sentTo, setSentTo] = useState<string | null>(null)
+
+  const canSend = name.trim().length > 1 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())
+
+  return (
+    <>
+      {stage === 'form' ? (
+        <>
+          <div style={{ background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
+            <Row icon={I.user} label="Name"><input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" /></Row>
+            <Row icon={I.mail} label="Email"><input style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" inputMode="email" autoCapitalize="off" /></Row>
+            <Row icon={I.phone} label="Mobile"><input style={inputStyle} value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="+971 50 000 0000" inputMode="tel" /></Row>
+            <Row icon={I.at} label="Instagram" last><input style={inputStyle} value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="yourhandle" autoCapitalize="off" /></Row>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, fontSize: 12.5, fontWeight: 600, color: '#7E7E87', lineHeight: 1.4 }}>
+            <span style={{ flex: 'none' }}>{I.shield}</span>Your email becomes your Inflink login.
+          </div>
+          <ErrLine>{err}</ErrLine>
+          <CTA disabled={!canSend} busy={busy} onClick={async () => {
+            const r = await post('details', { full_name: name.trim(), email: email.trim().toLowerCase(), mobile: mobile.trim() || null, instagram_handle: handle.trim() || null })
+            if (r.ok) { setSentTo(email.trim().toLowerCase()); setStage('code') }
+          }}>Save my details</CTA>
+        </>
+      ) : (
+        <>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#C8C8D0', lineHeight: 1.6 }}>
+            We sent a 6 digit code to <span style={{ color: '#fff', fontWeight: 700 }}>{sentTo}</span>. Enter it to confirm this is you.
+          </div>
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            inputMode="numeric"
+            placeholder="000000"
+            style={{
+              width: '100%', marginTop: 20, background: '#121215', border: 'none', borderRadius: 20,
+              padding: '22px 16px', textAlign: 'center', fontSize: 34, fontWeight: 700, letterSpacing: '.22em',
+              color: '#fff', outline: 'none', fontFamily: 'inherit',
+            }}
+          />
+          <ErrLine>{err}</ErrLine>
+          <CTA disabled={code.length !== 6} busy={busy} onClick={async () => {
+            const r = await post('verify', { code })
+            if (r.ok) onDone(r.data)
+          }}>Confirm my email</CTA>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
+            <button onClick={() => setStage('form')} style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 600, color: '#8A8A93', fontFamily: 'inherit', cursor: 'pointer' }}>Change email</button>
+            <button onClick={() => post('resend-code')} style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 600, color: '#8A8A93', fontFamily: 'inherit', cursor: 'pointer' }}>Send it again</button>
+          </div>
+        </>
+      )}
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------------------
+// Step 2 — sign
+// ---------------------------------------------------------------------------------------
+function StepSign({ d, sub, post, busy, err, openAgreement, onDone }: {
+  d: Payload; sub: Submitted; post: (p: string, b?: unknown) => Promise<{ ok: boolean; data?: Payload }>
+  busy: boolean; err: string | null; openAgreement: () => void; onDone: (f?: Payload) => void
+}) {
+  const [ticks, setTicks] = useState({ a: false, b: false, c: false })
+  const [dob, setDob] = useState(sub.date_of_birth || '')
+  const [sigName, setSigName] = useState(sub.full_name || '')
+  const [drawn, setDrawn] = useState<string | null>(null)
+  const signed = !!sub.signed_at
+
+  const facts = [
+    { icon: I.box, label: 'Deliver', v: d.deliverables_summary || '—' },
+    { icon: I.wallet, label: 'Fee', v: money(d.fee_aed_cents) || '—' },
+    { icon: I.chev, label: 'Submit by', v: niceDate(d.submit_by) || '—' },
+    { icon: I.shield, label: 'Usage', v: d.usage_terms || '—' },
+  ]
+  const on = ticks.a && ticks.b && ticks.c && !!dob && sigName.trim().length > 1
+
+  if (signed) {
+    return (
+      <>
+        <div style={{ background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
+          <Row icon={I.doc} label="Signed">{<span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{niceDate(sub.signed_at)}</span>}</Row>
+          <Row icon={I.user} label="By" last>{<span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{sub.full_name}</span>}</Row>
+        </div>
+        <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 700, color: '#1FD16B' }}>This is signed. Nothing more to do here.</div>
+        <a href="#" onClick={(e) => { e.preventDefault(); openAgreement() }} style={{
+          display: 'flex', marginTop: 16, background: '#121215', borderRadius: 16, padding: '14px 16px',
+          alignItems: 'center', gap: 13, minHeight: 44, textDecoration: 'none',
+        }}>
+          <span style={{ flex: 'none' }}>{I.doc}</span>
+          <span style={{ flex: 1, fontSize: 14.5, fontWeight: 700, color: '#fff' }}>Read the agreement</span>
+          {I.chev}
+        </a>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {facts.map((f) => (
+          <div key={f.label} style={{ background: '#121215', borderRadius: 16, padding: '14px 15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ display: 'flex', transform: 'scale(.84)', transformOrigin: 'left center' }}>{f.icon}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#8A8A93' }}>{f.label}</span>
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginTop: 6, lineHeight: 1.2 }}>{f.v}</div>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={openAgreement} style={{
+        width: '100%', marginTop: 8, background: '#121215', borderRadius: 16, padding: '14px 16px',
+        display: 'flex', alignItems: 'center', gap: 13, minHeight: 44, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+      }}>
+        <span style={{ flex: 'none' }}>{I.doc}</span>
+        <span style={{ flex: 1, fontSize: 14.5, fontWeight: 700, color: '#fff', textAlign: 'left' }}>Read the full agreement</span>
+        {I.chev}
+      </button>
+
+      <div style={{ marginTop: 10, background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
+        {([
+          ['a', 'I have read it and I agree'],
+          ['b', 'I am happy to sign electronically'],
+          ['c', 'I am 18 or older'],
+        ] as const).map(([k, label]) => (
+          <div key={k} onClick={() => setTicks((p) => ({ ...p, [k]: !p[k] }))} style={{
+            display: 'flex', alignItems: 'center', gap: 13, padding: '15px 16px', minHeight: 44,
+            borderBottom: '1px solid #1E1E22', cursor: 'pointer',
+          }}>
+            <span style={{ flex: 1, fontSize: 14.5, fontWeight: 600, color: '#E4E4EA' }}>{label}</span>
+            <div style={{
+              width: 26, height: 26, borderRadius: '50%', flex: 'none',
+              background: ticks[k] ? '#FFFFFF' : 'transparent',
+              border: `1.8px solid ${ticks[k] ? '#FFFFFF' : '#3A3A42'}`,
+              display: 'grid', placeItems: 'center', transition: 'background .18s ease, border-color .18s ease',
+            }}>
+              <span style={{ opacity: ticks[k] ? 1 : 0 }}>{I.tick()}</span>
+            </div>
+          </div>
+        ))}
+        <Row icon={I.user} label="Date of birth" last>
+          <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} style={{ ...inputStyle, colorScheme: 'dark' }} />
+        </Row>
+      </div>
+
+      <div style={{ marginTop: 10 }}>
+        <SignaturePad onChange={setDrawn} />
+        <div style={{ marginTop: 8, background: '#121215', borderRadius: 16, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 13 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: '#8A8A93', flex: 'none' }}>Type your name</span>
+          <input style={inputStyle} value={sigName} onChange={(e) => setSigName(e.target.value)} placeholder="Your full name" />
+        </div>
+      </div>
+
+      <ErrLine>{err}</ErrLine>
+      <CTA disabled={!on} busy={busy} onClick={async () => {
+        const r = await post('sign', {
+          signature_name: sigName.trim(), signature_image: drawn, date_of_birth: dob,
+          agreed_terms: true, agreed_electronic: true, agreed_age: true,
+        })
+        if (r.ok) onDone(r.data)
+      }}>Sign agreement</CTA>
+    </>
+  )
+}
+
+/** A signature pad. Pointer events so a finger, a stylus and a mouse are the same code. */
+function SignaturePad({ onChange }: { onChange: (dataUrl: string | null) => void }) {
+  const ref = useRef<HTMLCanvasElement | null>(null)
+  const drawing = useRef(false)
+  const [has, setHas] = useState(false)
+
+  useEffect(() => {
+    const c = ref.current
+    if (!c) return
+    // Backing store at device resolution, or the mark is a blurry smear on a phone.
+    const dpr = Math.min(window.devicePixelRatio || 1, 3)
+    const rect = c.getBoundingClientRect()
+    c.width = rect.width * dpr
+    c.height = rect.height * dpr
+    const ctx = c.getContext('2d')
+    if (!ctx) return
+    ctx.scale(dpr, dpr)
+    ctx.lineWidth = 2.4
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.strokeStyle = '#FFFFFF'
+  }, [])
+
+  const pos = (e: React.PointerEvent) => {
+    const r = (ref.current as HTMLCanvasElement).getBoundingClientRect()
+    return { x: e.clientX - r.left, y: e.clientY - r.top }
+  }
+
+  return (
+    <div>
+      <div style={{ position: 'relative', background: '#121215', borderRadius: 16, overflow: 'hidden' }}>
+        <canvas
+          ref={ref}
+          style={{ display: 'block', width: '100%', height: 132, touchAction: 'none', cursor: 'crosshair' }}
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId)
+            const ctx = ref.current!.getContext('2d')!
+            const p = pos(e)
+            ctx.beginPath(); ctx.moveTo(p.x, p.y)
+            drawing.current = true
+          }}
+          onPointerMove={(e) => {
+            if (!drawing.current) return
+            const ctx = ref.current!.getContext('2d')!
+            const p = pos(e)
+            ctx.lineTo(p.x, p.y); ctx.stroke()
+            if (!has) setHas(true)
+          }}
+          onPointerUp={() => {
+            drawing.current = false
+            if (has) onChange(ref.current!.toDataURL('image/png'))
+          }}
+        />
+        {!has && (
+          <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none', fontSize: 13.5, fontWeight: 600, color: '#5E5E66' }}>
+            Sign here with your finger
+          </div>
+        )}
+      </div>
+      {has && (
+        <button onClick={() => {
+          const c = ref.current!
+          c.getContext('2d')!.clearRect(0, 0, c.width, c.height)
+          setHas(false); onChange(null)
+        }} style={{ marginTop: 8, background: 'none', border: 'none', fontSize: 12.5, fontWeight: 600, color: '#8A8A93', fontFamily: 'inherit', cursor: 'pointer' }}>
+          Clear and sign again
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------------------
+// Step 3 — bank
+// ---------------------------------------------------------------------------------------
+function StepBank({ sub, post, busy, err, onDone }: {
+  sub: Submitted; post: (p: string, b?: unknown) => Promise<{ ok: boolean; data?: Payload }>
+  busy: boolean; err: string | null; onDone: (f?: Payload) => void
+}) {
+  const [holder, setHolder] = useState(sub.bank_holder || '')
+  const [iban, setIban] = useState('')
+  const [swift, setSwift] = useState('')
+
+  const clean = iban.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  const outsideUAE = clean.length >= 2 && !clean.startsWith('AE')
+  const ok = holder.trim().length > 1 && clean.length >= 15 && (!outsideUAE || swift.trim().length >= 8)
+
+  return (
+    <>
+      <div style={{ background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
+        <Row icon={I.user} label="Holder"><input style={inputStyle} value={holder} onChange={(e) => setHolder(e.target.value)} placeholder="Name on the account" /></Row>
+        <Row icon={I.bank} label="IBAN" last>
+          <input style={inputStyle} value={iban} onChange={(e) => setIban(e.target.value.toUpperCase())} placeholder="AE00 0000 0000 0000 0000 000" autoCapitalize="characters" />
+        </Row>
+      </div>
+
+      {outsideUAE && (
+        <div style={{ marginTop: 10, background: '#121215', borderRadius: 16, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 13, minHeight: 44 }}>
+          <span style={{ flex: 'none' }}>{I.bank}</span>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: '#8A8A93', flex: 'none' }}>SWIFT</span>
+          <input style={inputStyle} value={swift} onChange={(e) => setSwift(e.target.value.toUpperCase())} placeholder="Needed outside the UAE" autoCapitalize="characters" />
+        </div>
+      )}
+
+      {clean.length >= 15 && !err && (
+        <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 700, color: '#1FD16B', lineHeight: 1.4 }}>
+          {clean.startsWith('AE') && clean.length === 23 ? 'Looks like a UAE IBAN, 23 characters.' : `${clean.length} characters.`}
+        </div>
+      )}
+      <ErrLine>{err}</ErrLine>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, fontSize: 12.5, fontWeight: 600, color: '#7E7E87', lineHeight: 1.4 }}>
+        <span style={{ flex: 'none' }}>{I.shield}</span>Finance and the bank only. Never the brand.
+      </div>
+      <CTA disabled={!ok} busy={busy} onClick={async () => {
+        const r = await post('bank', { bank_holder: holder.trim(), bank_iban: clean, bank_swift: swift.trim() || null, bank_country: clean.slice(0, 2) })
+        if (r.ok) onDone(r.data)
+      }}>Save bank details</CTA>
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------------------
+// Step 4 — address
+// ---------------------------------------------------------------------------------------
+function StepAddr({ d, sub, post, busy, err, onDone }: {
+  d: Payload; sub: Submitted; post: (p: string, b?: unknown) => Promise<{ ok: boolean; data?: Payload }>
+  busy: boolean; err: string | null; onDone: (f?: Payload) => void
+}) {
+  const [line, setLine] = useState(sub.address_line || '')
+  const [city, setCity] = useState(sub.address_city || '')
+  const [phone, setPhone] = useState(sub.address_phone || sub.mobile || '')
+  const ok = line.trim().length > 2 && city.trim().length > 1
+
+  return (
+    <>
+      <div style={{ background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
+        <Row icon={I.pin} label="Address"><input style={inputStyle} value={line} onChange={(e) => setLine(e.target.value)} placeholder="Building, street, apartment" /></Row>
+        <Row icon={I.city} label="City"><input style={inputStyle} value={city} onChange={(e) => setCity(e.target.value)} placeholder="Dubai" /></Row>
+        <Row icon={I.phone} label="Phone" last><input style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+971 50 000 0000" inputMode="tel" /></Row>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, fontSize: 12.5, fontWeight: 600, color: '#7E7E87', lineHeight: 1.4 }}>
+        <span style={{ flex: 'none' }}>{I.box}</span>
+        {d.brand ? `${d.brand} is sending product for this campaign.` : 'Where we send product for this campaign.'}
+      </div>
+      <ErrLine>{err}</ErrLine>
+      <CTA disabled={!ok} busy={busy} onClick={async () => {
+        const r = await post('address', { address_line: line.trim(), address_city: city.trim(), address_phone: phone.trim() || null })
+        if (r.ok) onDone(r.data)
+      }}>Save address</CTA>
+    </>
+  )
+}
+
+// The design's own keyframes, kept verbatim including the reduced-motion opt out.
+const keyframes = `
+@keyframes eFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes ePop{0%{opacity:0;transform:scale(.72)}62%{opacity:1;transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
+@keyframes eBob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-13px) rotate(3deg)}}
+@keyframes eTwinkle{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+@keyframes eConf{0%{opacity:0;transform:translateY(-40px) rotate(0)}10%{opacity:1}100%{opacity:.85;transform:translateY(700px) rotate(460deg)}}
+@keyframes eGlow{0%,100%{opacity:.5}50%{opacity:.85}}
+.eBob{animation:eBob 5s ease-in-out infinite}
+.eTw{animation:eTwinkle 3.2s ease-in-out infinite;display:block}
+.eGlow{animation:eGlow 6s ease-in-out infinite}
+input::placeholder{color:#4A4A52}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+`
