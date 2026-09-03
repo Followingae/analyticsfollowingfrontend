@@ -33,7 +33,7 @@ const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/enrolment`
 // ---------------------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------------------
-type StepKey = 'email' | 'sign' | 'bank' | 'addr'
+type StepKey = 'email' | 'sign' | 'bank'
 
 interface PaymentTerm { pct?: number; label?: string; amount_aed_cents?: number }
 
@@ -53,6 +53,10 @@ interface Submitted {
   address_city?: string | null
   address_country?: string | null
   address_phone?: string | null
+  address_lat?: number | null
+  address_lng?: number | null
+  address_maps_url?: string | null
+  address_at?: string | null
   completed_at?: string | null
   has_agreement?: boolean
 }
@@ -72,6 +76,7 @@ interface Payload {
   agreement_version?: number
   agreement_body?: string
   steps?: StepKey[]
+  wants_address?: boolean
   done?: Record<StepKey, boolean>
   retract_reason?: string | null
   talent_name?: string | null
@@ -81,18 +86,19 @@ interface Payload {
 // ---------------------------------------------------------------------------------------
 // The design's tokens, verbatim
 // ---------------------------------------------------------------------------------------
-const GRAD: Record<StepKey, string> = {
+const GRAD: Record<StepKey | 'addr', string> = {
   email: 'linear-gradient(160deg,#0A6BFF,#5FE0FF)',
   sign: 'linear-gradient(160deg,#FF3D00,#FF9500)',
   bank: 'linear-gradient(160deg,#0E7A3A,#1FD16B)',
+  // Kept although there is no `addr` card any more: the celebration and receipt screens
+  // still use this gradient as the delivery colour, and it is the design's own value.
   addr: 'linear-gradient(160deg,#A63DE8,#FF7AD9)',
 }
 
 const DEFS: Record<StepKey, { kick: string; title: string; meta: string; big: string; sub: string }> = {
-  email: { kick: 'STEP 01', title: 'Your\ndetails', meta: 'Name, email, mobile', big: 'Your details', sub: 'So we can reach you' },
+  email: { kick: 'STEP 01', title: 'Your\ndetails', meta: 'Name, email, address', big: 'Your details', sub: 'So we can reach you' },
   sign: { kick: 'STEP 02', title: 'Sign the\nagreement', meta: '2 minutes', big: 'Sign the deal', sub: 'The terms in short' },
   bank: { kick: 'STEP 03', title: 'Where money\nlands', meta: 'IBAN and name', big: 'Where money lands', sub: 'Your bank account' },
-  addr: { kick: 'STEP 04', title: 'Where product\ngoes', meta: 'Delivery address', big: 'Where product goes', sub: 'Your delivery address' },
 }
 
 const CONF_COLS = ['#0A6BFF', '#FF9500', '#1FD16B', '#FF7AD9']
@@ -398,7 +404,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
 
   useEffect(() => { load() }, [load])
 
-  const steps = useMemo<StepKey[]>(() => (data?.steps?.length ? data.steps : ['email', 'sign', 'bank', 'addr']), [data])
+  const steps = useMemo<StepKey[]>(() => (data?.steps?.length ? data.steps : ['email', 'sign', 'bank']), [data])
   const done = data?.done ?? ({} as Record<StepKey, boolean>)
   const count = steps.filter((s) => done[s]).length
 
@@ -972,7 +978,6 @@ export default function EnrolmentFlow({ token }: { token: string }) {
         {key === 'email' && <StepEmail d={d} sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('email', f)} />}
         {key === 'sign' && <StepSign d={d} sub={sub} post={post} busy={busy} err={err} openAgreement={() => setScreen('agreement')} onDone={(f) => advance('sign', f)} />}
         {key === 'bank' && <StepBank sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('bank', f)} />}
-        {key === 'addr' && <StepAddr d={d} sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('addr', f)} />}
       </div>
 
       {/* The design's own progress strip along the bottom of a step, which the port had
@@ -1012,6 +1017,14 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
   const [email, setEmail] = useState(sub.email || '')
   const [mobile, setMobile] = useState(sub.mobile || '')
   const [handle, setHandle] = useState(sub.instagram_handle || (d.creator_handle || '').replace(/^@/, ''))
+  // The delivery half of this step. Only collected when the link ships something.
+  const wantsAddress = d.wants_address !== false
+  const [addr, setAddr] = useState({
+    line: sub.address_line || '', city: sub.address_city || '',
+    phone: sub.address_phone || sub.mobile || '',
+    lat: sub.address_lat ?? null, lng: sub.address_lng ?? null,
+    maps: sub.address_maps_url || '', source: null as string | null,
+  })
   const [stage, setStage] = useState<'form' | 'code'>('form')
   const [code, setCode] = useState('')
   const [sentTo, setSentTo] = useState<string | null>(null)
@@ -1020,12 +1033,23 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
   // silence. After it, errors update live so a correction clears immediately.
   const [show, setShow] = useState(false)
 
+  const addrErrs = {
+    line: !wantsAddress ? null
+      : !addr.line.trim() ? 'We need somewhere to send the product.'
+        : addr.line.trim().length < 6 ? 'Add the building and street, not just a number.' : null,
+    city: !wantsAddress ? null
+      : !addr.city.trim() ? 'Which city?' : addr.city.trim().length < 2 ? 'That looks too short.' : null,
+    // Required here even though the mobile above is not: a courier cannot deliver without
+    // a number to call on the day.
+    phone: !wantsAddress ? null
+      : !addr.phone.trim() ? 'The courier needs a number to call on the day.' : vMobile(addr.phone),
+  }
   const errs = {
     name: vName(name),
     email: vEmail(email),
     mobile: vMobile(mobile),
   }
-  const bad = Object.values(errs).some(Boolean)
+  const bad = [...Object.values(errs), ...Object.values(addrErrs)].some(Boolean)
 
   return (
     <>
@@ -1048,11 +1072,34 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, fontSize: 12.5, fontWeight: 600, color: '#7E7E87', lineHeight: 1.4 }}>
             <span style={{ flex: 'none' }}>{I.shield}</span>Your email becomes your Inflink login.
           </div>
+
+          {wantsAddress && (
+            <DeliveryBlock
+              brand={d.brand}
+              value={addr}
+              onChange={(patch) => setAddr((p) => ({ ...p, ...patch }))}
+              show={show}
+              errs={addrErrs}
+            />
+          )}
+
           <ErrLine>{err}</ErrLine>
           <CTA busy={busy} onClick={async () => {
             setShow(true)
             if (bad) return
-            const r = await post('details', { full_name: name.trim(), email: email.trim().toLowerCase(), mobile: mobile.trim() || null, instagram_handle: handle.trim() || null })
+            const r = await post('details', {
+              full_name: name.trim(), email: email.trim().toLowerCase(),
+              mobile: mobile.trim() || null, instagram_handle: handle.trim() || null,
+              ...(wantsAddress ? {
+                address_line: addr.line.trim() || null,
+                address_city: addr.city.trim() || null,
+                address_phone: addr.phone.trim() || null,
+                address_country: 'United Arab Emirates',
+                address_lat: addr.lat, address_lng: addr.lng,
+                address_maps_url: addr.maps.trim() || null,
+                address_pin_source: addr.lat != null ? 'browser' : (addr.maps.trim() ? 'link' : null),
+              } : {}),
+            })
             if (r.ok) { setSentTo(email.trim().toLowerCase()); setStage('code'); setShow(false) }
           }}>Save my details</CTA>
         </>
@@ -1388,51 +1435,142 @@ function StepBank({ sub, post, busy, err, onDone }: {
   )
 }
 
-// ---------------------------------------------------------------------------------------
-// Step 4 — address
-// ---------------------------------------------------------------------------------------
-function StepAddr({ d, sub, post, busy, err, onDone }: {
-  d: Payload; sub: Submitted; post: (p: string, b?: unknown) => Promise<{ ok: boolean; data?: Payload }>
-  busy: boolean; err: string | null; onDone: (f?: Payload) => void
+
+/**
+ * Where the product goes, with a map pin.
+ *
+ * A typed address is not a delivery instruction in the UAE. Buildings repeat, streets are
+ * often unnamed, and every courier here works off a shared pin, so this collects both: the
+ * text goes on the label, the pin gets somebody to the door.
+ *
+ * NO GOOGLE MAPS KEY IS USED, because the project has none and adding one means a billed
+ * account somebody has to provision. Two routes that need no key and cover the real cases:
+ * the browser's own geolocation for "I am standing there", and pasting the Maps link they
+ * would have WhatsApped anyway. With a Maps JS key this could gain in-page search and a
+ * draggable pin; without one it still captures a precise, courier-usable location.
+ */
+function DeliveryBlock({ brand, value, onChange, show, errs }: {
+  brand?: string | null
+  value: { line: string; city: string; phone: string; lat: number | null; lng: number | null; maps: string; source: string | null }
+  onChange: (patch: Partial<typeof value>) => void
+  show: boolean
+  errs: { line: string | null; city: string | null; phone: string | null }
 }) {
-  const [line, setLine] = useState(sub.address_line || '')
-  const [city, setCity] = useState(sub.address_city || '')
-  const [phone, setPhone] = useState(sub.address_phone || sub.mobile || '')
-  const [show, setShow] = useState(false)
-  const errs = {
-    line: !line.trim() ? 'We need somewhere to send the product.'
-      : line.trim().length < 6 ? 'Add the building and street, not just a number.' : null,
-    city: !city.trim() ? 'Which city?' : city.trim().length < 2 ? 'That looks too short.' : null,
-    // Required here even though the mobile on step one is optional: a courier cannot
-    // deliver without a number to call on the day.
-    phone: !phone.trim() ? 'The courier needs a number to call on the day.' : vMobile(phone),
+  const [locating, setLocating] = useState(false)
+  const [pinNote, setPinNote] = useState<string | null>(null)
+
+  const hasPin = value.lat != null && value.lng != null
+  const pinUrl = hasPin
+    ? `https://www.google.com/maps?q=${value.lat},${value.lng}`
+    : (value.maps || null)
+
+  const locate = () => {
+    if (!navigator.geolocation) {
+      setPinNote('This browser cannot share a location. Paste a Maps link instead.')
+      return
+    }
+    setLocating(true); setPinNote(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        onChange({
+          lat: Number(pos.coords.latitude.toFixed(6)),
+          lng: Number(pos.coords.longitude.toFixed(6)),
+          source: 'browser',
+        })
+        setPinNote(`Pin saved, accurate to about ${Math.round(pos.coords.accuracy)} metres.`)
+        setLocating(false)
+      },
+      (e) => {
+        setLocating(false)
+        setPinNote(e.code === e.PERMISSION_DENIED
+          ? 'You blocked location access. Paste a Maps link instead, or type the address.'
+          : 'Could not get a location. Paste a Maps link instead.')
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
+    )
   }
-  const bad = Object.values(errs).some(Boolean)
 
   return (
     <>
-      <div style={{ background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
+      <div style={{
+        marginTop: 22, fontSize: 11, fontWeight: 800, letterSpacing: '.14em',
+        color: '#5E5E66',
+      }}>WHERE PRODUCT GOES</div>
+
+      <div style={{ marginTop: 10, background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
         <Row icon={I.pin} label="Address" error={show ? errs.line : null}>
-          <input style={inputStyle} value={line} onChange={(e) => setLine(e.target.value)} placeholder="Building, street, apartment" />
+          <input style={inputStyle} value={value.line} onChange={(e) => onChange({ line: e.target.value })} placeholder="Building, street, apartment" />
         </Row>
         <Row icon={I.city} label="City" error={show ? errs.city : null}>
-          <input style={inputStyle} value={city} onChange={(e) => setCity(e.target.value)} placeholder="Dubai" />
+          <input style={inputStyle} value={value.city} onChange={(e) => onChange({ city: e.target.value })} placeholder="Dubai" />
         </Row>
         <Row icon={I.phone} label="Phone" last error={show ? errs.phone : null}>
-          <input style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+971 50 000 0000" inputMode="tel" />
+          <input style={inputStyle} value={value.phone} onChange={(e) => onChange({ phone: e.target.value })} placeholder="+971 50 000 0000" inputMode="tel" />
         </Row>
       </div>
+
+      {/* The pin */}
+      <div style={{ marginTop: 10, background: '#121215', borderRadius: 20, padding: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ flex: 'none', display: 'flex' }}>{I.pin}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Drop a map pin</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: '#8A8A93', marginTop: 2, lineHeight: 1.45 }}>
+              This is what the courier actually navigates to.
+            </div>
+          </div>
+          {(hasPin || value.maps) && (
+            <div style={{ width: 24, height: 24, borderRadius: '50%', background: GRAD.addr, display: 'grid', placeItems: 'center', flex: 'none' }}>
+              {I.tick('#fff')}
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={locate}
+          disabled={locating}
+          style={{
+            width: '100%', marginTop: 13, borderRadius: 16, padding: '14px 16px',
+            background: '#1C1C20', color: '#fff', border: 'none', fontFamily: 'inherit',
+            fontSize: 14.5, fontWeight: 700, minHeight: 44, cursor: locating ? 'default' : 'pointer',
+          }}
+        >{locating ? 'Finding you…' : hasPin ? 'Update my pin' : 'Use my current location'}</button>
+
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ flex: 1, height: 1, background: '#1E1E22' }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#5E5E66', letterSpacing: '.08em' }}>OR</span>
+          <div style={{ flex: 1, height: 1, background: '#1E1E22' }} />
+        </div>
+
+        <input
+          value={value.maps}
+          onChange={(e) => onChange({ maps: e.target.value, source: 'link' })}
+          placeholder="Paste a Google Maps link"
+          autoCapitalize="off" autoCorrect="off" spellCheck={false}
+          style={{
+            width: '100%', marginTop: 12, background: '#0E0E11', borderRadius: 14,
+            border: '1px solid #1E1E22', padding: '13px 14px', fontSize: 13.5,
+            fontWeight: 600, color: '#fff', outline: 'none', fontFamily: 'inherit',
+          }}
+        />
+
+        {pinNote && (
+          <div style={{ marginTop: 10, fontSize: 12.5, fontWeight: 600, color: '#8A8A93', lineHeight: 1.45 }}>
+            {pinNote}
+          </div>
+        )}
+        {pinUrl && (
+          <a href={pinUrl} target="_blank" rel="noopener noreferrer" style={{
+            display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700,
+            color: '#5FE0FF', textDecoration: 'none',
+          }}>Open the pin to check it</a>
+        )}
+      </div>
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 12, fontSize: 12.5, fontWeight: 600, color: '#7E7E87', lineHeight: 1.4 }}>
         <span style={{ flex: 'none' }}>{I.box}</span>
-        {d.brand ? `${d.brand} is sending product for this campaign.` : 'Where we send product for this campaign.'}
+        {brand ? `${brand} is sending product for this campaign.` : 'Where we send product for this campaign.'}
       </div>
-      <ErrLine>{err}</ErrLine>
-      <CTA busy={busy} onClick={async () => {
-        setShow(true)
-        if (bad) return
-        const r = await post('address', { address_line: line.trim(), address_city: city.trim(), address_phone: phone.trim() || null })
-        if (r.ok) onDone(r.data)
-      }}>Save address</CTA>
     </>
   )
 }
