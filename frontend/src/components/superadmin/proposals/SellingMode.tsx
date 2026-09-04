@@ -25,7 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Loader2, Sparkles, TrendingUp } from 'lucide-react'
+import { Layers, Loader2, Sparkles, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
@@ -47,6 +47,9 @@ type Item = {
   set_by_hand?: boolean
   above_band?: boolean
   tier_note?: string | null
+  weight?: number
+  counts_as?: string | null
+  weight_note?: string | null
   selected_by_user?: boolean
   sell_price_snapshot?: Record<string, number> | null
   cost_price_snapshot?: Record<string, number> | null
@@ -118,23 +121,45 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
     } finally { setSaving(false) }
   }
 
-  const moveTo = async (row: Item, tier: TierKey | 'auto') => {
+  /**
+   * Place a creator in a band, or say how many of it they take.
+   *
+   * One endpoint for both, and OMITTING a field means "leave it alone" rather than "reset
+   * it". Sending `weight: 1` every time somebody changed the band would quietly undo a
+   * weight another person had set deliberately.
+   */
+  const moveTo = async (
+    row: Item,
+    change: { tier?: TierKey | 'auto'; weight?: number },
+  ) => {
+    const body: Record<string, unknown> = {}
+    if (change.tier !== undefined) body.tier = change.tier === 'auto' ? null : change.tier
+    if (change.weight !== undefined) body.weight = change.weight
+
     try {
       const res = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/admin/proposals/${proposalId}/influencers/${row.id}/tier`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tier: tier === 'auto' ? null : tier }),
+          body: JSON.stringify(body),
         })
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Could not move')
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Could not save')
       const d = (await res.json()).data
       setItems(p => p.map(x => x.id === row.id ? { ...x, ...d } : x))
-      if (d.above_band) {
+
+      if (change.weight !== undefined) {
+        toast.success(change.weight > 1
+          ? `@${row.username} now counts as ${change.weight} ${d.label}. The client is told before they pick.`
+          : `@${row.username} counts as one ${d.label} again`)
+      } else if (d.above_band) {
         toast.success(`@${row.username} counts as ${d.label}, so the client sees they are getting more`)
       }
+      // The allowance maths moves with the weight, so the header counts have to be re-read
+      // rather than patched from this one row.
+      load()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not move them')
+      toast.error(e instanceof Error ? e.message : 'Could not save that')
     }
   }
 
@@ -295,6 +320,12 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
                                   {bands[r.natural_tier || '']?.label || r.natural_tier} offered as {label}
                                 </Badge>
                               )}
+                              {(r.weight || 1) > 1 && (
+                                <Badge className="gap-1 border-transparent bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200">
+                                  <Layers className="h-3 w-3" />
+                                  counts as {r.weight} {label}
+                                </Badge>
+                              )}
                               {r.selected_by_user && (
                                 <Badge variant="outline" className="text-emerald-700">picked</Badge>
                               )}
@@ -321,16 +352,38 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
                             )}
                           </div>
 
-                          <Select value={r.set_by_hand ? (r.tier || 'auto') : 'auto'}
-                                  onValueChange={(v) => moveTo(r, v as TierKey | 'auto')}>
-                            <SelectTrigger className="w-[9.5rem]"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="auto">By followers</SelectItem>
-                              {ORDER.map(t => (
-                                <SelectItem key={t} value={t}>Count as {bands[t]?.label || t}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center gap-2">
+                            <Select value={r.set_by_hand ? (r.tier || 'auto') : 'auto'}
+                                    onValueChange={(v: string) => moveTo(r, { tier: v as TierKey | 'auto' })}>
+                              <SelectTrigger className="w-[9.5rem]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">By followers</SelectItem>
+                                {ORDER.map(t => (
+                                  <SelectItem key={t} value={t}>Count as {bands[t]?.label || t}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            {/* How many places they take. Capped at the allowance for their
+                                band, because a weight larger than the whole allowance makes
+                                a creator nobody could ever pick, and the API refuses it. */}
+                            {k !== 'untiered' && (
+                              <Select value={String(r.weight || 1)}
+                                      onValueChange={(v: string) => moveTo(r, { weight: Number(v) })}>
+                                <SelectTrigger className="w-[7.5rem]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {Array.from(
+                                    { length: Math.max(1, Math.min(10, Number(allowances[k]) || 10)) },
+                                    (_, i) => i + 1,
+                                  ).map(n => (
+                                    <SelectItem key={n} value={String(n)}>
+                                      {n === 1 ? 'one place' : `${n} places`}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
                         </div>
                       )
                     })}

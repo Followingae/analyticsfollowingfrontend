@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
   Lock, Check, FileSignature, CreditCard, Users, Download, ArrowRight,
-  ShieldCheck, Sparkles, Star, Wallet, CalendarClock,
+  ShieldCheck, Sparkles, Star, Wallet, CalendarClock, Layers,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { QuoteView } from './QuoteView'
 import { cdnAvatar } from "@/lib/avatar"
 
@@ -146,6 +147,13 @@ export default function PublicProposalPage() {
       const j = await res.json().catch(() => ({}))
       if (!res.ok) { setPickError(j?.detail || 'Could not save that choice'); return }
       setPickError(null)
+      // A weighted creator moves the count by more than one, and somebody who taps one name
+      // and watches two places disappear will assume it is a bug unless we say so. The
+      // sentence is written by the server so the card, this toast and any refusal all
+      // describe the creator the same way. Nothing is said for an ordinary pick.
+      if (j?.data?.message) {
+        toast(j.data.message, { duration: 5000, icon: <Layers className="h-4 w-4" /> })
+      }
       await load()
     } catch {
       setPickError('Could not save that choice')
@@ -499,6 +507,22 @@ export default function PublicProposalPage() {
                     {byTier && inf.above_band && !inf.recommended && (
                       <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11.5px] font-medium text-primary">
                         <Sparkles className="h-3 w-3" />Upgraded pick, counts as {inf.tier_label}
+                      </div>
+                    )}
+                    {/* Said BEFORE the tap, not after it. Finding out a creator uses two of
+                        your places only once you have chosen them is the surprise this
+                        whole thing exists to avoid. */}
+                    {byTier && (inf.tier_weight || 1) > 1 && (
+                      <div className="mt-3">
+                        <div className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-[11.5px] font-semibold text-amber-900 dark:bg-amber-950/60 dark:text-amber-200">
+                          <Layers className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{inf.counts_as}</span>
+                        </div>
+                        {inf.tier_weight_note && (
+                          <p className="mt-1.5 text-[11.5px] leading-snug text-muted-foreground">
+                            {inf.tier_weight_note}
+                          </p>
+                        )}
                       </div>
                     )}
                     <div className="mt-5 flex items-center justify-between text-sm">
