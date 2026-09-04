@@ -129,19 +129,32 @@ const PAGE = '#050506'
  * change, which is what makes a step page feel like it runs to the top of the phone
  * instead of stopping at a black strip.
  */
+function setChrome(colour: string) {
+  if (typeof document === 'undefined') return
+  /**
+   * REPLACED, never edited in place.
+   *
+   * Editing `content` on the existing tag updates the DOM and Safari carries on painting
+   * the old colour: it re-reads theme-color when a tag is INSERTED, not when one changes.
+   * That is why the first version of this looked correct in a headless check, where the
+   * meta really did say #0A6BFF, while the bar on a real iPhone stayed black.
+   *
+   * Every existing tag is removed first, because two theme-color tags leave Safari to pick
+   * one and it will not be ours.
+   */
+  document.querySelectorAll('meta[name="theme-color"]').forEach((n) => n.remove())
+  const tag = document.createElement('meta')
+  tag.setAttribute('name', 'theme-color')
+  tag.setAttribute('content', colour)
+  document.head.appendChild(tag)
+}
+
 function useChrome(colour: string) {
   useEffect(() => {
-    if (typeof document === 'undefined') return
-    let tag = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null
-    if (!tag) {
-      tag = document.createElement('meta')
-      tag.name = 'theme-color'
-      document.head.appendChild(tag)
-    }
-    const before = tag.content
-    tag.content = colour
-    // Restored on unmount so leaving the page does not leave somebody's browser tinted.
-    return () => { if (tag) tag.content = before || PAGE }
+    setChrome(colour)
+    // Put it back on the way out, so leaving this page does not leave somebody's browser
+    // tinted for whatever they open next.
+    return () => setChrome(PAGE)
   }, [colour])
 }
 
