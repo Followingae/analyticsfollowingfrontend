@@ -21,6 +21,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
 export const mapsAvailable = () => !!KEY
@@ -169,9 +170,19 @@ export function LocationPicker({ open, initial, onClose, onPick }: {
 
   if (!open) return null
 
-  return (
+  /**
+   * Rendered into <body>, not in place.
+   *
+   * The screen this is opened from sits inside a wrapper carrying an opacity animation, and
+   * an element with an animation applied is a stacking context. `position: fixed` then
+   * resolves against THAT wrapper instead of the viewport and the z-index is scoped inside
+   * it, so the page header drew straight over the map's search box. A portal puts this
+   * outside every one of those ancestors, which is the only fix that does not depend on
+   * knowing what the parent tree is doing.
+   */
+  return createPortal((
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 50, background: '#050506',
+      position: 'fixed', inset: 0, zIndex: 9999, background: '#050506',
       display: 'flex', justifyContent: 'center',
     }}>
       <div style={{ width: '100%', maxWidth: 430, position: 'relative', display: 'flex', flexDirection: 'column' }}>
@@ -273,7 +284,7 @@ export function LocationPicker({ open, initial, onClose, onPick }: {
         </div>
       </div>
     </div>
-  )
+  ), document.body)
 }
 
 /** Google's own night styling, trimmed to what this map shows. */
