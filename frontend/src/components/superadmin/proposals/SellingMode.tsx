@@ -26,6 +26,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Layers, Loader2, Sparkles, TrendingUp } from 'lucide-react'
+import { TierCostPicker, costSentence, type TierCost } from './TierCostPicker'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
@@ -48,6 +49,8 @@ type Item = {
   above_band?: boolean
   tier_note?: string | null
   weight?: number
+  cost?: TierCost
+  cross_tier?: boolean
   counts_as?: string | null
   weight_note?: string | null
   selected_by_user?: boolean
@@ -130,11 +133,11 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
    */
   const moveTo = async (
     row: Item,
-    change: { tier?: TierKey | 'auto'; weight?: number },
+    change: { tier?: TierKey | 'auto'; cost?: TierCost },
   ) => {
     const body: Record<string, unknown> = {}
     if (change.tier !== undefined) body.tier = change.tier === 'auto' ? null : change.tier
-    if (change.weight !== undefined) body.weight = change.weight
+    if (change.cost !== undefined) body.cost = change.cost
 
     try {
       const res = await fetchWithAuth(
@@ -148,9 +151,10 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
       const d = (await res.json()).data
       setItems(p => p.map(x => x.id === row.id ? { ...x, ...d } : x))
 
-      if (change.weight !== undefined) {
-        toast.success(change.weight > 1
-          ? `@${row.username} now counts as ${change.weight} ${d.label}. The client is told before they pick.`
+      if (change.cost !== undefined) {
+        const spent = Object.values(d.cost || {}).reduce((a: number, b: any) => a + Number(b || 0), 0)
+        toast.success(spent > 1
+          ? `@${row.username} now counts as ${costSentence(d.cost, bands)}. The client is told before they pick.`
           : `@${row.username} counts as one ${d.label} again`)
       } else if (d.above_band) {
         toast.success(`@${row.username} counts as ${d.label}, so the client sees they are getting more`)
@@ -329,10 +333,10 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
                                   {bands[r.natural_tier || '']?.label || r.natural_tier} offered as {label}
                                 </Badge>
                               )}
-                              {(r.weight || 1) > 1 && (
+                              {r.counts_as && (
                                 <Badge className="gap-1 border-transparent bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200">
                                   <Layers className="h-3 w-3" />
-                                  counts as {r.weight} {label}
+                                  {r.counts_as.replace(/^Counts as /, 'counts as ')}
                                 </Badge>
                               )}
                               {r.selected_by_user && (
@@ -373,28 +377,16 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
                               </SelectContent>
                             </Select>
 
-                            {/* How many places of THIS band they take.
-                                The band is named in every option rather than left to the
-                                dropdown beside it: "2 places" on its own does not say two
-                                places of what, and the first person to see it asked exactly
-                                that. Capped at the band's allowance, because a weight larger
-                                than the whole allowance makes a creator nobody could ever
-                                pick, and the API refuses it. */}
+                            {/* What taking them SPENDS, which can land in more than one
+                                band: a dropdown could only ever say "n of my own band". */}
                             {k !== 'untiered' && (
-                              <Select value={String(r.weight || 1)}
-                                      onValueChange={(v: string) => moveTo(r, { weight: Number(v) })}>
-                                <SelectTrigger className="w-[11rem]"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  {Array.from(
-                                    { length: Math.max(1, Math.min(10, Number(allowances[k]) || 10)) },
-                                    (_, i) => i + 1,
-                                  ).map(n => (
-                                    <SelectItem key={n} value={String(n)}>
-                                      {n === 1 ? `1 ${label} place` : `${n} ${label} places`}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <TierCostPicker
+                                cost={r.cost || {}}
+                                tier={(r.tier as TierKey) || null}
+                                allowances={allowances as Record<string, number>}
+                                bands={bands}
+                                onChange={(cost) => moveTo(r, { cost })}
+                              />
                             )}
                           </div>
                         </div>
