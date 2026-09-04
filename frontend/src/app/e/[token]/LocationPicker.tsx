@@ -117,6 +117,9 @@ export function LocationPicker({ open, initial, onClose, onPick }: {
         zoom: initial?.lat != null ? 18 : 12,
         disableDefaultUI: true,
         zoomControl: true,
+        // Bottom LEFT. Google's default puts it bottom right, directly under the "My
+        // location" pill, and the two overlapped on a phone.
+        zoomControlOptions: { position: g.maps.ControlPosition.LEFT_BOTTOM },
         gestureHandling: 'greedy',   // one finger pans; this is a full screen map, not a card
         clickableIcons: false,
         // Google's own dark styling, so the map is not a white slab in a black page.
