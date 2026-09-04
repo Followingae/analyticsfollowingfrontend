@@ -107,6 +107,44 @@ const DEFS: Record<StepKey, { kick: string; title: string; meta: string; big: st
 
 const CONF_COLS = ['#0A6BFF', '#FF9500', '#1FD16B', '#FF7AD9']
 
+/**
+ * The first colour of each step's gradient.
+ *
+ * The gradient runs at 160deg, so this is what sits along the very top of the banner, and
+ * therefore the only value that can carry on into the phone's own status bar without a
+ * visible seam.
+ */
+const TOP: Record<StepKey, string> = {
+  email: '#0A6BFF',
+  sign: '#FF3D00',
+  bank: '#0E7A3A',
+}
+const PAGE = '#050506'
+
+/**
+ * Paint the browser chrome to match the screen.
+ *
+ * `themeColor` on the viewport export is baked at build time and cannot change per screen,
+ * so the tag is mutated directly. Android Chrome and iOS Safari 15+ both honour a live
+ * change, which is what makes a step page feel like it runs to the top of the phone
+ * instead of stopping at a black strip.
+ */
+function useChrome(colour: string) {
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    let tag = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null
+    if (!tag) {
+      tag = document.createElement('meta')
+      tag.name = 'theme-color'
+      document.head.appendChild(tag)
+    }
+    const before = tag.content
+    tag.content = colour
+    // Restored on unmount so leaving the page does not leave somebody's browser tinted.
+    return () => { if (tag) tag.content = before || PAGE }
+  }, [colour])
+}
+
 const money = (cents?: number | null) =>
   cents == null ? null : `AED ${(cents / 100).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
 
@@ -397,6 +435,11 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   // Why a locked card sent you somewhere else. Shown at the top of the step it sent you to.
   const [gate, setGate] = useState<string | null>(null)
 
+  // The phone's status bar follows the screen: a step's own colour, black everywhere else.
+  // Declared here with the other hooks because the screens below return early.
+  const stepKeyForChrome = (open ?? null) as StepKey | null
+  useChrome(screen === 'step' && stepKeyForChrome ? TOP[stepKeyForChrome] : PAGE)
+
   const load = useCallback(async () => {
     try {
       const r = await fetch(`${PUBLIC}/${token}`)
@@ -457,35 +500,32 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   }, [token])
 
   /**
+   * Which steps cannot be opened yet, and why.
+   *
+   * Signing and bank details cannot be WRITTEN until the email behind them is confirmed:
+   * an agreement signed by an unverified address is signed by nobody, and bank details
+   * from an unverified address are the exact fraud a forwarded link invites. The server
+   * refuses those writes and always will.
+   */
+  const emailVerified = !!data?.submitted?.email_verified_at || !!done.email
+  const lockedStep = useCallback((k: StepKey) => k !== 'email' && !emailVerified, [emailVerified])
+
+  /**
    * Open a card.
    *
-   * The deck lets you tap any step in any order, and that is right: it is a deck, not a
-   * wizard. But three of the four steps cannot be WRITTEN until the email behind them is
-   * confirmed, because an agreement signed by an unverified address is signed by nobody,
-   * and bank details from an unverified address are the exact fraud a forwarded link
-   * invites. The server refuses those writes and always will.
-   *
-   * So the gate is honest here instead of being discovered at the bottom of a filled in
-   * form. Tapping a locked card says why in a sentence and takes you to the step that
-   * unlocks it, rather than opening a form that cannot be submitted.
+   * A locked card does NOT teleport you to step one. It used to, and the result was that
+   * tapping "Sign the agreement" silently landed you on "Your details", which reads as the
+   * app ignoring what you pressed. The lock is shown ON the card instead, so the reason is
+   * visible before the tap rather than explained after it, and tapping it just brings it
+   * to the front like any other card.
    */
   const openStep = useCallback((k: StepKey) => {
-    setErr(null)
-    const verified = !!data?.submitted?.email
-      && !!(data as Payload & { submitted?: { email_verified_at?: string | null } })
-        .submitted?.email_verified_at
-    if (k !== 'email' && !verified && !done.email) {
-      setGate('Confirm your email first. It is how we know the agreement is yours.')
-      setOpen('email')
-      setActive(steps.indexOf('email') < 0 ? 0 : steps.indexOf('email'))
-      setScreen('step')
-      return
-    }
-    setGate(null)
+    if (lockedStep(k)) return
+    setErr(null); setGate(null)
     setOpen(k)
     setActive(steps.indexOf(k) < 0 ? active : steps.indexOf(k))
     setScreen('step')
-  }, [data, done, steps, active])
+  }, [lockedStep, steps, active])
 
   const advance = useCallback((justDone: StepKey, fresh?: Payload) => {
     const d2 = fresh?.done ?? {}
@@ -835,6 +875,10 @@ export default function EnrolmentFlow({ token }: { token: string }) {
     // part of the screen, and putting it on the page was my invention.
     return (
       <Shell animKey="deck">
+        {/* A column that fills what is left under the header. The controls used to be
+            absolutely pinned at bottom:30, which on a 635px tall phone put them straight
+            through the middle of a 352px card. In flow they can never collide. */}
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100dvh - 54px)' }}>
         <div style={{ padding: '22px 22px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
             <div style={{ width: 26, height: 26, borderRadius: 8, background: 'linear-gradient(150deg,#1FD16B,#0E7A3A)', display: 'grid', placeItems: 'center', flex: 'none' }}>
@@ -852,7 +896,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
         </div>
 
         <div
-          style={{ overflow: 'hidden', marginTop: 22, touchAction: 'pan-y' }}
+          style={{ overflow: 'hidden', marginTop: 22, touchAction: 'pan-y', flex: 'none' }}
           onPointerDown={(e) => { dragFrom.current = { x: e.clientX, y: e.clientY } }}
           onPointerMove={(e) => {
             if (!dragFrom.current) return
@@ -926,10 +970,17 @@ export default function EnrolmentFlow({ token }: { token: string }) {
           </div>
         </div>
 
-        {/* Absolutely positioned at bottom 30, as the design has it, rather than pushed
-            there by padding. On a short phone the padded version put the button below the
-            fold and the deck looked like it had no controls. */}
-        <div style={{ position: 'absolute', left: 22, right: 22, bottom: 30 }}>
+        {/* In flow, pushed to the bottom by `marginTop: auto`. Nothing here can sit on
+            top of a card any more, at any screen height.
+
+            NO ARROWS. The deck is swiped and the cards are tapped, so two 52px buttons were
+            a third way to do a thing that already had two, taking the width that makes
+            Submit a comfortable target.
+
+            NO "Not your deal?" either, on request. That was the only way to reach the
+            report-and-kill path from the page, so that path is now unreachable by a
+            creator. */}
+        <div style={{ marginTop: 'auto', padding: '24px 22px 34px' }}>
           {/* A count, not dots. Dots say "there are some steps"; a number says how many
               are left, which is the only thing somebody halfway through wants to know. */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -943,42 +994,30 @@ export default function EnrolmentFlow({ token }: { token: string }) {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
-            <button onClick={() => setActive((p) => (p + steps.length - 1) % steps.length)} style={{ width: 52, height: 52, borderRadius: '50%', background: '#17171A', display: 'grid', placeItems: 'center', flex: 'none', border: 'none', cursor: 'pointer' }}>{I.left}</button>
-            {/* One button. Grey while anything is outstanding, and pressing it then takes
-                you to the first thing that is; green and submitting once nothing is. */}
-            <button
-              onClick={async () => {
-                if (!ready) {
-                  const firstOpen = steps.find((k) => !done[k])
-                  if (firstOpen) openStep(firstOpen)
-                  return
-                }
-                const r = await post('submit')
-                if (r.ok) setScreen('done')
-              }}
-              disabled={busy}
-              style={{
-                flex: 1, borderRadius: 20, padding: 17, textAlign: 'center',
-                fontSize: 16, fontWeight: 700, minHeight: 44, border: 'none',
-                fontFamily: 'inherit', cursor: busy ? 'default' : 'pointer',
-                background: ready ? '#1FD16B' : '#1C1C20',
-                color: ready ? '#04170C' : '#5E5E66',
-                transition: 'background .3s ease, color .3s ease',
-              }}
-            >{busy ? 'One moment…' : ready ? 'Submit' : 'Submit'}</button>
-            <button onClick={() => setActive((p) => (p + 1) % steps.length)} style={{ width: 52, height: 52, borderRadius: '50%', background: '#17171A', display: 'grid', placeItems: 'center', flex: 'none', border: 'none', cursor: 'pointer' }}>{I.right}</button>
-          </div>
+          {/* One button, full width. Grey while anything is outstanding, and pressing it
+              then takes you to the first thing that is; green and submitting once nothing
+              is left. */}
           <button
             onClick={async () => {
-              if (reporting) return
-              if (!confirm('Tell us this deal is not yours? The link is killed straight away and the person who sent it is alerted.')) return
-              setReporting(true)
-              await post('report', { reason: 'Reported from the enrolment page' })
-              await load()
+              if (!ready) {
+                const firstOpen = steps.find((k) => !done[k])
+                if (firstOpen) openStep(firstOpen)
+                return
+              }
+              const r = await post('submit')
+              if (r.ok) setScreen('done')
             }}
-            style={{ width: '100%', marginTop: 18, background: 'none', border: 'none', fontSize: 12.5, fontWeight: 600, color: '#5E5E66', fontFamily: 'inherit', cursor: 'pointer' }}
-          >Not your deal?</button>
+            disabled={busy}
+            style={{
+              width: '100%', marginTop: 14, borderRadius: 20, padding: 18, textAlign: 'center',
+              fontSize: 16.5, fontWeight: 700, minHeight: 44, border: 'none',
+              fontFamily: 'inherit', cursor: busy ? 'default' : 'pointer',
+              background: ready ? '#1FD16B' : '#1C1C20',
+              color: ready ? '#04170C' : '#5E5E66',
+              transition: 'background .3s ease, color .3s ease',
+            }}
+          >{busy ? 'One moment…' : 'Submit'}</button>
+        </div>
         </div>
       </Shell>
     )
@@ -989,18 +1028,36 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   const def = DEFS[key]
 
   return (
-    <Shell animKey={`step-${key}`}>
-      <div style={{ height: 158, background: GRAD[key], position: 'relative', overflow: 'hidden' }}>
-        <svg width="430" height="158" viewBox="0 0 390 158" fill="none" style={{ position: 'absolute', inset: 0, width: '100%' }} preserveAspectRatio="none">
+    // `head={false}`: the header lives INSIDE the coloured banner on a step, so Shell must
+    // not also draw it above on black.
+    <Shell animKey={`step-${key}`} head={false}>
+      {/* Taller than the design's 158px because it now carries the wordmark as well. The
+          colour runs from the very top of the screen, and `useChrome` continues it into the
+          phone's own status bar, so the step reads as one coloured surface rather than a
+          band under a black strip. */}
+      <div style={{ height: 196, background: GRAD[key], position: 'relative', overflow: 'hidden' }}>
+        <svg width="430" height="196" viewBox="0 0 390 158" fill="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} preserveAspectRatio="none">
           <path d="M-20 140C64 124 136 90 178 40C220 -10 306 -8 410 26" stroke="rgba(255,255,255,.42)" strokeWidth="16" strokeLinecap="round" />
           <ellipse cx="322" cy="150" rx="104" ry="66" fill="rgba(255,255,255,.13)" />
         </svg>
+
+        {/* The same header as every other screen, on the colour. */}
+        <div style={{
+          position: 'absolute', left: 22, right: 22, top: 18,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <Logo h={15} />
+          <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.03em', color: 'rgba(255,255,255,.82)' }}>
+            Digital Creator Enrolment
+          </div>
+        </div>
+
         <button onClick={() => { setScreen('deck'); setOpen(null); setErr(null); setGate(null) }} style={{
-          position: 'absolute', left: 18, top: 14, width: 44, height: 44, borderRadius: '50%',
+          position: 'absolute', left: 18, top: 52, width: 44, height: 44, borderRadius: '50%',
           background: 'rgba(0,0,0,.26)', backdropFilter: 'blur(8px)', display: 'grid', placeItems: 'center',
           border: 'none', cursor: 'pointer',
         }}>{I.back}</button>
-        <div style={{ position: 'absolute', right: 18, top: 25, background: 'rgba(0,0,0,.24)', backdropFilter: 'blur(8px)', borderRadius: 999, padding: '8px 13px', fontSize: 11, fontWeight: 800, letterSpacing: '.06em', color: '#fff' }}>
+        <div style={{ position: 'absolute', right: 18, top: 63, background: 'rgba(0,0,0,.24)', backdropFilter: 'blur(8px)', borderRadius: 999, padding: '8px 13px', fontSize: 11, fontWeight: 800, letterSpacing: '.06em', color: '#fff' }}>
           {`STEP 0${steps.indexOf(key) + 1}`}
         </div>
         <div style={{ position: 'absolute', left: 22, right: 22, bottom: 20 }}>
