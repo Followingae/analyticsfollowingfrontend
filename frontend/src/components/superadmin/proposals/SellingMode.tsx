@@ -294,6 +294,15 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
                     {allowances[k] ? (
                       <span className="text-xs text-muted-foreground">
                         client takes {Number(allowances[k])}
+                        {/* Once weighting is in play, "3 picked" and "3 creators" stop being
+                            the same sentence, so the band says which it means. */}
+                        {(() => {
+                          const t = state?.tiers?.find((x: any) => x.tier === k)
+                          if (!t || !t.picked) return null
+                          return t.weighted
+                            ? ` · ${t.picked} filled by ${t.creators} creator${t.creators === 1 ? '' : 's'}`
+                            : ` · ${t.picked} filled`
+                        })()}
                       </span>
                     ) : null}
                   </div>
@@ -364,20 +373,24 @@ export function SellingMode({ proposalId }: { proposalId: string }) {
                               </SelectContent>
                             </Select>
 
-                            {/* How many places they take. Capped at the allowance for their
-                                band, because a weight larger than the whole allowance makes
-                                a creator nobody could ever pick, and the API refuses it. */}
+                            {/* How many places of THIS band they take.
+                                The band is named in every option rather than left to the
+                                dropdown beside it: "2 places" on its own does not say two
+                                places of what, and the first person to see it asked exactly
+                                that. Capped at the band's allowance, because a weight larger
+                                than the whole allowance makes a creator nobody could ever
+                                pick, and the API refuses it. */}
                             {k !== 'untiered' && (
                               <Select value={String(r.weight || 1)}
                                       onValueChange={(v: string) => moveTo(r, { weight: Number(v) })}>
-                                <SelectTrigger className="w-[7.5rem]"><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="w-[11rem]"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                   {Array.from(
                                     { length: Math.max(1, Math.min(10, Number(allowances[k]) || 10)) },
                                     (_, i) => i + 1,
                                   ).map(n => (
                                     <SelectItem key={n} value={String(n)}>
-                                      {n === 1 ? 'one place' : `${n} places`}
+                                      {n === 1 ? `1 ${label} place` : `${n} ${label} places`}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
