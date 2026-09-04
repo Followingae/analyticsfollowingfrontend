@@ -70,12 +70,20 @@ function loadMaps(): Promise<void> {
   return loader
 }
 
-/** Split a formatted address into something that fits our two fields. */
+/**
+ * Split a formatted address into something that fits our two fields.
+ *
+ * Google leads with a PLUS CODE when it has no street number for the point, so a pin on a
+ * pavement comes back as "34GP+74 - 331 King Salman Bin Abdulaziz Al Saud St - Dubai
+ * Marina - Dubai". Prefilling "34GP+74" as somebody's delivery address is worse than
+ * leaving the field empty: it looks filled in, and it means nothing to a driver. Stripped.
+ */
 function split(address: string) {
-  const parts = address.split(',').map((x) => x.trim()).filter(Boolean)
+  const cleaned = address.replace(/^[A-Z0-9]{4,6}\+[A-Z0-9]{2,4}\s*[-,]?\s*/i, '').trim()
+  const parts = cleaned.split(',').map((x) => x.trim()).filter(Boolean)
   const city = parts.length >= 2 ? parts[parts.length - 2] : ''
   const line = parts.slice(0, Math.max(1, parts.length - 2)).join(', ')
-  return { line: line || address, city }
+  return { line: line || cleaned, city }
 }
 
 export function InlineMapPicker({ initial, onPick, onUnavailable }: {

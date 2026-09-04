@@ -1009,7 +1009,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
         </div>
       </div>
 
-      <div style={{ padding: '17px 22px 84px' }}>
+      <div style={{ padding: '17px 22px 22px' }}>
         {gate && (
           <div style={{
             marginBottom: 14, background: '#131316', borderRadius: 16, padding: '13px 16px',
@@ -1022,22 +1022,15 @@ export default function EnrolmentFlow({ token }: { token: string }) {
         {key === 'bank' && <StepBank sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('bank', f)} />}
       </div>
 
-      {/* The design's own progress strip along the bottom of a step, which the port had
-          dropped: the four dots as full width bars, over a fade so content scrolls under
-          it rather than colliding with it. */}
-      <div style={{
-        position: 'fixed', left: 0, right: 0, bottom: 0, display: 'flex', justifyContent: 'center',
-        pointerEvents: 'none',
-      }}>
-        <div style={{
-          width: '100%', maxWidth: 430, padding: '16px 22px 22px',
-          background: 'linear-gradient(to top,#050506 62%,rgba(5,5,6,0))',
-          textAlign: 'center',
-        }}>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: count === steps.length ? '#1FD16B' : '#8A8A93' }}>
-            Completed {count} / {steps.length}
-          </span>
-        </div>
+      {/* Inline at the end of the step, NOT a fixed strip.
+          A fixed bar permanently occupies the bottom of the viewport, and on this form it
+          sat on top of the line telling somebody where their pin had landed. The design's
+          version lived at the bottom of a fixed height phone where nothing scrolled under
+          it; a scrolling web page is not that. */}
+      <div style={{ padding: '0 22px 30px', textAlign: 'center' }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: count === steps.length ? '#1FD16B' : '#8A8A93' }}>
+          Completed {count} / {steps.length}
+        </span>
       </div>
     </Shell>
   )
