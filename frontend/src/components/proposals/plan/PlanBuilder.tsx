@@ -47,7 +47,7 @@ import { SmartPickModal } from "./SmartPickModal"
 import { CreatorSheet } from "./CreatorSheet"
 import {
   creatorCost, optimise, optimiseByPlaces, whyFor, STRATEGIES, type Strategy,
-  modifierEligible, modifierExtra, lineEligible, type PriceModifier,
+  modifierEligible, modifierExtra, lineEligible, tookModifier, type PriceModifier,
 } from "./optimiser"
 import type { ProposalSelection, RetainerMonth, TierRow } from "./types"
 
@@ -708,7 +708,9 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                     <img src={cdnAvatar(c.profile_image_url || undefined)} alt="" className="size-8 shrink-0 rounded-full object-cover ring-2 ring-emerald-500" />
                     <b className="min-w-0 flex-1 truncate text-[12.5px] font-semibold">{c.full_name || c.username}</b>
                     {showPricing && (
-                      <span className="text-[12.5px] font-bold tabular-nums text-muted-foreground">{aed(creatorCost(c))}</span>
+                      <span className="text-[12.5px] font-bold tabular-nums text-muted-foreground">
+                        {aed(creatorCost(c, modifier, tookModifier(c, modifier)))}
+                      </span>
                     )}
                   </div>
                 ))}

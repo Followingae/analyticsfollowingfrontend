@@ -36,6 +36,16 @@ export function lineEligible(d: any): boolean {
   return !!d && d.modifier_eligible !== false
 }
 
+/** Did this creator actually BUY the add-on? The confirmed list is history, not a choice
+ *  still being made, so it reads what they took rather than what is ticked in this visit.
+ *  Without it a re-opened proposal showed its confirmed creators at their base price while
+ *  the budget bar above counted them with the uplift, and the two disagreed on screen. */
+export function tookModifier(c: BrandInfluencer, mod?: PriceModifier | null): boolean {
+  if (!mod) return false
+  const sel = (c as any).selected_deliverables
+  return Array.isArray(sel) && sel.some((d: any) => d && d.modifier === mod.id)
+}
+
 /** Can this creator take the add-on at all? */
 export function modifierEligible(c: BrandInfluencer): boolean {
   return (c.assigned_deliverables ?? []).some(lineEligible)
