@@ -95,8 +95,11 @@ export function PriceModifierCard({
   }
 
   const toggleEligibility = async (creator: CreatorRow, type: string, next: boolean) => {
+    // Opt-out semantics: a line is offered unless it was explicitly taken off, so the
+    // list we send back has to start from everything currently offered, not only the
+    // lines carrying an explicit true.
     const current = (creator.assigned_deliverables || [])
-      .filter((d) => d.modifier_eligible)
+      .filter((d) => d.modifier_eligible !== false)
       .map((d) => d.type)
     const types = next
       ? Array.from(new Set([...current, type]))
@@ -188,10 +191,10 @@ export function PriceModifierCard({
                       <button
                         key={d.type}
                         type="button"
-                        onClick={() => toggleEligibility(c, d.type, !d.modifier_eligible)}
+                        onClick={() => toggleEligibility(c, d.type, d.modifier_eligible === false)}
                         className="focus:outline-none"
                       >
-                        <Badge variant={d.modifier_eligible ? 'default' : 'outline'}
+                        <Badge variant={d.modifier_eligible !== false ? 'default' : 'outline'}
                           className="cursor-pointer">
                           {DELIVERABLE_LABEL[d.type] || d.type}
                           {d.quantity && d.quantity > 1 ? ` ×${d.quantity}` : ''}

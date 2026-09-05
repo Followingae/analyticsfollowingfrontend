@@ -86,12 +86,17 @@ export const proposalApprovalApi = {
       body: JSON.stringify({ influencer_ids: influencerIds }),
     }),
 
-  // Founders: take a percentage off every sell price on the proposal. 0 restores standard
-  // rates. Never touches the master database — the frozen snapshot is what it restores to.
-  applyDiscount: (proposalId: string, percent: number) =>
+  // Founders: take a percentage off sell prices on the proposal. Pass influencerIds to
+  // scope it to those creators; omit for the whole roster. 0 restores standard rates.
+  // Never touches the master database, the frozen snapshot is what it restores to.
+  applyDiscount: (proposalId: string, percent: number, influencerIds?: string[]) =>
     jfetch(`${BASE}/${proposalId}/discount`, {
       method: 'POST',
-      body: JSON.stringify({ percent }),
+      body: JSON.stringify(
+        influencerIds && influencerIds.length
+          ? { percent, influencer_ids: influencerIds }
+          : { percent },
+      ),
     }),
 
   // Per-influencer checker review.

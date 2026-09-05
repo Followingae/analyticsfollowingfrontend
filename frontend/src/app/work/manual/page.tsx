@@ -217,12 +217,16 @@ const SLIDES: Slide[] = [
     does: [
       'Build it from the picks, with deliverables per creator.',
       'Mark the ones you would put forward: the row menu, “Recommend to client”, and one line saying why. They go to the front of the client’s wall wearing a green badge.',
+      'Discounting: tick the creators first and the % off applies to those alone. Tick nobody and it applies to the whole roster, which the button and the confirmation both say out loud before it goes anywhere.',
+      'A priced add-on, e.g. ad boosting rights at +20%, is offered on every creator on the proposal the moment you enable it. Take it off a creator one at a time if it genuinely does not apply to them.',
       'Send it for internal approval; a founder sends it out.',
       'If they ask for more, that comes back as a job on your Today.',
     ],
     where: [{ label: 'Proposals', href: '/work/proposals' }],
     helps: [
       'Prices freeze when the proposal is built, so nobody is caught out by a rate that moved afterwards.',
+      'A proposal that is off standard rates says so at the top, with how many creators and by how much. It used to show as a small line through each price, which nobody reads on a roster of fifty.',
+      'An add-on nobody was offered cannot be bought. That is why enabling it now covers everyone rather than waiting to be ticked creator by creator.',
       'A client staring at twenty equal faces picks slowly. Two of them wearing our name, with a reason, is the advice they asked us for.',
       'The client\u2019s answer comes back as a job on your Today rather than an email you have to spot.',
     ],

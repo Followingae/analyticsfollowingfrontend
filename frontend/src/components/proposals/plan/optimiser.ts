@@ -29,9 +29,16 @@ export interface PriceModifier {
   amount_aed?: number | null
 }
 
-/** Can this creator take the add-on at all? Only lines the operator marked eligible. */
+/** Can ONE line take the add-on? Opt-out, not opt-in: an add-on enabled on the proposal
+ *  is offered on every deliverable unless the operator has explicitly taken it off this
+ *  one. Mirrors `line_is_eligible` on the server, which is the authority. */
+export function lineEligible(d: any): boolean {
+  return !!d && d.modifier_eligible !== false
+}
+
+/** Can this creator take the add-on at all? */
 export function modifierEligible(c: BrandInfluencer): boolean {
-  return (c.assigned_deliverables ?? []).some((d: any) => d?.modifier_eligible)
+  return (c.assigned_deliverables ?? []).some(lineEligible)
 }
 
 /** What the add-on adds for one creator, on the eligible lines only.
@@ -42,7 +49,7 @@ export function modifierExtra(c: BrandInfluencer, mod?: PriceModifier | null): n
   const pct = (mod.percent_value ?? 0) / 100
   const pricing = c.sell_pricing ?? {}
   return (c.assigned_deliverables ?? []).reduce((sum, d: any) => {
-    if (!d?.modifier_eligible) return sum
+    if (!lineEligible(d)) return sum
     const unit = pricing[d.type]
     return unit == null ? sum : sum + unit * (d.quantity || 1) * pct
   }, 0)

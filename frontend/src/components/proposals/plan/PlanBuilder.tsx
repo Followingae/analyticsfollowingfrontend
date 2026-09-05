@@ -47,7 +47,7 @@ import { SmartPickModal } from "./SmartPickModal"
 import { CreatorSheet } from "./CreatorSheet"
 import {
   creatorCost, optimise, optimiseByPlaces, whyFor, STRATEGIES, type Strategy,
-  modifierEligible, modifierExtra, type PriceModifier,
+  modifierEligible, modifierExtra, lineEligible, type PriceModifier,
 } from "./optimiser"
 import type { ProposalSelection, RetainerMonth, TierRow } from "./types"
 
@@ -208,7 +208,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
             deliverables: (c?.assigned_deliverables ?? []).map((d: any) => ({
               type: d.type,
               quantity: d.quantity || 1,
-              ...(on && d.modifier_eligible ? { modifier: modifier.id } : {}),
+              ...(on && lineEligible(d) ? { modifier: modifier.id } : {}),
             })),
           }
         }) : undefined,

@@ -136,8 +136,21 @@ export default function ProposalApprovalPage() {
   const viewer = ws.viewer || {}
   // A custom price only ever gets written by the discount, so its presence is what tells us
   // this proposal is off standard rates — and whether to offer the way back.
-  const anyDiscounted: boolean = (ws.influencers || []).some(
+  const discountedList = (ws.influencers || []).filter(
     (i: any) => i.custom_sell_pricing && Object.keys(i.custom_sell_pricing).length > 0)
+  const anyDiscounted: boolean = discountedList.length > 0
+  /* How far off standard the proposal is, as one number. A strikethrough per row was the
+     only sign a discount existed, and on a 56-creator roster that is not a sign at all:
+     a roster-wide 15% went unnoticed until a client had already bought at it. */
+  const offStandard = (() => {
+    let std = 0, now = 0
+    for (const i of discountedList) {
+      const s0 = Number(i.sell_price_snapshot?.reel ?? i.estimated_cost ?? 0)
+      const c0 = Number(i.custom_sell_pricing?.reel ?? s0)
+      if (s0 > 0) { std += s0; now += c0 }
+    }
+    return std > 0 ? Math.round((1 - now / std) * 1000) / 10 : 0
+  })()
   const chainEditable = ['draft', 'building', 'internal_changes_requested'].includes(status)
   const canEditChain = viewer.is_operator && chainEditable
 
@@ -180,6 +193,17 @@ export default function ProposalApprovalPage() {
                 nano a month" had nowhere on this page to say so. */}
             {viewer.is_operator && <SellingMode proposalId={proposalId} />}
 
+            {viewer.is_operator && anyDiscounted && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
+                <span className="font-medium text-amber-700 dark:text-amber-500">
+                  Off standard rates
+                </span>
+                <span className="text-muted-foreground">
+                  {' · '}{discountedList.length} of {(ws.influencers || []).length} creators
+                  {offStandard > 0 ? `, averaging ${offStandard}% below the standard price` : ''}
+                </span>
+              </div>
+            )}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -220,10 +244,21 @@ export default function ProposalApprovalPage() {
                                 if (!Number.isFinite(pct) || pct <= 0 || pct >= 100) {
                                   window.alert('Enter a percentage between 1 and 99'); return
                                 }
-                                if (window.confirm(`Take ${pct}% off every sell price on this proposal? Cost prices and the master database are untouched.`))
-                                  run(() => proposalApprovalApi.applyDiscount(proposalId, pct))
+                                /* Ticked creators are the scope when there are any. This
+                                   button used to ignore the tick boxes entirely and always
+                                   hit the whole roster, which is how one intended discount
+                                   became 56 of them. The dialog now names the count so the
+                                   scope is impossible to click past. */
+                                const ids = Array.from(picked)
+                                const scope = ids.length
+                                  ? `the ${ids.length} creator${ids.length === 1 ? '' : 's'} you ticked`
+                                  : `ALL ${(ws.influencers || []).length} creators on this proposal`
+                                if (window.confirm(`Take ${pct}% off ${scope}?
+
+Cost prices and the master database are untouched.`))
+                                  run(() => proposalApprovalApi.applyDiscount(proposalId, pct, ids.length ? ids : undefined))
                               }}>
-                        Apply
+                        {picked.size > 0 ? `Apply to ${picked.size}` : 'Apply to all'}
                       </Button>
                     </div>
                     {anyDiscounted && (
