@@ -95,9 +95,11 @@ export interface Instalment {
   reference?: string | null
   marked_by_label?: string | null
   marked_at?: string | null
+  /** This is a creator_payables id: the board acts on it through the payment book. */
+  payable_id: string
+  status: 'owed' | 'approved' | 'paid' | 'cancelled'
+  approved: boolean
   paid: boolean
-  /** True when what went out was not what was promised. */
-  differs: boolean
 }
 
 export interface PaymentState {
@@ -134,6 +136,19 @@ export interface EnrolmentDetail {
   url: string
   has_signature: boolean
   payments?: PaymentState | null
+}
+
+/** The payment book lives under its own prefix; enrolment only reads from it. */
+async function payablesCall<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_CONFIG.BASE_URL}/api/v1/admin/payables${path}`, {
+    ...init,
+    headers: { ...getAuthHeaders(), ...(init?.headers || {}) },
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error(typeof body?.detail === 'string' ? body.detail : `Request failed (${res.status})`)
+  }
+  return body?.data as T
 }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -220,16 +235,29 @@ export const enrolmentApi = {
       `/payments/board${qs ? `?${qs}` : ''}`)
   },
 
-  /** Amount and date are optional: they default to what is owed, sent today. */
-  markPaid: (id: string, seq: number, body?: { amount_aed_cents?: number; paid_on?: string; reference?: string }) =>
-    call<PaymentState>(`/${id}/payments/${seq}/mark`, {
-      method: 'POST', body: JSON.stringify(body ?? {}),
+  /**
+   * Approving and paying go through the PAYMENT BOOK, not through an enrolment endpoint.
+   *
+   * `creator_payables` carries the funded-balance guard, the founders-only rule and the
+   * team notifications. An enrolment instalment is a row in that book, so it is acted on
+   * the same way every other payment is and inherits every control automatically. A second
+   * route here would be a way to move money without them.
+   */
+  setPayableStatus: (payableId: string, status: 'owed' | 'approved' | 'paid' | 'cancelled',
+                     payment_reference?: string) =>
+    payablesCall(`/${payableId}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status, payment_reference: payment_reference || null }),
     }),
 
-  unmarkPaid: (id: string, seq: number, reason?: string) =>
-    call<PaymentState>(`/${id}/payments/${seq}/unmark`, {
-      method: 'POST', body: JSON.stringify({ reason: reason ?? null }),
-    }),
+  /** The file the bank transfer is actually made from. Leadership only, logged per creator. */
+  payoutXlsx: (params?: { campaign_id?: string; proposal_id?: string }) => {
+    const q = new URLSearchParams()
+    if (params?.campaign_id) q.set('campaign_id', params.campaign_id)
+    if (params?.proposal_id) q.set('proposal_id', params.proposal_id)
+    const qs = q.toString()
+    return download(`/exports/payouts.xlsx${qs ? `?${qs}` : ''}`, 'Payouts.xlsx')
+  },
 
   agreementPdf: (id: string) => download(`/${id}/agreement.pdf`, 'agreement.pdf'),
   recordPdf: (id: string) => download(`/${id}/record.pdf`, 'enrolment-record.pdf'),

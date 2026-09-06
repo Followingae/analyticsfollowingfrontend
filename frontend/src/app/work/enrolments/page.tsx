@@ -169,7 +169,18 @@ function EnrolmentsPage() {
         </TableCell>
         <TableCell className="hidden lg:table-cell text-sm">{r.deliverables_summary || "—"}</TableCell>
         <TableCell className="text-sm tabular-nums">{money(r.fee_aed_cents)}</TableCell>
-        <TableCell className="hidden sm:table-cell text-sm">{r.talent_name || "—"}</TableCell>
+        <TableCell className="hidden sm:table-cell text-sm">
+          {r.talent_name || "—"}
+          {/* Who raised a link and who owns it are different facts. Showing only the
+              assignee made links raised by somebody else read as theirs, which is how
+              sixteen links raised during the build looked like a talent manager had sent
+              them to real creators. */}
+          {r.created_by_name && r.created_by_name !== r.talent_name && (
+            <div className="text-xs text-muted-foreground">
+              raised by {r.created_by_name}
+            </div>
+          )}
+        </TableCell>
         <TableCell>
           <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${toneClass[p.tone]}`}>
             {p.label}

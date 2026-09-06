@@ -18,9 +18,14 @@
  *    them. So a row whose payee has not been confirmed says so, and its pay button is off.
  *    Making that a soft warning turns the confirmation step into decoration.
  *
- * 2. A payment that did not match what was promised. The remaining instalments re-spread
- *    over what is genuinely left, so an underpayment does not quietly shrink the fee, and
- *    the row says the amount differed rather than leaving somebody to spot it by subtracting.
+ * 2. What is still owed after everything already sent. The remaining instalments re-spread
+ *    over what is genuinely left, so a part payment does not quietly shrink the fee.
+ *
+ * IT ACTS ON THE PAYMENT BOOK, NOT ON A BOOK OF ITS OWN. Every instalment here is a row in
+ * `creator_payables`, so approving and paying go through the same endpoint every other
+ * payment does and inherit the funded-balance guard, the founders-only rule and the team
+ * notifications. This screen was briefly its own payment system, which meant money could
+ * leave through it with none of those applying.
  *
  * Marking a payment emails the creator, which is why every row also offers an undo.
  */
@@ -38,7 +43,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import {
-  Loader2, Search, ShieldAlert, ShieldCheck, Banknote, Undo2, ExternalLink, Check,
+  Loader2, Search, ShieldAlert, ShieldCheck, Banknote, Undo2, ExternalLink, Check, Download,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -55,8 +60,6 @@ const when = (iso?: string | null) => {
     ? "—"
     : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
 }
-
-const today = () => new Date().toISOString().slice(0, 10)
 
 export default function PaymentsPageWrapper() {
   return (
@@ -132,6 +135,14 @@ function PaymentsPage() {
         <div className="flex items-center gap-6">
           <Figure label="Still owed" value={money(totals.owed_aed_cents)} accent />
           <Figure label="Paid out" value={money(totals.paid_aed_cents)} />
+          {/* The only place the full IBAN appears. A file, pulled deliberately and logged
+              against every creator in it, rather than an account number sitting on a screen
+              all afternoon. */}
+          <Button variant="outline" className="gap-2"
+                  onClick={() => enrolmentApi.payoutXlsx().catch((e: unknown) =>
+                    toast.error(e instanceof Error ? e.message : "Export failed"))}>
+            <Download className="h-4 w-4" /> Payout file
+          </Button>
         </div>
       </div>
 
@@ -200,11 +211,13 @@ function CreatorCard({ row, onPay, onChanged }: {
   const p = row.payments
   const [undoing, setUndoing] = useState<number | null>(null)
 
-  const undo = async (seq: number) => {
-    setUndoing(seq)
+  const move = async (inst: Instalment, to: "owed" | "approved") => {
+    setUndoing(inst.seq)
     try {
-      await enrolmentApi.unmarkPaid(row.link_id, seq)
-      toast.success("Unmarked. The creator was already told, so tell them yourself too.")
+      await enrolmentApi.setPayableStatus(inst.payable_id, to)
+      toast.success(to === "approved"
+        ? "Approved. It is ready to pay."
+        : "Put back to owed. The creator was already told, so tell them yourself too.")
       onChanged()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "That did not work.")
@@ -281,22 +294,19 @@ function CreatorCard({ row, onPay, onChanged }: {
                   </>
                 )}
               </div>
-              {i.differs && (
-                <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                  Not the amount the agreement promised ({money(i.due_aed_cents)}).
-                </div>
-              )}
             </div>
 
             {i.paid ? (
               <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground"
-                      disabled={undoing === i.seq} onClick={() => void undo(i.seq)}>
+                      disabled={undoing === i.seq} onClick={() => void move(i, "owed")}>
                 {undoing === i.seq
                   ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   : <Undo2 className="h-3.5 w-3.5" />}
                 Undo
               </Button>
-            ) : (
+            ) : i.approved ? (
+              // Approved, so paying is the only step left. The payee gate is enforced by
+              // the payment book as well; disabling here just avoids a pointless round trip.
               <Button size="sm" className="gap-1.5"
                       disabled={!row.payee_confirmed}
                       title={row.payee_confirmed
@@ -304,6 +314,15 @@ function CreatorCard({ row, onPay, onChanged }: {
                         : "Confirm the bank details with the creator first."}
                       onClick={() => onPay(i)}>
                 <Banknote className="h-3.5 w-3.5" /> Mark paid
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" className="gap-1.5"
+                      disabled={undoing === i.seq}
+                      onClick={() => void move(i, "approved")}>
+                {undoing === i.seq
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <Check className="h-3.5 w-3.5" />}
+                Approve
               </Button>
             )}
           </div>
@@ -319,26 +338,13 @@ function MarkPaidDialog({ row, inst, onClose, onDone }: {
   onClose: () => void
   onDone: () => void
 }) {
-  // Pre-filled with what is owed and today's date, because that is what almost every
-  // transfer is. Somebody who has to retype a number the system already knows stops using
-  // the screen and marks nothing.
-  const [amount, setAmount] = useState(String(((inst.now_due_aed_cents ?? 0) / 100).toFixed(0)))
-  const [paidOn, setPaidOn] = useState(today())
   const [reference, setReference] = useState("")
   const [busy, setBusy] = useState(false)
 
-  const cents = Math.round(Number(amount || 0) * 100)
-  const differs = cents > 0 && cents !== (inst.now_due_aed_cents ?? 0)
-
   const submit = async () => {
-    if (!(cents > 0)) { toast.error("A payment needs an amount."); return }
     setBusy(true)
     try {
-      await enrolmentApi.markPaid(row.link_id, inst.seq, {
-        amount_aed_cents: cents,
-        paid_on: paidOn,
-        reference: reference.trim() || undefined,
-      })
+      await enrolmentApi.setPayableStatus(inst.payable_id, "paid", reference.trim() || undefined)
       toast.success(`Marked paid. ${row.creator_name || "The creator"} has been emailed.`)
       onDone()
     } catch (e) {
@@ -361,25 +367,12 @@ function MarkPaidDialog({ row, inst, onClose, onDone }: {
         </DialogHeader>
 
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="amt">Amount sent (AED)</Label>
-            <Input id="amt" inputMode="decimal" value={amount}
-                   onChange={e => setAmount(e.target.value)} className="mt-1.5" />
-            {differs && (
-              <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
-                That is not the {money(inst.now_due_aed_cents)} owed. The difference moves to
-                what is left, so the fee still adds up.
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="on">Date it left the account</Label>
-            <Input id="on" type="date" max={today()} value={paidOn}
-                   onChange={e => setPaidOn(e.target.value)} className="mt-1.5" />
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Not today's date unless it went today. This is what a bank statement is matched
-              against.
+          <div className="rounded-lg border px-3 py-2.5">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Amount</div>
+            <div className="text-lg font-semibold tabular-nums">{money(inst.now_due_aed_cents)}</div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              The amount is the booking in the payment book. To send a different figure,
+              change it there first so the two never disagree.
             </p>
           </div>
 
