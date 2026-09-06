@@ -72,6 +72,28 @@ cents version is dead code, but no money is at risk today.
 
 ---
 
+## 2b. The permission model, as the frontend sees it
+
+**verified** in `src/hooks/useAdminAccess.ts`. This is the client mirror of the backend's
+money scopes, and the redesign must not drift from it.
+
+| Flag | Granted to |
+|---|---|
+| `canSeeCost` | leadership **+ talent_manager** |
+| `canSeeSell` | leadership + account_manager + business_development |
+| `canSeeMargin` | **leadership only** |
+| `canExport` / `canDestroy` | leadership |
+
+Margin being leadership-only is the sharpest line in the product: talent can see what we pay,
+account and bizdev can see what we charge, and only leadership sees the gap between them.
+Any dashboard that shows a margin figure is a leadership dashboard by definition.
+
+Routes are gated to modules in `src/lib/routeModules.ts`, enforced by `ModuleRouteGuard`,
+with `MODULE_HOME` deciding where a refused user lands. `guide`, `manual` and `inbox` carry
+no module gate deliberately.
+
+---
+
 ## 3. Navigation
 
 **verified.** Groups are **Overview**, **Work**, **Running the company**, **Settings**.
@@ -143,6 +165,43 @@ This is the most serious area found.
 
 And every superadmin is added to every team alert on top of the routing table, which is why
 the bell is noise for a superadmin specifically.
+
+### The three, now confirmed against the code
+
+**The co-founder is excluded from 8 creator-app notifications.** `fa_notify_superadmin`
+selects on `LOWER(role) IN ('super_admin','superadmin','admin')` and `staff_role` appears
+nowhere in that file. She misses: a new application, content submitted, proof of posting
+(two sites), a withdrawal request, offline content submitted, content approved by a brand,
+and an edit requested on an offline creator.
+
+The damning part is that the correct version already exists twelve files away:
+`team_alerts.py:85` resolves recipients as
+`role = ANY(...) OR (staff_role IS NOT NULL AND staff_role = ANY(...))`. Two functions, one
+intent, and only one of them remembers a founder exists.
+
+**Enrolment writes nothing to the bell.** A search for `NotificationService`, `team_alerts`
+or `user_notifications` across both enrolment route files and the whole service package
+returns zero matches, so none of it reaches the notification centre, the unread count or the
+twice-daily digest. `enrolment_link_events` is an audit trail, not a surface: nothing renders
+it as a queue.
+
+Two events notify **nobody at all**:
+
+| Event | Who is told today |
+|---|---|
+| **A link is raised** | nobody |
+| **A payee is confirmed** | nobody |
+
+The second is the one that matters: confirming a payee is what makes a payment legal to send,
+and the person who can send it is never told it happened.
+
+**25 routed event keys, and only 11 ever fire.** Dead keys include `creator_rejected`,
+`waiting_room_backlog`, `payable_overdue`, `brand_gone_quiet`, `access_anomaly`, and all nine
+`round_*` keys — dead for the same reason the goals and TV wall numbers read zero, because
+`sourcing_rounds` was replaced by `imd_lists` and nothing was repointed.
+
+`payable_overdue` being dead is worth its own line: nothing tells anyone that a creator has
+been waiting too long to be paid.
 
 **Proposal, not a change:** one recipient resolver, driven by scope and role the way
 `field_policy` already does for money, so that who hears about something is decided in one
