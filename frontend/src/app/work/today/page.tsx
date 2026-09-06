@@ -8,9 +8,15 @@
  * heading sizes, thirteen hardcoded type sizes and three separate treatments for what was
  * always one thing: an item with a name, an age and somewhere to go.
  *
- * This is the fourth, and the rule it follows is the one the token file already stated:
- * whitespace is the grouping mechanism, and a border drawn round a number is a second edge
- * the eye must cross to read it. So there are no cards on this screen at all.
+ * The fourth removed every card, on the rule that whitespace is the grouping mechanism and a
+ * border round a number is a second edge the eye must cross to read it. That was a good rule
+ * and it is now overridden, deliberately and by instruction: the founder supplied a reference
+ * dashboard and asked for its composition, which is card-based. The argument against boxing a
+ * number is kept here because it was right about its own screen, and because a later reader
+ * deserves to know this was a decision rather than a drift.
+ *
+ * What the cards buy at the size this screen is now: a canvas that is no longer the same
+ * white as the surfaces on it, so a figure sits on something rather than floating.
  *
  *   the greeting, the date, and the screen's one action
  *   four numbers, unboxed, gaps doing the work a hairline was doing
@@ -37,14 +43,18 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DataTable, DataTableColumnHeader } from '@/components/ui2/data-table'
-import { ArrowUpRight, CheckCircle2, GitBranch, RefreshCw, Search } from 'lucide-react'
+import {
+  ArrowUpRight, Banknote, CheckCircle2, Clock, FileText, GitBranch, Megaphone,
+  RefreshCw, Search, Users2,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { useAdminAccess, type AdminModule } from '@/hooks/useAdminAccess'
 import {
-  Aed, MiniBar, PageHead, Ring, RoundButton, ScoreDot, StageBar, Stat, StatGrid, type Tone,
+  Aed, KpiCard, KpiRow, MiniBar, PageHead, Ring, RoundButton, ScoreDot, StageBar, Stat,
+  StatGrid, type Tone,
 } from '@/components/console/primitives'
 import { cn } from '@/lib/utils'
 
@@ -211,6 +221,22 @@ function Detail({ row }: { row: Waiting | Flight }) {
       </PopoverContent>
     </Popover>
   )
+}
+
+/* The reference draws an icon chip beside every figure. The server sends a label, not an
+   icon, and it should stay that way: an API that knows about lucide has to be redeployed to
+   change a picture. So the mapping lives here, keyed on the labels the today endpoint
+   actually returns, and anything unmatched gets no chip rather than a wrong one. */
+const ICON_FOR = (label: string) => {
+  const l = (label || '').toLowerCase()
+  if (l.includes('pipeline')) return GitBranch
+  if (l.includes('collected')) return CheckCircle2
+  if (l.includes('owed')) return Banknote
+  if (l.includes('creator') || l.includes('added')) return Users2
+  if (l.includes('quote') || l.includes('proposal')) return FileText
+  if (l.includes('campaign')) return Megaphone
+  if (l.includes('late') || l.includes('overdue') || l.includes('chas')) return Clock
+  return undefined
 }
 
 export default function Today() {
@@ -457,11 +483,12 @@ export default function Today() {
         {/* the numbers. No box each: the gap is what says these are separate figures. */}
         {headline.length > 0 && (
           <div data-tour="today-numbers">
-            <StatGrid cols={4}>
+            <KpiRow cols={4}>
               {headline.map((h: any) => (
-                <Stat
+                <KpiCard
                   key={h.label}
                   label={h.label}
+                  icon={ICON_FOR(h.label)}
                   /* A headline the API did not return used to render as a confident AED 0.
                      A zero that is really an absence is a lie about money, which is the one
                      thing on this screen nobody should have to double-check. */
@@ -469,11 +496,10 @@ export default function Today() {
                     : h.format === 'aed' ? <Aed>{aed(Number(h.value) || 0)}</Aed>
                     : h.value}
                   hint={h.hint || undefined}
-                  tone={(h.tone || 'neutral') as Tone}
                   onClick={h.href ? () => router.push(h.href) : undefined}
                 />
               ))}
-            </StatGrid>
+            </KpiRow>
           </div>
         )}
 
