@@ -11,13 +11,14 @@
 
 import { Suspense } from 'react'
 import { ModuleCards } from './ModuleCards'
+import { PublicChrome } from './PublicChrome'
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <PublicChrome>
       <Suspense fallback={null}>
         <ModuleCards />
       </Suspense>
-    </div>
+    </PublicChrome>
   )
 }
