@@ -132,17 +132,28 @@ export function NavMain({
                 {/* What is waiting behind this entry, so nobody has to open a screen to find
                     out whether it wants them. Nothing renders at zero. */}
                 {!!item.badge && item.badge > 0 && (
-                  <span
-                    className={cn(
-                      "ml-auto grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1.5",
-                      "text-[11px] font-semibold leading-none tabular-nums",
-                      isActive
-                        ? "bg-white/85 text-neutral-900"
-                        : "bg-[#EAF3C8] text-neutral-800 dark:bg-lime-950/60 dark:text-lime-200",
-                    )}
-                  >
-                    {item.badge > 99 ? "99+" : item.badge}
-                  </span>
+                  <>
+                    {/* The count and the label are sibling spans with no whitespace between
+                        them, so the link's accessible name was the two run together: a screen
+                        reader announced "Sign-offs1", and every textContent scrape and a11y
+                        snapshot read the same. The badge is hidden from the accessible name
+                        and a real sentence is provided beside it. */}
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "ml-auto grid h-5 min-w-5 shrink-0 place-items-center rounded-full px-1.5",
+                        "text-[11px] font-semibold leading-none tabular-nums",
+                        isActive
+                          ? "bg-white/85 text-neutral-900"
+                          : "bg-[#EAF3C8] text-neutral-800 dark:bg-lime-950/60 dark:text-lime-200",
+                      )}
+                    >
+                      {item.badge > 99 ? "99+" : item.badge}
+                    </span>
+                    <span className="sr-only">
+                      , {item.badge} waiting
+                    </span>
+                  </>
                 )}
               </Link>
             </SidebarMenuButton>

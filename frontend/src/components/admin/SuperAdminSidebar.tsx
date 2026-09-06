@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+import { shortName } from "@/lib/destinations"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { API_CONFIG } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
@@ -235,22 +236,31 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   // Settings: the plumbing. Real screens, just not competing with daily work. The four
   // Following-App entries are set-once screens, so they sit behind the app's own hub rather
   // than taking four rows off a client manager's menu.
+  // The creator app is a second product administered from this console, not a setting of the
+  // first one. It gets its own group rather than sitting between Staff and Email alerts.
+  //
+  // The `!accountOnly` exclusion is kept exactly as it was, and it is deliberate: the comment
+  // it came with says a client manager's job is clients and the app's plumbing cost her four
+  // menu rows. She keeps every address and keeps them in search.
+  const appItems = accessLoading
+    ? []
+    : can("fa") && (isSuperAdmin || !accountOnly)
+      ? [
+          { title: "", url: "/work/fa/campaigns", icon: Megaphone },
+          { title: "", url: "/work/fa/merchants", icon: Store },
+          { title: "", url: "/work/fa/members", icon: Users2 },
+          { title: "", url: "/work/fa/reliability", icon: ShieldCheck },
+          { title: "", url: "/work/fa/activity", icon: Activity },
+          { title: "", url: "/work/fa/ad-banners", icon: ImageIcon },
+          { title: "", url: "/work/fa/notifications", icon: Bell },
+        ]
+      : []
+
   const systemItems = [
     ...(can("users") ? [{ title: "Users", url: "/work/users", icon: Users }] : []),
     ...(can("users") ? [{ title: "Staff", url: "/work/staff", icon: ShieldCheck }] : []),
     // A client manager's job is clients; the app's plumbing cost her four menu rows. It keeps
     // every address and stays in search — a founder still sees them listed out.
-    ...(can("fa") && (isSuperAdmin || !accountOnly)
-      ? [
-          { title: "Merchants", url: "/work/fa/merchants", icon: Store },
-          { title: "App activity", url: "/work/fa/activity", icon: Activity },
-          // Who is late, who has defaulted, who to reach before it escalates. It belongs to
-          // the app group because it only ever covers creators with in-app deliverables.
-          { title: "Creator reliability", url: "/work/fa/reliability", icon: ShieldCheck },
-          { title: "Ad banners", url: "/work/fa/ad-banners", icon: ImageIcon },
-          { title: "App notifications", url: "/work/fa/notifications", icon: Bell },
-        ]
-      : []),
     ...(can("system") ? [{ title: "Email alerts", url: "/work/notifications", icon: MailCheck }] : []),
     ...(can("system") ? [{ title: "WhatsApp", url: "/work/whatsapp", icon: MessageCircle }] : []),
     ...(can("system") ? [{ title: "System", url: "/work/system", icon: Wrench }] : []),
@@ -263,6 +273,18 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   // Resolve the single active item as the LONGEST nav URL matching the current
   // path (across every group + sub-item). Without this, section roots like
   // /superadmin and /superadmin/fa prefix-match and light up on every nested page.
+  // One name per destination, read from src/lib/destinations.ts. Titles written by hand in
+  // this file are exactly how /work/goals came to be "My target" here and "Daily targets"
+  // twelve lines down.
+  const named = <T extends { url: string; title: string }>(items: T[]): T[] =>
+    items.map((i) => ({ ...i, title: shortName(i.url) || i.title }))
+
+  const overviewNamed = named(overviewItems)
+  const managementNamed = named(managementItems)
+  const companyNamed = named(companyItems)
+  const appNamed = named(appItems)
+  const systemNamed = named(systemItems)
+
   const activeUrl = React.useMemo(() => {
     // Sub-items came from campaignItems, which is permanently empty — so a nested page like
     // /work/proposals/create highlighted its parent instead of itself. Collect them from the
@@ -271,6 +293,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       ...overviewItems,
       ...managementItems,
       ...companyItems,
+      ...appItems,
       // Hubs have no sub-items now — the jobs live as tabs inside each hub.
       ...systemItems,
     ]
@@ -280,7 +303,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     return urls
       .filter((url) => pathname === url || pathname.startsWith(url + "/"))
       .sort((a, b) => b.length - a.length)[0]
-  }, [pathname, overviewItems, managementItems, companyItems, systemItems])
+  }, [pathname, overviewItems, managementItems, companyItems, appItems, systemItems])
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -310,9 +333,9 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         {/* Overview Section */}
         {overviewItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Overview</SidebarGroupLabel>
+            <SidebarGroupLabel>Personal</SidebarGroupLabel>
             <SidebarGroupContent>
-              <NavMain items={overviewItems} activeUrl={activeUrl} />
+              <NavMain items={overviewNamed} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -322,7 +345,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           <SidebarGroup>
             <SidebarGroupLabel>Work</SidebarGroupLabel>
             <SidebarGroupContent>
-              <NavMain items={managementItems} activeUrl={activeUrl} />
+              <NavMain items={managementNamed} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -330,9 +353,20 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         {/* Running the company — leadership's own screens, which had no entry at all */}
         {companyItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Running the company</SidebarGroupLabel>
+            <SidebarGroupLabel>Company</SidebarGroupLabel>
             <SidebarGroupContent>
-              <NavMain items={companyItems} activeUrl={activeUrl} />
+              <NavMain items={companyNamed} activeUrl={activeUrl} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* The creator app: a second product administered from here, not a setting of this
+            one. It used to sit inside Settings between Staff and Email alerts. */}
+        {appNamed.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Creator app</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <NavMain items={appNamed} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -342,7 +376,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           <SidebarGroup>
             <SidebarGroupLabel>Settings</SidebarGroupLabel>
             <SidebarGroupContent>
-              <NavMain items={systemItems} activeUrl={activeUrl} />
+              <NavMain items={systemNamed} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}
