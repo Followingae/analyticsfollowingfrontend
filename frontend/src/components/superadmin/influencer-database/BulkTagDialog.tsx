@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
+import { assertOk } from '@/services/assertOk'
 import { superadminApiService } from "@/services/superadminApi"
 import {
   Dialog,
@@ -63,7 +64,7 @@ export function BulkTagDialog({
     if (tags.length === 0) return
     try {
       setSubmitting(true)
-      await superadminApiService.bulkTagInfluencers(selectedIds, tags, action)
+      assertOk(await superadminApiService.bulkTagInfluencers(selectedIds, tags, action))
       toast.success(`Tags ${action === "add" ? "added" : "removed"} successfully`)
       onComplete()
       onOpenChange(false)

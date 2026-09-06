@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { assertOk } from '@/services/assertOk'
 import { superadminApiService } from "@/services/superadminApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import {
@@ -182,7 +183,7 @@ export function InfluencerDatabasePage() {
   const onInlineEdit = useCallback(async (influencerId: string, field: string, value: any) => {
     try {
       // Use the update endpoint, not the old pricing endpoint
-      await superadminApiService.updateInfluencerMetadata(influencerId, { [field]: value })
+      assertOk(await superadminApiService.updateInfluencerMetadata(influencerId, { [field]: value }))
       toast.success("Updated")
       fetchData()
     } catch {
@@ -192,7 +193,7 @@ export function InfluencerDatabasePage() {
 
   const onSave = useCallback(async (influencerId: string, data: any) => {
     try {
-      await superadminApiService.updateInfluencerMetadata(influencerId, data)
+      assertOk(await superadminApiService.updateInfluencerMetadata(influencerId, data))
       toast.success("Saved")
       fetchData()
     } catch {
@@ -202,7 +203,7 @@ export function InfluencerDatabasePage() {
 
   const onRefresh = useCallback(async (influencerId: string) => {
     try {
-      await superadminApiService.refreshInfluencerAnalytics(influencerId)
+      assertOk(await superadminApiService.refreshInfluencerAnalytics(influencerId))
       toast.success("Analytics refreshed from profiles table")
       fetchData()
     } catch {
@@ -265,12 +266,12 @@ export function InfluencerDatabasePage() {
   const confirmRemove = useCallback(async () => {
     if (!toRemove) return
     try {
-      await superadminApiService.removeInfluencerFromDatabase(toRemove.id)
+      assertOk(await superadminApiService.removeInfluencerFromDatabase(toRemove.id))
       toast.success(`@${toRemove.username} removed`)
       setToRemove(null)
       fetchData()
-    } catch {
-      toast.error("Could not remove that creator")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not remove that creator")
     }
   }, [toRemove, fetchData])
 
@@ -313,7 +314,7 @@ export function InfluencerDatabasePage() {
 
   const handleBulkPricing = useCallback(async (updates: any[]) => {
     try {
-      await superadminApiService.bulkUpdateInfluencerPricing(updates)
+      assertOk(await superadminApiService.bulkUpdateInfluencerPricing(updates))
       toast.success("Pricing updated")
       fetchData()
     } catch {
@@ -323,7 +324,7 @@ export function InfluencerDatabasePage() {
 
   const handleExport = useCallback(async (params: any) => {
     try {
-      await superadminApiService.exportInfluencers(params)
+      assertOk(await superadminApiService.exportInfluencers(params))
       toast.success("Export started")
     } catch {
       toast.error("Export failed")
@@ -346,7 +347,7 @@ export function InfluencerDatabasePage() {
 
   const triggerRetry = useCallback(async (influencerId: string) => {
     try {
-      await superadminApiService.triggerInfluencerAnalytics(influencerId)
+      assertOk(await superadminApiService.triggerInfluencerAnalytics(influencerId))
       toast.success("Analytics job queued")
     } catch (err: any) {
       if (err?.status === 409 || err?.response?.status === 409) {
@@ -380,7 +381,7 @@ export function InfluencerDatabasePage() {
 
   const stopAnalytics = useCallback(async (influencerId: string) => {
     try {
-      await superadminApiService.cancelAnalytics(influencerId)
+      assertOk(await superadminApiService.cancelAnalytics(influencerId))
       toast.success("Stopped")
       fetchData()
     } catch {
