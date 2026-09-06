@@ -440,7 +440,6 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   const [open, setOpen] = useState<StepKey | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const [reporting, setReporting] = useState(false)
   // Live finger offset while dragging the deck, in px. Null when not dragging, which is
   // also what re-enables the CSS transition so the release snaps instead of jumping.
   const [drag, setDrag] = useState<number | null>(null)

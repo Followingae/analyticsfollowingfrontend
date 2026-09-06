@@ -81,12 +81,59 @@ export interface BulkResult {
   summary: string
 }
 
+export interface Instalment {
+  id: string
+  seq: number
+  label?: string | null
+  pct?: number | null
+  /** What the signed agreement promised for this instalment. */
+  due_aed_cents: number
+  /** What it is worth NOW, after any earlier over or under payment. Null once paid. */
+  now_due_aed_cents?: number | null
+  paid_aed_cents?: number | null
+  paid_on?: string | null
+  reference?: string | null
+  marked_by_label?: string | null
+  marked_at?: string | null
+  paid: boolean
+  /** True when what went out was not what was promised. */
+  differs: boolean
+}
+
+export interface PaymentState {
+  status: 'none' | 'unpaid' | 'part_paid' | 'paid'
+  fee_aed_cents: number
+  paid_aed_cents: number
+  /** Derived, never stored. Negative means we overpaid. */
+  outstanding_aed_cents: number
+  overpaid: boolean
+  next?: Instalment | null
+  instalments: Instalment[]
+}
+
+export interface PayableCreator {
+  link_id: string
+  creator_name?: string | null
+  creator_handle?: string | null
+  brand?: string | null
+  campaign?: string | null
+  campaign_id?: string | null
+  talent_name?: string | null
+  signed_at?: string | null
+  /** Whether a human re-keyed the bank details with the creator. */
+  payee_confirmed: boolean
+  bank_holder?: string | null
+  bank_last4?: string | null
+  payments: PaymentState
+}
+
 export interface EnrolmentDetail {
   link: Record<string, unknown>
   submission: Record<string, unknown>
   events: { kind: string; actor_label?: string | null; detail?: unknown; at: string }[]
   url: string
   has_signature: boolean
+  payments?: PaymentState | null
 }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -161,6 +208,27 @@ export const enrolmentApi = {
   confirmPayee: (id: string, holder_name: string, last4: string) =>
     call<{ bank_status: string }>(`/${id}/confirm-payee`, {
       method: 'POST', body: JSON.stringify({ holder_name, last4 }),
+    }),
+
+  paymentsBoard: (params?: { campaign_id?: string; proposal_id?: string; only?: 'owed' | 'paid' | 'all' }) => {
+    const q = new URLSearchParams()
+    if (params?.campaign_id) q.set('campaign_id', params.campaign_id)
+    if (params?.proposal_id) q.set('proposal_id', params.proposal_id)
+    if (params?.only) q.set('only', params.only)
+    const qs = q.toString()
+    return call<{ creators: PayableCreator[]; totals: { paid_aed_cents: number; owed_aed_cents: number } }>(
+      `/payments/board${qs ? `?${qs}` : ''}`)
+  },
+
+  /** Amount and date are optional: they default to what is owed, sent today. */
+  markPaid: (id: string, seq: number, body?: { amount_aed_cents?: number; paid_on?: string; reference?: string }) =>
+    call<PaymentState>(`/${id}/payments/${seq}/mark`, {
+      method: 'POST', body: JSON.stringify(body ?? {}),
+    }),
+
+  unmarkPaid: (id: string, seq: number, reason?: string) =>
+    call<PaymentState>(`/${id}/payments/${seq}/unmark`, {
+      method: 'POST', body: JSON.stringify({ reason: reason ?? null }),
     }),
 
   agreementPdf: (id: string) => download(`/${id}/agreement.pdf`, 'agreement.pdf'),

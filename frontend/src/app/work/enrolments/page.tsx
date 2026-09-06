@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import {
   Loader2, Copy, Check, Download, ShieldCheck, X, ExternalLink, Search,
-  FileSignature, Clock, CircleAlert,
+  FileSignature, Clock, CircleAlert, CircleCheck, Banknote,
 } from "lucide-react"
 import { toast } from "sonner"
 import { enrolmentApi, type EnrolmentRow } from "@/services/enrolmentApi"
@@ -113,7 +113,12 @@ function EnrolmentsPage() {
 
   const pending = filtered.filter((r) => r.status === "pending_approval")
   const out = filtered.filter((r) => r.status === "live")
-  const closed = filtered.filter((r) => !["pending_approval", "live"].includes(r.status))
+  // Signed and killed are opposite outcomes and were sharing one tab called "Finished and
+  // closed". Sixteen retracted links read on that screen as sixteen creators who had been
+  // through the whole thing, which is the exact opposite of what happened to them.
+  const done = filtered.filter((r) => r.status === "completed" || r.completed_at)
+  const dead = filtered.filter((r) =>
+    !r.completed_at && ["retracted", "rejected", "expired"].includes(r.status))
   // A signed creator whose payee nobody has confirmed is blocking a payment, so it counts
   // as waiting on us even though the link itself is finished.
   const payeeWaiting = filtered.filter((r) => r.completed_at && r.bank_status === "pending")
@@ -241,6 +246,11 @@ function EnrolmentsPage() {
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Creator, brand, owner" className="w-56 pl-8" />
           </div>
+          <Button variant="outline" asChild>
+            <Link href="/work/enrolments/payments">
+              <Banknote className="mr-2 h-4 w-4" /> Payments
+            </Link>
+          </Button>
           <Button
             variant="outline"
             onClick={() => enrolmentApi.rosterXlsx().catch((e) => toast.error(e instanceof Error ? e.message : "Export failed"))}
@@ -273,7 +283,11 @@ function EnrolmentsPage() {
               <FileSignature className="h-3.5 w-3.5" /> With the creator
               {out.length > 0 && <Badge variant="secondary" className="ml-1">{out.length}</Badge>}
             </TabsTrigger>
-            <TabsTrigger value="closed">Finished and closed</TabsTrigger>
+            <TabsTrigger value="done" className="gap-1.5">
+              <CircleCheck className="h-3.5 w-3.5" /> Signed
+              {done.length > 0 && <Badge variant="secondary" className="ml-1">{done.length}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="dead">Cancelled</TabsTrigger>
           </TabsList>
 
           <TabsContent value="waiting" className="mt-4 space-y-8">
@@ -296,7 +310,18 @@ function EnrolmentsPage() {
           </TabsContent>
 
           <TabsContent value="out" className="mt-4"><Grid list={out} /></TabsContent>
-          <TabsContent value="closed" className="mt-4"><Grid list={closed} /></TabsContent>
+          <TabsContent value="done" className="mt-4">
+            <p className="mb-3 text-xs text-muted-foreground">
+              These creators signed the agreement and gave us their details.
+            </p>
+            <Grid list={done} />
+          </TabsContent>
+          <TabsContent value="dead" className="mt-4">
+            <p className="mb-3 text-xs text-muted-foreground">
+              Retracted, rejected or expired. Nothing was signed through any of these.
+            </p>
+            <Grid list={dead} />
+          </TabsContent>
         </Tabs>
       )}
 

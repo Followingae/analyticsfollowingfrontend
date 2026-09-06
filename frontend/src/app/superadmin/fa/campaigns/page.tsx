@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download, ImagePlus, RefreshCcw, Users } from "lucide-react"
+import { QrCode, Coins, Gift, UserPlus, XCircle, Loader2, Plus, Ticket, Share2, Copy, Download, ImagePlus, RefreshCcw, Users, Trash2 } from "lucide-react"
 import { CouponManagerDialog } from "@/components/superadmin/fa/CouponManagerDialog"
 import { MasterPackageDialog } from "@/components/superadmin/fa/MasterPackageDialog"
 import { CreateMasterDialog } from "@/components/superadmin/fa/CreateMasterDialog"
@@ -58,6 +58,8 @@ export default function FACampaignsPage() {
 
   // Close-campaign dialog state
   const [closeTarget, setCloseTarget] = useState<any | null>(null)
+  const [removeTarget, setRemoveTarget] = useState<any | null>(null)
+  const [removing, setRemoving] = useState(false)
   const [closing, setClosing] = useState(false)
 
   // Add curated creators dialog state
@@ -179,6 +181,24 @@ export default function FACampaignsPage() {
     }
   }
 
+  // Closing and deleting are different acts. Closing leaves the campaign on the creator's
+  // board, greyed out and marked Completed, because they worked on it. Deleting is for a
+  // campaign that should never have been there at all.
+  const handleRemove = async () => {
+    if (!removeTarget) return
+    setRemoving(true)
+    try {
+      await faCampaignApi.remove(removeTarget.id)
+      toast.success(`"${removeTarget.name}" is no longer in the app`)
+      setRemoveTarget(null)
+      load()
+    } catch (e: any) {
+      toast.error(e?.message || "Could not remove that campaign")
+    } finally {
+      setRemoving(false)
+    }
+  }
+
   const handleAddCurated = async () => {
     if (!addTarget) return
     const lines = addHandles
@@ -255,7 +275,7 @@ export default function FACampaignsPage() {
             <ToggleGroup
               type="single"
               value={statusFilter}
-              onValueChange={(v) => v && setStatusFilter(v as "active" | "closed")}
+              onValueChange={(v: string) => v && setStatusFilter(v as "active" | "closed")}
               variant="outline"
               size="sm"
             >
@@ -358,6 +378,16 @@ export default function FACampaignsPage() {
                           </Button>
                         </>
                       )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => { e.stopPropagation(); setRemoveTarget(c) }}
+                        className="text-muted-foreground hover:text-destructive"
+                        title="Take it off the creator app"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                        Delete
+                      </Button>
                     </div>
                   </div>
               )
@@ -382,6 +412,32 @@ export default function FACampaignsPage() {
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   {closing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Close campaign"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Remove from the app entirely */}
+          <AlertDialog open={!!removeTarget} onOpenChange={(o: boolean) => { if (!o) setRemoveTarget(null) }}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Take &quot;{removeTarget?.name}&quot; off the app?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Creators will stop seeing it altogether, including those who already worked
+                  on it. Closing it instead leaves it on their board, greyed out and marked
+                  Completed, which is usually what you want for a campaign that simply ended.
+                  Nothing is erased: participants, deliverables and anything already paid stay
+                  on record. If creators are still working on it, this will be refused.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={removing}>Keep it</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleRemove}
+                  disabled={removing}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {removing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Remove from app"}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

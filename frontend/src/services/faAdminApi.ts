@@ -82,8 +82,13 @@ export const faCampaignApi = {
   createBarter: (data: any) => post('/api/v1/admin/fa/campaigns/barter', data),
   update: (id: string, data: any) => put(`/api/v1/admin/fa/campaigns/${id}`, data),
   updateStatus: (id: string, status: string) => put(`/api/v1/admin/fa/campaigns/${id}/status`, { status }),
-  /** Close a live FA campaign (transitions status → completed). */
+  /** Close a live FA campaign (transitions status → completed).
+   *  It stays on the creator app, greyed out and marked Completed. */
   close: (id: string) => put(`/api/v1/admin/fa/campaigns/${id}/status`, { status: 'completed' }),
+  /** Take a campaign off the creator app entirely. Archives rather than drops the row, so
+   *  participants, deliverables and anything already paid survive. Refused while creators
+   *  are still working on it. */
+  remove: (id: string) => del(`/api/v1/admin/fa/campaigns/${id}`),
   /** Add "Following Team Suggested" creators to an open FA campaign. */
   addCurated: (id: string, creators: Array<{ fa_member_id?: string; instagram_username?: string }>) =>
     post(`/api/v1/admin/fa/campaigns/${id}/add-curated-creators`, { creators }),
