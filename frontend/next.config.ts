@@ -131,7 +131,7 @@ const nextConfig: NextConfig = {
           // added here. They survive only because a static route is matched before these
           // rewrites; the first dynamic segment under either would have 404'd exactly the
           // way /work/brands/{id} did. `sourcing` is retired but harmless to keep.
-          source: '/work/:path((?!areas|brands|chasing|coverage|creators|goals|inbox|manual|money|payables|sourcing|team|today).*)',
+          source: '/work/:path((?!areas|brands|chasing|coverage|creators|goals|guide|inbox|manual|money|payables|sourcing|team|today).*)',
           destination: '/superadmin/:path*',
         },
       ],

@@ -50,6 +50,7 @@ import {
   Send,
   Map,
   FileSignature,
+  BookOpen,
 } from "lucide-react"
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -118,6 +119,9 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     // purpose: the page shows only the queues the viewer's role can act on, and for someone
     // with none it says so rather than hiding.
     { title: "Waiting on me", url: "/work/inbox", icon: Inbox },
+    // Ungated. Everybody has a role and the manual describes all of them, so putting it
+    // behind the permissions it explains would be a closed loop.
+    { title: "The manual", url: "/work/guide", icon: BookOpen },
   ]
 
   /**

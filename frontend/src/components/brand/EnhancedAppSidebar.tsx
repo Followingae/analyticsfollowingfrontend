@@ -159,6 +159,13 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         icon: IconSettings,
       },
       {
+        // Above support on purpose: most of what people email to ask is answered here, and
+        // an unread guide is the same as no guide.
+        title: "How this works",
+        url: "/guide",
+        icon: IconHelp,
+      },
+      {
         // Clients get support, not our internal walkthroughs.
         title: "Help & Support",
         url: "mailto:partners@following.ae",
