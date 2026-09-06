@@ -45,7 +45,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { DataTable, DataTableColumnHeader } from '@/components/ui2/data-table'
 import {
   ArrowUpRight, Banknote, CheckCircle2, Clock, FileText, GitBranch, Megaphone,
-  RefreshCw, Search, Users2,
+  ChevronDown, Circle, Database, RefreshCw, Search, Users2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
@@ -231,12 +231,16 @@ const ICON_FOR = (label: string) => {
   const l = (label || '').toLowerCase()
   if (l.includes('pipeline')) return GitBranch
   if (l.includes('collected')) return CheckCircle2
-  if (l.includes('owed')) return Banknote
-  if (l.includes('creator') || l.includes('added')) return Users2
+  if (l.includes('owed') || l.includes('rate') || l.includes('price')) return Banknote
+  if (l.includes('chas') || l.includes('late') || l.includes('overdue')) return Clock
+  if (l.includes('roster') || l.includes('coverage')) return Database
   if (l.includes('quote') || l.includes('proposal')) return FileText
   if (l.includes('campaign')) return Megaphone
-  if (l.includes('late') || l.includes('overdue') || l.includes('chas')) return Clock
-  return undefined
+  if (l.includes('creator') || l.includes('added') || l.includes('client')) return Users2
+  // Never nothing. Four cards in a row where two carry a chip and two do not reads as a
+  // rendering failure, not as a design: the eye finds the gap before it finds the number.
+  // A neutral mark is a worse icon than a specific one and a far better card than none.
+  return Circle
 }
 
 export default function Today() {
@@ -503,8 +507,16 @@ export default function Today() {
           </div>
         )}
 
-        {/* everything stopped on this person, in one treatment */}
-        <section data-tour="today-queue" className="space-y-ds-3">
+        {/* The reference puts the work on the left and the secondary widgets in a rail on the
+            right, and the reason is not decoration: the queue is the only thing on this
+            screen anybody acts on, so it gets the width and the eye. The target, what is
+            running without you, and the shortcuts are all things you glance at, and a glance
+            does not need a full column. */}
+        <div className="grid gap-ds-3 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+
+        <section data-tour="today-queue"
+                 className="space-y-ds-3 rounded-[var(--radius-card)] border bg-card p-ds-3
+                            shadow-[var(--shadow-card)]">
           <div className="flex flex-wrap items-center justify-between gap-ds-3">
             <h2 className="flex items-center gap-ds-2 text-ds-heading">
               Waiting on you
@@ -514,20 +526,6 @@ export default function Today() {
                 </span>
               )}
             </h2>
-            {target && (
-              <div className="flex items-center gap-ds-3">
-                <div className="text-right">
-                  <p className="text-ds-caption text-muted-foreground">Today's goal</p>
-                  <p className="text-ds-label tabular-nums">
-                    {target.value} of {target.of}
-                  </p>
-                </div>
-                <Ring
-                  size={60}
-                  pct={Math.min(100, Math.round((target.value / Math.max(target.of, 1)) * 100))}
-                />
-              </div>
-            )}
           </div>
 
           {waiting.length > 0 ? (
@@ -545,28 +543,101 @@ export default function Today() {
           )}
         </section>
 
-        {/* running without them. Same table, and a column saying whose it is. */}
+        {/* ── the rail ─────────────────────────────────────────────────────────────── */}
+        <aside className="space-y-ds-3">
+
+          {/* The target, given its own surface. It used to sit in the queue heading, where a
+              ring against a table header read as a decoration on somebody else's list. */}
+          {target && (
+            <div className="rounded-[var(--radius-card)] border bg-card p-ds-3
+                            shadow-[var(--shadow-card)]">
+              <p className="text-ds-caption text-muted-foreground">Today's goal</p>
+              <div className="mt-ds-2 flex items-center justify-between gap-ds-3">
+                <div>
+                  <p className="text-[1.75rem] font-semibold leading-none tabular-nums">
+                    {target.value}
+                    <span className="ml-1 align-baseline text-ds-label font-normal text-muted-foreground">
+                      of {target.of}
+                    </span>
+                  </p>
+                  <p className="mt-ds-1 text-ds-caption text-muted-foreground">
+                    {target.value >= target.of
+                      ? 'Done for today'
+                      : `${target.of - target.value} to go`}
+                  </p>
+                </div>
+                <Ring
+                  size={72}
+                  pct={Math.min(100, Math.round((target.value / Math.max(target.of, 1)) * 100))}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* What is running without them, as a glance rather than a second table. The full
+              table is still one click away and nothing has been removed from it. */}
+          {moving.length > 0 && (
+            <div className="rounded-[var(--radius-card)] border bg-card p-ds-3
+                            shadow-[var(--shadow-card)]">
+              <div className="flex items-baseline justify-between gap-ds-2">
+                <p className="text-ds-label font-medium">Running without you</p>
+                <span className="text-ds-caption tabular-nums text-muted-foreground">
+                  {moving.length}
+                </span>
+              </div>
+              <ul className="mt-ds-2 divide-y">
+                {moving.slice(0, 6).map((r: any, i: number) => (
+                  <li key={`${r.title}-${i}`} className="flex items-start gap-ds-2 py-ds-2">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--tone-info-dot)]" />
+                    <div className="min-w-0 flex-1">
+                      {r.href
+                        ? <Link href={r.href} className="block truncate text-ds-label hover:underline">
+                            {r.title}
+                          </Link>
+                        : <span className="block truncate text-ds-label">{r.title}</span>}
+                      {(r.stage_label || r.reason) && (
+                        <span className="block truncate text-ds-caption text-muted-foreground">
+                          {r.stage_label || r.reason}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </aside>
+        </div>
+
+        {/* The full table. The rail above answers "is anything moving"; this answers "show me
+            all of it", with every column it always had. Collapsed by default because the same
+            information now has a summary, and two full-width tables was the density complaint
+            in the first place. Nothing is removed: the toggle is the only new thing. */}
         {moving.length > 0 && (
           <section className="space-y-ds-3">
             <div className="flex flex-wrap items-center justify-between gap-ds-3">
-              <h2 className="flex items-center gap-ds-2 text-ds-heading">
+              <button
+                type="button"
+                onClick={() => setAllFlight(v => !v)}
+                aria-expanded={allFlight}
+                className="flex items-center gap-ds-2 text-ds-heading hover:underline"
+              >
                 Running without you
                 <span className="text-ds-caption tabular-nums text-muted-foreground">
                   {moving.length}
                 </span>
-              </h2>
-              {moving.length > 5 && (
-                <Button variant="ghost" size="sm" onClick={() => setAllFlight(v => !v)}>
-                  {allFlight ? 'Show less' : `Show all ${moving.length}`}
-                </Button>
-              )}
+                <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform',
+                                           allFlight && 'rotate-180')} />
+              </button>
             </div>
-            <DataTable
-              columns={movingCols}
-              data={shownFlight}
-              hidePagination
-              emptyState="Nothing is running."
-            />
+            {allFlight && (
+              <DataTable
+                columns={movingCols}
+                data={moving}
+                hidePagination
+                emptyState="Nothing is running."
+              />
+            )}
           </section>
         )}
 
