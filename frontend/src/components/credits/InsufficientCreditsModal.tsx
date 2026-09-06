@@ -1,8 +1,27 @@
 "use client"
 
-import { useState } from "react"
+/**
+ * Out of credits, with a way through.
+ *
+ * THIS IS THE HIGHEST INTENT MOMENT IN THE PRODUCT and it used to be the least useful screen
+ * in it. Somebody is mid task, they want to keep going, and they are willing to pay right
+ * now. The modal told them they were short and sent them to /billing to work the rest out
+ * themselves, which is a filing cabinet handed to a person holding a credit card.
+ *
+ * It now sells here. The packs come from the server, one click opens the payment page, and
+ * the return URL is the page they were on, so buying credits does not cost them their place.
+ *
+ * WHAT IT DOES NOT DO. It never invents a price: the packs and their amounts come from
+ * `GET /credits/topup/options`, and if that call fails the modal says so and falls back to
+ * the billing page rather than showing a number nobody will honour. It also does not push a
+ * plan upgrade at somebody who only needs twenty five credits to finish one unlock; the plan
+ * is offered underneath, as the answer to running out repeatedly rather than to running out
+ * today.
+ */
+
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { CreditCard, Zap, ArrowRight, X } from "lucide-react"
+import { Zap, ArrowRight, Loader2, AlertCircle, Check } from "lucide-react"
 
 import {
   Dialog,
@@ -12,11 +31,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Card, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { formatCredits } from "@/utils/creditUtils"
-import { Aed } from "@/components/console/primitives"
+import { API_CONFIG, getAuthHeaders } from "@/config/api"
+import { fetchWithAuth } from "@/utils/apiInterceptor"
 
 interface InsufficientCreditsModalProps {
   isOpen: boolean
@@ -28,150 +47,184 @@ interface InsufficientCreditsModalProps {
   message?: string
 }
 
+interface TopupOption {
+  type: string
+  name?: string
+  credits?: number
+  price?: number
+  currency?: string
+  description?: string
+}
+
 export function InsufficientCreditsModal({
   isOpen,
   onClose,
   creditsRequired = 0,
   creditsAvailable = 0,
   creditsNeeded = 0,
-  actionName = "this action",
-  message
+  actionName = "this",
+  message,
 }: InsufficientCreditsModalProps) {
   const router = useRouter()
-  const [isNavigating, setIsNavigating] = useState(false)
+  const [options, setOptions] = useState<TopupOption[] | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [buying, setBuying] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleUpgrade = async () => {
-    setIsNavigating(true)
-    router.push("/billing")
-    // Keep modal open briefly to show loading state
-    setTimeout(() => {
-      onClose()
-      setIsNavigating(false)
-    }, 500)
+  useEffect(() => {
+    if (!isOpen || options || failed) return
+    let alive = true
+    void (async () => {
+      try {
+        const res = await fetchWithAuth(
+          `${API_CONFIG.BASE_URL}/api/v1/credits/topup/options`,
+          { headers: getAuthHeaders() },
+        )
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(String(res.status))
+        const list: TopupOption[] = Array.isArray(data?.options)
+          ? data.options
+          : Array.isArray(data?.data?.options)
+            ? data.data.options
+            : []
+        if (!alive) return
+        if (!list.length) throw new Error("empty")
+        setOptions(list)
+      } catch {
+        if (alive) setFailed(true)
+      }
+    })()
+    return () => { alive = false }
+  }, [isOpen, options, failed])
+
+  const buy = async (type: string) => {
+    setError(null)
+    setBuying(type)
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/credits/topup/create-payment-link`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ topup_type: type }),
+        },
+      )
+      const data = await res.json().catch(() => ({}))
+      const url = data?.payment_url || data?.data?.payment_url
+      if (!res.ok || !url) {
+        setError(data?.detail || "We could not open the payment page. Try again in a moment.")
+        setBuying(null)
+        return
+      }
+      // Straight to payment. Coming back lands on the page they were already using.
+      window.location.href = url
+    } catch {
+      setError("We could not reach our servers. Check your connection and try again.")
+      setBuying(null)
+    }
   }
 
-  const handleViewBilling = () => {
-    router.push("/billing")
-    onClose()
-  }
-
-  // Calculate percentage of credits available
-  const availablePercentage = creditsRequired > 0 
-    ? Math.round((creditsAvailable / creditsRequired) * 100)
+  const short = creditsNeeded || Math.max(0, creditsRequired - creditsAvailable)
+  const pct = creditsRequired > 0
+    ? Math.min(100, Math.round((creditsAvailable / creditsRequired) * 100))
     : 0
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
-                <Zap className="h-4 w-4 text-red-600 dark:text-red-400" />
-              </div>
-              <DialogTitle>Insufficient Credits</DialogTitle>
-            </div>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="flex items-center gap-2.5">
+            <Zap className="h-5 w-5 text-primary" />
+            {short > 0
+              ? `You are ${formatCredits(short)} credits short`
+              : "You are out of credits"}
+          </DialogTitle>
           <DialogDescription>
-            {message || `You don't have enough credits to perform ${actionName}.`}
+            {message ||
+              `${actionName === "this" ? "This" : actionName} costs ${formatCredits(creditsRequired)} credits and you have ${formatCredits(creditsAvailable)}. Top up and carry on where you left off.`}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Credit Status */}
-          <Card>
-            <CardContent className="p-4 space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Credits Required</span>
-                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                  {formatCredits(creditsRequired)} credits
-                </Badge>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Credits Available</span>
-                <Badge variant="outline" className="bg-muted/50 text-gray-700 border-border">
-                  {formatCredits(creditsAvailable)} credits
-                </Badge>
-              </div>
+        <div className="space-y-1.5">
+          <Progress value={pct} />
+          <p className="text-xs tabular-nums text-muted-foreground">
+            {formatCredits(creditsAvailable)} of {formatCredits(creditsRequired)} needed
+          </p>
+        </div>
 
-              {creditsNeeded > 0 && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Credits Needed</span>
-                  <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                    {formatCredits(creditsNeeded)} credits
-                  </Badge>
-                </div>
-              )}
-
-              {/* Visual progress bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Available</span>
-                  <span>{availablePercentage}% of required</span>
-                </div>
-                <Progress value={availablePercentage} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Credit Packages */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium">Quick Credit Packages</h4>
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                <div>
-                  <div className="font-medium text-sm">1,000 Credits</div>
-                  <div className="text-xs text-muted-foreground">Basic package</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-medium text-sm"><Aed>180</Aed></div>
-                  <div className="text-xs text-green-600">Covers this action</div>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                <div>
-                  <div className="font-medium text-sm">5,000 Credits</div>
-                  <div className="text-xs text-muted-foreground">Popular choice</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-medium text-sm"><Aed>730</Aed></div>
-                  <div className="text-xs text-blue-600">Best value</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="space-y-3">
-            <Button 
-              onClick={handleUpgrade} 
-              className="w-full"
-              disabled={isNavigating}
-            >
-              <CreditCard className="h-4 w-4 mr-2" />
-              {isNavigating ? "Opening Billing..." : "Purchase Credits"}
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={handleViewBilling}
-              className="w-full"
-            >
-              View Billing & Usage
+        {failed ? (
+          <div className="rounded-xl border p-4 text-sm">
+            <p className="flex items-start gap-2">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <span>
+                We could not load today&apos;s credit packs, and we would rather show you
+                nothing than a price we might not charge.
+              </span>
+            </p>
+            <Button className="mt-3" onClick={() => { router.push("/billing"); onClose() }}>
+              Open billing
             </Button>
           </div>
+        ) : !options ? (
+          <div className="grid gap-2">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        ) : (
+          <div className="grid gap-2">
+            {options.map((o) => (
+              <button
+                key={o.type}
+                type="button"
+                disabled={Boolean(buying)}
+                onClick={() => void buy(o.type)}
+                className="group flex items-center justify-between gap-4 rounded-xl border
+                           px-4 py-3.5 text-left transition-colors hover:border-primary/50
+                           disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2
+                           focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <span className="min-w-0">
+                  <span className="block font-medium">
+                    {o.credits ? `${formatCredits(o.credits)} credits` : o.name || o.type}
+                  </span>
+                  {o.description && (
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      {o.description}
+                    </span>
+                  )}
+                </span>
+                <span className="flex shrink-0 items-center gap-2 text-sm font-semibold tabular-nums">
+                  {typeof o.price === "number"
+                    ? `${o.currency || "AED"} ${o.price.toLocaleString()}`
+                    : ""}
+                  {buying === o.type
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <ArrowRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
-          {/* Help Text */}
-          <div className="text-center text-xs text-muted-foreground">
-            Credits are used to access premium analytics features.
-            <br />
-            Your monthly allowance resets on the 1st of each month.
+        {error && (
+          <p role="alert" className="flex items-start gap-2 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            {error}
+          </p>
+        )}
+
+        {/* The plan is the answer to running out every month, not to running out today. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+          <p className="text-xs text-muted-foreground">
+            Running out often? A bigger plan includes more every month.
+          </p>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={onClose}>Not now</Button>
+            <Button variant="outline" size="sm"
+                    onClick={() => { router.push("/pricing"); onClose() }}>
+              <Check className="mr-1.5 h-3.5 w-3.5" />
+              Compare plans
+            </Button>
           </div>
         </div>
       </DialogContent>

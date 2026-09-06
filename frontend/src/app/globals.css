@@ -309,6 +309,62 @@
   ::selection {
     @apply bg-primary/25 text-foreground;
   }
+
+  /* The surfaces we did not draw still carry the design.
+     A caret, a scrollbar and an underline all ship with browser defaults that belong to no
+     design system, and leaving them is the cheapest tell that a page was assembled rather
+     than built. Each one below is taken from the palette that is already defined. */
+
+  /* The caret is a brand colour on every input in the product, not the OS blue-black. */
+  input,
+  textarea,
+  [contenteditable] {
+    caret-color: hsl(var(--primary));
+  }
+
+  /* Underlines that clear their descenders. The default sits on the baseline and cuts
+     through every g, y and p in a link. */
+  a:not([class*="no-underline"]) {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: from-font;
+  }
+
+  /* A scrollbar in the page's own neutrals rather than the platform's. Firefox takes the
+     standard properties; WebKit needs its own, and both are given the same two colours. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 999px;
+    /* The inset keeps the thumb off the edge without a second element to draw it. */
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+    background-clip: content-box;
+  }
+
+  /* Money and counts line up in columns. Applied where digits are compared, not globally:
+     lining figures in running prose are worse, not better. */
+  table td,
+  table th,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* ============================================================================
