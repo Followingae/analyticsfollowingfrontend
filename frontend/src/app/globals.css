@@ -697,6 +697,28 @@
   --primary-foreground: oklch(0.9800 0.0050 120);
   --ring: oklch(0.8200 0.1700 121);
 
+  /* ── The canvas, and why cards need one ─────────────────────────────────────────────
+     The app's `--background` is oklch(0.9911), which is very nearly the pure white of
+     `--card`. On a brand page that is right: those pages are mostly text on one surface.
+     In the console it means a card and the page behind it are the same colour, so every
+     card has to earn its edges from a border alone and a dense screen reads as one grey
+     field with lines ruled through it.
+     Dropping the canvas a little and leaving cards at white is the whole of the reference
+     dashboard's calm: the card is lighter than the page, so it lifts without a shadow
+     doing the work. Scoped here rather than globally, because changing `--background`
+     app-wide would restyle every customer-facing page too. */
+  --background: oklch(0.9740 0.0020 120);
+  --card: oklch(1 0 0);
+
+  /* Console cards are larger objects than form controls and want a softer corner. The
+     control radius stays where it is: a 1rem input looks like a pill. */
+  --radius-card: 1rem;
+
+  /* One shadow treatment. An offset and a soft blur, tinted toward the canvas hue rather
+     than neutral black, so a raised card reads as lit rather than as dirty. */
+  --shadow-card: 0 1px 2px oklch(0.2200 0.0120 140 / 0.04),
+                 0 8px 24px -12px oklch(0.2200 0.0120 140 / 0.10);
+
   --sidebar: oklch(0.9850 0.0020 120);
   --sidebar-primary: oklch(0.9450 0.1000 121);
   --sidebar-primary-foreground: oklch(0.2400 0.0150 140);
@@ -740,6 +762,17 @@
   --primary: oklch(0.9354 0.2254 121.4851);
   --primary-foreground: oklch(0.1822 0 0);
   --ring: oklch(0.9354 0.2254 121.4851);
+
+  /* The same relationship, inverted: the card sits ABOVE the canvas, so in dark it is the
+     lighter of the two. Copying the light values or leaving these unset would make a card
+     darker than the page it sits on, which reads as a hole rather than a surface. */
+  --background: oklch(0.1620 0.0060 140);
+  --card: oklch(0.2060 0.0070 140);
+
+  /* Shadow does almost no work on a dark ground: the lift comes from the card being
+     lighter. Kept shallow so it never turns into a grey halo. */
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.30),
+                 0 8px 24px -14px oklch(0 0 0 / 0.55);
 
   --sidebar: oklch(0.1700 0.0080 140);
   --sidebar-primary: oklch(0.3600 0.0700 121);

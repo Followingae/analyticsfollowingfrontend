@@ -131,7 +131,14 @@ const nextConfig: NextConfig = {
           // added here. They survive only because a static route is matched before these
           // rewrites; the first dynamic segment under either would have 404'd exactly the
           // way /work/brands/{id} did. `sourcing` is retired but harmless to keep.
-          source: '/work/:path((?!areas|brands|chasing|coverage|creators|goals|guide|inbox|manual|money|payables|sourcing|team|today).*)',
+          //
+          // `enrolments` was the case that had already gone wrong. /work/enrolments and
+          // /work/enrolments/payments are static and were matched before this rewrite, so
+          // the board and the payments screen worked. /work/enrolments/[id] is dynamic, so
+          // it was matched AFTER, swallowed here, and sent to /superadmin/enrolments/[id],
+          // which does not exist: opening any single enrolment record 404'd in production
+          // while the list it was opened from worked perfectly.
+          source: '/work/:path((?!areas|brands|chasing|coverage|creators|enrolments|goals|guide|inbox|manual|money|payables|sourcing|team|today).*)',
           destination: '/superadmin/:path*',
         },
       ],

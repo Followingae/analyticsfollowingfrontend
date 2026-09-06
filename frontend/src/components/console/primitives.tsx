@@ -458,3 +458,129 @@ export function RecordTabs({
     </div>
   )
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────────────
+   KPI CARD
+
+   The headline figure on a role dashboard, drawn to the reference: an icon chip, the
+   label above the number rather than below it, the number given real size, a delta badge
+   sitting on the baseline beside it, and the previous period underneath in the quietest
+   weight on the card.
+
+   WHY THIS AND NOT ONE OF THE FOUR WE ALREADY HAD. The console carried `analytics-card`
+   (zero usages, dead), `health-stat-card` (189 lines, one usage), `standard-metric-card`
+   (four usages) and `Stat` above, all rendering a number with a label. Four answers to one
+   question is how two screens end up disagreeing about what a metric looks like. `Stat`
+   stays: it is the compact form used inside panels. This is the dashboard form, and it is
+   the only other one.
+
+   A DELTA IS A COMPARISON OR IT IS NOTHING. `delta` is a signed percentage and `since`
+   names what it is measured against. Passing one without the other is refused by the
+   types, because a number with an arrow and no period is a decoration that looks like
+   information.
+
+   DIRECTION IS NOT SENTIMENT. Up is not automatically good: creators waiting on a price
+   going up is bad, revenue going up is good. `goodWhen` says which direction earns the
+   positive tone, and it defaults to 'up' only because that is the commoner case.
+   ───────────────────────────────────────────────────────────────────────────────────── */
+export function KpiCard({
+  label,
+  value,
+  icon: Icon,
+  delta,
+  since,
+  goodWhen = 'up',
+  hint,
+  onClick,
+}: {
+  label: string
+  value: React.ReactNode
+  icon?: React.ComponentType<{ className?: string }>
+  /** Signed percentage against the previous period. Requires `since`. */
+  delta?: number
+  /** What the delta is measured against, e.g. "Previous month". Requires `delta`. */
+  since?: string
+  goodWhen?: 'up' | 'down'
+  /** One short line under the figure when there is no delta to show. */
+  hint?: React.ReactNode
+  onClick?: () => void
+}) {
+  const Tag = onClick ? 'button' : 'div'
+  const hasDelta = typeof delta === 'number' && Boolean(since)
+  const rising = (delta ?? 0) > 0
+  const flat = (delta ?? 0) === 0
+  const good = flat ? false : rising === (goodWhen === 'up')
+
+  return (
+    <Tag
+      {...(onClick ? { type: 'button' as const, onClick } : {})}
+      className={cn(
+        'flex w-full items-start gap-4 rounded-[var(--radius-card)] border bg-card p-5 text-left',
+        'shadow-[var(--shadow-card)] transition-colors',
+        onClick &&
+          'cursor-pointer hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 ' +
+          'focus-visible:ring-ring focus-visible:ring-offset-2',
+      )}
+    >
+      {Icon && (
+        <span
+          aria-hidden
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground"
+        >
+          <Icon className="h-5 w-5" />
+        </span>
+      )}
+
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-medium text-muted-foreground">{label}</span>
+
+        <span className="mt-1 flex flex-wrap items-baseline gap-2">
+          <span className="text-[1.75rem] font-semibold leading-none tracking-[-0.02em] tabular-nums">
+            {value}
+          </span>
+          {hasDelta && (
+            <span
+              className={cn(
+                'rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums',
+                flat
+                  ? 'bg-[var(--tone-neutral-wash)] text-muted-foreground'
+                  : good
+                    ? 'bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]'
+                    : 'bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]',
+              )}
+            >
+              {rising ? '+' : ''}{delta}%
+            </span>
+          )}
+        </span>
+
+        {hasDelta ? (
+          <span className="mt-1.5 block text-[12px] text-muted-foreground">{since}</span>
+        ) : hint ? (
+          <span className="mt-1.5 block text-[12px] text-muted-foreground">{hint}</span>
+        ) : null}
+      </span>
+    </Tag>
+  )
+}
+
+/* A row of KPI cards. Four across is the reference; three reads better when the figures
+   are long, which is why the count is a prop rather than a guess made per screen. */
+export function KpiRow({
+  children,
+  cols = 4,
+}: {
+  children: React.ReactNode
+  cols?: 3 | 4
+}) {
+  return (
+    <div
+      className={cn(
+        'grid gap-4',
+        cols === 3 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4',
+      )}
+    >
+      {children}
+    </div>
+  )
+}
