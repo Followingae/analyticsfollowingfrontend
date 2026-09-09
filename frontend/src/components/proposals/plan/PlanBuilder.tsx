@@ -136,16 +136,51 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   )
   /* On a retainer a pick belongs to the month it was made for, so a creator taken for
      September does not eat October's places. */
-  const tierOf = (c: BrandInfluencer) => (c as unknown as { tier?: string }).tier
+  const tierOf = (c: BrandInfluencer) => c.tier
+
+  /* What taking this creator SPENDS, per band.
+
+     This screen used to add one to the creator's own band and stop there, which
+     quietly asserted that every creator costs exactly one place in exactly one
+     band. The server has never said that: it resolves a cost map, because a
+     creator can be weighted at two of a band, and a cost can land across two
+     bands at once. So a creator weighted at two macro showed here as one macro
+     used, and a cross-tier creator showed as one macro with their micro place
+     never counted at all — the plan read as filling up half as fast as it was.
+
+     It agreed with the server on first paint only because the server had just
+     sent the true state; the moment anything was ticked or unticked this
+     recomputed locally and every creator collapsed back to a single place. */
+  const costOf = useCallback((c: BrandInfluencer): Record<string, number> => {
+    const out: Record<string, number> = {}
+    if (c.tier_cost && typeof c.tier_cost === "object") {
+      for (const [band, n] of Object.entries(c.tier_cost)) {
+        const places = Math.trunc(Number(n))
+        if (Number.isFinite(places) && places > 0) out[band] = places
+      }
+      if (Object.keys(out).length) return out
+    }
+    /* Older proposals carry the single-band weight instead of a map, and an
+       ordinary creator carries neither. Both mean one band. */
+    const t = tierOf(c)
+    if (!t) return out
+    const w = Math.trunc(Number(c.tier_weight))
+    out[t] = Number.isFinite(w) && w > 0 ? w : 1
+    return out
+  }, [])
+
+  /* On a retainer a pick belongs to the month it was made for, so a creator taken for
+     September does not eat October's places. */
   const places = useMemo(() => {
     const out: Record<string, number> = {}
     for (const c of picked) {
-      if (months.length && ((c as unknown as { period?: string }).period ?? month) !== month) continue
-      const t = tierOf(c)
-      if (t) out[t] = (out[t] || 0) + 1
+      if (months.length && (c.period ?? month) !== month) continue
+      for (const [band, n] of Object.entries(costOf(c))) {
+        out[band] = (out[band] || 0) + n
+      }
     }
     return out
-  }, [picked, months.length, month])
+  }, [picked, months.length, month, costOf])
   const tierRows: TierRow[] = useMemo(() =>
     Object.entries(selection.allowances ?? {})
       .filter(([, want]) => Number(want) > 0)
@@ -166,11 +201,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   useEffect(() => {
     let alive = true
     if (!live.length) { setRecommended([]); return }
-    if (byTier) { setRecommended(optimiseByPlaces(live, selection.allowances ?? {}, tierOf, strategy)); return }
+    if (byTier) { setRecommended(optimiseByPlaces(live, selection.allowances ?? {}, costOf, strategy)); return }
     if (!showPricing) { setRecommended([]); return }
     optimise(live, spendable, strategy, undefined, 0).then(r => { if (alive) setRecommended(r.picks) })
     return () => { alive = false }
-  }, [live, spendable, strategy, showPricing])
+  }, [live, spendable, strategy, showPricing, byTier, selection.allowances, costOf])
   const recIds = useMemo(() => new Set(recommended.map(c => c.id)), [recommended])
 
   const sig = (ids: Set<string>, s: Strategy) => `${s}:${[...ids].sort().join(",")}`

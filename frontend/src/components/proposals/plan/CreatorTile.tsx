@@ -18,7 +18,7 @@
  * shrunk or moved elsewhere on the card.
  */
 import { memo } from "react"
-import { Check, X, Users, Heart, Sparkles, Star, BadgeCheck, Lock } from "lucide-react"
+import { Check, X, Users, Heart, Sparkles, Star, BadgeCheck, Lock, Layers } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { cdnAvatar } from "@/lib/avatar"
 import type { BrandInfluencer } from "@/services/adminProposalMasterApi"
@@ -130,6 +130,18 @@ export const CreatorTile = memo(function CreatorTile({
             <span className="inline-flex items-center gap-1.5"><Users className="size-3.5 opacity-80" />{fmt(c.followers_count)}</span>
             {er != null && <span className="inline-flex items-center gap-1.5"><Heart className="size-3.5 opacity-80" />{er.toFixed(2)}%</span>}
           </div>
+          {/* What this one costs the plan, said BEFORE the tap. The server sets
+              `counts_as` only when a creator takes more than one place — two of a
+              band, or one each across two — and finding that out only after
+              choosing them is the surprise this is here to avoid. Guarded on
+              `counts_as` rather than on `tier_weight`, because a cost split
+              across two bands leaves the weight reading 1. */}
+          {c.counts_as && (
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-400 px-2.5 py-1 text-[11.5px] font-bold leading-none text-amber-950">
+              <Layers className="size-3 shrink-0" />
+              <em className="not-italic">{c.counts_as}</em>
+            </span>
+          )}
           {showPricing && cost > 0 && (
             <div className="text-[15px] font-bold tracking-[-0.02em] [text-shadow:0_2px_10px_rgba(0,0,0,.5)]">{aed(cost)}</div>
           )}

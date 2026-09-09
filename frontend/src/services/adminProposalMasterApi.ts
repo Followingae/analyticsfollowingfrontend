@@ -255,6 +255,32 @@ export interface BrandInfluencer {
   categories: string[]
   tags: string[]
   tier?: string
+  /** The band's display name, as this deal names it. */
+  tier_label?: string
+  /**
+   * What taking this creator actually SPENDS, per band: {"macro": 2}, or
+   * {"macro": 1, "micro": 1}. This — not `tier` — is what fills a plan, because
+   * one creator can take more than one place and can take them in more than one
+   * band. `get_brand_visible_proposal` resolves it server-side and every screen
+   * is expected to count places from it rather than counting heads.
+   */
+  tier_cost?: Record<string, number>
+  /**
+   * The old single-band number. Meaningless once the cost spans bands, where it
+   * reports only the primary band's share — a creator costing one macro and one
+   * micro has a `tier_weight` of 1. Prefer `tier_cost`; use `counts_as` to tell
+   * whether the cost is more than one place at all.
+   */
+  tier_weight?: number
+  tier_weight_note?: string | null
+  /** True when the cost lands in more than one band. */
+  cross_tier?: boolean
+  /** "Counts as 2 Macro". Set by the server only when the cost exceeds one place. */
+  counts_as?: string | null
+  /** Placed in a smaller band than their size — the client gets more than they bought. */
+  above_band?: boolean
+  /** On a retainer, the month this pick belongs to. */
+  period?: string
   engagement_rate?: number
   avg_likes?: number
   avg_comments?: number

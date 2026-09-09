@@ -512,7 +512,12 @@ export default function PublicProposalPage() {
                     {/* Said BEFORE the tap, not after it. Finding out a creator uses two of
                         your places only once you have chosen them is the surprise this
                         whole thing exists to avoid. */}
-                    {byTier && (inf.tier_weight || 1) > 1 && (
+                    {/* Guarded on `counts_as`, not on `tier_weight`: the weight reports only
+                        the primary band's share, so a creator costing one macro AND one
+                        micro reads as 1 and this badge never appeared for exactly the
+                        cross-band picks it matters most for. The server sets `counts_as`
+                        whenever the total comes to more than one place. */}
+                    {byTier && inf.counts_as && (
                       <div className="mt-3">
                         <div className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-[11.5px] font-semibold text-amber-900 dark:bg-amber-950/60 dark:text-amber-200">
                           <Layers className="h-3 w-3 shrink-0" />

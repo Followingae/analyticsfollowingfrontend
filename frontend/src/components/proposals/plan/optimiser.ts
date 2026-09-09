@@ -176,26 +176,52 @@ export async function optimise(
 }
 
 /**
- * A tier deal is bought by the head, not by the dirham: the client bought three micro and
+ * A tier deal is bought by the place, not by the dirham: the client bought three micro and
  * two macro, so the job is to fill each band with its strongest creators. There is no
  * budget to fill and no prices on screen, so quality is the only objective.
+ *
+ * Places, not heads. This used to take the top `wanted` creators of each band, which
+ * assumed one creator costs one place — so a creator weighted at two macro filled a
+ * three-macro band with three of them and recommended six places' worth, and a creator
+ * whose cost spanned bands was counted in one band while silently spending in another.
+ * `costOf` is the server's resolved cost map, and a creator is only taken if what they
+ * spend still fits in every band they draw from.
  */
 export function optimiseByPlaces(
   pool: BrandInfluencer[],
   allowances: Record<string, number>,
-  tierOf: (c: BrandInfluencer) => string | undefined,
+  costOf: (c: BrandInfluencer) => Record<string, number>,
   strategy: Strategy,
 ): BrandInfluencer[] {
   const live = pool.filter(c => !c.declined_at)
   const score = scorer(strategy, live)
-  const out: BrandInfluencer[] = []
+
+  const left: Record<string, number> = {}
   for (const [tier, wanted] of Object.entries(allowances)) {
-    if (!wanted) continue
+    const n = Math.trunc(Number(wanted))
+    if (Number.isFinite(n) && n > 0) left[tier] = n
+  }
+
+  const out: BrandInfluencer[] = []
+  const taken = new Set<string>()
+
+  /* Band by band so the strongest of each is considered in turn, but the fit is checked
+     against every band the creator draws from — otherwise filling macro can overdraw
+     micro without micro's own pass ever seeing it. */
+  for (const tier of Object.keys(left)) {
     const band = live
-      .filter(c => tierOf(c) === tier)
+      .filter(c => !taken.has(c.id) && (costOf(c)[tier] ?? 0) > 0)
       .sort((a, b) => score(b) - score(a))
-      .slice(0, wanted)
-    out.push(...band)
+
+    for (const c of band) {
+      if (left[tier] <= 0) break
+      const cost = costOf(c)
+      const fits = Object.entries(cost).every(([b, n]) => (left[b] ?? 0) >= n)
+      if (!fits) continue
+      for (const [b, n] of Object.entries(cost)) left[b] = (left[b] ?? 0) - n
+      taken.add(c.id)
+      out.push(c)
+    }
   }
   return out
 }
