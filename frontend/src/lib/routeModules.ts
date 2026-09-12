@@ -22,6 +22,12 @@ export const ROUTE_MODULES: { screen: string; module: AdminModule | AdminModule[
   { screen: "staff", module: "users" },
   { screen: "users", module: "users" },
   { screen: "campaigns", module: "campaigns" },
+  // Content delivery lives under /work/campaigns/{id}/content, so it is matched by the
+  // `campaigns` screen above and this entry never fires. It is written down anyway because
+  // the module exists and a reader looking for "where is content gated" should find the
+  // answer here rather than concluding it is ungated. The real gate is the API: every
+  // content endpoint asks for the `content` module at view or write.
+  { screen: "content", module: ["content", "campaigns"] },
   // The people waiting on us across every campaign — the talent team's chase list.
   { screen: "chasing", module: ["campaigns", "influencers"] },
   // The team manual is deliberately absent: a screen with no entry here is open to everyone

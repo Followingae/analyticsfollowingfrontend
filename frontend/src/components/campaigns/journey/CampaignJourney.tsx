@@ -648,7 +648,16 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
                 </div>
               )}
 
-              <Button asChild variant="outline" className="mt-4 w-full rounded-xl">
+              {/* Content leads, analytics follows. For most of a campaign's life there is
+                  nothing to measure yet but there is plenty to approve, and a client sent to
+                  a page of empty charts reads it as a campaign that is not happening. */}
+              <Button asChild className="mt-4 w-full rounded-xl">
+                <Link href={`/campaigns/${campaign.id}/content`}>
+                  <Eye className="mr-2 h-4 w-4" /> Review content
+                </Link>
+              </Button>
+
+              <Button asChild variant="outline" className="mt-2 w-full rounded-xl">
                 <Link href={`/campaigns/${campaign.id}/posts`}>
                   <BarChart3 className="mr-2 h-4 w-4" /> Full analytics
                 </Link>

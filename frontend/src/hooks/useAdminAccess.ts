@@ -19,6 +19,17 @@ import { fetchWithAuth } from "@/utils/apiInterceptor"
 export type AdminModule =
   | "dashboard" | "operations" | "clients" | "users"
   | "campaigns" | "proposals" | "influencers" | "fa" | "system" | "billing"
+  // Added with the levelled access model. The console had grown thirteen areas past the ten
+  // this union knew about, so a screen like Payables or Enrolments could only be gated
+  // through whichever older module happened to sit nearest it.
+  | "content" | "share" | "chasing" | "approvals" | "areas" | "coverage" | "goals"
+  | "reliability" | "enrolments" | "payables" | "finance" | "team" | "displays" | "staff"
+  | "notifications" | "whatsapp"
+
+/** What somebody may do in a module. Absence of a key means no access at all. */
+export type AccessLevel = "view" | "write" | "full"
+
+const LEVEL_RANK: Record<string, number> = { view: 1, write: 2, full: 3 }
 
 export const ADMIN_MODULES: { key: AdminModule; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
@@ -51,6 +62,10 @@ export function useAdminAccess() {
   // member a superadmin's sidebar for the moment before /auth/me answered — which is what
   // made the nav visibly change under them. Start with no access and widen once we know.
   const [modules, setModules] = useState<string[] | null>([])
+  // The same grant with a verb against each module. null = unrestricted. Starts EMPTY for
+  // the same reason `modules` does: before we know who this is, the answer to "can they?"
+  // is no, and guessing yes is what made the nav visibly change under people.
+  const [access, setAccess] = useState<Record<string, AccessLevel> | null>({})
   const [loading, setLoading] = useState(true)
 
   const [isStaff, setIsStaff] = useState(false)
@@ -65,7 +80,11 @@ export function useAdminAccess() {
         const r = u?.role ?? null
         setRole(r)
         if (r === "admin") {
-          setModules(Array.isArray(u?.admin_modules) ? u.admin_modules : [])
+          const mods = Array.isArray(u?.admin_modules) ? u.admin_modules : []
+          setModules(mods)
+          // A module-scoped admin whose grant has not been rewritten yet holds it at write —
+          // the same reading the server takes of the old flat column.
+          setAccess(Object.fromEntries(mods.map((m: string) => [m, "write" as AccessLevel])))
         } else if (u?.staff_role) {
           setIsStaff(true)
           setStaffRole(u.staff_role)
@@ -82,6 +101,7 @@ export function useAdminAccess() {
             (Array.isArray(u?.admin_modules) && u.admin_modules.length ? u.admin_modules
               : STAFF_ROLE_DEFAULTS[u.staff_role] ?? []) as AdminModule[]
           setModules(fallback)
+          setAccess(Object.fromEntries(fallback.map((m) => [m, "write" as AccessLevel])))
           setLoading(false)
 
           // Refine in the background. /staff/me is authoritative when it answers — it knows
@@ -98,11 +118,17 @@ export function useAdminAccess() {
             // Array => scoped; null => full-access staff; anything else => keep the fallback.
             if (Array.isArray(mods) && mods.length) setModules(mods)
             else if (mods === null) setModules(null)
+            // Levels, when the server knows them. Falling back to the key list at `write`
+            // keeps a mid-deploy response that predates this field from locking anybody out.
+            const acc = me?.data?.access
+            if (acc === null) setAccess(null)
+            else if (acc && typeof acc === "object") setAccess(acc)
           } catch {
             /* keep the fallback — it is already correct for this role */
           }
         } else {
           setModules(null)
+          setAccess(null)
         }
       })
       .catch(() => {})
@@ -118,6 +144,16 @@ export function useAdminAccess() {
   // While we do not yet know who this is, the answer to "can they?" is no. Callers that
   // want to avoid a flash of empty nav should render on `loading` instead of guessing.
   const can = (m: AdminModule) => !loading && (isSuperAdmin || modules === null || modules.includes(m))
+
+  /** The level this person holds on a module, or null for no access. */
+  const levelOf = (m: AdminModule): AccessLevel | null => {
+    if (loading) return null
+    if (isSuperAdmin || access === null) return "full"
+    return (access?.[m] as AccessLevel) ?? null
+  }
+  /** Whether they may do at least this much here. Use for buttons, `can()` for screens. */
+  const canDo = (m: AdminModule, level: AccessLevel = "view") =>
+    (LEVEL_RANK[levelOf(m) ?? ""] ?? 0) >= LEVEL_RANK[level]
   // Bulk extraction — spreadsheets, CSV, client share links — is leadership-only. A file
   // cannot enforce field visibility once it has been emailed, so the team works on screen
   // and shares with clients through a proposal instead. Mirrors app/core/field_policy.py;
@@ -128,6 +164,7 @@ export function useAdminAccess() {
   const canSeeCost = canExport || staffRole === "talent_manager"
   const canSeeMargin = canExport
 
-  return { role, staffRole, modules, isSuperAdmin, isStaff, isFullAccessStaff, canDestroy,
-           canExport, canSeeSell, canSeeCost, canSeeMargin, can, loading }
+  return { role, staffRole, modules, access, isSuperAdmin, isStaff, isFullAccessStaff,
+           canDestroy, canExport, canSeeSell, canSeeCost, canSeeMargin,
+           can, canDo, levelOf, loading }
 }

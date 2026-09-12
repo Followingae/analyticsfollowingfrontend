@@ -236,13 +236,24 @@ export default function CampaignTimelinePage() {
                   </div>
                   <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{c.name}</h1>
                 </div>
-                <Button
-                  className="rounded-full bg-neutral-900 px-5 text-white hover:bg-neutral-800
-                             dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-                  onClick={() => router.push(`/work/campaigns/${campaignId}/ladder`)}
-                >
-                  Delivery board
-                </Button>
+                <div className="flex shrink-0 items-center gap-2">
+                  {/* Content sits beside the delivery board because that is the pair a
+                      campaign is actually run from: what is owed, and what has arrived. */}
+                  <Button
+                    variant="outline"
+                    className="rounded-full px-5"
+                    onClick={() => router.push(`/work/campaigns/${campaignId}/content`)}
+                  >
+                    Content
+                  </Button>
+                  <Button
+                    className="rounded-full bg-neutral-900 px-5 text-white hover:bg-neutral-800
+                               dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                    onClick={() => router.push(`/work/campaigns/${campaignId}/ladder`)}
+                  >
+                    Delivery board
+                  </Button>
+                </div>
               </div>
             </div>
 

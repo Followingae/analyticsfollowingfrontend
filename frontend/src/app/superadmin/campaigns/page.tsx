@@ -28,6 +28,9 @@ import { Search, Plus, Activity, CalendarClock, Megaphone } from "lucide-react"
 import { toast } from "sonner"
 import { tokenManager } from "@/utils/tokenManager"
 import { Empty, Panel, Row, Stat, StatGrid, type Tone } from "@/components/console/primitives"
+// Frame.io sends a superadmin back HERE after signing in, so the whole round trip begins
+// and ends inside the campaigns module. There is no integrations page to send anybody to.
+import { FrameioCallback } from "@/components/content/FrameioCallback"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.following.ae"
 
@@ -173,6 +176,7 @@ export default function SuperadminCampaignsPage() {
   return (
     <SuperadminLayout>
       <div className="space-y-ds-5">
+        <FrameioCallback />
         <CampaignsHubHeader
           action={
             <Button onClick={() => router.push("/superadmin/campaigns/create")}>

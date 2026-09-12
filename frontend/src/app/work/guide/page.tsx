@@ -115,6 +115,15 @@ const SECTIONS: Section[] = [
         also: ['timeline', 'delivery'],
       },
       {
+        title: 'Content', href: '/work/campaigns', icon: Megaphone,
+        what: 'Every creator’s delivered content on a campaign, and whether the client has approved it.',
+        why: 'Reached from a campaign, not from the sidebar, because content only exists in the context of one. '
+           + 'The client watches and approves it inside the platform, so “have they seen it yet” is answerable '
+           + 'from a screen rather than from somebody’s inbox. Content reaches a client only when somebody presses '
+           + 'Send, so a folder half-way through an upload is never put in front of them.',
+        also: ['frame.io', 'frameio', 'approve', 'revisions', 'delivery', 'video'],
+      },
+      {
         title: 'Creators to chase', href: '/work/chasing', icon: ClipboardCheck,
         what: 'Who is late, who is due, and who has gone quiet.',
         why: 'Ordered by how overdue rather than by campaign, because the thing you do next is a phone call, not a review.',

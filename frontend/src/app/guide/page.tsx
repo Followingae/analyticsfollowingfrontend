@@ -77,6 +77,15 @@ const SCREENS: Entry[] = [
     also: ['live', 'delivery', 'content'],
   },
   {
+    title: 'Content', href: '/campaigns', icon: Megaphone,
+    what: 'Everything your creators have delivered, on the campaign it belongs to. '
+        + 'Watch it here, then approve it or say what needs changing.',
+    why: 'You never have to leave the platform or learn another tool. What you approve is '
+       + 'kept exactly as it was on the day you approved it, so if a file changes afterwards '
+       + 'we tell you rather than quietly swapping it.',
+    also: ['approve', 'review', 'revisions', 'video', 'frame.io', 'delivered'],
+  },
+  {
     title: 'Briefs', href: '/run', icon: Sparkles,
     what: 'Post a brief and let creators come to you, with how many it reached and how many replied.',
     also: ['post a brief', 'inbound', 'applications'],

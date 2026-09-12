@@ -94,6 +94,14 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Campaigns',
     hint: 'Live work and where each creator has got to',
   },
+  // Reached from a campaign rather than the sidebar, but it is a destination: notifications
+  // and the command palette both need a name for it, and a name that only exists in a button
+  // is how the same screen ends up called three things.
+  '/work/campaigns/content': {
+    short: 'Content',
+    full: 'Campaign content',
+    hint: 'What creators have delivered, and what the client has approved',
+  },
   '/work/creators': {
     short: 'Creators',
     full: 'Creators',
