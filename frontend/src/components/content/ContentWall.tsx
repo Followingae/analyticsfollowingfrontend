@@ -52,15 +52,25 @@ const TONE: Record<string, string> = {
   awaited: "text-muted-foreground",
 }
 
-/** The stage a creator is at, said in words a client would use. */
+/**
+ * The stage a creator is at, said in words a client would use.
+ *
+ * These are the NINE values `campaign_creators.stage` actually permits, read from its check
+ * constraint. The first version of this map was written from memory and invented five stages
+ * that do not exist (`guide_sent`, `product_ready`, `dispatched`, `received`, `content`),
+ * so every real creator fell through the lookup and a client saw the raw code: a brand
+ * looking at this screen was being told a creator was at "rate_agreed".
+ */
 const STAGE_COPY: Record<string, string> = {
+  enrolled: "Booked",
+  rate_agreed: "Booked",
   contracted: "Agreement signed",
-  guide_sent: "Brief sent",
-  product_ready: "Product ready",
-  dispatched: "Product sent",
-  received: "Product received",
-  content: "Filming",
+  briefed: "Brief sent",
+  content_in: "Content delivered",
+  content_approved: "Approved",
   posted: "Posted",
+  paid: "Complete",
+  dropped: "No longer on this campaign",
 }
 
 function initials(name?: string | null, username?: string | null) {
@@ -238,9 +248,11 @@ function CreatorCard({
       ) : (
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px]
                         text-muted-foreground">
+          {/* An unmapped stage is a database code, not a sentence, so it is not shown at
+              all. A missing line reads as "we have not said"; "rate_agreed" reads as a bug. */}
           <span className="inline-flex items-center gap-1.5">
             <Clock className="h-3.5 w-3.5" />
-            {group.stage ? (STAGE_COPY[group.stage] ?? group.stage) : "Not started"}
+            {(group.stage && STAGE_COPY[group.stage]) || "Not started"}
           </span>
           {due && (
             <span className={cn(overdue && "font-medium text-rose-700 dark:text-rose-400")}>
