@@ -82,7 +82,8 @@ const SCREENS: Entry[] = [
         + 'Watch it here, then approve it or say what needs changing.',
     why: 'You never have to leave the platform or learn another tool. What you approve is '
        + 'kept exactly as it was on the day you approved it, so if a file changes afterwards '
-       + 'we tell you rather than quietly swapping it.',
+       + 'we tell you rather than quietly swapping it. We email you once when there is '
+       + 'something new waiting, listing everything that is waiting, never one email per file.',
     also: ['approve', 'review', 'revisions', 'video', 'frame.io', 'delivered'],
   },
   {

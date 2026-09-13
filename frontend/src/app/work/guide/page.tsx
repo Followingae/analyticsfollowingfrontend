@@ -120,8 +120,10 @@ const SECTIONS: Section[] = [
         why: 'Reached from a campaign, not from the sidebar, because content only exists in the context of one. '
            + 'The client watches and approves it inside the platform, so “have they seen it yet” is answerable '
            + 'from a screen rather than from somebody’s inbox. Content reaches a client only when somebody presses '
-           + 'Send, so a folder half-way through an upload is never put in front of them.',
-        also: ['frame.io', 'frameio', 'approve', 'revisions', 'delivery', 'video'],
+           + 'Send, so a folder half-way through an upload is never put in front of them. '
+           + 'They are then emailed once, about everything waiting on them, about half an hour after the last thing '
+           + 'you send. You get one digest per campaign each morning, and nothing on a day when nothing moved.',
+        also: ['frame.io', 'frameio', 'approve', 'revisions', 'delivery', 'video', 'emails'],
       },
       {
         title: 'Creators to chase', href: '/work/chasing', icon: ClipboardCheck,

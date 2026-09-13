@@ -211,7 +211,25 @@ export const contentAdminApi = {
 }
 
 // ── Brand ────────────────────────────────────────────────────────────────────────────────
+/** Content across every campaign a brand can open, for their home screen. */
+export interface ContentSummary {
+  awaiting_you: number
+  approved: number
+  changes_requested: number
+  creators_working: number
+  live_campaigns: number
+  /** The campaign with the most waiting, and the creators waiting on it. Null when nothing
+   *  is waiting anywhere, which is the signal to render no panel at all. */
+  focus: {
+    campaign_id: string
+    campaign_name: string
+    waiting: number
+    creators: CreatorContentGroup[]
+  } | null
+}
+
 export const contentBrandApi = {
+  summary: () => call<ContentSummary>('/api/v1/campaigns/content/summary'),
   wall: (campaignId: string) => call<ContentWall>(`/api/v1/campaigns/${campaignId}/content`),
   playback: (campaignId: string, itemId: string) =>
     call<Playback>(`/api/v1/campaigns/${campaignId}/content/${itemId}/playback`),

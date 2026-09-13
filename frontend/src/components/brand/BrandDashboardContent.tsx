@@ -19,6 +19,16 @@
  * to render a confident "0" — a brand with sixty unlocked creators would be told they had
  * none. The hook has always exposed `profilesError` and `campaignsError`; this page now
  * reads them and renders an en dash with a line saying it did not load.
+ *
+ * WHAT THE PAGE IS ABOUT NOW, which is the larger change. It was organised around profile
+ * unlocks: the first figure, both gauges and the headline sentence were all about a thing
+ * the client BOUGHT rather than a thing they have to DO. Meanwhile the one thing a brand
+ * actually owes us an answer on, their creators' content, was not on this page at all.
+ *
+ * So content leads. The figures answer "is anything waiting on me", the panel underneath is
+ * the queue itself with the approve buttons in it, and a client can clear it without opening
+ * anything. Unlocks and credits are still here, still exact, still metered, and have moved
+ * to Usage this cycle where a balance belongs. Nothing was removed.
  */
 
 import { useMemo, useEffect, useState, useRef, useCallback } from "react"
@@ -32,12 +42,14 @@ import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2
 import { BrandQuotaWidget } from "@/components/brand/BrandQuotaWidget"
 import { CampaignBars } from "@/components/brand/CampaignBars"
 import { ShareCenterCard } from "@/components/brand/ShareCenterCard"
+import { ContentAwaitingPanel } from "@/components/brand/ContentAwaitingPanel"
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
 import { Button } from "@/components/ui/button"
 import { Balloons } from "@/components/ui/balloons"
 import { UserAvatar } from "@/components/UserAvatar"
 import { SmartDiscovery } from "@/components/smart-discovery"
 import { brandPoolApi } from "@/services/faAdminApi"
+import { contentBrandApi, type ContentSummary } from "@/services/contentDeliveryApi"
 import {
   Page,
 
@@ -127,6 +139,21 @@ export function BrandDashboardContent() {
     poolFetchedRef.current = true
     fetchPool()
   }, [fetchPool])
+
+  // Content across every campaign this brand can open, plus the queue on whichever campaign
+  // has the most waiting. One request, because "is anything waiting on me anywhere" is a
+  // question about the account rather than about a campaign.
+  //
+  // A failure leaves this null and the section simply does not render. It must never be
+  // drawn as "nothing waiting": telling a client they are up to date when we could not ask
+  // is the same class of lie as printing a zero for a failed count.
+  const [content, setContent] = useState<ContentSummary | null>(null)
+  const loadContent = useCallback(() => {
+    contentBrandApi.summary()
+      .then(setContent)
+      .catch(() => setContent(null))
+  }, [])
+  useEffect(() => { loadContent() }, [loadContent])
 
   const userDisplayData = useMemo(() => {
     if (!user || isLoading) return null
@@ -241,27 +268,34 @@ export function BrandDashboardContent() {
             {greeting}{who ? <>, {who}</> : null}
           </h1>
           <p className="max-w-[65ch] text-ds-body text-muted-foreground">
-            {tierValue
-              ? `You are on the ${tierValue} plan. Here is where your creators, credits and campaigns stand today.`
-              : 'Here is where your creators, credits and campaigns stand today.'}
+            {content?.awaiting_you
+              ? `You have ${content.awaiting_you} piece${content.awaiting_you === 1 ? '' : 's'} of content to look at.`
+              : 'Here is where your campaigns and creators stand today.'}
           </p>
         </div>
       </header>
 
-      {/* Three figures, separated by 40px of space instead of by six borders. Each one
-          carries its own loading and error state; none of them can print a zero it does
-          not have. */}
-      <StatBand cols={3}>
+      {/* Four figures, and the order is the argument. "Waiting on you" is first because it
+          is the only one of the four that is a request; the rest are status. Each carries
+          its own loading and error state, so none can print a zero it does not have. */}
+      <StatBand cols={4}>
         <Stat
-          label="Creators unlocked, all time"
-          value={unlockedProfilesCount}
-          hint="Everyone your team has ever opened"
-          href="/creators"
-          loading={profilesLoading}
-          error={!!profilesError}
+          label="Content waiting on you"
+          value={content ? content.awaiting_you : UNKNOWN}
+          hint={content?.awaiting_you ? 'Watch it, then approve it' : 'Nothing to review'}
+          tone={content && content.awaiting_you > 0 ? 'warn' : 'neutral'}
+          href={content?.focus ? `/campaigns/${content.focus.campaign_id}/content` : '/campaigns'}
+          loading={content === null}
         />
         <Stat
-          label="Active campaigns"
+          label="Creators working"
+          value={content ? content.creators_working : UNKNOWN}
+          hint="Filming or posting for you"
+          href="/campaigns"
+          loading={content === null}
+        />
+        <Stat
+          label="Live campaigns"
           value={activeCampaignsCount}
           hint="Running right now"
           href="/campaigns"
@@ -269,21 +303,28 @@ export function BrandDashboardContent() {
           error={!!campaignsError}
         />
         <Stat
-          label="Your plan"
-          value={tierValue ?? UNKNOWN}
-          hint="Seats, unlocks and credits"
-          href="/billing"
-          loading={userStoreLoading || teamsLoading}
+          label="Content approved"
+          value={content ? content.approved : UNKNOWN}
+          hint="Signed off and locked"
+          tone={content && content.approved > 0 ? 'good' : 'neutral'}
+          href="/campaigns"
+          loading={content === null}
         />
       </StatBand>
+
+      {/* The queue itself, with the buttons in it. Renders nothing when nothing is waiting,
+          so a client who is up to date gets a shorter page rather than an empty box. */}
+      <ContentAwaitingPanel focus={content?.focus ?? null} onChanged={loadContent} />
 
       {/* The one thing we want them to do next, at the size that says so. A real object,
           so it keeps its card. */}
       <SmartDiscovery onDiscover={() => router.push('/discover')} className="h-[280px]" />
 
-      {/* Reference data, deliberately below the action and behind its own section label.
-          The gauges are the only figures on this page that keep a surface, because each is
-          a drawn dial rather than a number. */}
+      {/* Unlocks and credits. Still exact, still metered, and NOT removed: they have moved
+          from being the organising idea of this page to being a balance, which is what they
+          are. The gauges keep a surface because each is a drawn dial rather than a number,
+          and the all-time unlock count joins them because it belongs with them rather than
+          at the top of the page. */}
       <section className="flex flex-col gap-ds-3">
         <GroupLabel>Usage this cycle</GroupLabel>
         <div className="grid grid-cols-1 gap-ds-3 lg:grid-cols-2">
@@ -294,6 +335,23 @@ export function BrandDashboardContent() {
             <ChartRemainingCreditsV2 />
           </div>
         </div>
+        <StatBand cols={2}>
+          <Stat
+            label="Creators unlocked, all time"
+            value={unlockedProfilesCount}
+            hint="Everyone your team has ever opened"
+            href="/creators"
+            loading={profilesLoading}
+            error={!!profilesError}
+          />
+          <Stat
+            label="Your plan"
+            value={tierValue ?? UNKNOWN}
+            hint="Seats, unlocks and credits"
+            href="/billing"
+            loading={userStoreLoading || teamsLoading}
+          />
+        </StatBand>
       </section>
 
       {/* Companion detail. Every one of these renders nothing at all when it has nothing
