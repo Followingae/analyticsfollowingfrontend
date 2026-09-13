@@ -233,7 +233,7 @@ export function StaffAccessDialog({ staffId, open, onOpenChange, onSaved }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-hidden p-0">
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-hidden p-0 sm:max-w-4xl">
         <DialogHeader className="border-b border-black/[0.06] px-6 py-5 dark:border-white/[0.07]">
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4" /> Access
@@ -317,8 +317,9 @@ export function StaffAccessDialog({ staffId, open, onOpenChange, onSaved }: {
                     const inherited = !explicit && !!eff;
                     return (
                       <div key={m.key}
-                           className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-3">
-                        <div className="min-w-0 max-w-[62%] space-y-0.5">
+                           className="grid grid-cols-1 items-start gap-x-6 gap-y-2 py-3
+                                      sm:grid-cols-[minmax(0,1fr)_auto]">
+                        <div className="min-w-0 space-y-0.5">
                           <p className="flex flex-wrap items-center gap-1.5 text-[13.5px] font-medium">
                             {m.label}
                             {m.sensitive && (
@@ -349,12 +350,14 @@ export function StaffAccessDialog({ staffId, open, onOpenChange, onSaved }: {
                             </p>
                           )}
                         </div>
-                        <LevelPicker
-                          value={eff}
-                          canDelete={m.can_delete}
-                          disabled={readOnly}
-                          onChange={(v) => setLevel(m.key, v)}
-                        />
+                        <div className="justify-self-start sm:justify-self-end">
+                          <LevelPicker
+                            value={eff}
+                            canDelete={m.can_delete}
+                            disabled={readOnly}
+                            onChange={(v) => setLevel(m.key, v)}
+                          />
+                        </div>
                       </div>
                     );
                   })}
