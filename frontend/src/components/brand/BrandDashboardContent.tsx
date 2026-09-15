@@ -1,90 +1,74 @@
 'use client'
 
 /**
- * Home, for a brand.
+ * The brand's home screen.
  *
- * Density tier: WORKING. 40px between subjects, 24px inside a panel, and no box drawn
- * around anything that is not a real object.
+ * WHAT WAS WRONG WITH THE OLD ONE. It was seven sections stacked vertically at identical
+ * weight: a greeting, four figures, a queue, a discovery card, two gauges, four more
+ * figures, then panels. Nothing was larger than anything else, so nothing led, and a client
+ * arriving with three pieces of content to approve had to find that fact among eleven other
+ * numbers. The figures were bare text on the page background, which is why it read as flat.
  *
- * What changed and why. This page used to open with eight cards: a welcome card, three
- * metric cards, two gauge cards and two companion cards, each with its own border, its own
- * shadow and its own padding. Sixteen edges sat between the first figure and the last, and
- * every one of them was drawn around something that was always the same kind of thing.
- * The greeting is now the page's own head, the three figures are a band separated by space,
- * and a card is kept only for the things that genuinely are objects: the discovery tile you
- * click, and the panels that hold lists.
+ * WHAT THIS IS INSTEAD. Two columns. The left is the work, and it opens with ONE card that
+ * carries whatever actually matters today. The right is the account: balances, usage and
+ * activity, parked where they cannot interrupt. Size encodes importance, which is the only
+ * reliable way to say "this first" without shouting.
  *
- * The honesty fix is the more important one. `unlockedProfilesCount` and
- * `activeCampaignsCount` are both `?? 0` inside the hook, so a 500 on either endpoint used
- * to render a confident "0" — a brand with sixty unlocked creators would be told they had
- * none. The hook has always exposed `profilesError` and `campaignsError`; this page now
- * reads them and renders an en dash with a line saying it did not load.
+ * THE HERO IS A STATE MACHINE, and it is the point of the rewrite. A brand who has just
+ * signed up, a brand with a proposal waiting and no campaigns, and a brand mid-campaign with
+ * content to approve are three different people with three different next actions. The old
+ * page showed all three the same eleven numbers, most of them zero. `heroFor` resolves ONE
+ * of them, in urgency order, and everything below it renders only when it has something to
+ * say.
  *
- * WHAT THE PAGE IS ABOUT NOW, which is the larger change. It was organised around profile
- * unlocks: the first figure, both gauges and the headline sentence were all about a thing
- * the client BOUGHT rather than a thing they have to DO. Meanwhile the one thing a brand
- * actually owes us an answer on, their creators' content, was not on this page at all.
- *
- * So content leads. The figures answer "is anything waiting on me", the panel underneath is
- * the queue itself with the approve buttons in it, and a client can clear it without opening
- * anything. Unlocks and credits are still here, still exact, still metered, and have moved
- * to Usage this cycle where a balance belongs. Nothing was removed.
+ * Built from shadcn primitives directly - Card, Button, Badge, Progress, Separator, Alert -
+ * with no local wrappers, and coloured only from the theme's semantic tokens. No raw colour
+ * values live in this file.
  */
 
-import { useMemo, useEffect, useState, useRef, useCallback } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { useDashboardData } from "@/hooks/useDashboardData"
-import { useUserStore, useSubscriptionData, useTeamData } from "@/stores/userStore"
-import { useNotifications } from "@/contexts/NotificationContext"
-import { ChartProfileAnalysisV2 } from "@/components/chart-profile-analysis-v2"
-import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2"
-import { BrandQuotaWidget } from "@/components/brand/BrandQuotaWidget"
-import { CampaignBars } from "@/components/brand/CampaignBars"
-import { ShareCenterCard } from "@/components/brand/ShareCenterCard"
-import { ContentAwaitingPanel } from "@/components/brand/ContentAwaitingPanel"
-import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
-import { Button } from "@/components/ui/button"
-import { Balloons } from "@/components/ui/balloons"
-import { UserAvatar } from "@/components/UserAvatar"
-import { SmartDiscovery } from "@/components/smart-discovery"
-import { brandPoolApi } from "@/services/faAdminApi"
-import { contentBrandApi, type ContentSummary } from "@/services/contentDeliveryApi"
-import {
-  Page,
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
-  StatBand,
-  Stat,
-  Panel,
-  ListRow,
-  GroupLabel,
-  Money,
-  UNKNOWN,
-} from "@/components/brand/primitives"
+import { useDashboardData } from '@/hooks/useDashboardData'
+import { useUserStore, useSubscriptionData, useTeamData } from '@/stores/userStore'
+import { useNotifications } from '@/contexts/NotificationContext'
+import { API_CONFIG, ENDPOINTS, getAuthHeaders } from '@/config/api'
+import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { brandPoolApi } from '@/services/faAdminApi'
+import { contentBrandApi, type ContentSummary } from '@/services/contentDeliveryApi'
+import { brandProposalViewApi } from '@/services/adminProposalMasterApi'
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Balloons } from '@/components/ui/balloons'
+import { UserAvatar } from '@/components/UserAvatar'
+import { ContentAwaitingPanel } from '@/components/brand/ContentAwaitingPanel'
+import { DashboardSkeleton } from '@/components/skeletons/DashboardSkeleton'
+import { Money } from '@/components/brand/primitives'
+import { cn } from '@/lib/utils'
+
 import {
-  AlertTriangle,
-  Wallet,
-  ArrowRight,
-  Bell,
-  CreditCard,
-  BarChart3,
-  FileText,
-  Link2,
-  UserPlus,
-} from "lucide-react"
+  AlertTriangle, ArrowRight, BarChart3, Bell, Compass, CreditCard, FileText,
+  Link2, Megaphone, PlayCircle, Sparkles, UserPlus, Users, Wallet,
+} from 'lucide-react'
+
+/* Statuses at which a proposal is the client's move rather than ours. */
+const PROPOSAL_WAITING = ['sent', 'in_review', 'more_requested']
+
+type HeroKind = 'content' | 'proposals' | 'running' | 'unlocked' | 'welcome'
 
 export function BrandDashboardContent() {
   const router = useRouter()
 
   const {
-    teamsOverview,
-    teamsLoading,
-    unlockedProfilesCount,
-    profilesLoading,
-    profilesError,
-    activeCampaignsCount,
-    campaignsLoading,
-    campaignsError,
+    unlockedProfilesCount, profilesLoading,
+    activeCampaignsCount, campaigns, campaignsLoading,
     isLoading,
   } = useDashboardData()
 
@@ -93,390 +77,565 @@ export function BrandDashboardContent() {
   const { isLoading: userStoreLoading, user } = useUserStore()
   const { notifications, markAsRead } = useNotifications()
 
-  // Balloons celebration for credit events
   const balloonsRef = useRef<{ launchAnimation: () => void }>(null)
-  const [celebrationDone, setCelebrationDone] = useState(false)
 
+  /* ── the account's money and usage, for the rail ──────────────────────────── */
+  const [credits, setCredits] = useState<{ balance: number; allowance: number } | null>(null)
   useEffect(() => {
-    if (celebrationDone || !notifications.length) return
-    const creditNotifs = notifications.filter(
-      (n) => !n.is_read && (n.notification_type === 'credit_purchase')
-    )
-    if (creditNotifs.length > 0) {
-      // Delay slightly so the page has rendered
-      const timer = setTimeout(() => {
-        balloonsRef.current?.launchAnimation()
-        setCelebrationDone(true)
-      }, 800)
-      return () => clearTimeout(timer)
-    }
-  }, [notifications, celebrationDone])
+    let dead = false
+    fetchWithAuth(`${API_CONFIG.BASE_URL}${ENDPOINTS.credits.walletSummary}`, {
+      headers: getAuthHeaders(),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (dead || !j) return
+        // Same unwrap the credits gauge has always used: the endpoint answers wrapped on
+        // some paths and direct on others, and guessing one shape shows a zero balance to a
+        // client who has thousands.
+        const w = j?.success ? j.data : j
+        if (!w) return
+        setCredits({
+          balance: Number(w?.current_balance ?? 0),
+          allowance: Number(w?.monthly_allowance ?? w?.total_plan_credits ?? 0),
+        })
+      })
+      .catch(() => { /* a failed balance shows nothing, never a zero */ })
+    return () => { dead = true }
+  }, [])
 
-  // Pool balance for low-balance warning. A fetch FAILURE is a distinct error state
-  // (with retry) — never silently conflated with a zero or empty pool.
-  const [poolBalance, setPoolBalance] = useState<{ available_aed: number; total_funded_aed: number } | null>(null)
+  /* ── the cashback pool, which can stop campaigns paying out ───────────────── */
+  const [pool, setPool] = useState<{ available_aed: number; total_funded_aed: number } | null>(null)
   const [poolError, setPoolError] = useState(false)
-  const poolFetchedRef = useRef(false)
+  const poolOnce = useRef(false)
   const fetchPool = useCallback(() => {
     setPoolError(false)
     brandPoolApi.balance().then((res: any) => {
       if (res?.success && res.data) {
-        setPoolBalance({
-          available_aed: res.data.available_aed ?? (res.data.available_cents ? res.data.available_cents / 100 : 0),
-          total_funded_aed: res.data.total_funded_aed ?? (res.data.total_funded_cents ? res.data.total_funded_cents / 100 : 0),
+        setPool({
+          available_aed: res.data.available_aed ?? (res.data.available_cents ?? 0) / 100,
+          total_funded_aed: res.data.total_funded_aed ?? (res.data.total_funded_cents ?? 0) / 100,
         })
       }
-      // success:false with no data = brand simply has no funded pool (genuine
-      // zero-data) → leave poolBalance null, show nothing. Only exceptions below
-      // are treated as an error.
-    }).catch(() => {
-      setPoolBalance(null)
-      setPoolError(true)
-    })
+    }).catch(() => { setPool(null); setPoolError(true) })
   }, [])
   useEffect(() => {
-    if (poolFetchedRef.current) return
-    poolFetchedRef.current = true
+    if (poolOnce.current) return
+    poolOnce.current = true
     fetchPool()
   }, [fetchPool])
 
-  // Content across every campaign this brand can open, plus the queue on whichever campaign
-  // has the most waiting. One request, because "is anything waiting on me anywhere" is a
-  // question about the account rather than about a campaign.
-  //
-  // A failure leaves this null and the section simply does not render. It must never be
-  // drawn as "nothing waiting": telling a client they are up to date when we could not ask
-  // is the same class of lie as printing a zero for a failed count.
+  /* ── content waiting on them, anywhere ────────────────────────────────────── */
   const [content, setContent] = useState<ContentSummary | null>(null)
   const loadContent = useCallback(() => {
-    contentBrandApi.summary()
-      .then(setContent)
-      .catch(() => setContent(null))
+    contentBrandApi.summary().then(setContent).catch(() => setContent(null))
   }, [])
   useEffect(() => { loadContent() }, [loadContent])
 
-  const userDisplayData = useMemo(() => {
-    if (!user || isLoading) return null
+  /* ── proposals, which is how a brand with no campaigns yet still has work ─── */
+  const [proposals, setProposals] = useState<any[] | null>(null)
+  useEffect(() => {
+    let dead = false
+    brandProposalViewApi.listProposals({ limit: 10 })
+      .then((r) => { if (!dead) setProposals(r?.proposals ?? []) })
+      .catch(() => { if (!dead) setProposals(null) })
+    return () => { dead = true }
+  }, [])
 
-    const getDisplayName = () => {
-      if (user.first_name && user.last_name) return `${user.first_name} ${user.last_name}`
-      if (user.full_name) return user.full_name
-      if (user.first_name) return user.first_name
-      if (user.email) return user.email.split('@')[0]
-      return null
+  const waitingProposals = useMemo(
+    () => (proposals ?? []).filter((p) => PROPOSAL_WAITING.includes(
+      String(p?.proposal?.status ?? p?.status ?? ''))),
+    [proposals])
+
+  const liveCampaigns = useMemo(
+    () => (campaigns ?? []).filter((c: any) => c?.status === 'active'),
+    [campaigns])
+
+  const displayName = useMemo(() => {
+    if (!user) return null
+    if (user.company) return user.company
+    if (user.first_name && user.last_name) return `${user.first_name} ${user.last_name}`
+    return user.full_name || user.first_name || user.email?.split('@')[0] || null
+  }, [user])
+
+  const tier = useMemo(() => {
+    if (userStoreLoading) return null
+    const t = team?.subscription_tier || subscription?.tier
+    const map: Record<string, string> = {
+      free: 'Free', standard: 'Standard', premium: 'Premium', enterprise: 'Enterprise',
     }
+    return t ? (map[t] || t) : 'Free'
+  }, [userStoreLoading, team, subscription])
 
-    return {
-      displayName: getDisplayName(),
-      companyName: user.company || null,
-    }
-  }, [user, isLoading])
-
-  // Derive subscription tier display. `null` means we do not know yet, which is a
-  // different thing from Free — a brand on Premium must never be shown "Free" because a
-  // request was still in flight.
-  const tierValue = useMemo(() => {
-    if (userStoreLoading || teamsLoading) return null
-
-    const tier = team?.subscription_tier
-      || subscription?.tier
-      || teamsOverview?.team_info?.subscription_tier
-
-    const tierMap: Record<string, string> = {
-      free: 'Free',
-      standard: 'Standard',
-      premium: 'Premium',
-      enterprise: 'Enterprise',
-    }
-
-    return tier ? (tierMap[tier] || tier) : 'Free'
-  }, [userStoreLoading, teamsLoading, team, subscription, teamsOverview])
-
-  if (isLoading) {
-    return <DashboardSkeleton />
-  }
+  /* THE decision this page exists to make. Urgency order, and exactly one wins:
+     something of theirs is blocked on us > something of ours is blocked on them >
+     it is running > they have creators but no campaign > they are brand new. */
+  const hero: HeroKind = useMemo(() => {
+    if (content && content.awaiting_you > 0) return 'content'
+    if (waitingProposals.length > 0) return 'proposals'
+    if (activeCampaignsCount > 0) return 'running'
+    if (unlockedProfilesCount > 0) return 'unlocked'
+    return 'welcome'
+  }, [content, waitingProposals.length, activeCampaignsCount, unlockedProfilesCount])
 
   const greeting = (() => {
     const h = new Date().getHours()
-    if (h < 12) return 'Good morning'
-    if (h < 18) return 'Good afternoon'
-    return 'Good evening'
+    return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
   })()
 
-  const who = userDisplayData?.companyName || userDisplayData?.displayName
+  if (isLoading) return <DashboardSkeleton />
+
+  const poolPct = pool && pool.total_funded_aed > 0
+    ? (pool.available_aed / pool.total_funded_aed) * 100
+    : null
 
   return (
-    <Page tier="working">
+    <div className="flex w-full flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
 
-      {/* Anything genuinely wrong comes before the greeting, because a depleted pool stops
-          campaigns paying out and nothing else on this page matters until it is fixed. */}
-      {poolBalance && poolBalance.total_funded_aed > 0 && (() => {
-        const pct = (poolBalance.available_aed / poolBalance.total_funded_aed) * 100
-
-        if (poolBalance.available_aed <= 0) return (
-          <Alert
-            tone="bad"
-            icon={AlertTriangle}
-            title="Your cashback pool is empty"
-            body="Campaigns cannot pay cashback until it is topped up."
-            action={<PoolAction href="/cashback-pool/topup" label="Top up now" primary />}
-          />
-        )
-        if (pct < 5) return (
-          <Alert
-            tone="bad"
-            icon={AlertTriangle}
-            title={<>Cashback pool critically low, <Money amount={poolBalance.available_aed} /> left</>}
-            body="Campaigns may stop paying cashback within days."
-            action={<PoolAction href="/cashback-pool/topup" label="Top up" primary />}
-          />
-        )
-        if (pct < 20) return (
-          <Alert
-            tone="warn"
-            icon={Wallet}
-            title={<>Cashback pool running low, <Money amount={poolBalance.available_aed} /> left</>}
-            action={<PoolAction href="/cashback-pool/topup" label="Top up" />}
-          />
-        )
-        return null
-      })()}
-
-      {/* A failed balance fetch is its own state, in the quiet tone, so it can never be
-          read as "the pool is empty". */}
-      {poolError && !poolBalance && (
-        <Alert
-          tone="neutral"
-          icon={AlertTriangle}
-          title="We could not load your cashback pool balance"
-          body="This is a display problem. It does not mean your pool is empty."
-          action={<Button variant="outline" size="sm" onClick={fetchPool}>Try again</Button>}
-        />
+      {/* Anything genuinely broken comes before everything, because a drained pool stops
+          campaigns paying creators and nothing else on this page matters until it is fixed. */}
+      {pool && poolPct !== null && poolPct < 20 && (
+        <Alert variant={pool.available_aed <= 0 || poolPct < 5 ? 'destructive' : 'default'}>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>
+            {pool.available_aed <= 0
+              ? 'Your cashback pool is empty'
+              : <>Cashback pool running low, <Money amount={pool.available_aed} /> left</>}
+          </AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center gap-3">
+            <span>Campaigns cannot pay cashback once it runs out.</span>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/cashback-pool/topup">Top up<ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      {poolError && !pool && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>We could not load your cashback pool balance</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center gap-3">
+            <span>This is a display problem. It does not mean your pool is empty.</span>
+            <Button size="sm" variant="outline" onClick={fetchPool}>Try again</Button>
+          </AlertDescription>
+        </Alert>
       )}
 
-      {/* The greeting IS the page head. It used to be a card of its own, sitting beside
-          three more cards, which spent a border and a shadow on saying hello. */}
-      <header className="flex items-center gap-ds-3">
-        <UserAvatar
-          key={`dashboard-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
-          user={user || undefined}
-          size={56}
-          className="shrink-0"
-        />
-        <div className="flex min-w-0 flex-col gap-ds-1">
-          <h1 className="truncate text-ds-title text-foreground">
-            {greeting}{who ? <>, {who}</> : null}
-          </h1>
-          <p className="max-w-[65ch] text-ds-body text-muted-foreground">
-            {content?.awaiting_you
-              ? `You have ${content.awaiting_you} piece${content.awaiting_you === 1 ? '' : 's'} of content to look at.`
-              : 'Here is where your campaigns and creators stand today.'}
-          </p>
-        </div>
-      </header>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
 
-      {/* Four figures, and the order is the argument. "Waiting on you" is first because it
-          is the only one of the four that is a request; the rest are status. Each carries
-          its own loading and error state, so none can print a zero it does not have. */}
-      <StatBand cols={4}>
-        <Stat
-          label="Content waiting on you"
-          value={content ? content.awaiting_you : UNKNOWN}
-          hint={content?.awaiting_you ? 'Watch it, then approve it' : 'Nothing to review'}
-          tone={content && content.awaiting_you > 0 ? 'warn' : 'neutral'}
-          href={content?.focus ? `/campaigns/${content.focus.campaign_id}/content` : '/campaigns'}
-          loading={content === null}
-        />
-        <Stat
-          label="Creators working"
-          value={content ? content.creators_working : UNKNOWN}
-          hint="Filming or posting for you"
-          href="/campaigns"
-          loading={content === null}
-        />
-        <Stat
-          label="Live campaigns"
-          value={activeCampaignsCount}
-          hint="Running right now"
-          href="/campaigns"
-          loading={campaignsLoading}
-          error={!!campaignsError}
-        />
-        <Stat
-          label="Content approved"
-          value={content ? content.approved : UNKNOWN}
-          hint="Signed off and locked"
-          tone={content && content.approved > 0 ? 'good' : 'neutral'}
-          href="/campaigns"
-          loading={content === null}
-        />
-      </StatBand>
+        {/* ── the work ───────────────────────────────────────────────────────── */}
+        <main className="flex min-w-0 flex-col gap-6">
 
-      {/* The queue itself, with the buttons in it. Renders nothing when nothing is waiting,
-          so a client who is up to date gets a shorter page rather than an empty box. */}
-      <ContentAwaitingPanel focus={content?.focus ?? null} onChanged={loadContent} />
-
-      {/* The one thing we want them to do next, at the size that says so. A real object,
-          so it keeps its card. */}
-      <SmartDiscovery onDiscover={() => router.push('/discover')} className="h-[280px]" />
-
-      {/* Unlocks and credits. Still exact, still metered, and NOT removed: they have moved
-          from being the organising idea of this page to being a balance, which is what they
-          are. The gauges keep a surface because each is a drawn dial rather than a number,
-          and the all-time unlock count joins them because it belongs with them rather than
-          at the top of the page. */}
-      <section className="flex flex-col gap-ds-3">
-        <GroupLabel>Usage this cycle</GroupLabel>
-        <div className="grid grid-cols-1 gap-ds-3 lg:grid-cols-2">
-          <div aria-label="Profile unlocks remaining this billing cycle" className="h-[300px]">
-            <ChartProfileAnalysisV2 />
-          </div>
-          <div aria-label="Remaining credits this billing cycle" className="h-[300px]">
-            <ChartRemainingCreditsV2 />
-          </div>
-        </div>
-        <StatBand cols={2}>
-          <Stat
-            label="Creators unlocked, all time"
-            value={unlockedProfilesCount}
-            hint="Everyone your team has ever opened"
-            href="/creators"
-            loading={profilesLoading}
-            error={!!profilesError}
-          />
-          <Stat
-            label="Your plan"
-            value={tierValue ?? UNKNOWN}
-            hint="Seats, unlocks and credits"
-            href="/billing"
-            loading={userStoreLoading || teamsLoading}
-          />
-        </StatBand>
-      </section>
-
-      {/* Companion detail. Every one of these renders nothing at all when it has nothing
-          to say, so a brand with no campaigns and no shares sees a shorter page rather
-          than a wall of apologies. */}
-      <section className="grid grid-cols-1 gap-ds-3 lg:grid-cols-2">
-        <CampaignBars />
-        <ShareCenterCard />
-        <BrandQuotaWidget />
-
-        <Panel
-          title="Recent activity"
-          action={
-            <Link href="/notifications" className="text-ds-body-sm text-primary hover:underline">
-              See all
-            </Link>
-          }
-          flush
-        >
-          {notifications.length === 0 ? (
-            <p className="px-6 pb-ds-3 text-ds-body-sm text-muted-foreground">Nothing yet.</p>
-          ) : (
-            <div className="px-4">
-              {notifications.slice(0, 5).map((n) => {
-                const iconMap: Record<string, typeof Bell> = {
-                  credit_purchase: CreditCard,
-                  low_balance: AlertTriangle,
-                  analytics_completed: BarChart3,
-                  proposal_received: FileText,
-                  proposal_updated: FileText,
-                  share_received: Link2,
-                  team_invite: UserPlus,
-                }
-                const Icon = iconMap[n.notification_type] || Bell
-                const activate = () => {
-                  if (!n.is_read) markAsRead(n.id)
-                  if (n.action_url) router.push(n.action_url)
-                }
-                return (
-                  <ListRow
-                    key={n.id}
-                    onClick={activate}
-                    aria-label={`Notification: ${n.title}${n.is_read ? '' : ' (unread)'}`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className={`min-w-0 flex-1 truncate text-ds-body ${n.is_read ? 'text-muted-foreground' : 'font-medium'}`}>
-                      {n.title}
-                    </span>
-                    {!n.is_read && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
-                    <span className="shrink-0 text-ds-caption text-muted-foreground">
-                      {getTimeAgo(n.created_at)}
-                    </span>
-                  </ListRow>
-                )
-              })}
+          <header className="flex items-center gap-4">
+            <UserAvatar
+              key={`dash-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
+              user={user || undefined}
+              size={48}
+              className="shrink-0"
+            />
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-semibold tracking-tight">
+                {greeting}{displayName ? <>, {displayName}</> : null}
+              </h1>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {new Date().toLocaleDateString('en-GB',
+                  { weekday: 'long', day: 'numeric', month: 'long' })}
+              </p>
             </div>
+          </header>
+
+          <Hero
+            kind={hero}
+            content={content}
+            proposals={waitingProposals}
+            liveCount={activeCampaignsCount}
+            unlocked={unlockedProfilesCount}
+            onGo={(href) => router.push(href)}
+          />
+
+          {/* The queue itself. Renders nothing when nothing is waiting. */}
+          {content && content.awaiting_you > 0 && (
+            <ContentAwaitingPanel focus={content?.focus ?? null} onChanged={loadContent} />
           )}
-        </Panel>
-      </section>
+
+          {/* Proposals, whenever there are any waiting and they are not already the hero. */}
+          {hero !== 'proposals' && waitingProposals.length > 0 && (
+            <ProposalList proposals={waitingProposals} />
+          )}
+
+          {/* Campaigns, whenever any are running. */}
+          {liveCampaigns.length > 0 && (
+            <CampaignList campaigns={liveCampaigns} loading={campaignsLoading} />
+          )}
+
+          {/* The nudge, only for somebody with nothing else to do. */}
+          {(hero === 'unlocked' || hero === 'welcome') && <NextSteps unlocked={unlockedProfilesCount} />}
+        </main>
+
+        {/* ── the account ────────────────────────────────────────────────────── */}
+        <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-sm font-medium">Your account</CardTitle>
+                {tier && <Badge variant="secondary">{tier}</Badge>}
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-5">
+              <Meter
+                label="Credits"
+                value={credits?.balance ?? null}
+                total={credits?.allowance ?? null}
+                loading={credits === null}
+                suffix="left this cycle"
+              />
+              <Separator />
+              <Meter
+                label="Creators unlocked"
+                value={unlockedProfilesCount}
+                total={null}
+                loading={profilesLoading}
+                suffix="all time"
+              />
+              <Button asChild variant="outline" size="sm" className="w-full">
+                <Link href="/billing">Manage plan</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-sm font-medium">Activity</CardTitle>
+                <Link href="/notifications"
+                      className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                  See all
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {notifications.length === 0 ? (
+                <p className="py-2 text-sm text-muted-foreground">Nothing yet.</p>
+              ) : (
+                <ul className="-mx-2">
+                  {notifications.slice(0, 6).map((n, i) => {
+                    const Icon = ICONS[n.notification_type] || Bell
+                    return (
+                      <li key={n.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!n.is_read) markAsRead(n.id)
+                            if (n.action_url) router.push(n.action_url)
+                          }}
+                          className={cn(
+                            'flex w-full items-start gap-2.5 rounded-md px-2 py-2.5 text-left',
+                            'transition-colors hover:bg-muted focus-visible:outline-none',
+                            'focus-visible:ring-2 focus-visible:ring-ring',
+                            i > 0 && 'border-t',
+                          )}
+                        >
+                          <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <span className={cn('min-w-0 flex-1 text-[13px] leading-snug',
+                                              n.is_read ? 'text-muted-foreground' : 'font-medium')}>
+                            {n.title}
+                          </span>
+                          {!n.is_read && (
+                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                          )}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
 
       <Balloons ref={balloonsRef} />
-    </Page>
-  )
-}
-
-/**
- * One banner, three tones, all four colours from the global semantic tokens.
- *
- * This replaces three hand-written blocks of `bg-red-50 dark:bg-red-950 border-red-200
- * dark:border-red-800 text-red-800 dark:text-red-300`, which is the same decision written
- * out four times per tone and is why "warning" meant two different ambers on two screens.
- */
-function Alert({
-  tone, icon: Icon, title, body, action,
-}: {
-  tone: 'bad' | 'warn' | 'neutral'
-  icon: React.ComponentType<{ className?: string }>
-  title: React.ReactNode
-  body?: React.ReactNode
-  action?: React.ReactNode
-}) {
-  const skin = {
-    bad: 'border-danger/30 bg-danger/[0.07]',
-    warn: 'border-warning/35 bg-warning/[0.09]',
-    neutral: 'border-border bg-muted/40',
-  }[tone]
-  const ink = {
-    bad: 'text-danger',
-    warn: 'text-warning',
-    neutral: 'text-muted-foreground',
-  }[tone]
-
-  return (
-    <div className={`flex flex-col gap-ds-3 rounded-ds-lg border px-5 py-4 sm:flex-row sm:items-center ${skin}`}>
-      <Icon className={`h-5 w-5 shrink-0 ${ink}`} />
-      <div className="flex min-w-0 flex-1 flex-col gap-ds-1">
-        <p className="text-ds-label text-foreground">{title}</p>
-        {body && <p className="text-ds-body-sm text-muted-foreground">{body}</p>}
-      </div>
-      {action && <div className="shrink-0">{action}</div>}
     </div>
   )
 }
 
-function PoolAction({ href, label, primary }: { href: string; label: string; primary?: boolean }) {
+const ICONS: Record<string, typeof Bell> = {
+  credit_purchase: CreditCard,
+  low_balance: AlertTriangle,
+  analytics_completed: BarChart3,
+  proposal_received: FileText,
+  proposal_updated: FileText,
+  share_received: Link2,
+  team_invite: UserPlus,
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   The hero. One card, five faces, and only ever one of them on the page.
+   ───────────────────────────────────────────────────────────────────────────── */
+function Hero({ kind, content, proposals, liveCount, unlocked, onGo }: {
+  kind: HeroKind
+  content: ContentSummary | null
+  proposals: any[]
+  liveCount: number
+  unlocked: number
+  onGo: (href: string) => void
+}) {
+  const faces: Record<HeroKind, {
+    icon: typeof Bell; figure: React.ReactNode; title: string
+    body: string; cta: string; href: string; accent?: boolean
+  }> = {
+    content: {
+      icon: PlayCircle,
+      figure: content?.awaiting_you ?? 0,
+      title: `${content?.awaiting_you === 1 ? 'piece' : 'pieces'} of content waiting on you`,
+      body: 'Your creators have sent work through. Nothing goes live until you have seen it.',
+      cta: 'Review it now',
+      href: content?.focus ? `/campaigns/${content.focus.campaign_id}/content` : '/campaigns',
+      accent: true,
+    },
+    proposals: {
+      icon: FileText,
+      figure: proposals.length,
+      title: `${proposals.length === 1 ? 'proposal is' : 'proposals are'} waiting for you`,
+      body: 'We have put a line-up together. Have a look and tell us who you want.',
+      cta: proposals.length === 1 ? 'Open the proposal' : 'See the proposals',
+      href: proposals.length === 1
+        ? `/proposals/${proposals[0]?.proposal?.id ?? ''}`
+        : '/proposals',
+      accent: true,
+    },
+    running: {
+      icon: Megaphone,
+      figure: liveCount,
+      title: `${liveCount === 1 ? 'campaign' : 'campaigns'} running right now`,
+      body: 'Everything is moving and nothing needs you this minute. We will tell you when it does.',
+      cta: 'See your campaigns',
+      href: '/campaigns',
+    },
+    unlocked: {
+      icon: Users,
+      figure: unlocked,
+      title: `${unlocked === 1 ? 'creator' : 'creators'} unlocked and ready`,
+      body: 'You have the analytics. The next step is turning a shortlist into a campaign.',
+      cta: 'Go to your creators',
+      href: '/creators',
+    },
+    welcome: {
+      icon: Sparkles,
+      figure: null,
+      title: 'Welcome to Following',
+      body: 'Start by finding creators worth your budget. Everything else follows from the shortlist.',
+      cta: 'Find creators',
+      href: '/discover',
+    },
+  }
+
+  const f = faces[kind]
+  const Icon = f.icon
+
   return (
-    <Button asChild size="sm" variant={primary ? 'default' : 'outline'}>
-      <Link href={href} className="gap-ds-1">
-        {label}
-        <ArrowRight className="h-3.5 w-3.5" />
-      </Link>
-    </Button>
+    <Card className={cn('overflow-hidden', f.accent && 'border-primary/40')}>
+      <CardContent className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+        <div className="flex min-w-0 items-start gap-5">
+          <span className={cn(
+            'flex size-11 shrink-0 items-center justify-center rounded-xl',
+            f.accent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+          )}>
+            <Icon className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xl font-semibold leading-tight tracking-tight sm:text-2xl">
+              {f.figure !== null && (
+                <span className="mr-2 text-3xl tabular-nums sm:text-4xl">{f.figure}</span>
+              )}
+              {f.title}
+            </p>
+            <p className="mt-2 max-w-[54ch] text-sm leading-relaxed text-muted-foreground">
+              {f.body}
+            </p>
+          </div>
+        </div>
+        <Button
+          size="lg"
+          variant={f.accent ? 'default' : 'outline'}
+          className="shrink-0"
+          onClick={() => onGo(f.href)}
+        >
+          {f.cta}<ArrowRight className="ml-2 size-4" />
+        </Button>
+      </CardContent>
+    </Card>
   )
 }
 
-function getTimeAgo(dateStr: string): string {
-  const now = new Date()
-  const date = new Date(dateStr)
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  if (diffMins < 1) return "now"
-  if (diffMins < 60) return `${diffMins}m ago`
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `${diffHours}h ago`
-  const diffDays = Math.floor(diffHours / 24)
-  if (diffDays < 7) return `${diffDays}d ago`
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+/* ─────────────────────────────────────────────────────────────────────────────
+   Lists. Each renders nothing at all when it has nothing to say.
+   ───────────────────────────────────────────────────────────────────────────── */
+function ProposalList({ proposals }: { proposals: any[] }) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-base">Proposals waiting for you</CardTitle>
+          <Link href="/proposals"
+                className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+            See all
+          </Link>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <ul>
+          {proposals.slice(0, 4).map((p, i) => {
+            const pr = p?.proposal ?? p
+            return (
+              <li key={pr?.id ?? i}>
+                <Link href={`/proposals/${pr?.id ?? ''}`}
+                      className={cn(
+                        'flex items-center justify-between gap-4 rounded-md px-2 py-3',
+                        'transition-colors hover:bg-muted',
+                        i > 0 && 'border-t',
+                      )}>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{pr?.title || pr?.campaign_name || 'Proposal'}</p>
+                    {pr?.deadline_at && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Reply by {new Date(pr.deadline_at).toLocaleDateString('en-GB',
+                          { day: 'numeric', month: 'short' })}
+                      </p>
+                    )}
+                  </div>
+                  <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      </CardContent>
+    </Card>
+  )
+}
+
+function CampaignList({ campaigns, loading }: { campaigns: any[]; loading: boolean }) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-base">Campaigns running</CardTitle>
+          <Link href="/campaigns"
+                className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+            See all
+          </Link>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        {loading ? (
+          <div className="space-y-2">
+            {[0, 1].map((n) => <Skeleton key={n} className="h-12 w-full" />)}
+          </div>
+        ) : (
+          <ul>
+            {campaigns.slice(0, 5).map((c: any, i: number) => (
+              <li key={c?.id ?? i}>
+                <Link href={`/campaigns/${c?.id ?? ''}`}
+                      className={cn(
+                        'flex items-center justify-between gap-4 rounded-md px-2 py-3',
+                        'transition-colors hover:bg-muted',
+                        i > 0 && 'border-t',
+                      )}>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{c?.name || 'Campaign'}</p>
+                    {typeof c?.creators_count === 'number' && (
+                      <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                        {c.creators_count} creators
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant="secondary" className="shrink-0">Live</Badge>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+/* The only place on this page that teaches rather than reports. Shown to somebody who has
+   nothing running, because for them an empty dashboard is the whole experience. */
+function NextSteps({ unlocked }: { unlocked: number }) {
+  const steps = [
+    {
+      icon: Compass, title: 'Find creators',
+      body: 'Search by audience, engagement and category. Unlock the ones worth a closer look.',
+      href: '/discover', done: unlocked > 0,
+    },
+    {
+      icon: Users, title: 'Build a shortlist',
+      body: 'Save the ones that fit into a list you can share with your team.',
+      href: '/my-lists', done: false,
+    },
+    {
+      icon: Megaphone, title: 'Run a campaign',
+      body: 'Brief them, agree the work, and track it through to posted.',
+      href: '/campaigns', done: false,
+    },
+  ]
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Getting started</CardTitle>
+        <CardDescription>Three steps, in order. Most brands do the first one today.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ul className="flex flex-col gap-1">
+          {steps.map((s, i) => (
+            <li key={s.title}>
+              <Link href={s.href}
+                    className={cn('flex items-start gap-4 rounded-md px-2 py-3 transition-colors hover:bg-muted',
+                                  i > 0 && 'border-t')}>
+                <span className={cn(
+                  'flex size-8 shrink-0 items-center justify-center rounded-lg',
+                  s.done ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+                )}>
+                  <s.icon className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">{s.title}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{s.body}</p>
+                </div>
+                <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  )
+}
+
+/* A balance, with its bar only when there is a ceiling to draw it against. An unknown
+   figure renders as a skeleton, never as a zero. */
+function Meter({ label, value, total, loading, suffix }: {
+  label: string; value: number | null; total: number | null
+  loading: boolean; suffix: string
+}) {
+  const pct = value !== null && total !== null && total > 0
+    ? Math.min(100, Math.round((value / total) * 100))
+    : null
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm text-muted-foreground">{label}</span>
+        {loading || value === null
+          ? <Skeleton className="h-5 w-16" />
+          : <span className="text-lg font-semibold tabular-nums">{value.toLocaleString('en-AE')}</span>}
+      </div>
+      {pct !== null && <Progress value={pct} className="mt-2.5 h-1.5" />}
+      <p className="mt-1.5 text-xs text-muted-foreground">
+        {total !== null && total > 0
+          ? <span className="tabular-nums">of {total.toLocaleString('en-AE')} {suffix}</span>
+          : suffix}
+      </p>
+    </div>
+  )
 }
