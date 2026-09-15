@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Trash2, X, Globe, Instagram, Hash, Link2, MapPin, Ticket, Camera, Video, Image as ImageIcon } from "lucide-react"
+import { Plus, Trash2, X, Globe, Instagram, Hash, Link2, MapPin, Ticket, Camera, Video, Image as ImageIcon, Package } from "lucide-react"
 
 // ─── Deliverable presets (platform + format + how proof is submitted) ────────
 export interface DeliverableSpec {
@@ -63,10 +63,16 @@ export interface BriefState {
   coupon_discount_label: string
   redemption_url: string
   ordering_instructions: string
-  /** How the code is actually redeemed:
-   *  'delivery' — the brand's own codes, burned in the brand's ordering system
-   *  'dine_in'  — our codes, confirmed in person by venue staff at the table */
-  fulfilment_mode: "delivery" | "dine_in"
+  /** How the creator actually gets the thing:
+   *  'delivery'    — the brand's own codes, burned in the brand's ordering system
+   *  'dine_in'     — our codes, confirmed in person by venue staff at the table
+   *  'brand_ships' — no code at all: the brand posts the product, so we collect the
+   *                  creator's delivery address and contact details after approval
+   *
+   *  The first two are coupon flavours and only mean anything when `coupon_enabled`.
+   *  'brand_ships' is the opposite: there is nothing to redeem, so it is chosen on its own
+   *  switch and turning it on turns coupons off. */
+  fulfilment_mode: "delivery" | "dine_in" | "brand_ships"
   entitlement_label: string
   entitlement_cap_aed: string
 }
@@ -91,6 +97,9 @@ const csv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean)
  * rule depends on fulfilment_mode, and a dine-in campaign has no redemption URL by
  * definition — the creator goes to the venue, there is nothing to order from. */
 export function validateBriefFulfilment(b: BriefState): string | null {
+  // Nothing to validate: there is no code, no redemption URL and no venue entitlement.
+  // What this mode needs is the creator's address, and only the creator can give us that.
+  if (b.fulfilment_mode === "brand_ships") return null
   if (!b.coupon_enabled) return null
   if (b.fulfilment_mode === "delivery" && !b.redemption_url.trim()) {
     return "Add a redemption URL for the coupon, or turn coupons off"
@@ -136,7 +145,13 @@ export function buildBriefPayload(b: BriefState): Record<string, any> {
   if (b.mandatory_hashtags.length) p.mandatory_hashtags = b.mandatory_hashtags
   p.visit_required = b.visit_required
   if (b.visit_required && b.visit_location.trim()) p.visit_location = b.visit_location.trim()
-  if (b.coupon_enabled) {
+  // Sent WITHOUT coupon_enabled, unlike the other two modes: this one is not a coupon
+  // flavour, and the server's `_clean_fulfilment_mode` will never infer it.
+  if (b.fulfilment_mode === "brand_ships") {
+    p.fulfilment_mode = "brand_ships"
+    p.coupon_enabled = false
+  }
+  if (b.coupon_enabled && b.fulfilment_mode !== "brand_ships") {
     p.coupon_enabled = true
     p.fulfilment_mode = b.fulfilment_mode
     if (b.coupon_discount_label.trim()) p.coupon_discount_label = b.coupon_discount_label.trim()
@@ -358,6 +373,34 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
         </div>
       </Section>
 
+      {/* The brand posts the product itself. Its own switch, not a coupon flavour: there is
+          no code here, and the thing that makes this mode work is asking the creator where
+          to send the parcel. Mutually exclusive with coupons, because a campaign cannot both
+          hand out a code and post a box. */}
+      <Section>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-ds-md bg-black/[0.04] dark:bg-white/[0.07] flex items-center justify-center">
+              <Package className="h-4.5 w-4.5 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="font-medium text-sm">The brand sends the product</p>
+              <p className="text-xs text-muted-foreground">
+                Once approved, each creator is asked for a delivery address and a mobile.
+                The brand posts it and marks it dispatched.
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={value.fulfilment_mode === "brand_ships"}
+            onCheckedChange={(c: boolean) =>
+              set(c
+                ? { fulfilment_mode: "brand_ships", coupon_enabled: false }
+                : { fulfilment_mode: "delivery" })}
+          />
+        </div>
+      </Section>
+
       {/* Coupon fulfilment */}
       <Section>
         <div>
@@ -369,13 +412,27 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
                 <p className="text-xs text-muted-foreground">Creators receive a unique code once approved. Upload the codes after creating the campaign.</p>
               </div>
             </div>
-            <Switch checked={value.coupon_enabled} onCheckedChange={(c: boolean) => set({ coupon_enabled: c })} />
+            <Switch
+              checked={value.coupon_enabled}
+              disabled={value.fulfilment_mode === "brand_ships"}
+              onCheckedChange={(c: boolean) =>
+                set(c ? { coupon_enabled: true, fulfilment_mode: "delivery" }
+                      : { coupon_enabled: false })}
+            />
           </div>
-          {value.coupon_enabled && (
+          {value.fulfilment_mode === "brand_ships" && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              Turned off while the brand is sending the product. A campaign cannot both hand
+              out a code and post a box.
+            </p>
+          )}
+          {value.coupon_enabled && value.fulfilment_mode !== "brand_ships" && (
             <div className="space-y-4 mt-4">
               {/* Where the code gets burned. This decides everything below it, and
                   whether the creator app shows an order button or a QR. */}
               <div className="grid grid-cols-2 gap-3">
+                {/* Coupon flavours only. "The brand sends the product" is the switch above,
+                    because it is not a way of redeeming a code. */}
                 {([
                   { key: "delivery", title: "Delivery / online", blurb: "The brand gives us their codes. Their checkout burns them." },
                   { key: "dine_in", title: "Dine-in at venue", blurb: "No system of their own. We generate codes; staff confirm the walk-in." },

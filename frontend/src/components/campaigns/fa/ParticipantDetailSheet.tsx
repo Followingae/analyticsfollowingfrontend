@@ -11,10 +11,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import {
   Check, X, Loader2, BarChart3, Instagram, Film, ImageIcon, Camera, Layers,
   Gift, Coins, QrCode, CheckCircle2, Clock, Sparkles, ExternalLink, BadgeCheck, Bot, Pencil,
-  Mail, Phone, MessageCircle, Lock,
+  Mail, Phone, MessageCircle, Lock, MapPin, Copy,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FirstPartyAudienceAnalytics } from "@/components/analytics/FirstPartyAudienceAnalytics"
@@ -111,6 +112,30 @@ export interface ParticipantLike {
   paid_deal: { payout_cents: number | null }
   barter: { items: any }
   deliverables: { pending: number; submitted: number; verified: number }
+  /** Only present on a brand_ships campaign. The server omits it entirely otherwise, so
+   *  `participant.shipping &&` is the whole gate - no mode check is needed here. */
+  shipping?: {
+    given: boolean
+    stage: "awaiting_address" | "ready" | "dispatched" | "received"
+    address_line?: string | null
+    address_city?: string | null
+    address_country?: string | null
+    address_phone?: string | null
+    contact_email?: string | null
+    address_maps_url?: string | null
+    address_at?: string | null
+    dispatched_at?: string | null
+    dispatch_ref?: string | null
+    dispatch_courier?: string | null
+    received_at?: string | null
+  } | null
+}
+
+const SHIP_LABEL: Record<string, string> = {
+  awaiting_address: "Waiting on their address",
+  ready: "Ready to send",
+  dispatched: "On its way",
+  received: "Delivered",
 }
 
 interface Deliverable {
@@ -171,6 +196,41 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
   const [loadingDel, setLoadingDel] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
+  const [courier, setCourier] = useState("")
+  const [trackingRef, setTrackingRef] = useState("")
+
+  /* Marking a parcel sent, and marking it arrived.
+   *
+   * Both refuse server-side before there is an address to have sent it to, so a mis-click
+   * here reads back as a refusal rather than as a dispatch that never happened. */
+  const shipAction = useCallback(async (
+    what: "dispatch" | "received", body?: Record<string, string>,
+  ) => {
+    if (!participant) return
+    setBusy(what)
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/participants/${participant.participant_id}/${what}`,
+        {
+          method: "POST",
+          headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify(body ?? {}),
+        },
+      )
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.detail || await res.text())
+      toast.success(what === "dispatch" ? "Marked dispatched, the creator has been told" : "Marked delivered")
+      setCourier(""); setTrackingRef("")
+      onChanged?.()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setBusy(null)
+    }
+  }, [participant, campaignId, onChanged])
+
+  const markDispatched = useCallback(
+    () => shipAction("dispatch", { courier, reference: trackingRef }), [shipAction, courier, trackingRef])
+  const markReceived = useCallback(() => shipAction("received"), [shipAction])
   const [rejectReason, setRejectReason] = useState("")
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
   // Unique coupon code assigned to this participant (team-suggested / member).
@@ -521,6 +581,113 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                       <p className="mt-1.5 text-xs text-muted-foreground">
                         Team-suggested creator, not on the Following app. No email or mobile on file.
                       </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Where the parcel goes, on a campaign the brand posts itself.
+                    Rendered only when the server sent a shipping block, which it does only
+                    for fulfilment_mode 'brand_ships'. On a coupon or dine-in campaign
+                    nothing is posted and a home address is data nobody needs to see. */}
+                {participant.shipping && (
+                  <div className="mt-4 rounded-lg border p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Delivery
+                      </p>
+                      <Badge variant={participant.shipping.stage === "awaiting_address" ? "outline" : "secondary"}
+                             className="text-[10.5px]">
+                        {SHIP_LABEL[participant.shipping.stage] ?? participant.shipping.stage}
+                      </Badge>
+                    </div>
+
+                    {!participant.shipping.given ? (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        We have asked {participant.member?.full_name || "this creator"} for their
+                        address. Nothing can be sent until they give it.
+                      </p>
+                    ) : (
+                      <>
+                        <p className="mt-2 text-[13px] leading-relaxed">
+                          {participant.shipping.address_line}
+                          {participant.shipping.address_city ? `, ${participant.shipping.address_city}` : ""}
+                          {participant.shipping.address_country ? `, ${participant.shipping.address_country}` : ""}
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          {participant.shipping.address_phone && (
+                            <Button size="sm" variant="outline" asChild className="gap-1.5">
+                              <a href={`tel:${participant.shipping.address_phone}`}>
+                                <Phone className="h-3.5 w-3.5" />{participant.shipping.address_phone}
+                              </a>
+                            </Button>
+                          )}
+                          {participant.shipping.contact_email && (
+                            <Button size="sm" variant="outline" asChild className="gap-1.5">
+                              <a href={`mailto:${participant.shipping.contact_email}`}>
+                                <Mail className="h-3.5 w-3.5" />{participant.shipping.contact_email}
+                              </a>
+                            </Button>
+                          )}
+                          {participant.shipping.address_maps_url && (
+                            <Button size="sm" variant="outline" asChild className="gap-1.5">
+                              <a href={participant.shipping.address_maps_url} target="_blank" rel="noreferrer">
+                                <MapPin className="h-3.5 w-3.5" />Map
+                              </a>
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" className="gap-1.5"
+                                  onClick={() => {
+                                    const a = [participant.shipping?.address_line,
+                                               participant.shipping?.address_city,
+                                               participant.shipping?.address_country,
+                                               participant.shipping?.address_phone]
+                                      .filter(Boolean).join(", ")
+                                    navigator.clipboard?.writeText(a)
+                                    toast.success("Address copied")
+                                  }}>
+                            <Copy className="h-3.5 w-3.5" />Copy
+                          </Button>
+                        </div>
+
+                        {/* Marking it sent is the brand's action as much as ours, which is
+                            why it sits on this sheet rather than on an admin screen. */}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {!participant.shipping.dispatched_at ? (
+                            <>
+                              <Input
+                                value={courier}
+                                onChange={(e) => setCourier(e.target.value)}
+                                placeholder="Courier"
+                                className="h-8 w-[130px] text-xs"
+                              />
+                              <Input
+                                value={trackingRef}
+                                onChange={(e) => setTrackingRef(e.target.value)}
+                                placeholder="Tracking reference"
+                                className="h-8 w-[180px] text-xs"
+                              />
+                              <Button size="sm" disabled={!!busy} onClick={markDispatched}>
+                                Mark dispatched
+                              </Button>
+                            </>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              Sent {new Date(participant.shipping.dispatched_at).toLocaleDateString("en-GB",
+                                { day: "numeric", month: "short" })}
+                              {participant.shipping.dispatch_courier ? ` via ${participant.shipping.dispatch_courier}` : ""}
+                              {participant.shipping.dispatch_ref ? ` · ${participant.shipping.dispatch_ref}` : ""}
+                              {participant.shipping.received_at
+                                ? ` · delivered ${new Date(participant.shipping.received_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`
+                                : ""}
+                            </p>
+                          )}
+                          {participant.shipping.dispatched_at && !participant.shipping.received_at && (
+                            <Button size="sm" variant="outline" disabled={!!busy} onClick={markReceived}>
+                              Mark delivered
+                            </Button>
+                          )}
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
