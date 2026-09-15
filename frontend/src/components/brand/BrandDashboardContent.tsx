@@ -3,27 +3,26 @@
 /**
  * The brand's home screen.
  *
- * WHAT WAS WRONG WITH THE OLD ONE. It was seven sections stacked vertically at identical
- * weight: a greeting, four figures, a queue, a discovery card, two gauges, four more
- * figures, then panels. Nothing was larger than anything else, so nothing led, and a client
- * arriving with three pieces of content to approve had to find that fact among eleven other
- * numbers. The figures were bare text on the page background, which is why it read as flat.
+ * Two columns: the work on the left, the account on the right. It opens with four coloured
+ * figures, then the one thing that actually needs them, then their campaigns.
  *
- * WHAT THIS IS INSTEAD. Two columns. The left is the work, and it opens with ONE card that
- * carries whatever actually matters today. The right is the account: balances, usage and
- * activity, parked where they cannot interrupt. Size encodes importance, which is the only
- * reliable way to say "this first" without shouting.
+ * COLOUR CARRIES MEANING HERE, which is the deliberate difference from the version before
+ * this one. That one was correct and calm and read as a wireframe: every tile the same
+ * weight, no colour anywhere, hierarchy from type size alone. Each figure now has its own
+ * hue from the theme's chart tokens, and the tile that needs action fills with it.
  *
- * THE HERO IS A STATE MACHINE, and it is the point of the rewrite. A brand who has just
- * signed up, a brand with a proposal waiting and no campaigns, and a brand mid-campaign with
- * content to approve are three different people with three different next actions. The old
- * page showed all three the same eleven numbers, most of them zero. `heroFor` resolves ONE
- * of them, in urgency order, and everything below it renders only when it has something to
- * say.
+ * THE COLOUR RULE, so this does not rot into noise: the hue is carried by the ICON CHIP and
+ * by a filled tile, never by body text. Every number and label stays `foreground` or
+ * `muted-foreground`, which is what keeps contrast correct in both themes without anybody
+ * having to check. The hues are `--chart-1` to `--chart-5`, so they follow the theme rather
+ * than being picked here.
  *
- * Built from shadcn primitives directly - Card, Button, Badge, Progress, Separator, Alert -
- * with no local wrappers, and coloured only from the theme's semantic tokens. No raw colour
- * values live in this file.
+ * NOTHING ON THIS PAGE IS INVENTED. The four figures come from one endpoint that really
+ * returns them. There are no trend deltas, no "vs last period" and no sparklines, because we
+ * do not store the history to compute them and a fabricated 24% is worse than no percentage.
+ * When those series exist, they belong here.
+ *
+ * Built from shadcn as installed, with no local wrappers.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -32,6 +31,7 @@ import Link from 'next/link'
 
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { useUserStore, useSubscriptionData, useTeamData } from '@/stores/userStore'
+import { useCommercialAccount } from '@/hooks/useCommercialAccount'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { API_CONFIG, ENDPOINTS, getAuthHeaders } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
@@ -54,20 +54,28 @@ import { Money } from '@/components/brand/primitives'
 import { cn } from '@/lib/utils'
 
 import {
-  AlertTriangle, ArrowRight, BarChart3, Bell, Compass, CreditCard, FileText,
-  Link2, Megaphone, PlayCircle, Sparkles, UserPlus, Users, Wallet,
+  AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, Bell, CheckCircle2, Compass,
+  CreditCard, FileText, Link2, Megaphone, PlayCircle, Sparkles, UserPlus, Users, Wallet,
 } from 'lucide-react'
 
-/* Statuses at which a proposal is the client's move rather than ours. */
 const PROPOSAL_WAITING = ['sent', 'in_review', 'more_requested']
-
 type HeroKind = 'content' | 'proposals' | 'running' | 'unlocked' | 'welcome'
+
+/* The five hues, straight from the theme. Declared once so a tile cannot invent a sixth. */
+const HUE = {
+  amber: 'var(--chart-5)',
+  violet: 'var(--chart-3)',
+  green: 'var(--chart-4)',
+  blue: 'var(--chart-2)',
+  brand: 'var(--chart-1)',
+} as const
+type Hue = keyof typeof HUE
 
 export function BrandDashboardContent() {
   const router = useRouter()
 
   const {
-    unlockedProfilesCount, profilesLoading,
+    unlockedProfilesCount, unlockedProfiles, profilesLoading,
     activeCampaignsCount, campaigns, campaignsLoading,
     isLoading,
   } = useDashboardData()
@@ -76,10 +84,10 @@ export function BrandDashboardContent() {
   const team = useTeamData()
   const { isLoading: userStoreLoading, user } = useUserStore()
   const { notifications, markAsRead } = useNotifications()
+  const { owns } = useCommercialAccount()
 
   const balloonsRef = useRef<{ launchAnimation: () => void }>(null)
 
-  /* ── the account's money and usage, for the rail ──────────────────────────── */
   const [credits, setCredits] = useState<{ balance: number; allowance: number } | null>(null)
   useEffect(() => {
     let dead = false
@@ -89,9 +97,6 @@ export function BrandDashboardContent() {
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
         if (dead || !j) return
-        // Same unwrap the credits gauge has always used: the endpoint answers wrapped on
-        // some paths and direct on others, and guessing one shape shows a zero balance to a
-        // client who has thousands.
         const w = j?.success ? j.data : j
         if (!w) return
         setCredits({
@@ -103,7 +108,6 @@ export function BrandDashboardContent() {
     return () => { dead = true }
   }, [])
 
-  /* ── the cashback pool, which can stop campaigns paying out ───────────────── */
   const [pool, setPool] = useState<{ available_aed: number; total_funded_aed: number } | null>(null)
   const [poolError, setPoolError] = useState(false)
   const poolOnce = useRef(false)
@@ -124,14 +128,12 @@ export function BrandDashboardContent() {
     fetchPool()
   }, [fetchPool])
 
-  /* ── content waiting on them, anywhere ────────────────────────────────────── */
   const [content, setContent] = useState<ContentSummary | null>(null)
   const loadContent = useCallback(() => {
     contentBrandApi.summary().then(setContent).catch(() => setContent(null))
   }, [])
   useEffect(() => { loadContent() }, [loadContent])
 
-  /* ── proposals, which is how a brand with no campaigns yet still has work ─── */
   const [proposals, setProposals] = useState<any[] | null>(null)
   useEffect(() => {
     let dead = false
@@ -150,6 +152,16 @@ export function BrandDashboardContent() {
     () => (campaigns ?? []).filter((c: any) => c?.status === 'active'),
     [campaigns])
 
+  /* Combined followers across the creators they have unlocked. Summed only from profiles
+     that actually carry a number; if none do, the line is not rendered rather than showing
+     a zero that would read as "your creators reach nobody". */
+  const reach = useMemo(() => {
+    const list = (unlockedProfiles ?? []) as any[]
+    const known = list.map((p) => Number(p?.followers_count ?? p?.followers ?? 0))
+                      .filter((n) => Number.isFinite(n) && n > 0)
+    return known.length ? known.reduce((a, b) => a + b, 0) : null
+  }, [unlockedProfiles])
+
   const displayName = useMemo(() => {
     if (!user) return null
     if (user.company) return user.company
@@ -166,9 +178,6 @@ export function BrandDashboardContent() {
     return t ? (map[t] || t) : 'Free'
   }, [userStoreLoading, team, subscription])
 
-  /* THE decision this page exists to make. Urgency order, and exactly one wins:
-     something of theirs is blocked on us > something of ours is blocked on them >
-     it is running > they have creators but no campaign > they are brand new. */
   const hero: HeroKind = useMemo(() => {
     if (content && content.awaiting_you > 0) return 'content'
     if (waitingProposals.length > 0) return 'proposals'
@@ -191,8 +200,6 @@ export function BrandDashboardContent() {
   return (
     <div className="flex w-full flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
 
-      {/* Anything genuinely broken comes before everything, because a drained pool stops
-          campaigns paying creators and nothing else on this page matters until it is fixed. */}
       {pool && poolPct !== null && poolPct < 20 && (
         <Alert variant={pool.available_aed <= 0 || poolPct < 5 ? 'destructive' : 'default'}>
           <AlertTriangle className="h-4 w-4" />
@@ -220,87 +227,111 @@ export function BrandDashboardContent() {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <header className="flex items-center gap-4">
+        <UserAvatar
+          key={`dash-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
+          user={user || undefined}
+          size={48}
+          className="shrink-0"
+        />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-2xl font-semibold tracking-tight">
+            {greeting}{displayName ? <>, {displayName}</> : null}
+          </h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {new Date().toLocaleDateString('en-GB',
+              { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+        </div>
+        {tier && <Badge variant="secondary" className="shrink-0">{tier}</Badge>}
+      </header>
 
-        {/* ── the work ───────────────────────────────────────────────────────── */}
+      {/* Four figures, all of them real, each with its own hue. The first is filled when it
+          is asking for something, because a request should not look like a statistic. */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Figure
+          hue="amber" icon={PlayCircle} label="Waiting on you"
+          value={content?.awaiting_you} loading={content === null}
+          sub={content?.awaiting_you ? 'Content to approve' : 'Nothing to review'}
+          filled={!!content?.awaiting_you}
+          href={content?.focus ? `/campaigns/${content.focus.campaign_id}/content` : '/campaigns'}
+        />
+        <Figure
+          hue="blue" icon={Users} label="Creators working"
+          value={content?.creators_working} loading={content === null}
+          sub="Filming or posting" href="/campaigns"
+        />
+        <Figure
+          hue="violet" icon={Megaphone} label="Campaigns live"
+          value={content?.live_campaigns ?? activeCampaignsCount}
+          loading={content === null && campaignsLoading}
+          sub="Running right now" href="/campaigns"
+        />
+        <Figure
+          hue="green" icon={CheckCircle2} label="Content approved"
+          value={content?.approved} loading={content === null}
+          sub="Signed off" href="/campaigns"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <main className="flex min-w-0 flex-col gap-6">
 
-          <header className="flex items-center gap-4">
-            <UserAvatar
-              key={`dash-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
-              user={user || undefined}
-              size={48}
-              className="shrink-0"
-            />
-            <div className="min-w-0">
-              <h1 className="truncate text-2xl font-semibold tracking-tight">
-                {greeting}{displayName ? <>, {displayName}</> : null}
-              </h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {new Date().toLocaleDateString('en-GB',
-                  { weekday: 'long', day: 'numeric', month: 'long' })}
-              </p>
-            </div>
-          </header>
-
           <Hero
-            kind={hero}
-            content={content}
-            proposals={waitingProposals}
-            liveCount={activeCampaignsCount}
-            unlocked={unlockedProfilesCount}
+            kind={hero} content={content} proposals={waitingProposals}
+            liveCount={activeCampaignsCount} unlocked={unlockedProfilesCount}
             onGo={(href) => router.push(href)}
           />
 
-          {/* The queue itself. Renders nothing when nothing is waiting. */}
           {content && content.awaiting_you > 0 && (
             <ContentAwaitingPanel focus={content?.focus ?? null} onChanged={loadContent} />
           )}
 
-          {/* Proposals, whenever there are any waiting and they are not already the hero. */}
           {hero !== 'proposals' && waitingProposals.length > 0 && (
             <ProposalList proposals={waitingProposals} />
           )}
 
-          {/* Campaigns, whenever any are running. */}
           {liveCampaigns.length > 0 && (
-            <CampaignList campaigns={liveCampaigns} loading={campaignsLoading} />
+            <CampaignProgress campaigns={liveCampaigns} loading={campaignsLoading} />
           )}
 
-          {/* The nudge, only for somebody with nothing else to do. */}
           {(hero === 'unlocked' || hero === 'welcome') && <NextSteps unlocked={unlockedProfilesCount} />}
         </main>
 
-        {/* ── the account ────────────────────────────────────────────────────── */}
         <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-sm font-medium">Your account</CardTitle>
-                {tier && <Badge variant="secondary">{tier}</Badge>}
-              </div>
+              <CardTitle className="text-sm font-medium">Your creators</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-              <Meter
-                label="Credits"
-                value={credits?.balance ?? null}
-                total={credits?.allowance ?? null}
-                loading={credits === null}
-                suffix="left this cycle"
-              />
+              <div>
+                <div className="flex items-baseline gap-2">
+                  {profilesLoading
+                    ? <Skeleton className="h-7 w-14" />
+                    : <span className="text-2xl font-semibold tabular-nums">
+                        {unlockedProfilesCount.toLocaleString('en-AE')}
+                      </span>}
+                  <span className="text-xs text-muted-foreground">unlocked</span>
+                </div>
+                {reach !== null && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    <span className="tabular-nums">{compact(reach)}</span> followers between them
+                  </p>
+                )}
+              </div>
               <Separator />
               <Meter
-                label="Creators unlocked"
-                value={unlockedProfilesCount}
-                total={null}
-                loading={profilesLoading}
-                suffix="all time"
+                label="Credits" value={credits?.balance ?? null}
+                total={credits?.allowance ?? null} loading={credits === null}
+                suffix="left this cycle"
               />
               <Button asChild variant="outline" size="sm" className="w-full">
-                <Link href="/billing">Manage plan</Link>
+                <Link href="/creators">See your creators</Link>
               </Button>
             </CardContent>
           </Card>
+
+          <ModulesCard owns={owns} />
 
           <Card>
             <CardHeader className="pb-3">
@@ -359,107 +390,121 @@ export function BrandDashboardContent() {
 }
 
 const ICONS: Record<string, typeof Bell> = {
-  credit_purchase: CreditCard,
-  low_balance: AlertTriangle,
-  analytics_completed: BarChart3,
-  proposal_received: FileText,
-  proposal_updated: FileText,
-  share_received: Link2,
+  credit_purchase: CreditCard, low_balance: AlertTriangle, analytics_completed: BarChart3,
+  proposal_received: FileText, proposal_updated: FileText, share_received: Link2,
   team_invite: UserPlus,
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   The hero. One card, five faces, and only ever one of them on the page.
-   ───────────────────────────────────────────────────────────────────────────── */
+function compact(n: number): string {
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`
+  if (n >= 1e3) return `${Math.round(n / 1e3)}K`
+  return String(n)
+}
+
+/* One figure. The hue lives on the icon chip, or fills the whole tile when it is asking for
+   something. Never on the text, which is what keeps contrast right in both themes. */
+function Figure({ hue, icon: Icon, label, value, sub, loading, href, filled }: {
+  hue: Hue; icon: typeof Bell; label: string
+  value: number | undefined; sub: string; loading: boolean; href: string; filled?: boolean
+}) {
+  const c = HUE[hue]
+  return (
+    <Link
+      href={href}
+      className={cn(
+        'group relative overflow-hidden rounded-xl border p-4 transition-colors sm:p-5',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        filled ? 'border-transparent' : 'bg-card hover:bg-muted/50',
+      )}
+      style={filled ? { background: `color-mix(in oklch, ${c} 16%, var(--card))` } : undefined}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span
+          className="flex size-9 shrink-0 items-center justify-center rounded-lg"
+          style={{ background: `color-mix(in oklch, ${c} 18%, transparent)`, color: c }}
+        >
+          <Icon className="size-[18px]" />
+        </span>
+        <ArrowUpRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+      </div>
+      {loading
+        ? <Skeleton className="mt-4 h-8 w-16" />
+        : <p className="mt-4 text-3xl font-semibold tabular-nums tracking-tight">
+            {value ?? '—'}
+          </p>}
+      <p className="mt-1 text-[13px] font-medium">{label}</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>
+    </Link>
+  )
+}
+
 function Hero({ kind, content, proposals, liveCount, unlocked, onGo }: {
-  kind: HeroKind
-  content: ContentSummary | null
-  proposals: any[]
-  liveCount: number
-  unlocked: number
-  onGo: (href: string) => void
+  kind: HeroKind; content: ContentSummary | null; proposals: any[]
+  liveCount: number; unlocked: number; onGo: (href: string) => void
 }) {
   const faces: Record<HeroKind, {
-    icon: typeof Bell; figure: React.ReactNode; title: string
-    body: string; cta: string; href: string; accent?: boolean
+    icon: typeof Bell; hue: Hue; title: string; body: string
+    cta: string; href: string; urgent?: boolean
   }> = {
     content: {
-      icon: PlayCircle,
-      figure: content?.awaiting_you ?? 0,
-      title: `${content?.awaiting_you === 1 ? 'piece' : 'pieces'} of content waiting on you`,
+      icon: PlayCircle, hue: 'amber',
+      title: `${content?.awaiting_you} ${content?.awaiting_you === 1 ? 'piece' : 'pieces'} of content waiting on you`,
       body: 'Your creators have sent work through. Nothing goes live until you have seen it.',
       cta: 'Review it now',
       href: content?.focus ? `/campaigns/${content.focus.campaign_id}/content` : '/campaigns',
-      accent: true,
+      urgent: true,
     },
     proposals: {
-      icon: FileText,
-      figure: proposals.length,
-      title: `${proposals.length === 1 ? 'proposal is' : 'proposals are'} waiting for you`,
+      icon: FileText, hue: 'violet',
+      title: `${proposals.length} ${proposals.length === 1 ? 'proposal is' : 'proposals are'} waiting for you`,
       body: 'We have put a line-up together. Have a look and tell us who you want.',
       cta: proposals.length === 1 ? 'Open the proposal' : 'See the proposals',
-      href: proposals.length === 1
-        ? `/proposals/${proposals[0]?.proposal?.id ?? ''}`
-        : '/proposals',
-      accent: true,
+      href: proposals.length === 1 ? `/proposals/${proposals[0]?.proposal?.id ?? ''}` : '/proposals',
+      urgent: true,
     },
     running: {
-      icon: Megaphone,
-      figure: liveCount,
-      title: `${liveCount === 1 ? 'campaign' : 'campaigns'} running right now`,
+      icon: Megaphone, hue: 'blue',
+      title: `${liveCount} ${liveCount === 1 ? 'campaign' : 'campaigns'} running right now`,
       body: 'Everything is moving and nothing needs you this minute. We will tell you when it does.',
-      cta: 'See your campaigns',
-      href: '/campaigns',
+      cta: 'See your campaigns', href: '/campaigns',
     },
     unlocked: {
-      icon: Users,
-      figure: unlocked,
-      title: `${unlocked === 1 ? 'creator' : 'creators'} unlocked and ready`,
+      icon: Users, hue: 'blue',
+      title: `${unlocked} ${unlocked === 1 ? 'creator' : 'creators'} unlocked and ready`,
       body: 'You have the analytics. The next step is turning a shortlist into a campaign.',
-      cta: 'Go to your creators',
-      href: '/creators',
+      cta: 'Go to your creators', href: '/creators',
     },
     welcome: {
-      icon: Sparkles,
-      figure: null,
+      icon: Sparkles, hue: 'brand',
       title: 'Welcome to Following',
       body: 'Start by finding creators worth your budget. Everything else follows from the shortlist.',
-      cta: 'Find creators',
-      href: '/discover',
+      cta: 'Find creators', href: '/discover',
     },
   }
 
   const f = faces[kind]
   const Icon = f.icon
+  const c = HUE[f.hue]
 
   return (
-    <Card className={cn('overflow-hidden', f.accent && 'border-primary/40')}>
-      <CardContent className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-        <div className="flex min-w-0 items-start gap-5">
-          <span className={cn(
-            'flex size-11 shrink-0 items-center justify-center rounded-xl',
-            f.accent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
-          )}>
+    <Card
+      className="overflow-hidden border-transparent"
+      style={{ background: `color-mix(in oklch, ${c} ${f.urgent ? 14 : 8}%, var(--card))` }}
+    >
+      <CardContent className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+        <div className="flex min-w-0 items-start gap-4">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl"
+                style={{ background: c, color: 'var(--card)' }}>
             <Icon className="size-5" />
           </span>
           <div className="min-w-0">
-            <p className="text-xl font-semibold leading-tight tracking-tight sm:text-2xl">
-              {f.figure !== null && (
-                <span className="mr-2 text-3xl tabular-nums sm:text-4xl">{f.figure}</span>
-              )}
-              {f.title}
-            </p>
-            <p className="mt-2 max-w-[54ch] text-sm leading-relaxed text-muted-foreground">
+            <p className="text-xl font-semibold leading-tight tracking-tight">{f.title}</p>
+            <p className="mt-1.5 max-w-[54ch] text-sm leading-relaxed text-muted-foreground">
               {f.body}
             </p>
           </div>
         </div>
-        <Button
-          size="lg"
-          variant={f.accent ? 'default' : 'outline'}
-          className="shrink-0"
-          onClick={() => onGo(f.href)}
-        >
+        <Button size="lg" className="shrink-0" onClick={() => onGo(f.href)}>
           {f.cta}<ArrowRight className="ml-2 size-4" />
         </Button>
       </CardContent>
@@ -467,9 +512,96 @@ function Hero({ kind, content, proposals, liveCount, unlocked, onGo }: {
   )
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Lists. Each renders nothing at all when it has nothing to say.
-   ───────────────────────────────────────────────────────────────────────────── */
+/* Each live campaign, with a bar ONLY when the row actually carries the numbers to draw one.
+   A bar over an unknown is a picture of a guess. */
+function CampaignProgress({ campaigns, loading }: { campaigns: any[]; loading: boolean }) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-base">Campaigns running</CardTitle>
+          <Link href="/campaigns"
+                className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+            See all
+          </Link>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        {loading ? (
+          <div className="space-y-2">{[0, 1].map((n) => <Skeleton key={n} className="h-16 w-full" />)}</div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {campaigns.slice(0, 4).map((c: any, i: number) => {
+              const done = Number(c?.completed_deliverables ?? c?.posts_live ?? NaN)
+              const total = Number(c?.total_deliverables ?? NaN)
+              const pct = Number.isFinite(done) && Number.isFinite(total) && total > 0
+                ? Math.min(100, Math.round((done / total) * 100))
+                : null
+              const hue = HUE[(['violet', 'blue', 'green', 'amber'] as Hue[])[i % 4]]
+              return (
+                <Link key={c?.id ?? i} href={`/campaigns/${c?.id ?? ''}`}
+                      className="rounded-xl border bg-card p-4 transition-colors hover:bg-muted/50">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 truncate text-sm font-medium">{c?.name || 'Campaign'}</p>
+                    <span className="mt-1 size-2 shrink-0 rounded-full" style={{ background: hue }} />
+                  </div>
+                  {typeof c?.creators_count === 'number' && (
+                    <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+                      {c.creators_count} creators
+                    </p>
+                  )}
+                  {pct !== null && (
+                    <>
+                      <Progress value={pct} className="mt-3 h-1.5" />
+                      <p className="mt-1.5 text-xs tabular-nums text-muted-foreground">
+                        {done} of {total} delivered
+                      </p>
+                    </>
+                  )}
+                </Link>
+              )
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+/* What this account holds, and what it does not. Answered by the billing status, which now
+   reports real entitlements. */
+function ModulesCard({ owns }: { owns: Record<string, boolean> }) {
+  const all = [
+    { key: 'find', name: 'Find', body: 'Search and unlock creators', href: '/discover', hue: 'blue' as Hue },
+    { key: 'run', name: 'Run', body: 'Brief, award and deliver', href: '/run', hue: 'violet' as Hue },
+    { key: 'mor', name: 'Merchant of Record', body: 'We pay your creators', href: '/mor', hue: 'green' as Hue },
+    { key: 'manage', name: 'Manage', body: 'We run it for you', href: '/campaigns', hue: 'brand' as Hue },
+  ]
+  const held = all.filter((m) => owns?.[m.key])
+  if (held.length === 0) return null
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium">What you have</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-1 pt-0">
+        {held.map((m) => (
+          <Link key={m.key} href={m.href}
+                className="-mx-2 flex items-center gap-3 rounded-md px-2 py-2.5 transition-colors hover:bg-muted">
+            <span className="size-2 shrink-0 rounded-full" style={{ background: HUE[m.hue] }} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-medium">{m.name}</span>
+              <span className="block truncate text-xs text-muted-foreground">{m.body}</span>
+            </span>
+            <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
+          </Link>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 function ProposalList({ proposals }: { proposals: any[] }) {
   return (
     <Card>
@@ -489,11 +621,8 @@ function ProposalList({ proposals }: { proposals: any[] }) {
             return (
               <li key={pr?.id ?? i}>
                 <Link href={`/proposals/${pr?.id ?? ''}`}
-                      className={cn(
-                        'flex items-center justify-between gap-4 rounded-md px-2 py-3',
-                        'transition-colors hover:bg-muted',
-                        i > 0 && 'border-t',
-                      )}>
+                      className={cn('flex items-center justify-between gap-4 rounded-md px-2 py-3',
+                                    'transition-colors hover:bg-muted', i > 0 && 'border-t')}>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{pr?.title || pr?.campaign_name || 'Proposal'}</p>
                     {pr?.deadline_at && (
@@ -514,71 +643,17 @@ function ProposalList({ proposals }: { proposals: any[] }) {
   )
 }
 
-function CampaignList({ campaigns, loading }: { campaigns: any[]; loading: boolean }) {
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle className="text-base">Campaigns running</CardTitle>
-          <Link href="/campaigns"
-                className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-            See all
-          </Link>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        {loading ? (
-          <div className="space-y-2">
-            {[0, 1].map((n) => <Skeleton key={n} className="h-12 w-full" />)}
-          </div>
-        ) : (
-          <ul>
-            {campaigns.slice(0, 5).map((c: any, i: number) => (
-              <li key={c?.id ?? i}>
-                <Link href={`/campaigns/${c?.id ?? ''}`}
-                      className={cn(
-                        'flex items-center justify-between gap-4 rounded-md px-2 py-3',
-                        'transition-colors hover:bg-muted',
-                        i > 0 && 'border-t',
-                      )}>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{c?.name || 'Campaign'}</p>
-                    {typeof c?.creators_count === 'number' && (
-                      <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-                        {c.creators_count} creators
-                      </p>
-                    )}
-                  </div>
-                  <Badge variant="secondary" className="shrink-0">Live</Badge>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
-  )
-}
-
-/* The only place on this page that teaches rather than reports. Shown to somebody who has
-   nothing running, because for them an empty dashboard is the whole experience. */
 function NextSteps({ unlocked }: { unlocked: number }) {
   const steps = [
-    {
-      icon: Compass, title: 'Find creators',
+    { icon: Compass, hue: 'blue' as Hue, title: 'Find creators',
       body: 'Search by audience, engagement and category. Unlock the ones worth a closer look.',
-      href: '/discover', done: unlocked > 0,
-    },
-    {
-      icon: Users, title: 'Build a shortlist',
+      href: '/discover', done: unlocked > 0 },
+    { icon: Users, hue: 'violet' as Hue, title: 'Build a shortlist',
       body: 'Save the ones that fit into a list you can share with your team.',
-      href: '/my-lists', done: false,
-    },
-    {
-      icon: Megaphone, title: 'Run a campaign',
+      href: '/my-lists', done: false },
+    { icon: Megaphone, hue: 'green' as Hue, title: 'Run a campaign',
       body: 'Brief them, agree the work, and track it through to posted.',
-      href: '/campaigns', done: false,
-    },
+      href: '/campaigns', done: false },
   ]
   return (
     <Card>
@@ -593,14 +668,16 @@ function NextSteps({ unlocked }: { unlocked: number }) {
               <Link href={s.href}
                     className={cn('flex items-start gap-4 rounded-md px-2 py-3 transition-colors hover:bg-muted',
                                   i > 0 && 'border-t')}>
-                <span className={cn(
-                  'flex size-8 shrink-0 items-center justify-center rounded-lg',
-                  s.done ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
-                )}>
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+                      style={{ background: `color-mix(in oklch, ${HUE[s.hue]} 18%, transparent)`,
+                               color: HUE[s.hue] }}>
                   <s.icon className="size-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{s.title}</p>
+                  <p className="text-sm font-medium">
+                    {s.title}
+                    {s.done && <span className="ml-2 text-xs font-normal text-muted-foreground">Done</span>}
+                  </p>
                   <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{s.body}</p>
                 </div>
                 <ArrowRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
@@ -613,15 +690,11 @@ function NextSteps({ unlocked }: { unlocked: number }) {
   )
 }
 
-/* A balance, with its bar only when there is a ceiling to draw it against. An unknown
-   figure renders as a skeleton, never as a zero. */
 function Meter({ label, value, total, loading, suffix }: {
-  label: string; value: number | null; total: number | null
-  loading: boolean; suffix: string
+  label: string; value: number | null; total: number | null; loading: boolean; suffix: string
 }) {
   const pct = value !== null && total !== null && total > 0
-    ? Math.min(100, Math.round((value / total) * 100))
-    : null
+    ? Math.min(100, Math.round((value / total) * 100)) : null
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
