@@ -4,6 +4,7 @@ import * as React from "react"
 import Image from "next/image"
 import { useTheme } from "next-themes"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
+import { useCommercialAccount } from "@/hooks/useCommercialAccount"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -31,6 +32,7 @@ import {
   List as IconList,
   FileText as IconFileText,
   Megaphone as IconMegaphone,
+  Wallet as IconWallet,
   Bell as IconBell,
 } from "lucide-react"
 
@@ -96,6 +98,9 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
     }
   }, [user])
 
+  // Which modules this account holds. Drives what is in the menu at all.
+  const { owns } = useCommercialAccount()
+
   // Base navigation items - only actual existing pages
   const getNavigationData = () => {
     const searchAnalytics = [
@@ -138,6 +143,17 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         url: "/run",
         icon: IconMegaphone,
       },
+      // Merchant of Record, and ONLY for an account that holds it. It is bought, never
+      // granted by a tier, so there is nothing to tease here: an account without it has no
+      // route to buy it from this menu and a dead link would be worse than an absent one.
+      // `owns.mor` is answered by the billing status, which reports the account's real
+      // entitlements. It used to report none, which is why switching the module on for a
+      // client changed nothing they could see.
+      ...(owns.mor ? [{
+        title: "Merchant of Record",
+        url: "/mor",
+        icon: IconWallet,
+      }] : []),
     ]
 
     const more = [
