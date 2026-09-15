@@ -33,6 +33,8 @@ export function ChartRemainingCreditsV2() {
   const isAuthenticated = useIsAuthenticated()
   const [creditsData, setCreditsData] = useState<{balance: number, maxCredits: number} | null>(null)
   const [loading, setLoading] = useState(true)
+  // A failed read is its own state. It is NOT a zero balance.
+  const [failed, setFailed] = useState(false)
 
   // Load credits data (this is separate from user context as it's more dynamic)
   useEffect(() => {
@@ -84,7 +86,13 @@ export function ChartRemainingCreditsV2() {
         })
 
       } catch {
-        setCreditsData({ balance: 0, maxCredits: 1000 })
+        // This used to invent { balance: 0, maxCredits: 1000 } and render it as fact, so a
+        // brand holding 8,750 credits was shown a confident 0 whenever the wallet call
+        // failed - while the top bar, reading a different source, still said 8,750. A
+        // fabricated zero on a balance is the worst possible failure mode: it is indis-
+        // tinguishable from the real thing and it is the number somebody acts on.
+        setCreditsData(null)
+        setFailed(true)
       } finally {
         setLoading(false)
       }
@@ -125,7 +133,7 @@ export function ChartRemainingCreditsV2() {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium">Remaining Credits</CardTitle>
         <div className="text-xs text-muted-foreground">
-          {loading ? "Loading..." : "Real-time balance"}
+          {loading ? "Loading..." : failed ? "Could not load your balance" : "Real-time balance"}
         </div>
       </CardHeader>
       <CardContent className="p-1">
@@ -169,14 +177,14 @@ export function ChartRemainingCreditsV2() {
                           y={viewBox.cy}
                           className="fill-foreground text-4xl font-bold"
                         >
-                          {loading ? "..." : (creditsData?.balance || 0).toLocaleString()}
+                          {loading ? "..." : failed ? "—" : (creditsData?.balance ?? 0).toLocaleString()}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          {loading ? "Loading" : "credits"}
+                          {loading ? "Loading" : failed ? "not loaded" : "credits"}
                         </tspan>
                       </text>
                     )

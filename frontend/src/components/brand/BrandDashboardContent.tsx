@@ -318,7 +318,7 @@ export function BrandDashboardContent() {
 
       {/* The one thing we want them to do next, at the size that says so. A real object,
           so it keeps its card. */}
-      <SmartDiscovery onDiscover={() => router.push('/discover')} className="h-[280px]" />
+      <SmartDiscovery onDiscover={() => router.push('/discover')} className="h-[168px]" />
 
       {/* Unlocks and credits. Still exact, still metered, and NOT removed: they have moved
           from being the organising idea of this page to being a balance, which is what they
