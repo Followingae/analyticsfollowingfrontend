@@ -10,14 +10,15 @@
  *   find    Included in every plan, at every tier. Never sold separately, so
  *           it is never shown with a price and never has a buy button.
  *   run     An add-on with an agreed list price, sold on its own, monthly.
- *   mor     An add-on, QUOTED. Merchant of Record was missing from this file
- *           entirely, so a client could neither see nor ask for a module the
- *           backend gates a whole product area on (app/api/mor_routes.py), and
- *           the billing panel had to carry a hand-written fallback summary for
- *           it. Its price is quoted because BOTH halves of it are unagreed: the
- *           monthly fee is a placeholder in app/core/modules.py, and the
- *           settlement percentage on top of it lives in run_money/config.py.
- *           run_money/mor.py fee_structure() flags both `prices_are_provisional`.
+ *   mor     An add-on with ONE agreed price: 3% of every influencer payout we
+ *           settle, and no monthly fee (agreed 2026-09-15; the fee was AED 1,000
+ *           a month and was dropped, because the module earns when a creator is
+ *           paid). The rate lives in run_money/config.py and is stamped onto a
+ *           campaign at award time. It is priced as a percentage rather than a
+ *           monthly figure, so a plan card still cannot print a number for it.
+ *           Merchant of Record was once missing from this file entirely, so a
+ *           client could neither see nor ask for a module the backend gates a
+ *           whole product area on (app/api/mor_routes.py).
  *   manage  Not an add-on - it is the Managed plan. Quoted, so its action is
  *           always "Talk to us", never a price. It is also invoice-only
  *           (INVOICE_ONLY_MODULES), so it can never go through card checkout;
@@ -88,7 +89,10 @@ export const MODULES: Record<ModuleKey, ModuleDefinition> = {
       'Campaign insights, costed against what you actually paid',
     ],
     availability: 'addon',
-    href: '/campaigns',
+    // The module owns its whole cycle now, so this points at the module. It used to point at
+    // /campaigns, which sent a client who had just bought Merchant of Record off to find a
+    // campaign before they could see any of it.
+    href: '/mor',
     gatedRoutes: ['/campaigns'],
     wallHeadline: 'Run turns this shortlist into a campaign',
     wallBody:
@@ -114,7 +118,7 @@ export const MODULES: Record<ModuleKey, ModuleDefinition> = {
     gatedRoutes: [],
     wallHeadline: 'Merchant of Record pays your creators for you',
     wallBody:
-      'You pay us once, we contract and pay every creator, and you watch each payout move from awaiting funds to paid. There is a monthly fee and a percentage of what we settle, and both are agreed with you before anything is switched on.',
+      'You pay us once, we contract and pay every creator, and you watch each payout move from awaiting funds to paid. It costs a percentage of what we settle for you and nothing else, so a month in which nothing moved costs you nothing.',
   },
   manage: {
     key: 'manage',

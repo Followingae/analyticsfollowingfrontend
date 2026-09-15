@@ -71,13 +71,16 @@ const STATUS_WORD: Record<string, string> = {
 const BILLING_WORD: Record<BillingMethod, string> = {
   stripe: 'On a card',
   invoiced: 'Invoiced',
-  granted: 'No charge',
+  granted: 'Free of charge',
 }
 
+/* These describe how the RECURRING fee for a module is collected, which is a different
+   question from how a client settles any individual bill. Only a module with a recurring
+   fee should ever ask it. */
 const BILLING_HELP: Record<BillingMethod, string> = {
-  invoiced: 'We raise an invoice for it. Nothing is charged to a card.',
-  stripe: 'Billed on the card already on the account, against a Stripe subscription.',
-  granted: 'On, and never billed. Any price is forced to zero.',
+  invoiced: 'We raise an invoice each cycle. Nothing touches a card.',
+  stripe: 'Charged automatically to the card already on the account.',
+  granted: 'Switched on and never billed. For something included in their deal, or given as goodwill.',
 }
 
 /* The dot classes are written out rather than composed from the tone, because Tailwind only
@@ -552,25 +555,32 @@ function AddModuleDialog({
   // management service fee for the same work. There is nothing to decide, so nothing is asked.
   const includedInManage = target.module === 'mor' && manageHeld
 
-  const [method, setMethod] = useState<BillingMethod>(includedInManage ? 'granted' : 'invoiced')
+  /* Merchant of Record carries NO recurring fee. It earns per payout, and the client picks
+     card or bank transfer for each payment on their own screen, so there is no "how is it
+     billed" decision to take here and asking one invents a choice that does not exist.
+     Everything about cycles, prices and card-versus-invoice is hidden for it. */
+  const isMor = target.module === 'mor'
+  const nothingToDecide = includedInManage || isMor
+
+  const [method, setMethod] = useState<BillingMethod>(nothingToDecide ? 'granted' : 'invoiced')
   const [interval, setInterval] = useState<'month' | 'year'>('month')
   // Not prefilled for a quoted module. Manage has no list price at all, and the Merchant of
   // Record figure the catalogue carries is the placeholder named in app/core/modules.py, while
   // the server reads the agreed fee from system_configurations when no price is sent. Sending
   // the placeholder would stamp it onto the account in place of the real one.
   const [price, setPrice] = useState(
-    QUOTED_MODULES.has(target.module) || includedInManage ? '' : target.listPrice)
+    QUOTED_MODULES.has(target.module) || nothingToDecide ? '' : target.listPrice)
   const [subscription, setSubscription] = useState('')
   const [reason, setReason] = useState('')
   const [align, setAlign] = useState(true)
   const [problem, setProblem] = useState<string | null>(null)
 
-  const options: BillingMethod[] = includedInManage
+  const options: BillingMethod[] = nothingToDecide
     ? ['granted']
     : isManage ? ['invoiced', 'granted'] : ['invoiced', 'stripe', 'granted']
 
   // Only worth asking about on a monthly module that is actually billed.
-  const canAlign = !!cycle && !includedInManage && method !== 'granted' && interval === 'month'
+  const canAlign = !!cycle && !nothingToDecide && method !== 'granted' && interval === 'month'
 
   const submit = () => {
     if (method === 'stripe' && !subscription.trim()) {
@@ -605,12 +615,14 @@ function AddModuleDialog({
           <p className="rounded-ds-lg bg-muted px-3 py-2.5 text-[13px] leading-relaxed">
             {includedInManage
               ? 'This client is on Manage, which already includes Merchant of Record. It goes on at no charge: the management service charge covers us paying their creators, and charging for it again would bill the same work twice.'
-              : 'It works the moment you confirm. The client is charged for the rest of this cycle only, so it renews on the same day as everything else on the account.'}
+              : isMor
+                ? 'It works the moment you confirm, and there is nothing recurring to bill. Merchant of Record earns per creator paid through it, as a percentage of each payout, and the client chooses card or bank transfer for every payment themselves.'
+                : 'It works the moment you confirm. The client is charged for the rest of this cycle only, so it renews on the same day as everything else on the account.'}
           </p>
 
-          {!includedInManage && (
+          {!nothingToDecide && (
             <div className="space-y-2">
-              <Label>How is it billed</Label>
+              <Label>How is the recurring fee collected</Label>
               <div className="space-y-1.5">
                 {options.map(o => (
                   <button
@@ -636,7 +648,7 @@ function AddModuleDialog({
             </div>
           )}
 
-          {!includedInManage && method === 'stripe' && (
+          {!nothingToDecide && method === 'stripe' && (
             <div className="space-y-1.5">
               <Label htmlFor="mod-sub">Stripe subscription id</Label>
               <Input id="mod-sub" value={subscription} placeholder="sub_..."
@@ -644,7 +656,7 @@ function AddModuleDialog({
             </div>
           )}
 
-          {!includedInManage && method !== 'granted' && (
+          {!nothingToDecide && method !== 'granted' && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="mod-price">Price for a cycle, in AED</Label>
@@ -684,12 +696,11 @@ function AddModuleDialog({
             </label>
           )}
 
-          {target.module === 'mor' && !includedInManage && (
+          {isMor && !includedInManage && (
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-              Merchant of Record also charges a percentage of every payout we settle, on top of
-              this fee. The monthly figure is provisional until it is agreed commercially, and
-              whatever is in force when you confirm is the number stamped onto this account. If
-              this client turns out to be on Manage, it is granted at no charge instead.
+              The percentage is stamped onto each payment when it is made, so a later change to
+              our rate never reprices anything already settled. To let this client have their
+              first creators without our fee, use Merchant of Record fees further down this tab.
             </p>
           )}
 

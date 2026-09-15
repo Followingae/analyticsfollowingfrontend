@@ -79,9 +79,14 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const showPricing = !byTier && proposal.visible_fields?.show_sell_pricing !== false && budget > 0
 
   const [creators, setCreators] = useState<BrandInfluencer[]>(data.influencers)
-  /* Opening a proposal starts from nothing. A selection carried over from a previous
-     visit reads as us having chosen for them, and it is the first thing they see. */
-  const [chosen, setChosen] = useState<Set<string>>(() => new Set())
+  /* What THEY have already chosen, read back from the server. This started from nothing
+     on every visit, so a client who ticked creators, left, and came back saw an empty
+     wall while our side still counted their picks - and the two disagreed about what had
+     been chosen until somebody rang us about it. Their own ticks are not us choosing for
+     them; a suggestion nobody adopted is, which is why the optimiser no longer writes
+     one. Confirmed creators are excluded: they are a booking, not a choice on the table. */
+  const [chosen, setChosen] = useState<Set<string>>(
+    () => new Set(data.influencers.filter(c => c.selected_by_user && !c.locked).map(c => c.id)))
   const [strategy, setStrategy] = useState<Strategy>("mix")
   const [sort, setSort] = useState<"rec" | "f" | "er" | "p">("rec")
   const [builtSig, setBuiltSig] = useState<string | null>(null)
@@ -102,7 +107,8 @@ export function PlanBuilder({ proposalId, data, onReload }: {
      applies to the creators the operator marked eligible, and only where the client
      asks for it, so it is tracked per creator rather than as one switch. */
   const modifier = (proposal as unknown as { price_modifier?: PriceModifier }).price_modifier ?? null
-  const [withMod, setWithMod] = useState<Set<string>>(() => new Set())
+  const [withMod, setWithMod] = useState<Set<string>>(
+    () => new Set(data.influencers.filter(c => tookModifier(c, modifier)).map(c => c.id)))
 
   useEffect(() => { setCreators(data.influencers) }, [data.influencers])
 
@@ -356,7 +362,12 @@ export function PlanBuilder({ proposalId, data, onReload }: {
 
     const r = await optimise(live, spendable, strategy, p => setTested({ n: p.tested, total: p.total, best: p.best, spend: p.spend }))
     const ids = new Set(r.picks.map(c => c.id))
-    setChosen(ids); save(ids); setBuiltSig(sig(ids, strategy))
+    /* Put on their screen, NOT written down as their answer. This used to autosave, so a
+       client who tapped "Build my line-up" once and went away had sixteen creators
+       recorded against them as chosen - our side showed those as selected while the
+       client, who had picked nobody, saw nothing. The machine proposes; only a tick or a
+       confirmation from them is an answer. */
+    setChosen(ids); setBuiltSig(sig(ids, strategy))
     setBuildLog(l => [...l, `Best fit found: ${aed(r.spend)} of ${aed(spendable)}, ${aed(r.leftover)} unspent`])
     await new Promise(r2 => setTimeout(r2, 900))
     setBuilding(false)
@@ -896,7 +907,9 @@ export function PlanBuilder({ proposalId, data, onReload }: {
         onRead={markOpened}
         onUseLineup={() => {
           const ids = new Set(recommended.map(c => c.id))
-          setChosen(ids); save(ids); setBuiltSig(sig(ids, strategy))
+          /* Same rule as the builder: shown, not recorded. Confirming sends these ids
+             explicitly, so backing out of the dialog leaves nothing behind. */
+          setChosen(ids); setBuiltSig(sig(ids, strategy))
           setSmartOpen(false); setConfirmOpen(true)
         }}
         onAskAnyway={() => { setSmartOpen(false); setAskOpen(true) }}

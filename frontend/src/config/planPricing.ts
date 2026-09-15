@@ -208,17 +208,14 @@ export function annualMonthlyEquivalent(monthlyAmount: number): number {
 //   run     Campaigns, proposals, deliverables, settlement. An add-on, and the
 //           only module with an agreed list price: RUN_ADDON_AED_PER_MONTH,
 //           AED 1,200 a month.
-//   mor     Merchant of record. An add-on with TWO prices, not one: a monthly
-//           fee AND a percentage of every payout settled, stamped onto a
-//           campaign at award time. Neither is agreed. The monthly fee in
-//           modules.py (MOR_ADDON_AED_PER_MONTH) is labelled a PLACEHOLDER by
-//           that file itself; the percentage lives in run_money/config.py and
-//           is likewise unagreed; and run_money/mor.py fee_structure() returns
-//           `prices_are_provisional: True` over both. So MoR is QUOTED here, no
-//           number for it is ever printed, and any copy that describes it must
-//           mention BOTH halves, or the first quote a client sees is missing
-//           half the commercial model. app/core/plans.py addon_catalogue()
-//           carries the same judgement as price_agreed: False.
+//   mor     Merchant of record. ONE price, agreed 2026-09-15: 3% of every
+//           influencer payout we settle, stamped onto a campaign at award time,
+//           with NO monthly fee. It used to be two prices, a monthly fee and a
+//           percentage, and the monthly half was dropped because the module
+//           earns when a creator is paid. The rate lives in run_money/config.py
+//           (DEFAULT_SETTLEMENT_FEE_PCT). It stays 'quoted' in the table below
+//           only because it is a percentage of payouts rather than a monthly
+//           figure, so there is no per-month number a plan card could print.
 //           Included free in Managed: see PLAN_INCLUDED_MODULES below.
 //   manage  The Managed plan, not an add-on. Quoted per client and invoiced,
 //           with a service charge set per client, so it never carries a price.

@@ -88,7 +88,7 @@ export interface AccountModulesResponse {
 
 /** What Merchant of Record costs this account, in the words it is sold in. */
 export interface MorFeeStructure {
-  monthly_fee_aed: string
+  /** The whole price: a percentage of each payout settled. There is no monthly fee. */
   settlement_fee_pct: string
   /** True for a Manage client: Manage already charges for the same work. */
   included_in_manage: boolean

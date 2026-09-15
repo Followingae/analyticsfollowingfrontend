@@ -46,6 +46,7 @@ import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/c
 import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab';
 import { ClientModulesTab } from '@/components/clients/ClientModulesTab';
+import { MorFeeWaiverTab } from '@/components/clients/MorFeeWaiverTab';
 import { ClientManagementTermsTab } from '@/components/clients/ClientManagementTermsTab';
 import {
   Aed, FieldStrip, PageHead, Panel, Stat, StatGrid, type Tone,
@@ -886,6 +887,11 @@ function ClientDetailPage() {
             None of it is read daily, and all of it is read when something is wrong. */}
         <TabsContent value="setup" className="space-y-ds-5">
                   <ClientModulesTab teamId={teamId} clientName={client.company_name || client.name} />
+          <div className="border-t pt-ds-4">
+                  {/* Sits with the modules rather than with the money, because granting it is
+                      a decision about what this client HOLDS, taken at the point of sale. */}
+                  <MorFeeWaiverTab teamId={teamId} clientName={client.company_name || client.name} />
+          </div>
           <div className="border-t pt-ds-4">
         {/* MANAGEMENT TAB: the retainer and the service charge we run this client on, and
             what having a deal at all means for what they are charged elsewhere */}

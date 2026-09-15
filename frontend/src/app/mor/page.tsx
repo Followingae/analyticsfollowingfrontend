@@ -1,26 +1,37 @@
 'use client'
 
 /**
- * Merchant of Record — the plan screen for it.
+ * Merchant of Record — the one screen.
  *
- * The whole price is on this page before anyone commits: the monthly fee AND the
- * percentage of payouts, in the same words the invoice will use. A Manage client sees why
- * they are not charged for it rather than a buy button they should not press.
+ * A brand arrives here having already agreed terms with a creator, and wants us to contract
+ * that creator and pay them. There is no campaign, no brief and no proposal in that
+ * sentence, so there is none on this page. One list, one button, one badge.
+ *
+ * WHAT THIS PAGE REFUSES TO BE. The obvious version is a dashboard: tiles, charts, tabs, a
+ * table with nine columns. Nobody comes here to browse. They come to start a payment or to
+ * check whether one has gone out, and both answers should be readable without reading. So
+ * the figures are a quiet line rather than three cards, the payments are rows rather than
+ * cards, and everything else is space.
+ *
+ * Somebody who does not hold the module gets the offer instead. `GET /overview` is gated and
+ * would 403 at them, so the ungated offer call decides which of the two this is.
  */
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { AuthGuard } from '@/components/AuthGuard'
 import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from 'sonner'
-import { ArrowRight, BadgeCheck, Banknote, Info, Landmark, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Plus, ShieldCheck, Wallet } from 'lucide-react'
 import { morApi, type MorOffer } from '@/services/morApi'
+import {
+  morPaymentsApi, aed,
+  type MorOverview, type MorPayment, type FeeFreeState,
+} from '@/services/morPaymentsApi'
+import { cn } from '@/lib/utils'
 
 export default function MorPage() {
   return (
@@ -32,153 +43,272 @@ export default function MorPage() {
   )
 }
 
-function MorContent() {
-  const [offer, setOffer] = useState<MorOffer | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [buying, setBuying] = useState(false)
+/* The page's own tokens. Lime is the theme's own accent - chart-3 in light, the brand hue in
+   dark - and it is light enough that anything on it has to be near-black to stay readable.
+   Declared once here rather than inlined at each use so the two cannot drift apart. */
+const TOKENS = `
+  .mor-scope {
+    --mor-lime: oklch(0.9354 0.2254 121.4851);
+    --mor-lime-ink: oklch(0.2046 0 0);
+    --mor-rule: color-mix(in oklch, var(--border) 70%, transparent);
+  }
+  .mor-row { transition: background-color 160ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .mor-row:hover { background-color: color-mix(in oklch, var(--muted) 55%, transparent); }
+  .mor-row:focus-visible {
+    outline: 2px solid var(--ring); outline-offset: -2px; border-radius: 10px;
+  }
+`
 
-  useEffect(() => {
-    let cancelled = false
-    morApi
-      .offer()
-      .then((r) => {
-        if (!cancelled) setOffer(r.data)
-      })
-      .catch((e) => toast.error(e.message))
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
+function MorContent() {
+  const router = useRouter()
+  const [offer, setOffer] = useState<MorOffer | null>(null)
+  const [data, setData] = useState<MorOverview | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    try {
+      const o = await morApi.offer()
+      setOffer(o.data)
+      if (o.data.active) {
+        const r = await morPaymentsApi.overview()
+        setData(r.data)
+      }
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setLoading(false)
     }
   }, [])
 
-  const buy = async () => {
-    setBuying(true)
-    try {
-      const origin = window.location.origin
-      const r = await morApi.subscribe(`${origin}/mor?welcome=1`, `${origin}/mor`)
-      window.location.href = r.data.checkout_url
-    } catch (e: any) {
-      toast.error(e.message)
-      setBuying(false)
-    }
-  }
+  useEffect(() => { void load() }, [load])
 
-  if (loading) {
-    return (
-      <div className="p-6 space-y-4 max-w-4xl">
-        <Skeleton className="h-9 w-72" />
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-32 w-full" />
+  return (
+    <div className="mor-scope mx-auto w-full max-w-[860px] px-5 py-12 sm:px-8 sm:py-16">
+      <style>{TOKENS}</style>
+      {loading ? <LoadingShape /> : offer?.active ? (
+        <Live data={data} onGo={() => router.push('/mor/new')} />
+      ) : (
+        <Offer offer={offer} />
+      )}
+    </div>
+  )
+}
+
+/* Loading. The shape of the answer, not a spinner: the header, the figures and three rows
+   land where they will actually be. */
+function LoadingShape() {
+  return (
+    <div>
+      <Skeleton className="h-9 w-64" />
+      <Skeleton className="mt-4 h-4 w-96 max-w-full" />
+      <div className="mt-14 flex gap-12">
+        {[0, 1, 2].map((n) => (
+          <div key={n}>
+            <Skeleton className="h-7 w-24" />
+            <Skeleton className="mt-2.5 h-3 w-20" />
+          </div>
+        ))}
       </div>
+      <div className="mt-14 space-y-1">
+        {[0, 1, 2].map((n) => <Skeleton key={n} className="h-[68px] w-full rounded-[10px]" />)}
+      </div>
+    </div>
+  )
+}
+
+function Live({ data, onGo }: { data: MorOverview | null; onGo: () => void }) {
+  if (!data) {
+    return (
+      <p className="text-[14.5px] leading-relaxed text-muted-foreground">
+        We could not load your creator payments just now. Reload the page, and if it keeps
+        happening tell us and we will look.
+      </p>
     )
   }
 
-  if (!offer) return null
-
-  const { fees } = offer
+  const { summary, payments } = data
+  const free = summary.fee_free
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
-      <div className="space-y-2">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{offer.label}</h1>
-          {offer.active && (
-            <Badge variant="secondary" className="gap-1">
-              <BadgeCheck className="h-3.5 w-3.5" /> On
-            </Badge>
-          )}
-          {fees.included_in_manage && <Badge variant="outline">Included in Manage</Badge>}
+    <div>
+      <header className="flex flex-wrap items-start justify-between gap-6">
+        <div className="min-w-0">
+          <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">
+            Merchant of Record
+          </h1>
+          <p className="mt-3 max-w-[52ch] text-[14.5px] leading-relaxed text-muted-foreground">
+            You tell us who you have agreed with. We contract them, you pay us once, and we
+            pay them.
+          </p>
+          {free.remaining > 0 && <FeeFreeBadge free={free} />}
         </div>
-        <p className="text-muted-foreground max-w-2xl">{offer.description}</p>
+        <Button onClick={onGo} className="shrink-0 gap-1.5">
+          <Plus className="size-4" />Pay a creator
+        </Button>
+      </header>
+
+      {payments.length > 0 && (
+        <div className="mt-14 flex flex-wrap gap-x-14 gap-y-8">
+          <Figure label="Waiting on you" value={aed(summary.awaiting_payment.aed)}
+                  count={summary.awaiting_payment.n} />
+          <Figure label="Paying the creator" value={aed(summary.paying_creator.aed)}
+                  count={summary.paying_creator.n} />
+          <Figure label="Paid" value={aed(summary.paid.aed)} count={summary.paid.n} />
+        </div>
+      )}
+
+      <section className="mt-14">
+        {payments.length === 0 ? (
+          <Empty onGo={onGo} />
+        ) : (
+          <ul className="-mx-3">
+            {payments.map((p, i) => <Row key={p.id} payment={p} first={i === 0} />)}
+          </ul>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function Figure({ label, value, count }: { label: string; value: string; count: number }) {
+  return (
+    <div>
+      <div className="text-[21px] font-semibold tabular-nums tracking-[-0.02em]">
+        {count === 0 ? <span className="text-muted-foreground">None</span> : value}
+      </div>
+      <div className="mt-1.5 text-[12.5px] text-muted-foreground">
+        {label}
+        {count > 0 && <span className="tabular-nums"> · {count}</span>}
+      </div>
+    </div>
+  )
+}
+
+/* The badge. Lime, because it is the one genuinely good piece of news on the page and the
+   only thing here allowed to be loud. It disappears the moment it is spent rather than
+   turning into a reminder that they are now being charged. */
+function FeeFreeBadge({ free }: { free: FeeFreeState }) {
+  const until = free.valid_until
+    ? new Date(free.valid_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })
+    : null
+  return (
+    <div
+      className="mt-6 inline-flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-full px-4 py-2 text-[13px] font-medium"
+      style={{ background: 'var(--mor-lime)', color: 'var(--mor-lime-ink)' }}
+    >
+      <ShieldCheck className="size-[15px]" aria-hidden />
+      <span className="tabular-nums">
+        {free.remaining} fee-free {free.remaining === 1 ? 'creator' : 'creators'}
+      </span>
+      {until && <span className="opacity-70">until {until}</span>}
+    </div>
+  )
+}
+
+const DOT: Record<string, string> = {
+  draft: 'bg-muted-foreground/40',
+  awaiting_payment: 'bg-amber-500',
+  funded: 'bg-sky-500',
+  paid: 'bg-emerald-600',
+  cancelled: 'bg-muted-foreground/40',
+}
+
+function Row({ payment, first }: { payment: MorPayment; first: boolean }) {
+  return (
+    <li>
+      <Link
+        href={`/mor/${payment.id}`}
+        className={cn(
+          'mor-row flex items-center justify-between gap-6 rounded-[10px] px-3 py-4',
+          !first && 'border-t border-[var(--mor-rule)]',
+        )}
+      >
+        <div className="min-w-0">
+          <div className="truncate text-[15px] font-medium tracking-[-0.01em]">
+            {payment.creator_name}
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-[12.5px] text-muted-foreground">
+            <span className={cn('size-[6px] shrink-0 rounded-full', DOT[payment.status])} aria-hidden />
+            <span className="truncate">{payment.status_label}</span>
+            {payment.creator_handle && (
+              <span className="truncate opacity-70">@{payment.creator_handle}</span>
+            )}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-4">
+          <div className="text-right">
+            <div className="text-[15px] font-medium tabular-nums tracking-[-0.01em]">
+              {aed(payment.total_aed)}
+            </div>
+            {payment.fee_waived && (
+              <div className="mt-0.5 text-[11.5px] font-medium text-muted-foreground">
+                No fee from us
+              </div>
+            )}
+          </div>
+          <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </div>
+      </Link>
+    </li>
+  )
+}
+
+/* Teaches the screen rather than announcing that it is empty. */
+function Empty({ onGo }: { onGo: () => void }) {
+  return (
+    <div className="rounded-[14px] border border-dashed border-[var(--mor-rule)] px-8 py-14 text-center">
+      <Wallet className="mx-auto size-6 text-muted-foreground" aria-hidden />
+      <p className="mx-auto mt-5 max-w-[46ch] text-[14.5px] leading-relaxed text-muted-foreground">
+        Nobody yet. When you have agreed a creator, a fee and what they are posting, tell us
+        here. We draw up the agreement in our name, you settle one invoice, and we pay them.
+      </p>
+      <Button onClick={onGo} variant="outline" className="mt-7 gap-1.5">
+        <Plus className="size-4" />Pay a creator
+      </Button>
+    </div>
+  )
+}
+
+/* For somebody who does not hold the module yet. */
+function Offer({ offer }: { offer: MorOffer | null }) {
+  if (!offer) {
+    return (
+      <p className="text-[14.5px] leading-relaxed text-muted-foreground">
+        We could not load this just now. Reload the page and it should come back.
+      </p>
+    )
+  }
+  const fees = offer.fees
+  return (
+    <div>
+      <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">
+        {offer.label}
+      </h1>
+      <p className="mt-3 max-w-[52ch] text-[14.5px] leading-relaxed text-muted-foreground">
+        {offer.description}
+      </p>
+
+      <ol className="mt-12 space-y-5">
+        {offer.how_it_works?.map((step: string, i: number) => (
+          <li key={i} className="flex gap-4">
+            <span className="mt-[3px] size-[7px] shrink-0 rounded-full bg-foreground/25" aria-hidden />
+            <span className="max-w-[56ch] text-[14.5px] leading-relaxed">{step}</span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-12 border-t border-[var(--mor-rule)] pt-8">
+        <div className="text-[28px] font-semibold tabular-nums tracking-[-0.02em]">
+          {fees.included_in_manage ? 'Included' : `${fees.settlement_fee_pct}%`}
+        </div>
+        <p className="mt-2 max-w-[54ch] text-[13.5px] leading-relaxed text-muted-foreground">
+          {fees.summary}
+        </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">How it works</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ol className="space-y-3">
-            {offer.how_it_works.map((step, i) => (
-              <li key={i} className="flex gap-3 text-sm">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                  {i + 1}
-                </span>
-                <span className="pt-0.5">{step}</span>
-              </li>
-            ))}
-          </ol>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">What it costs</CardTitle>
-          <CardDescription>{fees.summary}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border p-4">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                <Banknote className="h-3.5 w-3.5" /> Monthly module fee
-              </div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums">
-                {fees.included_in_manage
-                  ? 'Included'
-                  : `AED ${Number(fees.monthly_fee_aed).toLocaleString('en-AE')}`}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Charged while the module is switched on, whether or not a payout runs.
-              </p>
-            </div>
-            <div className="rounded-lg border p-4">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5" /> Of every payout we settle
-              </div>
-              <div className="mt-2 text-2xl font-semibold tabular-nums">
-                {fees.included_in_manage ? 'Included' : `${fees.settlement_fee_pct}%`}
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Fixed onto each campaign when it is awarded, so a later change to our rate
-                never reprices work that is already running.
-              </p>
-            </div>
-          </div>
-
-          {fees.included_in_manage && (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                You are on Manage, and the {fees.management_service_charge_pct}% management
-                service charge already covers us paying your creators. You are not charged
-                for this a second time.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {fees.prices_are_provisional && !fees.included_in_manage && (
-            <p className="text-xs text-muted-foreground">
-              These rates are indicative until confirmed on your agreement.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Separator />
-
-      <div className="flex flex-wrap items-center gap-3">
-        {offer.can_buy && (
-          <Button onClick={buy} disabled={buying}>
-            {buying ? 'Opening checkout…' : 'Switch it on'}
-          </Button>
-        )}
-        <Button variant={offer.can_buy ? 'outline' : 'default'} asChild>
-          <Link href="/mor/payees">
-            <Landmark className="mr-2 h-4 w-4" />
-            Payee bank details
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
+      <div className="mt-10">
+        <Button asChild variant="outline">
+          <Link href="/mor/payees">Your payee book<ArrowRight className="ml-1.5 size-4" /></Link>
         </Button>
       </div>
     </div>

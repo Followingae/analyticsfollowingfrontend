@@ -28,7 +28,7 @@ async function jfetch(url: string, options: RequestInit = {}) {
 
 export interface MorFees {
   module: string;
-  monthly_fee_aed: string;
+  /** The whole price. There is no monthly fee. */
   settlement_fee_pct: string;
   included_in_manage: boolean;
   management_service_charge_pct: string | null;
