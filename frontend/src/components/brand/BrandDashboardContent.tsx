@@ -28,6 +28,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { useUserStore, useSubscriptionData, useTeamData } from '@/stores/userStore'
@@ -55,7 +56,7 @@ import { cn } from '@/lib/utils'
 
 import {
   AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, Bell, CheckCircle2, Compass,
-  CreditCard, FileText, Link2, Megaphone, PlayCircle, Sparkles, UserPlus, Users, Wallet,
+  CreditCard, FileText, Link2, Lock, Megaphone, PlayCircle, Sparkles, UserPlus, Users,
 } from 'lucide-react'
 
 const PROPOSAL_WAITING = ['sent', 'in_review', 'more_requested']
@@ -296,6 +297,8 @@ export function BrandDashboardContent() {
           )}
 
           {(hero === 'unlocked' || hero === 'welcome') && <NextSteps unlocked={unlockedProfilesCount} />}
+
+          <Modules owns={owns} />
         </main>
 
         <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
@@ -330,8 +333,6 @@ export function BrandDashboardContent() {
               </Button>
             </CardContent>
           </Card>
-
-          <ModulesCard owns={owns} />
 
           <Card>
             <CardHeader className="pb-3">
@@ -444,10 +445,10 @@ function Hero({ kind, content, proposals, liveCount, unlocked, onGo }: {
 }) {
   const faces: Record<HeroKind, {
     icon: typeof Bell; hue: Hue; title: string; body: string
-    cta: string; href: string; urgent?: boolean
+    cta: string; href: string; urgent?: boolean; art: string
   }> = {
     content: {
-      icon: PlayCircle, hue: 'amber',
+      art: '/modules/run.png', icon: PlayCircle, hue: 'amber',
       title: `${content?.awaiting_you} ${content?.awaiting_you === 1 ? 'piece' : 'pieces'} of content waiting on you`,
       body: 'Your creators have sent work through. Nothing goes live until you have seen it.',
       cta: 'Review it now',
@@ -455,7 +456,7 @@ function Hero({ kind, content, proposals, liveCount, unlocked, onGo }: {
       urgent: true,
     },
     proposals: {
-      icon: FileText, hue: 'violet',
+      art: '/modules/proposals.png', icon: FileText, hue: 'violet',
       title: `${proposals.length} ${proposals.length === 1 ? 'proposal is' : 'proposals are'} waiting for you`,
       body: 'We have put a line-up together. Have a look and tell us who you want.',
       cta: proposals.length === 1 ? 'Open the proposal' : 'See the proposals',
@@ -463,19 +464,19 @@ function Hero({ kind, content, proposals, liveCount, unlocked, onGo }: {
       urgent: true,
     },
     running: {
-      icon: Megaphone, hue: 'blue',
+      art: '/modules/run.png', icon: Megaphone, hue: 'blue',
       title: `${liveCount} ${liveCount === 1 ? 'campaign' : 'campaigns'} running right now`,
       body: 'Everything is moving and nothing needs you this minute. We will tell you when it does.',
       cta: 'See your campaigns', href: '/campaigns',
     },
     unlocked: {
-      icon: Users, hue: 'blue',
+      art: '/modules/find.png', icon: Users, hue: 'blue',
       title: `${unlocked} ${unlocked === 1 ? 'creator' : 'creators'} unlocked and ready`,
       body: 'You have the analytics. The next step is turning a shortlist into a campaign.',
       cta: 'Go to your creators', href: '/creators',
     },
     welcome: {
-      icon: Sparkles, hue: 'brand',
+      art: '/modules/welcome.png', icon: Sparkles, hue: 'brand',
       title: 'Welcome to Following',
       body: 'Start by finding creators worth your budget. Everything else follows from the shortlist.',
       cta: 'Find creators', href: '/discover',
@@ -487,28 +488,34 @@ function Hero({ kind, content, proposals, liveCount, unlocked, onGo }: {
   const c = HUE[f.hue]
 
   return (
-    <Card
-      className="overflow-hidden border-transparent"
-      style={{ background: `color-mix(in oklch, ${c} ${f.urgent ? 14 : 8}%, var(--card))` }}
-    >
-      <CardContent className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
-        <div className="flex min-w-0 items-start gap-4">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl"
-                style={{ background: c, color: 'var(--card)' }}>
+    <div className="relative isolate overflow-hidden rounded-xl border border-transparent">
+      <Image
+        src={f.art} alt="" fill priority sizes="(max-width: 1024px) 100vw, 900px"
+        className="-z-10 object-cover object-right"
+      />
+      {/* The art was generated with an empty left third on purpose. This gradient deepens
+          it so the words sit on near-black at every width, including the narrow ones where
+          the subject creeps leftward. */}
+      <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/85 to-black/25" />
+      <div className="flex min-h-[210px] flex-col justify-center gap-5 p-6 sm:p-8">
+        <div className="max-w-[46ch]">
+          <span className="mb-4 flex size-10 items-center justify-center rounded-xl"
+                style={{ background: c, color: '#000' }}>
             <Icon className="size-5" />
           </span>
-          <div className="min-w-0">
-            <p className="text-xl font-semibold leading-tight tracking-tight">{f.title}</p>
-            <p className="mt-1.5 max-w-[54ch] text-sm leading-relaxed text-muted-foreground">
-              {f.body}
-            </p>
-          </div>
+          <p className="text-xl font-semibold leading-tight tracking-tight text-white sm:text-2xl">
+            {f.title}
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-white/70">{f.body}</p>
         </div>
-        <Button size="lg" className="shrink-0" onClick={() => onGo(f.href)}>
-          {f.cta}<ArrowRight className="ml-2 size-4" />
-        </Button>
-      </CardContent>
-    </Card>
+        <div>
+          <Button size="lg" onClick={() => onGo(f.href)}
+                  className="bg-white text-black hover:bg-white/90">
+            {f.cta}<ArrowRight className="ml-2 size-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -568,37 +575,91 @@ function CampaignProgress({ campaigns, loading }: { campaigns: any[]; loading: b
   )
 }
 
-/* What this account holds, and what it does not. Answered by the billing status, which now
-   reports real entitlements. */
-function ModulesCard({ owns }: { owns: Record<string, boolean> }) {
-  const all = [
-    { key: 'find', name: 'Find', body: 'Search and unlock creators', href: '/discover', hue: 'blue' as Hue },
-    { key: 'run', name: 'Run', body: 'Brief, award and deliver', href: '/run', hue: 'violet' as Hue },
-    { key: 'mor', name: 'Merchant of Record', body: 'We pay your creators', href: '/mor', hue: 'green' as Hue },
-    { key: 'manage', name: 'Manage', body: 'We run it for you', href: '/campaigns', hue: 'brand' as Hue },
-  ]
-  const held = all.filter((m) => owns?.[m.key])
-  if (held.length === 0) return null
+/* Every module, owned or not.
+ *
+ * Showing only what an account already has was the wrong call: this is the one place in the
+ * product where a client can see what they are NOT on, and hiding it removes the only
+ * upsell surface we have. What they hold opens; what they do not is dimmed, carries a lock,
+ * and says what it would do for them.
+ *
+ * The artwork is the same series across all four, each generated with an empty left third
+ * for exactly this overlay.
+ */
+const MODULES = [
+  { key: 'find', name: 'Find', art: '/modules/find.png',
+    owned: 'Search, analyse and unlock creators',
+    pitch: 'Measured analytics on every creator, not follower counts',
+    href: '/discover', hue: 'blue' as Hue },
+  { key: 'run', name: 'Run', art: '/modules/run.png',
+    owned: 'Brief creators and run it to delivery',
+    pitch: 'Post a brief, take priced offers back, track it to posted',
+    href: '/run', hue: 'violet' as Hue },
+  { key: 'mor', name: 'Merchant of Record', art: '/modules/mor.png',
+    owned: 'We contract and pay your creators',
+    pitch: 'One invoice instead of forty. You pay us, we pay them',
+    href: '/mor', hue: 'green' as Hue },
+  { key: 'manage', name: 'Manage', art: '/modules/manage.png',
+    owned: 'Your account team runs the campaign',
+    pitch: 'We source, negotiate and run it. You watch it happen',
+    href: '/campaigns', hue: 'brand' as Hue },
+]
 
+function Modules({ owns }: { owns: Record<string, boolean> }) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">What you have</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-1 pt-0">
-        {held.map((m) => (
-          <Link key={m.key} href={m.href}
-                className="-mx-2 flex items-center gap-3 rounded-md px-2 py-2.5 transition-colors hover:bg-muted">
-            <span className="size-2 shrink-0 rounded-full" style={{ background: HUE[m.hue] }} />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-medium">{m.name}</span>
-              <span className="block truncate text-xs text-muted-foreground">{m.body}</span>
-            </span>
-            <ArrowRight className="size-3.5 shrink-0 text-muted-foreground" />
-          </Link>
-        ))}
-      </CardContent>
-    </Card>
+    <section>
+      <div className="mb-4 flex items-baseline justify-between gap-3">
+        <h2 className="text-base font-semibold tracking-tight">What Following can do for you</h2>
+        <Link href="/pricing"
+              className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+          See plans
+        </Link>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {MODULES.map((m) => {
+          const has = !!owns?.[m.key]
+          return (
+            <Link
+              key={m.key}
+              href={has ? m.href : '/pricing'}
+              className={cn(
+                'group relative isolate overflow-hidden rounded-xl border border-transparent',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              )}
+            >
+              <Image
+                src={m.art} alt="" fill sizes="(max-width: 640px) 100vw, 440px"
+                className={cn(
+                  '-z-10 object-cover object-right transition-[transform,filter] duration-500',
+                  'group-hover:scale-[1.03]',
+                  !has && 'grayscale',
+                )}
+              />
+              <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/80 to-black/30" />
+              <div className="flex min-h-[148px] flex-col justify-between gap-4 p-5">
+                <div className="max-w-[30ch]">
+                  <div className="flex items-center gap-2">
+                    <span className="size-2 rounded-full"
+                          style={{ background: has ? HUE[m.hue] : 'rgba(255,255,255,0.35)' }} />
+                    <p className="text-[15px] font-semibold tracking-tight text-white">{m.name}</p>
+                    {!has && <Lock className="size-3 text-white/45" aria-hidden />}
+                  </div>
+                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-white/65">
+                    {has ? m.owned : m.pitch}
+                  </p>
+                </div>
+                <span className={cn(
+                  'inline-flex items-center gap-1.5 text-[12.5px] font-medium',
+                  has ? 'text-white' : 'text-white/70',
+                )}>
+                  {has ? 'Open' : 'Add it'}
+                  <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 
