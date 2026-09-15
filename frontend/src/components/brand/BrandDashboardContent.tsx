@@ -100,136 +100,138 @@ export function BrandDashboardContent() {
 
   if (isLoading) return <DashboardSkeleton />
 
+  /* THE RULE THIS PAGE NEARLY BROKE. No data means the section is not rendered at all, not
+     a card containing the sentence "nothing yet". On an account that has just started the
+     placeholders ARE the page: three tall boxes reading "nothing has come in", "nothing
+     booked" and "nobody is mid-campaign" is a screen about absence.
+
+     So every block below sits behind a real condition, and the grids are built from whatever
+     survives rather than from a fixed column count. A brand with one proposal and nothing
+     else gets a short page, which is the honest shape of their account today. */
+  const showChart = peak > 0
+  const showRing = !!progress && progress.pct !== null && progress.total > 0
+  const showCreators = creators.length > 0
+  const showNeeds = waiting.length > 0 || !!s?.awaiting_you
+
+  const figures = [
+    { label: 'Waiting on you', value: needsYou, filled: true,
+      foot: needsYou ? 'Content and proposals' : 'You are all caught up',
+      badge: waiting.length ? waiting.length + ' proposal' + (waiting.length === 1 ? '' : 's') : undefined,
+      href: s?.focus ? '/campaigns/' + s.focus.campaign_id + '/content' : '/proposals',
+      always: true },
+    { label: 'Campaigns live', value: s?.live_campaigns ?? activeCampaignsCount,
+      foot: 'Running right now', href: '/campaigns' },
+    { label: 'Creators working', value: s?.creators_working,
+      foot: 'Filming or posting now', href: '/campaigns' },
+    { label: 'Creators unlocked', value: unlockedProfilesCount,
+      foot: 'Across your whole team', href: '/creators' },
+  ].filter((f) => f.always || (typeof f.value === 'number' && f.value > 0))
+
+  const mid = [showChart, showNeeds, showRing].filter(Boolean).length
+
   return (
-    <div className="flex w-full flex-col gap-4 p-4 md:p-5">
+    <div className="flex w-full flex-col gap-3.5 p-4 md:p-5">
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {greet()}{who.name ? `, ${who.name}` : ''}
-          </h1>
-          <p className="mt-1 text-[13px] text-muted-foreground">
-            {line(activeCampaignsCount, waiting.length, s?.awaiting_you ?? 0)}
-          </p>
+      <div>
+        <h1 className="text-[22px] font-bold tracking-tight">{greet()}</h1>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">
+          {line(activeCampaignsCount, waiting.length, s?.awaiting_you ?? 0)}
+        </p>
+      </div>
+
+      <div className={cn('grid gap-3',
+        figures.length <= 2 ? 'grid-cols-2'
+          : figures.length === 3 ? 'grid-cols-2 lg:grid-cols-3'
+          : 'grid-cols-2 lg:grid-cols-4')}>
+        {figures.map((f) => (
+          <Stat key={f.label} label={f.label} value={f.value} foot={f.foot} badge={f.badge}
+                href={f.href} loading={s === null} filled={f.filled} />
+        ))}
+      </div>
+
+      {mid > 0 && (
+        <div className={cn('grid gap-3',
+          mid === 2 ? 'lg:grid-cols-2' : mid === 3 ? 'lg:grid-cols-[1.45fr_1fr_1fr]' : '')}>
+
+          {showChart && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Content coming in</CardTitle>
+                <CardDescription className="text-xs">Last seven days</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[122px] w-full">
+                  <BarChart data={series} margin={{ top: 6, left: 0, right: 0, bottom: 0 }}>
+                    <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8}
+                           tick={{ fontSize: 11 }} />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                    <Bar dataKey="count" radius={999} barSize={26}>
+                      {series.map((d) => (
+                        <Cell key={d.date}
+                              fill={d.count === peak ? 'var(--chart-1)' : 'var(--muted)'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {showNeeds && (
+            <Card className="flex flex-col">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Needs you</CardTitle>
+                <CardDescription className="text-xs">Oldest first</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col justify-between gap-3">
+                <div>
+                  {waiting.slice(0, 2).map((pp) => {
+                    const pr = pp?.proposal ?? pp
+                    return (
+                      <Row key={pr?.id} title={pr?.title || pr?.campaign_name || 'Proposal'}
+                           sub={pr?.deadline_at
+                             ? 'Reply by ' + new Date(pr.deadline_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+                             : 'Waiting on your answer'}
+                           badge="Proposal" />
+                    )
+                  })}
+                  {!!s?.awaiting_you && (
+                    <Row title={s.awaiting_you + ' piece' + (s.awaiting_you === 1 ? '' : 's') + ' to approve'}
+                         sub={s.focus?.campaign_name ?? 'Across your campaigns'}
+                         badge="Content" tone="warn" />
+                  )}
+                </div>
+                <Button asChild className="w-full" size="sm">
+                  <Link href={waiting.length
+                    ? '/proposals/' + (waiting[0]?.proposal?.id ?? waiting[0]?.id ?? '')
+                    : (s?.focus ? '/campaigns/' + s.focus.campaign_id + '/content' : '/campaigns')}>
+                    {waiting.length ? 'Open the proposal' : 'Review content'}
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {showRing && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Campaign progress</CardTitle>
+                <CardDescription className="text-xs">Across everything live</CardDescription>
+              </CardHeader>
+              <CardContent><Ring progress={progress!} /></CardContent>
+            </Card>
+          )}
         </div>
-        <div className="flex items-center gap-2.5 rounded-full border bg-card py-1 pl-1 pr-3.5">
-          <Avatar className="size-7"><AvatarFallback className="text-[10px]">{who.initials}</AvatarFallback></Avatar>
-          <span className="text-[13px] font-medium">{who.name ?? 'Your account'}</span>
-        </div>
-      </div>
+      )}
 
-      {/* Four figures. The first is filled, because it is the only one that is a request. */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat filled label="Waiting on you" value={needsYou} loading={s === null}
-              foot={needsYou ? 'Content and proposals' : 'You are all caught up'}
-              badge={waiting.length ? `${waiting.length} proposal${waiting.length === 1 ? '' : 's'}` : undefined}
-              href={s?.focus ? `/campaigns/${s.focus.campaign_id}/content` : '/proposals'} />
-        <Stat label="Creators working" value={s?.creators_working} loading={s === null}
-              foot="Filming or posting now" href="/campaigns" />
-        <Stat label="Campaigns live" value={s?.live_campaigns ?? activeCampaignsCount}
-              loading={s === null} foot="Running right now" href="/campaigns" />
-        <Stat label="Creators unlocked" value={unlockedProfilesCount} loading={false}
-              foot="Across your whole team" href="/creators" />
-      </div>
-
-      <div className="grid gap-3 lg:grid-cols-[1.45fr_1fr_1fr]">
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Content coming in</CardTitle>
-            <CardDescription className="text-xs">Pieces your creators sent, last seven days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {s === null ? (
-              <Skeleton className="h-[132px] w-full" />
-            ) : peak === 0 ? (
-              <p className="flex h-[132px] items-center text-[13px] text-muted-foreground">
-                Nothing has come in this week.
-              </p>
-            ) : (
-              <ChartContainer config={chartConfig} className="h-[132px] w-full">
-                <BarChart data={series} margin={{ top: 6, left: 0, right: 0, bottom: 0 }}>
-                  <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8}
-                         tick={{ fontSize: 11 }} />
-                  <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                  <Bar dataKey="count" radius={999} barSize={26}>
-                    {series.map((d) => (
-                      <Cell key={d.date}
-                            fill={d.count === peak ? 'var(--chart-1)' : 'var(--muted)'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="flex flex-col">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Needs you</CardTitle>
-            <CardDescription className="text-xs">Oldest first</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-1 flex-col justify-between gap-3">
-            <div>
-              {waiting.slice(0, 1).map((p) => {
-                const pr = p?.proposal ?? p
-                return (
-                  <Row key={pr?.id} title={pr?.title || pr?.campaign_name || 'Proposal'}
-                       sub={pr?.deadline_at
-                         ? `Reply by ${new Date(pr.deadline_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
-                         : 'Waiting on your answer'}
-                       badge="Proposal" />
-                )
-              })}
-              {!!s?.awaiting_you && (
-                <Row title={`${s.awaiting_you} piece${s.awaiting_you === 1 ? '' : 's'} to approve`}
-                     sub={s.focus?.campaign_name ?? 'Across your campaigns'}
-                     badge="Content" tone="warn" />
-              )}
-              {s !== null && !waiting.length && !s.awaiting_you && (
-                <p className="py-2 text-[13px] text-muted-foreground">Nothing needs you.</p>
-              )}
-            </div>
-            {(waiting.length > 0 || !!s?.awaiting_you) && (
-              <Button asChild className="w-full" size="sm">
-                <Link href={waiting.length
-                  ? `/proposals/${waiting[0]?.proposal?.id ?? waiting[0]?.id ?? ''}`
-                  : (s?.focus ? `/campaigns/${s.focus.campaign_id}/content` : '/campaigns')}>
-                  {waiting.length ? 'Open the proposal' : 'Review content'}
-                </Link>
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Campaign progress</CardTitle>
-            <CardDescription className="text-xs">Across everything live</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {s === null ? <Skeleton className="mx-auto size-[132px] rounded-full" />
-              : !progress || progress.pct === null ? (
-                <p className="flex h-[132px] items-center text-[13px] text-muted-foreground">
-                  Nothing booked yet.
-                </p>
-              ) : <Ring progress={progress} />}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-3 lg:grid-cols-[1.45fr_1fr]">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Your creators</CardTitle>
-            <CardDescription className="text-xs">Working on something right now</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {s === null ? (
-              <div className="space-y-2">{[0, 1, 2].map((n) => <Skeleton key={n} className="h-10 w-full" />)}</div>
-            ) : creators.length === 0 ? (
-              <p className="py-2 text-[13px] text-muted-foreground">Nobody is mid-campaign.</p>
-            ) : (
+      <div className={cn('grid gap-3', showCreators && 'lg:grid-cols-[1.45fr_1fr]')}>
+        {showCreators && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Your creators</CardTitle>
+              <CardDescription className="text-xs">Working on something right now</CardDescription>
+            </CardHeader>
+            <CardContent>
               <ul>
                 {creators.map((c, i) => (
                   <li key={c.username}
@@ -250,23 +252,26 @@ export function BrandDashboardContent() {
                   </li>
                 ))}
               </ul>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* The modules ARE the artwork. A name, and nothing else on them. */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
+        {/* The modules ARE the artwork. Four across when nothing sits beside them, so they
+            read as a row rather than as four billboards filling the page. */}
+        <div className={cn('grid gap-3',
+                           showCreators ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
           {MODULES.map((m) => {
             const has = !!owns?.[m.key]
             return (
               <Link key={m.key} href={has ? m.href : '/pricing'}
-                    className={cn('group relative isolate aspect-[16/10] overflow-hidden rounded-xl',
+                    className={cn('group relative isolate aspect-[16/7] overflow-hidden rounded-xl',
                                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
                 <Image src={m.art} alt="" fill sizes="(max-width: 1024px) 50vw, 260px"
                        className={cn('-z-10 object-cover object-right transition-transform duration-500',
-                                     'group-hover:scale-[1.05]', !has && 'grayscale')} />
+                                     'group-hover:scale-[1.05]',
+                                     !has && 'grayscale opacity-70')} />
                 <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 to-black/10" />
-                <p className="absolute inset-x-0 bottom-0 truncate p-3 text-[12.5px] font-semibold text-white">
+                <p className="absolute inset-x-0 bottom-0 truncate px-3 pb-2.5 text-[12px] font-semibold text-white">
                   {m.name}
                 </p>
               </Link>
