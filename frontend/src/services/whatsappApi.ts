@@ -107,6 +107,12 @@ class WhatsAppApiService {
     return this.json(res, 'Load overview')
   }
 
+  /** Does the RUNNING SERVER have working Twilio credentials? Sends no message. */
+  async credentials(): Promise<WhatsAppCredentials> {
+    const res = await fetchWithAuth(`${this.baseUrl}/credentials`, { headers: getAuthHeaders() })
+    return this.json(res, 'Check credentials')
+  }
+
   // ---- contacts ----
   async listContacts(opts: { search?: string; only_sendable?: boolean; limit?: number; offset?: number } = {}) {
     const p = new URLSearchParams()
@@ -220,6 +226,17 @@ class WhatsAppApiService {
     const res = await fetchWithAuth(`${this.baseUrl}/broadcasts/${id}/recipients?${p.toString()}`, { headers: getAuthHeaders() })
     return this.json<{ recipients: BroadcastRecipient[] }>(res, 'Load recipients')
   }
+}
+
+export interface WhatsAppCredentials {
+  ok: boolean
+  detail: string | null
+  /** Masked to six characters: enough to tell two accounts apart, not enough to use. */
+  account_sid: string | null
+  account_name?: string | null
+  account_status?: string | null
+  credential_type: 'api_key' | 'auth_token' | null
+  from_number: string | null
 }
 
 export const whatsappApi = new WhatsAppApiService()

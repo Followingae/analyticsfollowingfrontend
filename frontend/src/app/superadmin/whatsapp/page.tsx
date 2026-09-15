@@ -29,7 +29,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import {
-  whatsappApi, type WhatsAppOverview, type WhatsAppContact,
+  whatsappApi, type WhatsAppOverview, type WhatsAppContact, type WhatsAppCredentials,
   type WhatsAppTemplate, type WhatsAppBroadcast, type AudienceSpec,
 } from "@/services/whatsappApi"
 import { PageHead, Panel, Stat } from "@/components/console/primitives"
@@ -52,6 +52,10 @@ export default function SuperadminWhatsAppPage() {
    * the two lists under them were not.
    */
   const [failure, setFailure] = useState<string | null>(null)
+  /* Whether the SERVER's Twilio credentials work. Separate from everything else on this
+     page, and loaded separately, because it must still answer when the rest fails: a broken
+     credential is one of the reasons the rest would fail. */
+  const [creds, setCreds] = useState<WhatsAppCredentials | null>(null)
 
   const loadTop = useCallback(async () => {
     try {
@@ -75,9 +79,41 @@ export default function SuperadminWhatsAppPage() {
 
   useEffect(() => { loadTop() }, [loadTop])
 
+  useEffect(() => {
+    whatsappApi.credentials().then(setCreds).catch(() => setCreds(null))
+  }, [])
+
   return (
     <SuperadminLayout>
       <div className="mx-auto w-full max-w-6xl space-y-ds-5 p-ds-3 md:p-ds-4">
+
+        {/* Said at the top, and only when it is bad news.
+            Every WhatsApp send in the platform swallows its own failure so a notification
+            can never undo the approval that triggered it. The cost is that a dead credential
+            is invisible: messages stop arriving and nothing looks wrong. This is the one
+            place that says so. */}
+        {creds && !creds.ok && (
+          <div className="rounded-ds-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <p className="text-sm font-semibold text-destructive">
+              WhatsApp is not sending
+            </p>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+              {creds.detail}
+              {creds.account_sid ? ` Account ${creds.account_sid}.` : ''}
+              {creds.credential_type
+                ? ` Using ${creds.credential_type === 'api_key' ? 'an API key' : 'an auth token'}.`
+                : ''}
+              {' '}Fix it in the server environment and redeploy. Nothing on this page will
+              reach anyone until you do.
+            </p>
+          </div>
+        )}
+        {creds?.ok && (
+          <p className="text-[12.5px] text-muted-foreground">
+            Connected to {creds.account_name || 'Twilio'}
+            {creds.from_number ? ` · sending from ${creds.from_number}` : ''}
+          </p>
+        )}
         {/* The title sat beside a rounded tile tinted with #25D366, WhatsApp's own green:
             a raw hex the theme does not know, carrying no state, on a page whose name
             already says which channel this is. */}
