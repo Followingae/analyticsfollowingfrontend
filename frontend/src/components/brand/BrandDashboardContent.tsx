@@ -1,31 +1,29 @@
 'use client'
 
 /**
- * The brand's home screen. ONE VIEWPORT, no scrolling.
+ * The brand's home screen.
  *
- * The version before this scrolled for three screens: four figures whether or not they had
- * anything in them, a long campaigns list, a getting-started card, a proposals list and an
- * activity feed, each with a paragraph under it. Everything on a dashboard that needs
- * scrolling to reach is a thing nobody reads.
+ * Built to an approved direction, in the language of the dashboards it was designed against:
+ * one filled stat carrying the thing that needs them, three plain ones beside it, a real
+ * chart of content arriving, a progress ring, the creators mid-campaign, and the four modules
+ * as their artwork with nothing on them but a name.
  *
- * So it is a fixed grid that fills the available height and stops. Top half: the one thing
- * that needs them, plus whatever figures actually have something in them. Bottom half: the
- * four modules. Nothing else. Every deeper surface has its own page and its own link in the
- * sidebar; repeating those pages here in miniature was the mistake.
+ * EVERYTHING HERE IS MEASURED. The week of bars is `sent_for_review_at` grouped by day with
+ * the empty days generated rather than dropped, so a quiet Sunday is a zero in the right
+ * place. The ring is `campaign_creators.stage` counted over live campaigns. The creator list
+ * is the same rows ordered by who is waiting on the brand. No deltas, no "vs last period" and
+ * no sparkline of invented history: we do not store it, and a made-up percentage on a home
+ * screen is the one number a client will quote back.
  *
- * RULES THIS PAGE KEEPS
- * - A figure renders only when it has a number worth showing. Four tiles where two are zero
- *   is four tiles of nothing.
- * - Every card is one line of copy at most. If it needs a paragraph it belongs on its page.
- * - Actions are buttons. A word with an arrow after it is not a button.
- * - No decorative marks. No status dots, no lock glyphs, no rings. State is carried by the
- *   artwork being colour or grey, and by the button's words.
+ * COMPONENTS ARE SHADCN AS INSTALLED - Card, Button, Badge, Avatar, Skeleton, ChartContainer.
+ * No local wrappers, no hand-rolled chart. Colour comes from theme tokens only.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Bar, BarChart, Cell, XAxis } from 'recharts'
 
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { useUserStore } from '@/stores/userStore'
@@ -33,29 +31,32 @@ import { useCommercialAccount } from '@/hooks/useCommercialAccount'
 import { contentBrandApi, type ContentSummary } from '@/services/contentDeliveryApi'
 import { brandProposalViewApi } from '@/services/adminProposalMasterApi'
 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { DashboardSkeleton } from '@/components/skeletons/DashboardSkeleton'
 import { cn } from '@/lib/utils'
-import { ArrowRight } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
 
 const PROPOSAL_WAITING = ['sent', 'in_review', 'more_requested']
-type HeroKind = 'content' | 'proposals' | 'running' | 'unlocked' | 'welcome'
 
 const MODULES = [
-  { key: 'find', name: 'Find', art: '/modules/find.png',
-    owned: 'Search and unlock creators', pitch: 'Analytics we measured, not guessed',
-    href: '/discover' },
-  { key: 'run', name: 'Run', art: '/modules/run.png',
-    owned: 'Brief creators, run it to delivery', pitch: 'Post a brief, take priced offers back',
-    href: '/run' },
-  { key: 'mor', name: 'Merchant of Record', art: '/modules/mor.png',
-    owned: 'We pay your creators', pitch: 'One invoice instead of forty',
-    href: '/mor' },
-  { key: 'manage', name: 'Manage', art: '/modules/manage.png',
-    owned: 'Your account team runs it', pitch: 'We source, negotiate and run it',
-    href: '/campaigns' },
+  { key: 'find', name: 'Find', art: '/modules/find.png', href: '/discover' },
+  { key: 'run', name: 'Run', art: '/modules/run.png', href: '/run' },
+  { key: 'mor', name: 'Merchant of Record', art: '/modules/mor.png', href: '/mor' },
+  { key: 'manage', name: 'Manage', art: '/modules/manage.png', href: '/campaigns' },
 ]
+
+const chartConfig = { count: { label: 'Pieces', color: 'var(--chart-1)' } } satisfies ChartConfig
+
+type Summary = ContentSummary & {
+  series?: { day: string; date: string; count: number }[]
+  progress?: { total: number; posted: number; in_review: number; remaining: number; pct: number | null }
+  creators?: { username: string; campaign: string; stage: string; stage_label: string }[]
+}
 
 export function BrandDashboardContent() {
   const router = useRouter()
@@ -63,9 +64,9 @@ export function BrandDashboardContent() {
   const { user } = useUserStore()
   const { owns } = useCommercialAccount()
 
-  const [content, setContent] = useState<ContentSummary | null>(null)
+  const [s, setS] = useState<Summary | null>(null)
   useEffect(() => {
-    contentBrandApi.summary().then(setContent).catch(() => setContent(null))
+    contentBrandApi.summary().then((d) => setS(d as Summary)).catch(() => setS(null))
   }, [])
 
   const [proposals, setProposals] = useState<any[]>([])
@@ -82,90 +83,196 @@ export function BrandDashboardContent() {
       String(p?.proposal?.status ?? p?.status ?? ''))),
     [proposals])
 
-  const firstName = useMemo(() => {
-    if (!user) return null
-    return user.first_name || user.company || user.full_name?.split(' ')[0]
+  const who = useMemo(() => {
+    if (!user) return { name: null as string | null, initials: '—' }
+    const name = user.company || user.full_name || user.first_name
       || user.email?.split('@')[0] || null
+    const initials = (name || '?').split(' ').filter(Boolean).slice(0, 2)
+      .map((w: string) => w[0]).join('').toUpperCase()
+    return { name, initials }
   }, [user])
 
-  const hero: HeroKind = useMemo(() => {
-    if (content && content.awaiting_you > 0) return 'content'
-    if (waiting.length > 0) return 'proposals'
-    if (activeCampaignsCount > 0) return 'running'
-    if (unlockedProfilesCount > 0) return 'unlocked'
-    return 'welcome'
-  }, [content, waiting.length, activeCampaignsCount, unlockedProfilesCount])
-
-  /* Only figures that have something in them. "Waiting on you" survives a zero because a
-     zero there is the good news; the rest are noise at zero and are simply not rendered. */
-  const figures = useMemo(() => {
-    const all = [
-      { label: 'Waiting on you', value: content?.awaiting_you,
-        href: content?.focus ? `/campaigns/${content.focus.campaign_id}/content` : '/campaigns',
-        keepAtZero: true },
-      { label: 'Creators working', value: content?.creators_working, href: '/campaigns' },
-      { label: 'Campaigns live', value: content?.live_campaigns ?? activeCampaignsCount,
-        href: '/campaigns' },
-      { label: 'Creators unlocked', value: unlockedProfilesCount, href: '/creators' },
-    ]
-    return all.filter((f) => typeof f.value === 'number' && (f.value > 0 || f.keepAtZero))
-              .slice(0, 3)
-  }, [content, activeCampaignsCount, unlockedProfilesCount])
+  const needsYou = (s?.awaiting_you ?? 0) + waiting.length
+  const series = s?.series ?? []
+  const peak = Math.max(...series.map((d) => d.count), 0)
+  const progress = s?.progress
+  const creators = s?.creators ?? []
 
   if (isLoading) return <DashboardSkeleton />
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 p-4 md:gap-4 md:p-5">
+    <div className="flex w-full flex-col gap-4 p-4 md:p-5">
 
-      <h1 className="shrink-0 text-lg font-semibold tracking-tight">
-        {greet()}{firstName ? `, ${firstName}` : ''}
-      </h1>
-
-      {/* Top: the one thing, and the figures worth showing. */}
-      <div className="grid min-h-0 shrink-0 gap-3 md:gap-4 lg:grid-cols-3 lg:flex-[3]">
-        <div className="lg:col-span-2">
-          <Hero kind={hero} content={content} waiting={waiting}
-                liveCount={activeCampaignsCount} unlocked={unlockedProfilesCount}
-                onGo={(href) => router.push(href)} />
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {greet()}{who.name ? `, ${who.name}` : ''}
+          </h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            {line(activeCampaignsCount, waiting.length, s?.awaiting_you ?? 0)}
+          </p>
         </div>
-        <div className={cn('grid gap-3 md:gap-4',
-                           figures.length === 3 ? 'grid-cols-3 lg:grid-cols-1' : 'grid-cols-2')}>
-          {figures.map((f) => (
-            <Figure key={f.label} label={f.label}
-                    value={f.value as number} href={f.href}
-                    loading={content === null && !f.keepAtZero} />
-          ))}
+        <div className="flex items-center gap-2.5 rounded-full border bg-card py-1 pl-1 pr-3.5">
+          <Avatar className="size-7"><AvatarFallback className="text-[10px]">{who.initials}</AvatarFallback></Avatar>
+          <span className="text-[13px] font-medium">{who.name ?? 'Your account'}</span>
         </div>
       </div>
 
-      {/* Bottom: what Following does, owned or not. */}
-      <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-        {MODULES.map((m) => {
-          const has = !!owns?.[m.key]
-          return (
-            <div key={m.key}
-                 className="group relative isolate min-h-[132px] overflow-hidden rounded-xl">
-              <Image src={m.art} alt="" fill sizes="(max-width: 1024px) 50vw, 25vw"
-                     className={cn('-z-10 object-cover object-right transition-transform duration-500',
-                                   'group-hover:scale-[1.04]', !has && 'grayscale')} />
-              <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black via-black/70 to-black/25" />
-              <div className="flex h-full flex-col justify-end gap-2.5 p-4">
-                <div>
-                  <p className="text-sm font-semibold tracking-tight text-white">{m.name}</p>
-                  <p className="mt-0.5 line-clamp-1 text-xs text-white/60">
-                    {has ? m.owned : m.pitch}
-                  </p>
-                </div>
-                <Button asChild size="sm"
-                        className={cn('h-7 w-fit px-3 text-xs',
-                                      has ? 'bg-white text-black hover:bg-white/90'
-                                          : 'bg-white/15 text-white hover:bg-white/25')}>
-                  <Link href={has ? m.href : '/pricing'}>{has ? 'Open' : 'Add'}</Link>
-                </Button>
-              </div>
+      {/* Four figures. The first is filled, because it is the only one that is a request. */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat filled label="Waiting on you" value={needsYou} loading={s === null}
+              foot={needsYou ? 'Content and proposals' : 'You are all caught up'}
+              badge={waiting.length ? `${waiting.length} proposal${waiting.length === 1 ? '' : 's'}` : undefined}
+              href={s?.focus ? `/campaigns/${s.focus.campaign_id}/content` : '/proposals'} />
+        <Stat label="Creators working" value={s?.creators_working} loading={s === null}
+              foot="Filming or posting now" href="/campaigns" />
+        <Stat label="Campaigns live" value={s?.live_campaigns ?? activeCampaignsCount}
+              loading={s === null} foot="Running right now" href="/campaigns" />
+        <Stat label="Creators unlocked" value={unlockedProfilesCount} loading={false}
+              foot="Across your whole team" href="/creators" />
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-[1.45fr_1fr_1fr]">
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Content coming in</CardTitle>
+            <CardDescription className="text-xs">Pieces your creators sent, last seven days</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {s === null ? (
+              <Skeleton className="h-[132px] w-full" />
+            ) : peak === 0 ? (
+              <p className="flex h-[132px] items-center text-[13px] text-muted-foreground">
+                Nothing has come in this week.
+              </p>
+            ) : (
+              <ChartContainer config={chartConfig} className="h-[132px] w-full">
+                <BarChart data={series} margin={{ top: 6, left: 0, right: 0, bottom: 0 }}>
+                  <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8}
+                         tick={{ fontSize: 11 }} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                  <Bar dataKey="count" radius={999} barSize={26}>
+                    {series.map((d) => (
+                      <Cell key={d.date}
+                            fill={d.count === peak ? 'var(--chart-1)' : 'var(--muted)'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="flex flex-col">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Needs you</CardTitle>
+            <CardDescription className="text-xs">Oldest first</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col justify-between gap-3">
+            <div>
+              {waiting.slice(0, 1).map((p) => {
+                const pr = p?.proposal ?? p
+                return (
+                  <Row key={pr?.id} title={pr?.title || pr?.campaign_name || 'Proposal'}
+                       sub={pr?.deadline_at
+                         ? `Reply by ${new Date(pr.deadline_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+                         : 'Waiting on your answer'}
+                       badge="Proposal" />
+                )
+              })}
+              {!!s?.awaiting_you && (
+                <Row title={`${s.awaiting_you} piece${s.awaiting_you === 1 ? '' : 's'} to approve`}
+                     sub={s.focus?.campaign_name ?? 'Across your campaigns'}
+                     badge="Content" tone="warn" />
+              )}
+              {s !== null && !waiting.length && !s.awaiting_you && (
+                <p className="py-2 text-[13px] text-muted-foreground">Nothing needs you.</p>
+              )}
             </div>
-          )
-        })}
+            {(waiting.length > 0 || !!s?.awaiting_you) && (
+              <Button asChild className="w-full" size="sm">
+                <Link href={waiting.length
+                  ? `/proposals/${waiting[0]?.proposal?.id ?? waiting[0]?.id ?? ''}`
+                  : (s?.focus ? `/campaigns/${s.focus.campaign_id}/content` : '/campaigns')}>
+                  {waiting.length ? 'Open the proposal' : 'Review content'}
+                </Link>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Campaign progress</CardTitle>
+            <CardDescription className="text-xs">Across everything live</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {s === null ? <Skeleton className="mx-auto size-[132px] rounded-full" />
+              : !progress || progress.pct === null ? (
+                <p className="flex h-[132px] items-center text-[13px] text-muted-foreground">
+                  Nothing booked yet.
+                </p>
+              ) : <Ring progress={progress} />}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-[1.45fr_1fr]">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Your creators</CardTitle>
+            <CardDescription className="text-xs">Working on something right now</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {s === null ? (
+              <div className="space-y-2">{[0, 1, 2].map((n) => <Skeleton key={n} className="h-10 w-full" />)}</div>
+            ) : creators.length === 0 ? (
+              <p className="py-2 text-[13px] text-muted-foreground">Nobody is mid-campaign.</p>
+            ) : (
+              <ul>
+                {creators.map((c, i) => (
+                  <li key={c.username}
+                      className={cn('flex items-center gap-3 py-2.5', i > 0 && 'border-t')}>
+                    <Avatar className="size-7">
+                      <AvatarFallback className="text-[10px]">
+                        {c.username.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-medium">{c.username}</p>
+                      <p className="truncate text-[11px] text-muted-foreground">{c.campaign}</p>
+                    </div>
+                    <Badge variant={c.stage === 'content_in' ? 'default' : 'secondary'}
+                           className="shrink-0 text-[10px]">
+                      {c.stage_label}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* The modules ARE the artwork. A name, and nothing else on them. */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
+          {MODULES.map((m) => {
+            const has = !!owns?.[m.key]
+            return (
+              <Link key={m.key} href={has ? m.href : '/pricing'}
+                    className={cn('group relative isolate aspect-[16/10] overflow-hidden rounded-xl',
+                                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
+                <Image src={m.art} alt="" fill sizes="(max-width: 1024px) 50vw, 260px"
+                       className={cn('-z-10 object-cover object-right transition-transform duration-500',
+                                     'group-hover:scale-[1.05]', !has && 'grayscale')} />
+                <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 to-black/10" />
+                <p className="absolute inset-x-0 bottom-0 truncate p-3 text-[12.5px] font-semibold text-white">
+                  {m.name}
+                </p>
+              </Link>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
@@ -176,69 +283,112 @@ function greet() {
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
 }
 
-function Figure({ label, value, href, loading }: {
-  label: string; value: number; href: string; loading: boolean
+function line(live: number, proposals: number, content: number): string {
+  const bits: string[] = []
+  if (live) bits.push(`${live} campaign${live === 1 ? '' : 's'} running`)
+  if (proposals) bits.push(`${proposals} proposal${proposals === 1 ? '' : 's'} to answer`)
+  if (content) bits.push(`${content} piece${content === 1 ? '' : 's'} to approve`)
+  if (!bits.length) return 'Nothing needs you today.'
+  return bits.join(' and ') + '.'
+}
+
+function Stat({ label, value, foot, badge, href, loading, filled }: {
+  label: string; value: number | undefined; foot: string; badge?: string
+  href: string; loading: boolean; filled?: boolean
 }) {
   return (
-    <Link href={href}
-          className={cn('flex flex-col justify-center rounded-xl border bg-card px-4 py-3',
-                        'transition-colors hover:bg-muted/50',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
-      {loading
-        ? <Skeleton className="h-7 w-12" />
-        : <p className="text-2xl font-semibold tabular-nums tracking-tight">{value}</p>}
-      <p className="mt-0.5 truncate text-xs text-muted-foreground">{label}</p>
+    <Link href={href} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl">
+      <Card className={cn('relative h-full transition-colors',
+                          filled ? 'border-transparent bg-foreground text-background'
+                                 : 'hover:bg-muted/40')}>
+        <CardContent className="p-4">
+          <p className={cn('text-[12.5px] font-medium',
+                           filled ? 'text-background/65' : 'text-muted-foreground')}>{label}</p>
+          <span className={cn('absolute right-3.5 top-3.5 grid size-6 place-items-center rounded-full border',
+                              filled ? 'border-background/25 bg-background/10' : 'border-border')}>
+            <ArrowUpRight className="size-3" />
+          </span>
+          {loading
+            ? <Skeleton className="mt-4 h-8 w-14" />
+            : <p className="mt-4 text-[32px] font-bold leading-none tabular-nums tracking-tight">
+                {value ?? '—'}
+              </p>}
+          <div className="mt-2.5 flex items-center gap-2">
+            {badge && (
+              <Badge variant={filled ? 'secondary' : 'outline'} className="text-[10px]">{badge}</Badge>
+            )}
+            <span className={cn('truncate text-[11px]',
+                                filled ? 'text-background/55' : 'text-muted-foreground')}>{foot}</span>
+          </div>
+        </CardContent>
+      </Card>
     </Link>
   )
 }
 
-function Hero({ kind, content, waiting, liveCount, unlocked, onGo }: {
-  kind: HeroKind; content: ContentSummary | null; waiting: any[]
-  liveCount: number; unlocked: number; onGo: (href: string) => void
+function Row({ title, sub, badge, tone }: {
+  title: string; sub: string; badge: string; tone?: 'warn'
 }) {
-  const faces: Record<HeroKind, { art: string; title: string; cta: string; href: string }> = {
-    content: {
-      art: '/modules/run.png',
-      title: `${content?.awaiting_you} ${content?.awaiting_you === 1 ? 'piece' : 'pieces'} of content waiting on you`,
-      cta: 'Review it',
-      href: content?.focus ? `/campaigns/${content.focus.campaign_id}/content` : '/campaigns',
-    },
-    proposals: {
-      art: '/modules/proposals.png',
-      title: `${waiting.length} ${waiting.length === 1 ? 'proposal' : 'proposals'} waiting for you`,
-      cta: waiting.length === 1 ? 'Open it' : 'See them',
-      href: waiting.length === 1 ? `/proposals/${waiting[0]?.proposal?.id ?? waiting[0]?.id ?? ''}` : '/proposals',
-    },
-    running: {
-      art: '/modules/run.png',
-      title: `${liveCount} ${liveCount === 1 ? 'campaign' : 'campaigns'} running`,
-      cta: 'See campaigns', href: '/campaigns',
-    },
-    unlocked: {
-      art: '/modules/find.png',
-      title: `${unlocked} creators unlocked and ready`,
-      cta: 'Your creators', href: '/creators',
-    },
-    welcome: {
-      art: '/modules/welcome.png',
-      title: 'Find creators worth your budget',
-      cta: 'Start here', href: '/discover',
-    },
-  }
-  const f = faces[kind]
+  return (
+    <div className="flex items-center gap-3 border-t py-2.5 first:border-t-0 first:pt-0">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[13px] font-medium">{title}</p>
+        <p className="truncate text-[11px] text-muted-foreground">{sub}</p>
+      </div>
+      <Badge variant={tone === 'warn' ? 'default' : 'secondary'} className="shrink-0 text-[10px]">
+        {badge}
+      </Badge>
+    </div>
+  )
+}
+
+/* Posted, in review and still to come, drawn to one scale. SVG rather than a radial chart:
+   three arcs of one circle is a stroke-dasharray, and a charting library here would be a
+   dependency carrying a rounding bug. */
+function Ring({ progress }: {
+  progress: { total: number; posted: number; in_review: number; remaining: number; pct: number | null }
+}) {
+  const R = 52
+  const C = 2 * Math.PI * R
+  const share = (n: number) => (progress.total ? (n / progress.total) * C : 0)
+  const posted = share(progress.posted)
+  const review = share(progress.in_review)
 
   return (
-    <div className="relative isolate flex h-full min-h-[172px] flex-col justify-end gap-4 overflow-hidden rounded-xl p-5 md:p-6">
-      <Image src={f.art} alt="" fill priority sizes="(max-width: 1024px) 100vw, 640px"
-             className="-z-10 object-cover object-right" />
-      <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black via-black/75 to-black/20" />
-      <p className="max-w-[24ch] text-xl font-semibold leading-tight tracking-tight text-white md:text-2xl">
-        {f.title}
-      </p>
-      <Button size="sm" onClick={() => onGo(f.href)}
-              className="w-fit bg-white text-black hover:bg-white/90">
-        {f.cta}<ArrowRight className="ml-1.5 size-3.5" />
-      </Button>
+    <div>
+      <div className="relative mx-auto grid size-[132px] place-items-center">
+        <svg width="132" height="132" viewBox="0 0 132 132" className="absolute">
+          <circle cx="66" cy="66" r={R} fill="none" stroke="var(--muted)" strokeWidth="15" />
+          <circle cx="66" cy="66" r={R} fill="none" stroke="var(--foreground)" strokeWidth="15"
+                  strokeLinecap="round" strokeDasharray={`${posted} ${C}`}
+                  transform="rotate(-90 66 66)" />
+          {review > 0 && (
+            <circle cx="66" cy="66" r={R} fill="none" stroke="var(--chart-1)" strokeWidth="15"
+                    strokeLinecap="round" strokeDasharray={`${review} ${C}`}
+                    strokeDashoffset={-posted} transform="rotate(-90 66 66)" />
+          )}
+        </svg>
+        <div className="relative text-center">
+          <p className="text-[26px] font-bold leading-none tabular-nums tracking-tight">
+            {progress.pct}%
+          </p>
+          <p className="mt-1 text-[10.5px] text-muted-foreground">posted</p>
+        </div>
+      </div>
+      <div className="mt-3 flex justify-center gap-4 text-[11px] text-muted-foreground">
+        <Key color="var(--foreground)" label={`${progress.posted} posted`} />
+        <Key color="var(--chart-1)" label={`${progress.in_review} in review`} />
+        <Key color="var(--muted)" label={`${progress.remaining} to come`} />
+      </div>
     </div>
+  )
+}
+
+function Key({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="size-[7px] rounded-full" style={{ background: color }} />
+      {label}
+    </span>
   )
 }
