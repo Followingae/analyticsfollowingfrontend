@@ -259,9 +259,12 @@ class WhatsAppApiService {
     return this.json<BroadcastAnalytics>(res, 'Load analytics')
   }
 
-  async broadcastRecipients(id: string, status?: string) {
+  /** `limit` maxes at 1000 server-side. The dialog used to take the default 200 and show
+   *  them in a 256px box, which on a 1,161-person broadcast hid most of the answer. */
+  async broadcastRecipients(id: string, status?: string, limit = 1000) {
     const p = new URLSearchParams()
     if (status) p.set('status', status)
+    p.set('limit', String(limit))
     const res = await fetchWithAuth(`${this.baseUrl}/broadcasts/${id}/recipients?${p.toString()}`, { headers: getAuthHeaders() })
     return this.json<{ recipients: BroadcastRecipient[] }>(res, 'Load recipients')
   }

@@ -241,7 +241,6 @@ function BroadcastsTab({
   const [estimate, setEstimate] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [detailId, setDetailId] = useState<string | null>(null)
 
   const template = useMemo(() => sendable.find(t => t.id === templateId), [sendable, templateId])
 
@@ -431,7 +430,8 @@ function BroadcastsTab({
                 </TableCell></TableRow>
               )}
               {broadcasts.map(b => (
-                <TableRow key={b.id} className="cursor-pointer" onClick={() => setDetailId(b.id)}>
+                <TableRow key={b.id} className="cursor-pointer"
+                          onClick={() => { window.location.href = `/work/whatsapp/broadcasts/${b.id}` }}>
                   <TableCell className="font-medium">{b.name}</TableCell>
                   <TableCell><StatusBadge status={b.status} /></TableCell>
                   <TableCell className="text-right">{b.sent_count}/{b.total_recipients}</TableCell>
@@ -446,14 +446,6 @@ function BroadcastsTab({
           )}
         </div>
       </Panel>
-
-      {detailId && (
-        <BroadcastDetail
-          broadcast={broadcasts.find(b => b.id === detailId)!}
-          onClose={() => setDetailId(null)}
-          onRefresh={onChange}
-        />
-      )}
     </div>
   )
 }
@@ -483,144 +475,10 @@ function Funnel({ label, value, sub, tone }: { label: string; value: number | st
   )
 }
 
-function BroadcastDetail({
-  broadcast, onClose, onRefresh,
-}: {
-  broadcast: WhatsAppBroadcast
-  onClose: () => void
-  onRefresh: () => void
-}) {
-  const [a, setA] = useState<import("@/services/whatsappApi").BroadcastAnalytics | null>(null)
-  const [recipients, setRecipients] = useState<import("@/services/whatsappApi").BroadcastRecipient[]>([])
-  const [statusFilter, setStatusFilter] = useState<string>("")
-  const [loading, setLoading] = useState(true)
-
-  const load = useCallback(async () => {
-    try {
-      const [an, rc] = await Promise.all([
-        whatsappApi.broadcastAnalytics(broadcast.id),
-        whatsappApi.broadcastRecipients(broadcast.id, statusFilter || undefined),
-      ])
-      setA(an); setRecipients(rc.recipients)
-    } catch (e: any) { toast.error(e?.message || "Failed to load analytics") }
-    finally { setLoading(false) }
-  }, [broadcast.id, statusFilter])
-
-  useEffect(() => { load() }, [load])
-
-  // live-refresh while the broadcast is still sending
-  useEffect(() => {
-    if (broadcast.status !== "sending") return
-    const t = setInterval(() => { load(); onRefresh() }, 5000)
-    return () => clearInterval(t)
-  }, [broadcast.status, load, onRefresh])
-
-  const seg = (n: number, color: string) => a && a.total > 0
-    ? <div style={{ width: `${(n / a.total) * 100}%`, backgroundColor: color }} className="h-full" /> : null
-
-  return (
-    <Dialog open onOpenChange={(o: boolean) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {broadcast.name} <StatusBadge status={broadcast.status} />
-          </DialogTitle>
-        </DialogHeader>
-
-        {loading && !a ? (
-          <div className="py-10 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></div>
-        ) : a ? (
-          <div className="space-y-4">
-            {/* funnel tiles */}
-            <div className="grid grid-cols-3 gap-x-ds-4 gap-y-ds-3 sm:grid-cols-5">
-              <Funnel label="Recipients" value={a.total} />
-              <Funnel label="Sent" value={a.sent} />
-              <Funnel label="Delivered" value={a.delivered} sub={`${a.delivery_rate}%`} tone="good" />
-              <Funnel label="Read" value={a.read} sub={`${a.read_rate}%`} tone="info" />
-              <Funnel label="Failed" value={a.failed} sub={`${a.fail_rate}%`} tone="bad" />
-            </div>
-
-            {/* delivery bar */}
-            <div>
-              {/* The bar and its legend were six hex literals with no dark-mode answer; they
-                  are the console tone dots now, so blue means the same here as everywhere. */}
-              <div className="flex h-3 w-full overflow-hidden rounded-ds-full bg-black/[0.07] dark:bg-white/10">
-                {seg(a.read, "var(--tone-info-dot)")}
-                {seg(a.delivered - a.read, "var(--tone-good-dot)")}
-                {seg(a.sent - a.delivered, "var(--console-lime)")}
-                {seg(a.failed, "var(--tone-bad-dot)")}
-                {seg(a.queued, "var(--tone-neutral-dot)")}
-              </div>
-              <div className="mt-ds-2 flex flex-wrap gap-ds-3 text-ds-overline text-muted-foreground">
-                <span className="flex items-center gap-ds-1"><span className="h-2 w-2 rounded-full bg-[var(--tone-info-dot)]" />Read</span>
-                <span className="flex items-center gap-ds-1"><span className="h-2 w-2 rounded-full bg-[var(--tone-good-dot)]" />Delivered</span>
-                <span className="flex items-center gap-ds-1"><span className="h-2 w-2 rounded-full bg-[var(--console-lime)]" />Sent</span>
-                <span className="flex items-center gap-ds-1"><span className="h-2 w-2 rounded-full bg-[var(--tone-bad-dot)]" />Failed</span>
-                {a.queued > 0 && <span className="flex items-center gap-ds-1"><span className="h-2 w-2 rounded-full bg-[var(--tone-neutral-dot)]" />Queued</span>}
-              </div>
-            </div>
-
-            {/* failure reasons */}
-            {a.failures.length > 0 && (
-              <div>
-                <p className="mb-ds-2 text-ds-caption font-semibold text-[var(--tone-bad-ink)]">Failure reasons</p>
-                <div className="space-y-ds-1">
-                  {a.failures.map((f, i) => (
-                    <div key={i} className="flex items-start justify-between gap-3 text-[12px]">
-                      <span className="text-muted-foreground">{f.reason}{f.error_code ? ` (${f.error_code})` : ""}</span>
-                      <span className="font-semibold">{f.n}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* recipients */}
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <p className="text-xs font-semibold">Recipients</p>
-                <Select value={statusFilter || "all"} onValueChange={(v: string) => setStatusFilter(v === "all" ? "" : v)}>
-                  <SelectTrigger className="h-7 w-40 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    {["queued", "sent", "delivered", "read", "failed", "undelivered"].map(s => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="max-h-64 overflow-auto rounded-ds-lg border border-black/[0.06] dark:border-white/[0.07]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Error</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recipients.length === 0 && (
-                      <TableRow><TableCell colSpan={4} className="text-center text-xs text-muted-foreground">No recipients</TableCell></TableRow>
-                    )}
-                    {recipients.map(r => (
-                      <TableRow key={r.id}>
-                        <TableCell className="text-xs">{r.full_name || (r.instagram_handle ? `@${r.instagram_handle}` : "—")}</TableCell>
-                        <TableCell className="font-mono text-[11px]">{r.phone}</TableCell>
-                        <TableCell><StatusBadge status={r.status} /></TableCell>
-                        <TableCell className="text-[11px] text-[var(--tone-bad-ink)]">{r.error_message || ""}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </DialogContent>
-    </Dialog>
-  )
-}
+/* The broadcast detail dialog lived here. It was a max-w-2xl modal with the recipient
+ * list inside a 256px scroll box, which on a 1,308 person broadcast showed about fifteen
+ * rows through a letterbox. It is now a full page at /work/whatsapp/broadcasts/[id],
+ * where the failure codes are also explained rather than printed as numbers. */
 
 function StatusBadge({ status }: { status: string }) {
   /* These were nine light-mode-only literals — bg-blue-100 with no dark answer, so in dark
