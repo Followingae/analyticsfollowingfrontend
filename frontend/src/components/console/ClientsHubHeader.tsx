@@ -25,6 +25,9 @@ const TABS: HubTab[] = [
   { label: 'Clients', href: '/work/clients', module: 'clients' },
   { label: 'Brands', href: '/work/brands', module: 'clients' },
   { label: 'Proposals', href: '/work/proposals', module: 'proposals' },
+  // Merchants who applied through a landing page. Sits with Clients because that is what a
+  // lead becomes, and because it was invisible for two months living only in an inbox.
+  { label: 'Partner leads', href: '/work/partners', module: 'clients' },
 ]
 
 interface Headline {
