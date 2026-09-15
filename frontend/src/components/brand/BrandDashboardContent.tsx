@@ -316,9 +316,18 @@ export function BrandDashboardContent() {
           so a client who is up to date gets a shorter page rather than an empty box. */}
       <ContentAwaitingPanel focus={content?.focus ?? null} onChanged={loadContent} />
 
-      {/* The one thing we want them to do next, at the size that says so. A real object,
-          so it keeps its card. */}
-      <SmartDiscovery onDiscover={() => router.push('/discover')} className="h-[168px]" />
+      {/* The one thing we want them to do next. It keeps its card because it is a real
+          object, and it keeps its height because the tile's own padding is built for it -
+          squashing it to 168px pushed its contents against its edges.
+
+          What it does NOT keep is the full width of the page. A single prompt stretched to
+          1400px reads as a banner rather than as one thing among several, and it made the
+          two blocks under it look like a different page. Two thirds, matching the gauges
+          below, so the right-hand gutter is the same all the way down. */}
+      <div className="grid grid-cols-1 lg:grid-cols-3">
+        <SmartDiscovery onDiscover={() => router.push('/discover')}
+                        className="h-[280px] lg:col-span-2" />
+      </div>
 
       {/* Unlocks and credits. Still exact, still metered, and NOT removed: they have moved
           from being the organising idea of this page to being a balance, which is what they
@@ -327,7 +336,10 @@ export function BrandDashboardContent() {
           at the top of the page. */}
       <section className="flex flex-col gap-ds-3">
         <GroupLabel>Usage this cycle</GroupLabel>
-        <div className="grid grid-cols-1 gap-ds-3 lg:grid-cols-2">
+        {/* Two dials side by side, over two thirds rather than the whole page. At full
+            width each gauge sat in the middle of an enormous card with its own drawing
+            floating in the space, which is what made a balance look like a report. */}
+        <div className="grid grid-cols-1 gap-ds-3 lg:grid-cols-3">
           <div aria-label="Profile unlocks remaining this billing cycle" className="h-[300px]">
             <ChartProfileAnalysisV2 />
           </div>
