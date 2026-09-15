@@ -5,6 +5,7 @@ import Image from "next/image"
 import { useTheme } from "next-themes"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { useCommercialAccount } from "@/hooks/useCommercialAccount"
+import { brandProposalViewApi } from "@/services/adminProposalMasterApi"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -101,6 +102,25 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
   // Which modules this account holds. Drives what is in the menu at all.
   const { owns } = useCommercialAccount()
 
+  /* Proposals waiting on this client, as a count on the nav item.
+   *
+   * A proposal we have sent is the one thing in the product where WE are waiting on THEM,
+   * and until now nothing said so anywhere they would look: it sat on /proposals and a
+   * client who did not open that page had no idea it had arrived. The server counts sent,
+   * in_review and more_requested - everything not yet answered - and has always returned it
+   * as `pending_count`.
+   *
+   * limit: 1 because we want the count, not the list. The count is computed over all of
+   * them regardless of the page size. */
+  const [pendingProposals, setPendingProposals] = React.useState(0)
+  React.useEffect(() => {
+    let dead = false
+    brandProposalViewApi.listProposals({ limit: 1 })
+      .then((r) => { if (!dead) setPendingProposals(r?.pending_count ?? 0) })
+      .catch(() => { /* a badge that cannot load is no badge, never a zero shown as news */ })
+    return () => { dead = true }
+  }, [])
+
   // Base navigation items - only actual existing pages
   const getNavigationData = () => {
     const searchAnalytics = [
@@ -135,6 +155,7 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         title: "Proposals",
         url: "/proposals",
         icon: IconFileText,
+        badge: pendingProposals,
       },
       // Run: the brand posts a brief, creators come back with their own price.
       // The other direction to Proposals, which is us pitching a roster.

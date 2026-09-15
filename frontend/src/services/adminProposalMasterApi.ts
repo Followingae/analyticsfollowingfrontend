@@ -713,6 +713,9 @@ export class BrandProposalViewApiService {
   }): Promise<{
     proposals: BrandProposalView[]
     total_count: number
+    /** Proposals still waiting on this brand: sent, in_review or more_requested. The server
+     *  has always sent it; the type simply never admitted it, so nothing could read it. */
+    pending_count?: number
   }> {
     const params = new URLSearchParams()
     if (filters) {
