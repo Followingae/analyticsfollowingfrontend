@@ -7,6 +7,10 @@ export interface WhatsAppOverview {
   opted_out: number
   broadcasts: number
   templates: number
+  /** Of the active templates, how many Meta has actually approved. */
+  templates_approved?: number
+  /** Creator app members with a phone who are not in the contact book yet. */
+  app_users_unsynced?: number
 }
 
 export interface WhatsAppContact {
@@ -134,6 +138,41 @@ class WhatsAppApiService {
       method: 'POST', headers, body: form,
     })
     return this.json<{ success: boolean; imported: number; updated: number; skipped: number; rows_seen: number }>(res, 'Import contacts')
+  }
+
+  /**
+   * Download the spreadsheet the importer accepts.
+   *
+   * Fetched rather than linked, because the endpoint needs the auth header and a plain
+   * <a href> carries none, which returns a 401 HTML page saved as a .csv — a failure that
+   * looks exactly like a successful download until somebody opens it.
+   */
+  async downloadImportTemplate() {
+    const res = await fetchWithAuth(`${this.baseUrl}/contacts/template.csv`, {
+      headers: getAuthHeaders(),
+    })
+    if (!res.ok) throw new Error(`Could not download the template: ${await res.text()}`)
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'whatsapp-contacts-template.csv'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  /** Pull creator app members into the contact book. `dryRun` writes nothing. */
+  async syncAppUsers(dryRun = false) {
+    const res = await fetchWithAuth(
+      `${this.baseUrl}/contacts/sync-app-users?dry_run=${dryRun ? 'true' : 'false'}`,
+      { method: 'POST', headers: getAuthHeaders() },
+    )
+    return this.json<{
+      success: boolean; members_seen: number; added: number; linked: number
+      updated: number; opted_out: number; skipped: number; dry_run: boolean
+    }>(res, 'Sync app users')
   }
 
   async addContact(body: { phone: string; full_name?: string; instagram_handle?: string; tags?: string[] }) {

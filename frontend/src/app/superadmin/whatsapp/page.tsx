@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Loader2, Send, Upload, Users, UserX, FileText,
-  Plus, Search, Megaphone, CheckCircle2, XCircle, Archive, RefreshCw, Clock,
+  Plus, Search, Megaphone, CheckCircle2, XCircle, Archive, RefreshCw, Clock, Download,
 } from "lucide-react"
 import { toast } from "sonner"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
@@ -142,8 +142,36 @@ export default function SuperadminWhatsAppPage() {
           <Stat icon={CheckCircle2} label="Sendable" value={overview?.sendable ?? "—"} />
           <Stat icon={UserX} label="Opted out" value={overview?.opted_out ?? "—"} />
           <Stat icon={Megaphone} label="Broadcasts" value={overview?.broadcasts ?? "—"} />
-          <Stat icon={FileText} label="Templates" value={overview?.templates ?? "—"} />
+          {/* Templates reads "approved of active". The bare count said 187 on a day when the
+              one being sent was not approved at all, which is a reassuring number telling an
+              operator the opposite of the truth. */}
+          <Stat
+            icon={FileText}
+            label="Templates approved"
+            value={overview
+              ? `${overview.templates_approved ?? 0} / ${overview.templates}`
+              : "—"}
+          />
         </div>
+
+        {/* Creators on our own app who cannot be reached from here. Not a stat tile: it is
+            not a figure to watch, it is a thing to go and fix, so it carries the button that
+            fixes it and disappears when it is done. */}
+        {!!overview?.app_users_unsynced && overview.app_users_unsynced > 0 && (
+          <div className="flex flex-wrap items-center gap-ds-3 rounded-ds-lg bg-[var(--tone-warn-wash)] px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-ds-label text-[var(--tone-warn-ink)]">
+                {overview.app_users_unsynced.toLocaleString()} creators on the app are not in
+                this contact book
+              </p>
+              <p className="mt-ds-1 text-ds-body-sm text-muted-foreground">
+                They signed up, gave us a number, and cannot be reached from this screen.
+                Open Contacts and press Sync app creators. Anyone who turned marketing off in
+                the app comes in already opted out.
+              </p>
+            </div>
+          </div>
+        )}
 
         <Tabs defaultValue="broadcasts">
           <TabsList>
@@ -185,7 +213,16 @@ function BroadcastsTab({
   failed: boolean
   onChange: () => void
 }) {
+  /* Only templates Meta has actually approved can be sent on.
+     On 30 July a broadcast went to 1,161 people on a template whose approval had never been
+     confirmed. Twilio rejected every message with 63021, invalid content: 585 "sent", 576
+     undelivered, zero delivered. It was selectable because this line used to read
+     `status === "active"` and nothing else between here and Twilio asked the question.
+     A brand new template is exactly this case, sitting at "pending" until Meta clears it and
+     looking completely ready in the picker the whole time. */
   const active = templates.filter(t => t.status === "active")
+  const sendable = active.filter(t => (t.approval_status || "").toLowerCase() === "approved")
+  const waiting = active.filter(t => (t.approval_status || "").toLowerCase() !== "approved")
   const [name, setName] = useState("")
   const [templateId, setTemplateId] = useState<string>("")
   const [audienceType, setAudienceType] = useState<AudienceSpec["type"]>("all_consented")
@@ -197,7 +234,7 @@ function BroadcastsTab({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
 
-  const template = useMemo(() => active.find(t => t.id === templateId), [active, templateId])
+  const template = useMemo(() => sendable.find(t => t.id === templateId), [sendable, templateId])
 
   const audience = useMemo<AudienceSpec>(() => {
     if (audienceType === "tags") return { type: "tags", tags: tags.split(",").map(s => s.trim()).filter(Boolean) }
@@ -245,14 +282,39 @@ function BroadcastsTab({
             <Select value={templateId} onValueChange={setTemplateId}>
               <SelectTrigger><SelectValue placeholder="Choose an approved template" /></SelectTrigger>
               <SelectContent>
-                {active.length === 0 && <div className="p-2 text-sm text-muted-foreground">No active templates. Add one first.</div>}
-                {active.map(t => (
+                {sendable.length === 0 && (
+                  <div className="p-2 text-sm text-muted-foreground">
+                    {active.length === 0
+                      ? "No active templates. Add one first."
+                      : "None of your templates are approved by Meta yet."}
+                  </div>
+                )}
+                {sendable.map(t => (
                   <SelectItem key={t.id} value={t.id}>
                     {t.name} <span className="text-muted-foreground">· {t.category}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Templates that exist but cannot be sent on, named rather than hidden. A new
+                template vanishing out of the picker with no explanation reads as a bug, and
+                the operator's next move is to make a second one. */}
+            {waiting.length > 0 && (
+              <div className="rounded-ds-lg bg-[var(--tone-warn-wash)] px-3 py-2.5">
+                <p className="text-ds-caption font-medium text-[var(--tone-warn-ink)]">
+                  {waiting.length === 1
+                    ? `"${waiting[0].name}" is not approved by Meta yet`
+                    : `${waiting.length} templates are not approved by Meta yet`}
+                </p>
+                <p className="mt-1 text-ds-overline text-muted-foreground">
+                  {waiting.map(t => `${t.name} (${(t.approval_status || "unknown").toLowerCase()})`).join(", ")}.
+                  {" "}Sending on one fails for every recipient and counts against our sender
+                  rating, so they are held back. Press Sync from Twilio on the Templates tab to
+                  refresh.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* template variables */}
@@ -625,6 +687,15 @@ function ContactsTab({ onChange }: { onChange: () => void }) {
         <div className="flex items-center gap-ds-2">
           <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
             onChange={e => onFile(e.target.files?.[0])} />
+          <SyncAppUsersButton onDone={() => { load(); onChange() }} />
+          {/* Next to Import rather than in a help panel: the moment somebody needs to know
+              what columns we accept is the moment they are about to pick a file. */}
+          <Button variant="ghost" size="sm" onClick={async () => {
+            try { await whatsappApi.downloadImportTemplate() }
+            catch (e: any) { toast.error(e?.message || "Could not download the template") }
+          }}>
+            <Download className="mr-2 h-4 w-4" /> Template
+          </Button>
           <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
             <Upload className="mr-2 h-4 w-4" /> Import CSV/Excel
           </Button>
@@ -698,6 +769,80 @@ function ContactsTab({ onChange }: { onChange: () => void }) {
         </Table>
       </div>
     </Panel>
+  )
+}
+
+/**
+ * Bring the creator app's own members into the contact book.
+ *
+ * WHY THIS BUTTON EXISTS. The book was built entirely from imports: 633 rows from a
+ * spreadsheet and 528 from Freshworks, and not one from the app. Meanwhile 295 creators
+ * signed up, 257 with a phone number, and none of them were reachable from this screen. The
+ * people most engaged with us were the only ones missing.
+ *
+ * It previews before it writes, every time. A sync that silently rewrites an address book is
+ * a thing people are right to be afraid of, and showing the four numbers first costs one
+ * click and removes the fear entirely.
+ */
+function SyncAppUsersButton({ onDone }: { onDone: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [preview, setPreview] = useState<Awaited<ReturnType<typeof whatsappApi.syncAppUsers>> | null>(null)
+
+  const start = async () => {
+    setBusy(true); setPreview(null); setOpen(true)
+    try { setPreview(await whatsappApi.syncAppUsers(true)) }
+    catch (e: any) { toast.error(e?.message || "Could not check the app members"); setOpen(false) }
+    finally { setBusy(false) }
+  }
+
+  const apply = async () => {
+    setBusy(true)
+    try {
+      const r = await whatsappApi.syncAppUsers(false)
+      toast.success(`${r.added} added, ${r.linked} linked to their app account`)
+      setOpen(false); onDone()
+    } catch (e: any) { toast.error(e?.message || "Sync failed") }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <>
+      <Button variant="ghost" size="sm" onClick={start}>
+        <RefreshCw className="mr-2 h-4 w-4" /> Sync app creators
+      </Button>
+      <Dialog open={open} onOpenChange={o => !o && setOpen(false)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Sync creators from the app</DialogTitle></DialogHeader>
+          {busy && !preview ? (
+            <div className="py-8 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></div>
+          ) : preview ? (
+            <div className="space-y-ds-3">
+              <div className="grid grid-cols-3 gap-ds-3">
+                <Funnel label="New contacts" value={preview.added} />
+                <Funnel label="Matched to an existing contact" value={preview.linked} tone="info" />
+                <Funnel label="Marketing off in the app" value={preview.opted_out} sub="synced, but silenced" />
+              </div>
+              <p className="text-ds-caption leading-relaxed text-muted-foreground">
+                Read from {preview.members_seen.toLocaleString()} app members with a phone
+                number. Matching is by number, so most of these join an app account to a
+                contact you already had rather than adding a row. A creator who turned
+                marketing off in the app is brought in and immediately opted out, so we know
+                who they are and no broadcast can reach them. Anyone who has replied STOP on
+                WhatsApp stays opted out whatever their app setting says.
+              </p>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
+            <Button onClick={apply} disabled={busy || !preview}>
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {preview ? `Sync ${preview.added + preview.linked} creators` : "Sync"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
