@@ -3,43 +3,39 @@
 /**
  * The brand's home screen.
  *
- * Built to an approved direction, in the language of the dashboards it was designed against:
- * one filled stat carrying the thing that needs them, three plain ones beside it, a real
- * chart of content arriving, a progress ring, the creators mid-campaign, and the four modules
- * as their artwork with nothing on them but a name.
+ * Built from `components/console/primitives` - PageHead, KpiRow, KpiCard, Panel, Row, Ring -
+ * which is the kit the team's Today screens are built from. That is the point of this
+ * rewrite: the internal dashboards looked better than the client's, and the reason was not
+ * taste. It was that this screen hand-rolled cards, figures and list rows the house already
+ * had opinions about. A KpiCard here now sits at the same height, with the same icon chip,
+ * figure size and shadow as one on /work/today.
  *
- * EVERYTHING HERE IS MEASURED. The week of bars is `sent_for_review_at` grouped by day with
- * the empty days generated rather than dropped, so a quiet Sunday is a zero in the right
- * place. The ring is `campaign_creators.stage` counted over live campaigns. The creator list
- * is the same rows ordered by who is waiting on the brand. No deltas, no "vs last period" and
- * no sparkline of invented history: we do not store it, and a made-up percentage on a home
- * screen is the one number a client will quote back.
+ * NO EMPTY STATES. Every block is behind a real condition and the grids are built from what
+ * survives. A client whose account has nothing in it gets a short page, not four boxes
+ * explaining what they do not have.
  *
- * COMPONENTS ARE SHADCN AS INSTALLED - Card, Button, Badge, Avatar, Skeleton, ChartContainer.
- * No local wrappers, no hand-rolled chart. Colour comes from theme tokens only.
+ * NOTHING IS INVENTED. The figures and the ring come from one endpoint that measures them.
+ * KpiCard accepts `delta` and `since`; this screen deliberately passes neither, because we do
+ * not store the history to compute a change against last month and the card reads fine
+ * without one.
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Bar, BarChart, Cell, XAxis } from 'recharts'
 
 import { useDashboardData } from '@/hooks/useDashboardData'
-import { useUserStore } from '@/stores/userStore'
 import { useCommercialAccount } from '@/hooks/useCommercialAccount'
 import { contentBrandApi, type ContentSummary } from '@/services/contentDeliveryApi'
 import { brandProposalViewApi } from '@/services/adminProposalMasterApi'
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { DashboardSkeleton } from '@/components/skeletons/DashboardSkeleton'
+import { CARD, KpiCard, KpiRow, PageHead, Panel, Ring, Row } from '@/components/console/primitives'
 import { cn } from '@/lib/utils'
-import { ArrowUpRight } from 'lucide-react'
+import { CheckCircle2, FileText, Megaphone, Users2 } from 'lucide-react'
 
 const PROPOSAL_WAITING = ['sent', 'in_review', 'more_requested']
 
@@ -50,18 +46,13 @@ const MODULES = [
   { key: 'manage', name: 'Manage', art: '/modules/manage.png', href: '/campaigns' },
 ]
 
-const chartConfig = { count: { label: 'Pieces', color: 'var(--chart-1)' } } satisfies ChartConfig
-
 type Summary = ContentSummary & {
-  series?: { day: string; date: string; count: number }[]
   progress?: { total: number; posted: number; in_review: number; remaining: number; pct: number | null }
   creators?: { username: string; campaign: string; stage: string; stage_label: string }[]
 }
 
 export function BrandDashboardContent() {
-  const router = useRouter()
   const { unlockedProfilesCount, activeCampaignsCount, isLoading } = useDashboardData()
-  const { user } = useUserStore()
   const { owns } = useCommercialAccount()
 
   const [s, setS] = useState<Summary | null>(null)
@@ -83,317 +74,139 @@ export function BrandDashboardContent() {
       String(p?.proposal?.status ?? p?.status ?? ''))),
     [proposals])
 
-  const who = useMemo(() => {
-    if (!user) return { name: null as string | null, initials: '—' }
-    const name = user.company || user.full_name || user.first_name
-      || user.email?.split('@')[0] || null
-    const initials = (name || '?').split(' ').filter(Boolean).slice(0, 2)
-      .map((w: string) => w[0]).join('').toUpperCase()
-    return { name, initials }
-  }, [user])
-
   const needsYou = (s?.awaiting_you ?? 0) + waiting.length
-  const series = s?.series ?? []
-  const peak = Math.max(...series.map((d) => d.count), 0)
   const progress = s?.progress
   const creators = s?.creators ?? []
+  const live = s?.live_campaigns ?? activeCampaignsCount
 
-  if (isLoading) return <DashboardSkeleton />
-
-  /* THE RULE THIS PAGE NEARLY BROKE. No data means the section is not rendered at all, not
-     a card containing the sentence "nothing yet". On an account that has just started the
-     placeholders ARE the page: three tall boxes reading "nothing has come in", "nothing
-     booked" and "nobody is mid-campaign" is a screen about absence.
-
-     So every block below sits behind a real condition, and the grids are built from whatever
-     survives rather than from a fixed column count. A brand with one proposal and nothing
-     else gets a short page, which is the honest shape of their account today. */
-  const showChart = peak > 0
   const showRing = !!progress && progress.pct !== null && progress.total > 0
   const showCreators = creators.length > 0
   const showNeeds = waiting.length > 0 || !!s?.awaiting_you
 
-  const figures = [
-    { label: 'Waiting on you', value: needsYou, filled: true,
-      foot: needsYou ? 'Content and proposals' : 'You are all caught up',
-      badge: waiting.length ? waiting.length + ' proposal' + (waiting.length === 1 ? '' : 's') : undefined,
-      href: s?.focus ? '/campaigns/' + s.focus.campaign_id + '/content' : '/proposals',
-      always: true },
-    { label: 'Campaigns live', value: s?.live_campaigns ?? activeCampaignsCount,
-      foot: 'Running right now', href: '/campaigns' },
-    { label: 'Creators working', value: s?.creators_working,
-      foot: 'Filming or posting now', href: '/campaigns' },
-    { label: 'Creators unlocked', value: unlockedProfilesCount,
-      foot: 'Across your whole team', href: '/creators' },
-  ].filter((f) => f.always || (typeof f.value === 'number' && f.value > 0))
+  if (isLoading) return <DashboardSkeleton />
 
-  const mid = [showChart, showNeeds, showRing].filter(Boolean).length
+  /* Only figures with something in them, plus "waiting on you", where a zero is the good
+     news and worth saying out loud. */
+  const kpis = [
+    { key: 'waiting', label: 'Waiting on you', value: needsYou, icon: CheckCircle2,
+      hint: needsYou ? 'Content and proposals' : 'You are all caught up', always: true },
+    { key: 'live', label: 'Campaigns live', value: live, icon: Megaphone,
+      hint: 'Running right now' },
+    { key: 'working', label: 'Creators working', value: s?.creators_working ?? 0, icon: Users2,
+      hint: 'Filming or posting' },
+    { key: 'unlocked', label: 'Creators unlocked', value: unlockedProfilesCount, icon: FileText,
+      hint: 'Across your whole team' },
+  ].filter((k) => k.always || k.value > 0)
 
   return (
-    <div className="flex w-full flex-col gap-3.5 p-4 md:p-5">
+    <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
 
-      <div>
-        <h1 className="text-[22px] font-bold tracking-tight">{greet()}</h1>
-        <p className="mt-0.5 text-[13px] text-muted-foreground">
-          {line(activeCampaignsCount, waiting.length, s?.awaiting_you ?? 0)}
-        </p>
-      </div>
+      <PageHead title="Your campaigns"
+                sub={summary(live, waiting.length, s?.awaiting_you ?? 0)} />
 
-      <div className={cn('grid gap-3',
-        figures.length <= 2 ? 'grid-cols-2'
-          : figures.length === 3 ? 'grid-cols-2 lg:grid-cols-3'
-          : 'grid-cols-2 lg:grid-cols-4')}>
-        {figures.map((f) => (
-          <Stat key={f.label} label={f.label} value={f.value} foot={f.foot} badge={f.badge}
-                href={f.href} loading={s === null} filled={f.filled} />
-        ))}
-      </div>
+      <KpiRow cols={kpis.length === 3 ? 3 : 4}>
+        {s === null
+          ? [0, 1, 2, 3].map((n) => (
+              <Skeleton key={n} className="h-[102px] rounded-[var(--radius-card)]" />))
+          : kpis.map((k) => (
+              <KpiCard key={k.key} label={k.label} value={k.value} icon={k.icon} hint={k.hint} />
+            ))}
+      </KpiRow>
 
-      {mid > 0 && (
-        <div className={cn('grid gap-3',
-          mid === 2 ? 'lg:grid-cols-2' : mid === 3 ? 'lg:grid-cols-[1.45fr_1fr_1fr]' : '')}>
-
-          {showChart && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Content coming in</CardTitle>
-                <CardDescription className="text-xs">Last seven days</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="h-[122px] w-full">
-                  <BarChart data={series} margin={{ top: 6, left: 0, right: 0, bottom: 0 }}>
-                    <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8}
-                           tick={{ fontSize: 11 }} />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                    <Bar dataKey="count" radius={999} barSize={26}>
-                      {series.map((d) => (
-                        <Cell key={d.date}
-                              fill={d.count === peak ? 'var(--chart-1)' : 'var(--muted)'} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-          )}
-
+      {(showNeeds || showRing) && (
+        <div className={cn('grid gap-4', showNeeds && showRing && 'lg:grid-cols-[1.6fr_1fr]')}>
           {showNeeds && (
-            <Card className="flex flex-col">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Needs you</CardTitle>
-                <CardDescription className="text-xs">Oldest first</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col justify-between gap-3">
-                <div>
-                  {waiting.slice(0, 2).map((pp) => {
-                    const pr = pp?.proposal ?? pp
-                    return (
-                      <Row key={pr?.id} title={pr?.title || pr?.campaign_name || 'Proposal'}
-                           sub={pr?.deadline_at
-                             ? 'Reply by ' + new Date(pr.deadline_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-                             : 'Waiting on your answer'}
-                           badge="Proposal" />
-                    )
-                  })}
-                  {!!s?.awaiting_you && (
-                    <Row title={s.awaiting_you + ' piece' + (s.awaiting_you === 1 ? '' : 's') + ' to approve'}
-                         sub={s.focus?.campaign_name ?? 'Across your campaigns'}
-                         badge="Content" tone="warn" />
-                  )}
-                </div>
-                <Button asChild className="w-full" size="sm">
+            <Panel title="Needs you" description="Oldest first" flush>
+              {waiting.slice(0, 3).map((p) => {
+                const pr = p?.proposal ?? p
+                return (
+                  <Row
+                    key={pr?.id}
+                    tone="info"
+                    title={pr?.title || pr?.campaign_name || 'Proposal'}
+                    meta={pr?.deadline_at
+                      ? `Reply by ${new Date(pr.deadline_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+                      : 'Waiting on your answer'}
+                    right={<Badge variant="secondary" className="text-[11px]">Proposal</Badge>}
+                  />
+                )
+              })}
+              {!!s?.awaiting_you && (
+                <Row
+                  tone="warn"
+                  title={`${s.awaiting_you} piece${s.awaiting_you === 1 ? '' : 's'} of content to approve`}
+                  meta={s.focus?.campaign_name ?? 'Across your campaigns'}
+                  right={<Badge className="text-[11px]">Content</Badge>}
+                />
+              )}
+              <div className="px-6 pt-3">
+                <Button asChild size="sm">
                   <Link href={waiting.length
-                    ? '/proposals/' + (waiting[0]?.proposal?.id ?? waiting[0]?.id ?? '')
-                    : (s?.focus ? '/campaigns/' + s.focus.campaign_id + '/content' : '/campaigns')}>
+                    ? `/proposals/${waiting[0]?.proposal?.id ?? waiting[0]?.id ?? ''}`
+                    : (s?.focus ? `/campaigns/${s.focus.campaign_id}/content` : '/campaigns')}>
                     {waiting.length ? 'Open the proposal' : 'Review content'}
                   </Link>
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </Panel>
           )}
 
           {showRing && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Campaign progress</CardTitle>
-                <CardDescription className="text-xs">Across everything live</CardDescription>
-              </CardHeader>
-              <CardContent><Ring progress={progress!} /></CardContent>
-            </Card>
+            <Panel title="Campaign progress" description="Across everything live">
+              <Ring pct={progress!.pct} size={124}
+                    caption={`${progress!.posted} posted, ${progress!.in_review} in review, ${progress!.remaining} to come`} />
+            </Panel>
           )}
         </div>
       )}
 
-      <div className={cn('grid gap-3', showCreators && 'lg:grid-cols-[1.45fr_1fr]')}>
-        {showCreators && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Your creators</CardTitle>
-              <CardDescription className="text-xs">Working on something right now</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul>
-                {creators.map((c, i) => (
-                  <li key={c.username}
-                      className={cn('flex items-center gap-3 py-2.5', i > 0 && 'border-t')}>
-                    <Avatar className="size-7">
-                      <AvatarFallback className="text-[10px]">
-                        {c.username.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-medium">{c.username}</p>
-                      <p className="truncate text-[11px] text-muted-foreground">{c.campaign}</p>
-                    </div>
-                    <Badge variant={c.stage === 'content_in' ? 'default' : 'secondary'}
-                           className="shrink-0 text-[10px]">
-                      {c.stage_label}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
+      {showCreators && (
+        <Panel title="Your creators" description="Working on something right now" flush>
+          {creators.map((c) => (
+            <Row
+              key={c.username}
+              tone={c.stage === 'content_in' ? 'warn'
+                    : c.stage === 'posted' || c.stage === 'paid' ? 'good' : 'neutral'}
+              title={c.username}
+              meta={c.campaign}
+              right={<Badge variant="secondary" className="text-[11px]">{c.stage_label}</Badge>}
+            />
+          ))}
+        </Panel>
+      )}
 
-        {/* The modules ARE the artwork. Four across when nothing sits beside them, so they
-            read as a row rather than as four billboards filling the page. */}
-        <div className={cn('grid gap-3',
-                           showCreators ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4')}>
-          {MODULES.map((m) => {
-            const has = !!owns?.[m.key]
-            return (
-              <Link key={m.key} href={has ? m.href : '/pricing'}
-                    className={cn('group relative isolate aspect-[16/7] overflow-hidden rounded-xl',
-                                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
-                <Image src={m.art} alt="" fill sizes="(max-width: 1024px) 50vw, 260px"
-                       className={cn('-z-10 object-cover object-right transition-transform duration-500',
-                                     'group-hover:scale-[1.05]',
-                                     !has && 'grayscale opacity-70')} />
-                <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 to-black/10" />
-                <p className="absolute inset-x-0 bottom-0 truncate px-3 pb-2.5 text-[12px] font-semibold text-white">
-                  {m.name}
-                </p>
-              </Link>
-            )
-          })}
-        </div>
+      {/* The modules, as their artwork with a name on it. A short row, not four billboards. */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {MODULES.map((m) => {
+          const has = !!owns?.[m.key]
+          return (
+            <Link
+              key={m.key}
+              href={has ? m.href : '/pricing'}
+              className={cn(CARD, 'group relative isolate h-[88px] overflow-hidden',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}
+            >
+              <Image src={m.art} alt="" fill sizes="(max-width: 1024px) 50vw, 300px"
+                     className={cn('-z-10 object-cover object-right transition-transform duration-500',
+                                   'group-hover:scale-[1.06]', !has && 'grayscale opacity-60')} />
+              <span className="absolute inset-0 -z-10 bg-gradient-to-r from-black/90 via-black/60 to-black/20" />
+              <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-4 pb-3">
+                <span className="truncate text-[13px] font-semibold text-white">{m.name}</span>
+                {!has && <span className="shrink-0 text-[11px] text-white/60">Add</span>}
+              </span>
+            </Link>
+          )
+        })}
       </div>
     </div>
   )
 }
 
-function greet() {
-  const h = new Date().getHours()
-  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
-}
-
-function line(live: number, proposals: number, content: number): string {
+function summary(live: number, proposals: number, content: number): string {
   const bits: string[] = []
   if (live) bits.push(`${live} campaign${live === 1 ? '' : 's'} running`)
   if (proposals) bits.push(`${proposals} proposal${proposals === 1 ? '' : 's'} to answer`)
   if (content) bits.push(`${content} piece${content === 1 ? '' : 's'} to approve`)
   if (!bits.length) return 'Nothing needs you today.'
-  return bits.join(' and ') + '.'
-}
-
-function Stat({ label, value, foot, badge, href, loading, filled }: {
-  label: string; value: number | undefined; foot: string; badge?: string
-  href: string; loading: boolean; filled?: boolean
-}) {
-  return (
-    <Link href={href} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl">
-      <Card className={cn('relative h-full transition-colors',
-                          filled ? 'border-transparent bg-foreground text-background'
-                                 : 'hover:bg-muted/40')}>
-        <CardContent className="p-4">
-          <p className={cn('text-[12.5px] font-medium',
-                           filled ? 'text-background/65' : 'text-muted-foreground')}>{label}</p>
-          <span className={cn('absolute right-3.5 top-3.5 grid size-6 place-items-center rounded-full border',
-                              filled ? 'border-background/25 bg-background/10' : 'border-border')}>
-            <ArrowUpRight className="size-3" />
-          </span>
-          {loading
-            ? <Skeleton className="mt-4 h-8 w-14" />
-            : <p className="mt-4 text-[32px] font-bold leading-none tabular-nums tracking-tight">
-                {value ?? '—'}
-              </p>}
-          <div className="mt-2.5 flex items-center gap-2">
-            {badge && (
-              <Badge variant={filled ? 'secondary' : 'outline'} className="text-[10px]">{badge}</Badge>
-            )}
-            <span className={cn('truncate text-[11px]',
-                                filled ? 'text-background/55' : 'text-muted-foreground')}>{foot}</span>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  )
-}
-
-function Row({ title, sub, badge, tone }: {
-  title: string; sub: string; badge: string; tone?: 'warn'
-}) {
-  return (
-    <div className="flex items-center gap-3 border-t py-2.5 first:border-t-0 first:pt-0">
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-medium">{title}</p>
-        <p className="truncate text-[11px] text-muted-foreground">{sub}</p>
-      </div>
-      <Badge variant={tone === 'warn' ? 'default' : 'secondary'} className="shrink-0 text-[10px]">
-        {badge}
-      </Badge>
-    </div>
-  )
-}
-
-/* Posted, in review and still to come, drawn to one scale. SVG rather than a radial chart:
-   three arcs of one circle is a stroke-dasharray, and a charting library here would be a
-   dependency carrying a rounding bug. */
-function Ring({ progress }: {
-  progress: { total: number; posted: number; in_review: number; remaining: number; pct: number | null }
-}) {
-  const R = 52
-  const C = 2 * Math.PI * R
-  const share = (n: number) => (progress.total ? (n / progress.total) * C : 0)
-  const posted = share(progress.posted)
-  const review = share(progress.in_review)
-
-  return (
-    <div>
-      <div className="relative mx-auto grid size-[132px] place-items-center">
-        <svg width="132" height="132" viewBox="0 0 132 132" className="absolute">
-          <circle cx="66" cy="66" r={R} fill="none" stroke="var(--muted)" strokeWidth="15" />
-          <circle cx="66" cy="66" r={R} fill="none" stroke="var(--foreground)" strokeWidth="15"
-                  strokeLinecap="round" strokeDasharray={`${posted} ${C}`}
-                  transform="rotate(-90 66 66)" />
-          {review > 0 && (
-            <circle cx="66" cy="66" r={R} fill="none" stroke="var(--chart-1)" strokeWidth="15"
-                    strokeLinecap="round" strokeDasharray={`${review} ${C}`}
-                    strokeDashoffset={-posted} transform="rotate(-90 66 66)" />
-          )}
-        </svg>
-        <div className="relative text-center">
-          <p className="text-[26px] font-bold leading-none tabular-nums tracking-tight">
-            {progress.pct}%
-          </p>
-          <p className="mt-1 text-[10.5px] text-muted-foreground">posted</p>
-        </div>
-      </div>
-      <div className="mt-3 flex justify-center gap-4 text-[11px] text-muted-foreground">
-        <Key color="var(--foreground)" label={`${progress.posted} posted`} />
-        <Key color="var(--chart-1)" label={`${progress.in_review} in review`} />
-        <Key color="var(--muted)" label={`${progress.remaining} to come`} />
-      </div>
-    </div>
-  )
-}
-
-function Key({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span className="size-[7px] rounded-full" style={{ background: color }} />
-      {label}
-    </span>
-  )
+  return `${bits.join(', ')}.`
 }
