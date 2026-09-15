@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
   Search, ArrowUpRight, LayoutDashboard, Compass, Users2, ListChecks, FileText,
-  Megaphone, Sparkles, CreditCard, Bell, Settings, Mail,
+  Megaphone, Sparkles, CreditCard, Bell, Settings, Mail, Wallet,
 } from 'lucide-react'
 
 type Entry = {
@@ -90,6 +90,14 @@ const SCREENS: Entry[] = [
     title: 'Briefs', href: '/run', icon: Sparkles,
     what: 'Post a brief and let creators come to you, with how many it reached and how many replied.',
     also: ['post a brief', 'inbound', 'applications'],
+  },
+  {
+    title: 'Merchant of Record', href: '/mor', icon: Wallet,
+    what: 'You have already agreed terms with a creator and want us to contract and pay them. '
+        + 'Tell us who, and what you agreed. We draw up the agreement in our name, you settle '
+        + 'one invoice, and we pay them. Several creators at once works the same way and still '
+        + 'settles once.',
+    also: ['pay a creator', 'paying creators', 'mor', 'pay several', 'invoice', 'contract'],
   },
   {
     title: 'Billing', href: '/billing', icon: CreditCard,

@@ -25,11 +25,11 @@ import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import { ArrowRight, Plus, ShieldCheck, Wallet } from 'lucide-react'
+import { ArrowRight, Plus, ShieldCheck, Users, Wallet } from 'lucide-react'
 import { morApi, type MorOffer } from '@/services/morApi'
 import {
   morPaymentsApi, aed,
-  type MorOverview, type MorPayment, type FeeFreeState,
+  type MorOverview, type MorPayment, type MorBatch, type FeeFreeState,
 } from '@/services/morPaymentsApi'
 import { cn } from '@/lib/utils'
 
@@ -86,7 +86,11 @@ function MorContent() {
     <div className="mor-scope mx-auto w-full max-w-[860px] px-5 py-12 sm:px-8 sm:py-16">
       <style>{TOKENS}</style>
       {loading ? <LoadingShape /> : offer?.active ? (
-        <Live data={data} onGo={() => router.push('/mor/new')} />
+        <Live
+          data={data}
+          onGo={() => router.push('/mor/new')}
+          onGoMany={() => router.push('/mor/batch/new')}
+        />
       ) : (
         <Offer offer={offer} />
       )}
@@ -116,7 +120,9 @@ function LoadingShape() {
   )
 }
 
-function Live({ data, onGo }: { data: MorOverview | null; onGo: () => void }) {
+function Live({ data, onGo, onGoMany }: {
+  data: MorOverview | null; onGo: () => void; onGoMany: () => void
+}) {
   if (!data) {
     return (
       <p className="text-[14.5px] leading-relaxed text-muted-foreground">
@@ -127,7 +133,18 @@ function Live({ data, onGo }: { data: MorOverview | null; onGo: () => void }) {
   }
 
   const { summary, payments } = data
+  const batches = data.batches ?? []
   const free = summary.fee_free
+
+  /* One list, in the order things were instructed. A batch is ONE entry carrying its
+     creators, not N entries that happen to share a date: the brand gave us one instruction
+     and six rows claiming to be separate would misrepresent what they did and what they owe. */
+  const entries = [
+    ...batches.map((b) => ({ kind: 'batch' as const, at: b.created_at ?? '', batch: b })),
+    ...payments
+      .filter((p) => !p.batch_id)
+      .map((p) => ({ kind: 'one' as const, at: p.created_at ?? '', payment: p })),
+  ].sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
 
   return (
     <div>
@@ -142,9 +159,17 @@ function Live({ data, onGo }: { data: MorOverview | null; onGo: () => void }) {
           </p>
           {free.remaining > 0 && <FeeFreeBadge free={free} />}
         </div>
-        <Button onClick={onGo} className="shrink-0 gap-1.5">
-          <Plus className="size-4" />Pay a creator
-        </Button>
+        {/* Two ways in, because they are genuinely different jobs. One creator is a short
+            form; a list is a table you can paste into. Offering only the first makes anybody
+            with six creators do the short form six times. */}
+        <div className="flex shrink-0 flex-wrap gap-2.5">
+          <Button variant="outline" onClick={onGoMany} className="gap-1.5">
+            <Users className="size-4" />Pay several
+          </Button>
+          <Button onClick={onGo} className="gap-1.5">
+            <Plus className="size-4" />Pay a creator
+          </Button>
+        </div>
       </header>
 
       {payments.length > 0 && (
@@ -158,11 +183,15 @@ function Live({ data, onGo }: { data: MorOverview | null; onGo: () => void }) {
       )}
 
       <section className="mt-14">
-        {payments.length === 0 ? (
+        {entries.length === 0 ? (
           <Empty onGo={onGo} />
         ) : (
           <ul className="-mx-3">
-            {payments.map((p, i) => <Row key={p.id} payment={p} first={i === 0} />)}
+            {entries.map((e, i) =>
+              e.kind === 'batch'
+                ? <BatchRow key={e.batch.id} batch={e.batch} first={i === 0} />
+                : <Row key={e.payment.id} payment={e.payment} first={i === 0} />,
+            )}
           </ul>
         )}
       </section>
@@ -253,6 +282,64 @@ function Row({ payment, first }: { payment: MorPayment; first: boolean }) {
   )
 }
 
+/* A batch, as one row. It names the creators rather than saying "6 creators", because the
+   names are how somebody recognises which list this is, and a count tells them nothing they
+   could not see from the total. Truncated after three: past that the row stops being
+   scannable, which is the only thing it is for. */
+function BatchRow({ batch, first }: { batch: MorBatch; first: boolean }) {
+  const live = batch.payments.filter((p) => p.status !== 'cancelled')
+  const names = live.slice(0, 3).map((p) => p.creator_name).join(', ')
+  const rest = live.length - 3
+
+  return (
+    <li>
+      <Link
+        href={`/mor/batch/${batch.id}`}
+        className={cn(
+          'mor-row flex items-center justify-between gap-6 rounded-[10px] px-3 py-4',
+          !first && 'border-t border-[var(--mor-rule)]',
+        )}
+      >
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Users className="size-[15px] shrink-0 text-muted-foreground" aria-hidden />
+            <span className="truncate text-[15px] font-medium tracking-[-0.01em]">
+              {batch.label || `${live.length} creators`}
+            </span>
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-[12.5px] text-muted-foreground">
+            <span className={cn('size-[6px] shrink-0 rounded-full', DOT[batch.status])} aria-hidden />
+            <span className="shrink-0">{batch.status_label}</span>
+            {names && (
+              <span className="truncate opacity-70">
+                {names}{rest > 0 && ` and ${rest} more`}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-4">
+          <div className="text-right">
+            <div className="text-[15px] font-medium tabular-nums tracking-[-0.01em]">
+              {aed(batch.total_aed)}
+            </div>
+            {batch.status === 'funded' && (
+              <div className="mt-0.5 text-[11.5px] tabular-nums text-muted-foreground">
+                {batch.creators_paid} of {live.length} paid
+              </div>
+            )}
+            {batch.status !== 'funded' && batch.waived_count > 0 && (
+              <div className="mt-0.5 text-[11.5px] font-medium text-muted-foreground">
+                {batch.waived_count} fee-free
+              </div>
+            )}
+          </div>
+          <ArrowRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </div>
+      </Link>
+    </li>
+  )
+}
+
 /* Teaches the screen rather than announcing that it is empty. */
 function Empty({ onGo }: { onGo: () => void }) {
   return (
@@ -261,6 +348,7 @@ function Empty({ onGo }: { onGo: () => void }) {
       <p className="mx-auto mt-5 max-w-[46ch] text-[14.5px] leading-relaxed text-muted-foreground">
         Nobody yet. When you have agreed a creator, a fee and what they are posting, tell us
         here. We draw up the agreement in our name, you settle one invoice, and we pay them.
+        A whole list works the same way, and still settles once.
       </p>
       <Button onClick={onGo} variant="outline" className="mt-7 gap-1.5">
         <Plus className="size-4" />Pay a creator
