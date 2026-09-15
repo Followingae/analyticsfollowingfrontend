@@ -276,6 +276,8 @@ export interface WhatsAppCredentials {
   account_status?: string | null
   credential_type: 'api_key' | 'auth_token' | null
   from_number: string | null
+  /** The exact environment variables to set, in order. Present only when something is wrong. */
+  fix?: string[] | null
 }
 
 export const whatsappApi = new WhatsAppApiService()

@@ -103,9 +103,18 @@ export default function SuperadminWhatsAppPage() {
               {creds.credential_type
                 ? ` Using ${creds.credential_type === 'api_key' ? 'an API key' : 'an auth token'}.`
                 : ''}
-              {' '}Fix it in the server environment and redeploy. Nothing on this page will
-              reach anyone until you do.
+              {' '}Nothing on this page will reach anyone until this is fixed.
             </p>
+            {/* The steps, named. The banner used to end at "fix it in the server environment
+                and redeploy", which diagnoses the problem and then leaves the reader to guess
+                which of four variables is wrong. */}
+            {creds.fix && creds.fix.length > 0 && (
+              <ol className="mt-ds-2 space-y-1 pl-4 text-[13px] leading-relaxed text-muted-foreground">
+                {creds.fix.map((step, i) => (
+                  <li key={i} className="list-decimal">{step}</li>
+                ))}
+              </ol>
+            )}
           </div>
         )}
         {creds?.ok && (
