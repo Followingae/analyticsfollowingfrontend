@@ -346,6 +346,53 @@ export const morPaymentsApi = {
         body: JSON.stringify({ reason }),
       }),
   },
+
+  /**
+   * Billing details. Asked for once, at the first order, and never again.
+   *
+   * NOT KYC, and must never be worded as if it were. We are not verifying anybody: this is the
+   * customer's own invoicing setup, so the tax invoice we raise is valid and they can recover
+   * their VAT on it. It does not gate the module, only our paperwork.
+   */
+  billing: {
+    read: (): Promise<{ data: MorBilling }> => jfetch(`${BASE}/billing`),
+
+    save: (payload: {
+      trn: string
+      legal_name: string
+      invoice_address: string
+      trade_licence_url: string
+      trade_licence_name?: string
+    }): Promise<{ data: MorBilling }> =>
+      jfetch(`${BASE}/billing`, { method: 'PUT', body: JSON.stringify(payload) }),
+
+    /** The licence as a file. Asking for a URL means asking them to host a PDF first. */
+    uploadLicence: async (file: File): Promise<{ trade_licence_url: string; trade_licence_name: string }> => {
+      const body = new FormData()
+      body.append('file', file)
+      // No Content-Type here on purpose: the browser has to set the multipart boundary.
+      const res = await fetchWithAuth(`${BASE}/billing/trade-licence`, { method: 'POST', body })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        throw new Error(err.detail || 'That file would not upload.')
+      }
+      return (await res.json()).data
+    },
+  },
+}
+
+/** What we hold for invoicing them, and what is still missing. */
+export interface MorBilling {
+  trn?: string | null
+  legal_name?: string | null
+  invoice_address?: string | null
+  trade_licence_name?: string | null
+  has_trade_licence?: boolean
+  complete: boolean
+  missing: string[]
+  /** We have asked them for something more. Deliberately visible: a silent hold is a ticket. */
+  on_hold: boolean
+  hold_reason?: string | null
 }
 
 /** AED, grouped, no decimals on whole amounts. One formatter so screens cannot drift. */

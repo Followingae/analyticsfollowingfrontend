@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { ArrowLeft, CreditCard, Landmark, Plus, ShieldCheck, X } from 'lucide-react'
 import { morPaymentsApi, aed, type MorQuote } from '@/services/morPaymentsApi'
+import { BillingDetailsDialog, needsBillingDetails } from '@/components/mor/BillingDetailsDialog'
 import { cn } from '@/lib/utils'
 
 const TOKENS = `
@@ -67,6 +68,11 @@ function NewPaymentForm() {
   const [quoting, setQuoting] = useState(false)
   const [method, setMethod] = useState<'card' | 'transfer' | null>('transfer')
   const [saving, setSaving] = useState(false)
+  /* Their invoice details, asked for at the first lock and never again. Held here rather than
+     inside the dialog so the order they were halfway through is not lost: the form appears,
+     they fill it in, and the lock they already asked for carries on by itself. */
+  const [askBilling, setAskBilling] = useState(false)
+
 
   const feeNumber = Number(fee.replace(/,/g, ''))
   const feeValid = Number.isFinite(feeNumber) && feeNumber > 0
@@ -100,6 +106,9 @@ function NewPaymentForm() {
 
   const submit = async () => {
     if (!ready || !method) return
+    // Asked before anything is created, so a brand who closes the form has not left a
+    // half-made order behind them.
+    if (await needsBillingDetails()) { setAskBilling(true); return }
     setSaving(true)
     try {
       const created = await morPaymentsApi.create({
@@ -123,6 +132,12 @@ function NewPaymentForm() {
   return (
     <div className="mor-scope mx-auto w-full max-w-[680px] px-5 py-12 sm:px-8 sm:py-16">
       <style>{TOKENS}</style>
+
+      <BillingDetailsDialog
+        open={askBilling}
+        onCancel={() => setAskBilling(false)}
+        onSaved={() => { setAskBilling(false); void submit() }}
+      />
 
       <Button variant="ghost" size="sm" className="-ml-2.5 gap-1.5 text-muted-foreground"
               onClick={() => router.push('/mor')}>

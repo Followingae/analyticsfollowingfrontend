@@ -144,8 +144,65 @@ export const morOpsApi = {
   markPaid: (paymentId: string, reference?: string) =>
     jfetch(`${BASE}/payments/${paymentId}/paid`, {
       method: 'POST',
-      body: JSON.stringify({ reference }),
+      // ⚠️ `payment_reference`, not `reference`. The server reads that key and silently stored
+      // no reference at all while this sent the other one.
+      body: JSON.stringify({ payment_reference: reference }),
     }),
+
+  /**
+   * Who can be paid on this order right now, without their account numbers.
+   * So the screen can offer "pay these nine" and show the same nine the file will contain.
+   */
+  payable: (kind: OrderKind, id: string): Promise<{ data: MorPayable }> =>
+    jfetch(`${BASE}/orders/${kind}/${id}/payable`),
+
+  /**
+   * The payout file. A download, not a screen: it is the only place a full IBAN appears, so it
+   * is fetched deliberately and never rendered.
+   */
+  payoutFile: async (kind: OrderKind, id: string, filename: string) => {
+    const res = await fetchWithAuth(`${BASE}/orders/${kind}/${id}/payouts.xlsx`)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new Error(err.detail || 'Could not build the payout file.')
+    }
+    const url = URL.createObjectURL(await res.blob())
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  },
+
+  /**
+   * Mark a whole payout run paid, with the one bank receipt covering it.
+   * Anybody who fails the gate is skipped and named back, never silently dropped.
+   */
+  markPaidTogether: (
+    kind: OrderKind, id: string,
+    body: { payment_ids?: string[]; payment_reference: string; receipt_file_url?: string },
+  ): Promise<{ data: MorPaidTogether }> =>
+    jfetch(`${BASE}/orders/${kind}/${id}/paid`, { method: 'POST', body: JSON.stringify(body) }),
+}
+
+/** The payout run, as the screen is allowed to see it. */
+export interface MorPayable {
+  creators: Array<{
+    id: string
+    creator_name: string | null
+    creator_handle: string | null
+    creator_fee_cents: number
+    bank_holder: string | null
+  }>
+  total_cents: number
+}
+
+export interface MorPaidTogether {
+  paid: number
+  skipped: Array<{ id: string; why: string }>
+  paid_ids: string[]
+  /** True when that was the last creator on the order, and the brand has been told. */
+  order_complete: boolean
 }
 
 /** AED from fils. One formatter so the operator screen and the brand screen cannot disagree. */

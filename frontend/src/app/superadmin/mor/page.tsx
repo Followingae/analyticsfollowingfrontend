@@ -42,7 +42,7 @@ import {
 } from 'lucide-react'
 import {
   morOpsApi, aedFromCents,
-  type MorOpsOverview, type MorOrder, type MorOrderCreator, type OrderKind,
+  type MorOpsOverview, type MorOrder, type MorOrderCreator, type MorPayable, type OrderKind,
 } from '@/services/morOpsApi'
 import { cn } from '@/lib/utils'
 
@@ -416,7 +416,7 @@ function OrderSheet({ order, onClose, onChange }: {
   }
 
   return (
-    <Sheet open onOpenChange={o => !o && onClose()}>
+    <Sheet open onOpenChange={(o: boolean) => !o && onClose()}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-[640px]">
         <SheetHeader>
           <SheetTitle className="pr-6">{order.label || order.reference}</SheetTitle>
@@ -465,6 +465,10 @@ function OrderSheet({ order, onClose, onChange }: {
             </section>
           )}
 
+          {order.receipt_attached_at && (
+            <PayoutRun order={order} onChange={() => { void load(); onChange() }} />
+          )}
+
           <section>
             <p className="text-ds-label">The creators</p>
             {loading ? (
@@ -480,6 +484,149 @@ function OrderSheet({ order, onClose, onChange }: {
     </Sheet>
   )
 }
+
+/**
+ * The payout run: one file out, one reference back, everybody marked at once.
+ *
+ * WHY IT IS A RUN AND NOT A ROW OF BUTTONS. Paying nine creators is one visit to the bank, so
+ * it should be one action here. Nine buttons is how the ninth gets missed, and the ninth is a
+ * person waiting on money we are already holding.
+ *
+ * WHY THE FILE IS A DOWNLOAD. It is the only place a full IBAN appears. It is pulled
+ * deliberately rather than rendered onto a screen that sits open all afternoon, and it holds
+ * only creators who can be paid right now, so nobody re-reads the rules while using it.
+ */
+function PayoutRun({ order, onChange }: { order: MorOrder; onChange: () => void }) {
+  const [rows, setRows] = useState<MorPayable['creators']>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [ref, setRef] = useState('')
+  const [receipt, setReceipt] = useState('')
+
+  const load = useCallback(async () => {
+    try {
+      const r = await morOpsApi.payable(order.kind as OrderKind, order.id)
+      setRows(r.data.creators); setTotal(r.data.total_cents)
+    } catch { /* the sheet already shows what is wrong; this section just stays empty */ }
+    finally { setLoading(false) }
+  }, [order])
+
+  useEffect(() => { void load() }, [load])
+
+  const download = async () => {
+    try {
+      await morOpsApi.payoutFile(order.kind as OrderKind, order.id,
+        `mor-payouts-${order.reference || order.id.slice(0, 8)}.xlsx`)
+    } catch (e) { toast.error((e as Error).message) }
+  }
+
+  const pay = async () => {
+    setBusy(true)
+    try {
+      const r = await morOpsApi.markPaidTogether(order.kind as OrderKind, order.id, {
+        payment_ids: rows.map(x => x.id),
+        payment_reference: ref.trim(),
+        receipt_file_url: receipt.trim() || undefined,
+      })
+      /* Anybody the gate refused is named, never swallowed: a run that says "9 paid" while
+         one person was skipped is how somebody waits another week for nothing. */
+      if (r.data.skipped.length) {
+        toast.warning(`${r.data.paid} paid, ${r.data.skipped.length} skipped`, {
+          description: r.data.skipped.map(x => x.why).join(' '),
+          duration: 12000,
+        })
+      } else {
+        toast.success(`${r.data.paid} paid`, {
+          description: r.data.order_complete
+            ? 'That was the last one. The brand has been told the order is finished.'
+            : undefined,
+        })
+      }
+      setOpen(false); onChange(); void load()
+    } catch (e) { toast.error((e as Error).message) }
+    finally { setBusy(false) }
+  }
+
+  if (loading) return <Skeleton className="h-24 w-full rounded-ds-lg" />
+  if (!rows.length) return null
+
+  return (
+    <section className="rounded-ds-lg border border-[var(--tone-info-line)] bg-[var(--tone-info-bg)] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-ds-label">
+            {rows.length} ready to be paid
+          </p>
+          <p className="mt-1 text-ds-body-sm text-muted-foreground">
+            Signed, bank details in, names checked. {aedFromCents(total)} to go out.
+          </p>
+        </div>
+        <div className="flex shrink-0 gap-2">
+          <Button size="sm" variant="outline" onClick={download}>
+            <FileText className="mr-1.5 size-3.5" />Payout file
+          </Button>
+          <Button size="sm" onClick={() => setOpen(true)}>
+            <Banknote className="mr-1.5 size-3.5" />Mark all paid
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-ds-3 space-y-1">
+        {rows.map(r => (
+          <div key={r.id} className="flex items-center justify-between gap-3 text-[12.5px]">
+            <span className="truncate">
+              {r.creator_name}
+              {r.bank_holder && r.bank_holder !== r.creator_name && (
+                <span className="text-muted-foreground"> · paying {r.bank_holder}</span>
+              )}
+            </span>
+            <span className="shrink-0 tabular-nums text-muted-foreground">
+              {aedFromCents(r.creator_fee_cents)}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark {rows.length} paid</DialogTitle>
+            <DialogDescription>
+              Do this after the transfers have actually left the bank. {aedFromCents(total)} to{' '}
+              {rows.length} {rows.length === 1 ? 'creator' : 'creators'}. There is no undo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-ds-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="mor-run-ref">Bank reference</Label>
+              <Input id="mor-run-ref" value={ref} onChange={e => setRef(e.target.value)}
+                     placeholder="The reference on the transfer" />
+              <p className="text-[11.5px] text-muted-foreground">
+                Goes on every creator in this run, so the statement can be reconciled later.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="mor-run-receipt">Bank receipt (optional)</Label>
+              <Input id="mor-run-receipt" value={receipt}
+                     onChange={e => setReceipt(e.target.value)}
+                     placeholder="Link to the receipt covering this run" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
+            <Button onClick={pay} disabled={busy || !ref.trim()}>
+              {busy && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+              Mark {rows.length} paid
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </section>
+  )
+}
+
 
 /** Where one creator has got to, in the order the steps happen. */
 function creatorStage(c: MorOrderCreator): { label: string; tone: string } {
