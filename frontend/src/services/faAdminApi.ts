@@ -183,6 +183,23 @@ export const faMemberApi = {
   // Superadmin bulk approve. Idempotent; notifies each newly-approved member (push + WhatsApp).
   bulkApprove: (ids: string[]) => post(`/api/v1/admin/fa/members/bulk-approve`, { member_ids: ids }),
   reject: (id: string, reason?: string) => put(`/api/v1/admin/fa/members/${id}`, { is_approved: 2, rejection_reason: reason }),
+  /**
+   * Correct the Instagram handle on somebody's behalf.
+   *
+   * Sixty three of the eighty one members waiting for approval are sitting on a placeholder
+   * handle (`pending_xxxx`) because they signed up and never linked Instagram. They cannot
+   * meaningfully be approved until somebody sets the real one.
+   *
+   * Changing the handle DROPS the analytics fetched against the old one, because a mistyped
+   * handle that happened to exist belongs to a different person and their followers must not
+   * follow the correction. `force` is needed only when the handle came from Instagram's own
+   * OAuth, where it cannot be a typo.
+   */
+  setInstagramUsername: (id: string, instagram_username: string, force = false) =>
+    put(`/api/v1/admin/fa/members/${id}`, {
+      instagram_username,
+      ...(force ? { force_username: true } : {}),
+    }),
   triggerAnalytics: (memberId: string) => post(`/api/v1/admin/fa/members/${memberId}/analyze`),
   deletePermanently: (memberId: string) => del(`/api/v1/admin/fa/members/${memberId}`),
 }

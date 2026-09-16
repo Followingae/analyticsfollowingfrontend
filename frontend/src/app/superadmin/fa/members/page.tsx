@@ -450,6 +450,127 @@ function MemberDetailSheet({ memberId, name, campaignsCount }: { memberId: strin
   )
 }
 
+/**
+ * The Instagram handle, and a way to correct it.
+ *
+ * WHY THIS IS NOT JUST A LINK ANY MORE. Sixty three of the eighty one members waiting for
+ * approval carry a placeholder handle like `pending_50029967b99c4073`: they signed up and
+ * never linked Instagram, so there is nothing to look at, nothing to check, and no honest way
+ * to approve them. Twenty four ALREADY APPROVED members are in the same state. A link to
+ * instagram.com/pending_5002... is a 404 dressed up as a profile.
+ *
+ * So a placeholder says what it is and offers the fix, a real handle stays the quiet link it
+ * always was with an edit affordance beside it, and a handle that came from Instagram's own
+ * OAuth warns before it lets anybody touch it.
+ */
+function HandleLine({ member, onSaved }: { member: FAMember; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  const handle = member.instagram_username || ""
+  // How signup names somebody who has not linked Instagram yet.
+  const isPlaceholder = /^pending_/i.test(handle)
+
+  const start = () => {
+    setValue(isPlaceholder ? "" : handle)
+    setEditing(true)
+  }
+
+  const save = async (force = false) => {
+    const next = value.trim().replace(/^@/, "").toLowerCase()
+    if (!next) { toast.error("Enter the creator's Instagram username"); return }
+    if (next === handle.toLowerCase()) { setEditing(false); return }
+    setSaving(true)
+    try {
+      await faMemberApi.setInstagramUsername(member.id, next, force)
+      toast.success(`Handle set to @${next}`, {
+        description: "Their analytics were cleared, because the old ones belong to the old handle. Run analytics to fetch the right ones.",
+      })
+      setEditing(false)
+      onSaved()
+    } catch (e: any) {
+      const detail = e?.detail || e?.message || "Could not change the handle"
+      // 409 from a handle that came from Instagram's OAuth. Offer the override rather than
+      // making somebody wonder why the save did nothing.
+      if (/came from Instagram itself/i.test(String(detail))) {
+        toast.error("This handle came from Instagram", {
+          description: detail,
+          action: { label: "Change it anyway", onClick: () => save(true) },
+        })
+      } else {
+        toast.error(String(detail))
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+        <div className="relative">
+          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">@</span>
+          <Input
+            autoFocus
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); save() }
+              if (e.key === "Escape") setEditing(false)
+            }}
+            placeholder="theirhandle"
+            className="h-7 w-[190px] pl-5 text-xs"
+          />
+        </div>
+        <Button size="sm" className="h-7 px-2 text-xs" disabled={saving} onClick={() => save()}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                disabled={saving} onClick={() => setEditing(false)}>
+          Cancel
+        </Button>
+      </div>
+    )
+  }
+
+  if (isPlaceholder) {
+    return (
+      <button
+        type="button"
+        onClick={start}
+        className={`mt-1 inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-xs ${TONE_BADGE.warn} transition-opacity hover:opacity-80`}
+      >
+        <Instagram className="h-3.5 w-3.5" />
+        <span className="font-medium">No Instagram handle yet</span>
+        <span className="opacity-70">Set one</span>
+      </button>
+    )
+  }
+
+  return (
+    <div className="mt-0.5 flex items-center gap-2">
+      <a
+        href={`https://instagram.com/${handle}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Instagram className="h-3.5 w-3.5" />
+        <span className="font-medium">@{handle}</span>
+        <ExternalLink className="h-3 w-3 opacity-50" />
+      </a>
+      <button
+        type="button"
+        onClick={start}
+        className="text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+      >
+        Correct
+      </button>
+    </div>
+  )
+}
+
 function MemberCard({ member, onAction, selected, onToggleSelect }: {
   member: FAMember
   onAction: () => void
@@ -585,16 +706,7 @@ function MemberCard({ member, onAction, selected, onToggleSelect }: {
                     <Badge variant="outline" className={`px-1.5 py-0 text-[10px] ${TONE_BADGE.warn}`}>Below our bar</Badge>
                   )}
                 </div>
-                <a
-                  href={`https://instagram.com/${member.instagram_username}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mt-0.5"
-                >
-                  <Instagram className="h-3.5 w-3.5" />
-                  <span className="font-medium">@{member.instagram_username}</span>
-                  <ExternalLink className="h-3 w-3 opacity-50" />
-                </a>
+                <HandleLine member={member} onSaved={onAction} />
                 {member.instagram_bio && (
                   <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 max-w-lg leading-relaxed italic">
                     &ldquo;{member.instagram_bio}&rdquo;
