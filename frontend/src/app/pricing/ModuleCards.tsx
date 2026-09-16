@@ -301,7 +301,7 @@ export function ModuleCards() {
               <Extra icon={Rocket} name="Run"
                      price={runMonthly !== null ? `${money(runMonthly)} a month` : 'On any plan'}
                      line="Brief creators, take priced offers back, run the campaign to delivery." />
-              <Extra icon={Wallet} name="Merchant of Record" price="3% of payouts"
+              <Extra icon={Wallet} name="Merchant of Record" price="7% of payouts"
                      line="One invoice instead of forty. You pay us once, we pay every creator." />
               <Extra icon={Handshake} name="Manage" price="Quoted"
                      line="Our team sources, negotiates and runs it. You watch it happen." />

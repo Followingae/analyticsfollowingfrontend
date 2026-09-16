@@ -208,7 +208,7 @@ export function annualMonthlyEquivalent(monthlyAmount: number): number {
 //   run     Campaigns, proposals, deliverables, settlement. An add-on, and the
 //           only module with an agreed list price: RUN_ADDON_AED_PER_MONTH,
 //           AED 1,200 a month.
-//   mor     Merchant of record. ONE price, agreed 2026-09-15: 3% of every
+//   mor     Merchant of record. ONE price, agreed 2026-09-16: 7% of every
 //           influencer payout we settle, stamped onto a campaign at award time,
 //           with NO monthly fee. It used to be two prices, a monthly fee and a
 //           percentage, and the monthly half was dropped because the module

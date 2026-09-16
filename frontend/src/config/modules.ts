@@ -10,8 +10,8 @@
  *   find    Included in every plan, at every tier. Never sold separately, so
  *           it is never shown with a price and never has a buy button.
  *   run     An add-on with an agreed list price, sold on its own, monthly.
- *   mor     An add-on with ONE agreed price: 3% of every influencer payout we
- *           settle, and no monthly fee (agreed 2026-09-15; the fee was AED 1,000
+ *   mor     An add-on with ONE agreed price: 7% of every influencer payout we
+ *           settle, and no monthly fee (7% agreed 2026-09-16; the fee was AED 1,000
  *           a month and was dropped, because the module earns when a creator is
  *           paid). The rate lives in run_money/config.py and is stamped onto a
  *           campaign at award time. It is priced as a percentage rather than a
