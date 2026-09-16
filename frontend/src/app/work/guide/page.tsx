@@ -30,6 +30,7 @@ import { PageHead } from '@/components/console/primitives'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
+  Wallet,
   Search, ArrowUpRight, Users2, Coins, Database, Map, Megaphone, ClipboardCheck,
   FileSignature, Banknote, BarChart3, Building2, FileText, Send, Inbox, ListChecks,
   ShieldCheck, Store, Activity, Bell, Wrench, MailCheck, MessageCircle, Users,
@@ -221,6 +222,12 @@ const SECTIONS: Section[] = [
         what: 'The same book, filtered to creators who signed an enrolment agreement, with their instalment schedule.',
         why: 'It carries the payout file, which is the only place in the product the full IBAN appears. Pulling it is logged against every creator in it.',
         also: ['iban', 'payout file', 'instalments', 'bank transfer'],
+      },
+      {
+        title: 'Merchant of Record', href: '/work/mor', icon: Wallet,
+        what: 'Orders where a brand pays us to contract and pay their creators for them. Everything about MoR is on this one screen: the invoice, the transfer in, the creators, and the payouts out.',
+        why: 'The order is the unit, not the creator, because the brand pays once. Attaching the receipt is what marks the transfer received and what emails every creator on it their enrolment link, so it is not something to do speculatively. Nobody is paid until they have signed, given us their bank details, and their signed name has either matched or been accepted by one of us. When they are all ready, the payout file and one Mark all paid cover the whole run on a single reference and receipt.',
+        also: ['mor', 'merchant of record', 'payout run', 'payout file', 'name check', 'name mismatch', 'trn', 'trade licence', 'invoice', 'receipt', 'mark all paid'],
       },
       {
         title: 'Money', href: '/work/money', icon: Banknote,

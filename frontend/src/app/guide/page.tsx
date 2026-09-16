@@ -97,7 +97,8 @@ const SCREENS: Entry[] = [
         + 'Tell us who, and what you agreed. We draw up the agreement in our name, you settle '
         + 'one invoice, and we pay them. Several creators at once works the same way and still '
         + 'settles once.',
-    also: ['pay a creator', 'paying creators', 'mor', 'pay several', 'invoice', 'contract'],
+    also: ['pay a creator', 'paying creators', 'mor', 'pay several', 'invoice', 'contract',
+           'trn', 'trade licence', 'vat', 'bank transfer', 'receipt'],
   },
   {
     title: 'Billing', href: '/billing', icon: CreditCard,
@@ -120,6 +121,34 @@ type Explainer = { q: string; a: React.ReactNode }
 
 // The questions people actually email to ask. Each one is here because it was asked.
 const EXPLAINERS: Explainer[] = [
+  {
+    q: 'Why are you asking for my TRN and trade licence?',
+    a: (
+      <>
+        Because we invoice you in our own name. We are the merchant of record on these
+        payments, so the invoice you get is a UAE tax invoice from us, and it needs your TRN
+        and your registered details on it or you cannot claim the VAT back at your own filing.
+        This is not verification and nobody is being screened: it is the same information your
+        accounts team puts on any supplier form. We ask once, at your first order, and never
+        again. You can look around Merchant of Record, add creators and see a total without
+        being asked for any of it.
+      </>
+    ),
+  },
+  {
+    q: 'How do the creators actually get paid?',
+    a: (
+      <>
+        Once your transfer reaches us, we email each creator on the order a private link. They
+        sign the agreement with us and enter their own bank details there, so you never handle
+        anyone's account number and we never ask you to check one. You can watch how far each
+        of them has got on your order, and if somebody has not replied you can resend it or
+        correct their email. Worth telling them it is coming and to check their junk folder:
+        an unexpected email about money looks like a scam, and your word is what makes it not
+        one. When the transfers go out you get the receipts against the order.
+      </>
+    ),
+  },
   {
     q: 'What is a credit, and when do I spend one?',
     a: (
