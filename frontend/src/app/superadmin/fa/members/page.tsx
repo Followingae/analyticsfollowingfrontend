@@ -483,7 +483,12 @@ function HandleLine({ member, onSaved }: { member: FAMember; onSaved: () => void
     if (next === handle.toLowerCase()) { setEditing(false); return }
     setSaving(true)
     try {
-      await faMemberApi.setInstagramUsername(member.id, next, force)
+      const res: any = await faMemberApi.setInstagramUsername(member.id, next, force)
+      /* ⚠️ The shared put() helper does not check res.ok, it just returns the parsed body. So
+         a 409 RESOLVES rather than throwing, and a plain try/catch would show a success toast
+         while nothing changed. FastAPI puts the refusal in `detail`, so that is the tell. */
+      if (res?.detail) throw Object.assign(new Error(String(res.detail)), { detail: res.detail })
+
       toast.success(`Handle set to @${next}`, {
         description: "Their analytics were cleared, because the old ones belong to the old handle. Run analytics to fetch the right ones.",
       })
