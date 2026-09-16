@@ -65,12 +65,14 @@ function NewPaymentForm() {
 
   const [quote, setQuote] = useState<MorQuote | null>(null)
   const [quoting, setQuoting] = useState(false)
-  const [method, setMethod] = useState<'card' | 'transfer' | null>(null)
+  const [method, setMethod] = useState<'card' | 'transfer' | null>('transfer')
   const [saving, setSaving] = useState(false)
 
   const feeNumber = Number(fee.replace(/,/g, ''))
   const feeValid = Number.isFinite(feeNumber) && feeNumber > 0
-  const ready = name.trim().length > 0 && feeValid && !!method
+  // The email is required now, because WE send the agreement rather than the brand pasting
+  // a link into a DM. No email means no way to contract or pay this creator.
+  const ready = name.trim().length > 0 && feeValid && !!method && email.trim().length > 0
 
   /* Quote on a pause in typing, not on every keystroke: a total that flickers while somebody
      is still typing the thousands reads as the price changing on them. */
@@ -259,13 +261,13 @@ function NewPaymentForm() {
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <Choice
-              icon={CreditCard} title="Pay now by card"
-              body="Settled in a minute, and we start straight away."
-              selected={method === 'card'} onSelect={() => setMethod('card')}
+              icon={CreditCard} title="Pay by card"
+              body="We are building this. Bank transfer for now."
+              selected={false} onSelect={() => {}} soon
             />
             <Choice
               icon={Landmark} title="Send me an invoice"
-              body="A proper invoice to settle by bank transfer."
+              body="We invoice you, you transfer, we pay the creator."
               selected={method === 'transfer'} onSelect={() => setMethod('transfer')}
             />
           </div>
@@ -283,6 +285,7 @@ function NewPaymentForm() {
           <p className="text-[13px] text-muted-foreground">
             {!name.trim() ? 'We need the creator’s name.'
               : !feeValid ? 'We need the fee you agreed.'
+              : !email.trim() ? 'We need their email so we can send them the agreement.'
               : 'Choose how you would like to pay.'}
           </p>
         )}
@@ -356,24 +359,34 @@ function Line({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-function Choice({ icon: Icon, title, body, selected, onSelect }: {
+function Choice({ icon: Icon, title, body, selected, onSelect, soon }: {
   icon: React.ComponentType<{ className?: string }>
-  title: string; body: string; selected: boolean; onSelect: () => void
+  title: string; body: string; selected: boolean; onSelect: () => void; soon?: boolean
 }) {
+  /* `soon` shows the option and refuses it. Removing card altogether would say we do not take
+     cards; showing it greyed says we are building it, and only one of those is true. */
   return (
     <button
       type="button"
-      onClick={onSelect}
+      onClick={soon ? undefined : onSelect}
+      disabled={soon}
       aria-pressed={selected}
       className={cn(
-        'mor-choice rounded-[14px] border px-5 py-5 text-left',
+        'mor-choice relative rounded-[14px] border px-5 py-5 text-left',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]',
-        selected
-          ? 'border-foreground/45 bg-muted/50'
-          : 'border-[var(--mor-rule)] hover:border-foreground/25 hover:bg-muted/30',
+        soon
+          ? 'cursor-default border-dashed border-[var(--mor-rule)] opacity-60'
+          : selected
+            ? 'border-foreground/45 bg-muted/50'
+            : 'border-[var(--mor-rule)] hover:border-foreground/25 hover:bg-muted/30',
       )}
     >
-      <Icon className={cn('size-[18px]', selected ? 'text-foreground' : 'text-muted-foreground')} />
+      {soon && (
+        <span className="absolute right-4 top-4 rounded-full bg-muted px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          Coming soon
+        </span>
+      )}
+      <Icon className={cn('size-[18px]', selected && !soon ? 'text-foreground' : 'text-muted-foreground')} />
       <div className="mt-3 text-[14.5px] font-medium tracking-[-0.01em]">{title}</div>
       <div className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{body}</div>
     </button>

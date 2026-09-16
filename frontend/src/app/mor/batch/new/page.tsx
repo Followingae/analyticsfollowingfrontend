@@ -69,12 +69,15 @@ type Row = {
   key: string
   name: string
   handle: string
+  /* How we reach them. WE send the enrolment link, never the brand, so without this we
+     cannot contract or pay this creator at all. It is as load bearing as the fee. */
+  contact: string
   work: string
   fee: string
 }
 
 let seq = 0
-const blank = (): Row => ({ key: `r${++seq}`, name: '', handle: '', work: '', fee: '' })
+const blank = (): Row => ({ key: `r${++seq}`, name: '', handle: '', contact: '', work: '', fee: '' })
 
 /** "1,500" and "AED 1 500.50" both mean the same number to a person, so they do here. */
 function feeOf(raw: string): number {
@@ -109,7 +112,12 @@ function parsePaste(text: string): Row[] {
       row.name = parts[0]
       const money = parts.slice(1).find((p) => feeOf(p) > 0)
       if (money) row.fee = money
-      const handle = parts.slice(1).find((p) => p.startsWith('@'))
+      // Email is tested BEFORE the handle, and the handle rule is tightened to "starts with
+      // @ and has no dot". Otherwise sara@gmail.com is read as an Instagram handle, which is
+      // the kind of quiet mistake that means somebody never gets contacted.
+      const email = parts.slice(1).find((p) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p))
+      if (email) row.contact = email
+      const handle = parts.slice(1).find((p) => p.startsWith('@') && !p.includes('.'))
       if (handle) row.handle = handle.replace(/^@/, '')
       return row
     })
@@ -132,14 +140,23 @@ function BatchForm() {
   const [label, setLabel] = useState('')
   const [quote, setQuote] = useState<MorBatchQuote | null>(null)
   const [quoting, setQuoting] = useState(false)
-  const [method, setMethod] = useState<'card' | 'transfer' | null>(null)
+  // Card is coming soon and unselectable, so transfer is chosen from the start
+  // rather than making somebody pick from a list of one.
+  const [method, setMethod] = useState<'card' | 'transfer' | null>('transfer')
   const [saving, setSaving] = useState(false)
 
   const nameRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   /** The rows that are actually somebody: a name and a fee. The rest are still being typed. */
   const filled = useMemo(
-    () => rows.filter((r) => r.name.trim() && feeOf(r.fee) > 0),
+    () => rows.filter((r) => r.name.trim() && feeOf(r.fee) > 0 && r.contact.trim()),
+    [rows],
+  )
+
+  /* Named, priced, and unreachable. Called out for exactly the same reason a missing fee is:
+     silently dropping them means a creator who is never contacted and never paid. */
+  const missingContact = useMemo(
+    () => rows.filter((r) => r.name.trim() && feeOf(r.fee) > 0 && !r.contact.trim()),
     [rows],
   )
 
@@ -154,6 +171,7 @@ function BatchForm() {
     () => filled.map((r) => ({
       creator_name: r.name.trim(),
       creator_handle: r.handle.trim() || undefined,
+      creator_email: r.contact.trim() || undefined,
       deliverables: r.work.trim() ? [r.work.trim()] : undefined,
       creator_fee_aed: feeOf(r.fee),
     })),
@@ -311,6 +329,7 @@ function BatchForm() {
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-[26%] min-w-[180px] pl-4">Creator</TableHead>
                 <TableHead className="w-[16%] min-w-[130px]">Instagram</TableHead>
+                <TableHead className="w-[20%] min-w-[170px]">Their email</TableHead>
                 <TableHead className="w-[24%] min-w-[160px]">What they are posting</TableHead>
                 <TableHead className="w-[16%] min-w-[130px] text-right">Their fee</TableHead>
                 <TableHead className="w-[16%] min-w-[130px] text-right">Costs you</TableHead>
@@ -343,6 +362,18 @@ function BatchForm() {
                         onChange={(e) => patch(row.key, { handle: e.target.value.replace(/^@/, '') })}
                         placeholder={i === 0 ? 'handle' : ''}
                         aria-label={`Creator ${i + 1} Instagram handle`}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        value={row.contact}
+                        onChange={(e) => patch(row.key, { contact: e.target.value })}
+                        onKeyDown={(e) => onKey(i, e)}
+                        placeholder={i === 0 ? 'them@email.com' : ''}
+                        inputMode="email"
+                        aria-label={`Creator ${i + 1} email`}
+                        className={cn(named && !row.contact.trim()
+                          && 'border-amber-500/60 bg-amber-500/5')}
                       />
                     </TableCell>
                     <TableCell>
@@ -410,7 +441,7 @@ function BatchForm() {
             {(quote || quoting) && (
               <TableFooter>
                 <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={3} className="pl-4 text-[13px] font-normal text-muted-foreground">
+                  <TableCell colSpan={4} className="pl-4 text-[13px] font-normal text-muted-foreground">
                     {quote
                       ? <>{quote.creators} {quote.creators === 1 ? 'creator' : 'creators'}
                           {quote.waived_count > 0 && (
@@ -434,6 +465,13 @@ function BatchForm() {
           <Button variant="outline" size="sm" onClick={addRow} className="gap-1.5">
             <Plus className="size-4" />Add another
           </Button>
+          {missingContact.length > 0 && (
+            <p className="text-[12.5px] text-amber-600 dark:text-amber-500">
+              {missingContact.length === 1
+                ? `We have no email for ${missingContact[0].name.trim()}, so we cannot send them their agreement.`
+                : `${missingContact.length} creators have no email, so we cannot send them their agreement.`}
+            </p>
+          )}
           {missingFee.length > 0 && (
             <p className="text-[12.5px] text-amber-600 dark:text-amber-500">
               {missingFee.length === 1
@@ -457,13 +495,13 @@ function BatchForm() {
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <Choice
-                icon={CreditCard} title="Pay now by card"
-                body="Settled in a minute, and we start straight away."
-                selected={method === 'card'} onSelect={() => setMethod('card')}
+                icon={CreditCard} title="Pay by card"
+                body="We are building this. Bank transfer for now."
+                selected={false} onSelect={() => {}} soon
               />
               <Choice
                 icon={Landmark} title="Send me an invoice"
-                body="One invoice for the list, to settle by bank transfer."
+                body="One invoice for the whole list. You transfer once."
                 selected={method === 'transfer'} onSelect={() => setMethod('transfer')}
               />
             </div>
@@ -573,24 +611,34 @@ function Line({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-function Choice({ icon: Icon, title, body, selected, onSelect }: {
+function Choice({ icon: Icon, title, body, selected, onSelect, soon }: {
   icon: React.ComponentType<{ className?: string }>
-  title: string; body: string; selected: boolean; onSelect: () => void
+  title: string; body: string; selected: boolean; onSelect: () => void; soon?: boolean
 }) {
+  /* `soon` shows the option and refuses it. Removing card altogether would say we do not take
+     cards; showing it greyed says we are building it, and only one of those is true. */
   return (
     <button
       type="button"
-      onClick={onSelect}
+      onClick={soon ? undefined : onSelect}
+      disabled={soon}
       aria-pressed={selected}
       className={cn(
-        'mor-choice rounded-[14px] border px-5 py-5 text-left',
+        'mor-choice relative rounded-[14px] border px-5 py-5 text-left',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]',
-        selected
-          ? 'border-foreground/45 bg-muted/50'
-          : 'border-[var(--mor-rule)] hover:border-foreground/25 hover:bg-muted/30',
+        soon
+          ? 'cursor-default border-dashed border-[var(--mor-rule)] opacity-60'
+          : selected
+            ? 'border-foreground/45 bg-muted/50'
+            : 'border-[var(--mor-rule)] hover:border-foreground/25 hover:bg-muted/30',
       )}
     >
-      <Icon className={cn('size-[18px]', selected ? 'text-foreground' : 'text-muted-foreground')} />
+      {soon && (
+        <span className="absolute right-4 top-4 rounded-full bg-muted px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          Coming soon
+        </span>
+      )}
+      <Icon className={cn('size-[18px]', selected && !soon ? 'text-foreground' : 'text-muted-foreground')} />
       <div className="mt-3 text-[14.5px] font-medium tracking-[-0.01em]">{title}</div>
       <div className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{body}</div>
     </button>

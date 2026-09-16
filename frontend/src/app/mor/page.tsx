@@ -242,6 +242,32 @@ const DOT: Record<string, string> = {
   cancelled: 'bg-muted-foreground/40',
 }
 
+/**
+ * One line saying where this creator actually is.
+ *
+ * Falls back to the payment's own status wherever the enrolment has nothing to add, so a
+ * draft still reads "Not sent yet" and a cancelled one still reads cancelled. The enrolment
+ * only speaks for the window between the money arriving and the creator being paid, which is
+ * precisely the window that used to say nothing.
+ */
+function rowLabel(payment: MorPayment): string {
+  const who = (payment.creator_name || 'They').split(' ')[0]
+  const e = payment.enrolment
+  if (payment.status === 'paid' || payment.status === 'cancelled' || !e) return payment.status_label
+  if (payment.status !== 'funded') return payment.status_label
+
+  switch (e.stage) {
+    case 'undeliverable': return `We could not reach ${who}`
+    case 'invited': return `Waiting on ${who}`
+    case 'opened': return `${who} is filling in their details`
+    case 'signing': return `${who} signed, adding their account`
+    case 'checking': return `Checking ${who}'s details`
+    case 'ready': return `Ready to pay ${who}`
+    case 'reported': return `${who} says this is not them`
+    default: return payment.status_label
+  }
+}
+
 function Row({ payment, first }: { payment: MorPayment; first: boolean }) {
   return (
     <li>
@@ -256,9 +282,13 @@ function Row({ payment, first }: { payment: MorPayment; first: boolean }) {
           <div className="truncate text-[15px] font-medium tracking-[-0.01em]">
             {payment.creator_name}
           </div>
+          {/* The label says where the CREATOR has got to once the money is in, not just where
+              the money is. "Paying the creator" was true for the whole window in which a
+              creator was signing, entering their account, or had gone quiet, which is most of
+              the elapsed time and the only part a brand can do anything about. */}
           <div className="mt-1 flex items-center gap-2 text-[12.5px] text-muted-foreground">
             <span className={cn('size-[6px] shrink-0 rounded-full', DOT[payment.status])} aria-hidden />
-            <span className="truncate">{payment.status_label}</span>
+            <span className="truncate">{rowLabel(payment)}</span>
             {payment.creator_handle && (
               <span className="truncate opacity-70">@{payment.creator_handle}</span>
             )}

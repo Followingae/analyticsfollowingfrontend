@@ -107,6 +107,37 @@ export interface MorPayment {
   cancelled_at: string | null
   cancelled_reason: string | null
   created_at: string | null
+
+  /* The brand's own paperwork. Raised in QuickBooks and attached by us, so these point at a
+     document rather than being one: two numbering sequences for one supply is worse than
+     none. Null until we attach, which is exactly the "being prepared" state. */
+  invoice_number?: string | null
+  invoice_url?: string | null
+  invoice_at?: string | null
+  receipt_url?: string | null
+  receipt_at?: string | null
+
+  /** Where the creator has got to. A narrow allow list: never a link, never bank details. */
+  enrolment?: MorEnrolmentState | null
+}
+
+/**
+ * What a brand may know about their creator's enrolment.
+ *
+ * Note what is absent and stays absent: no token, no URL, and no bank details, not even the
+ * last four, which is a verification oracle. `bank_confirmed` is a boolean for that reason.
+ */
+export interface MorEnrolmentState {
+  stage:
+    | 'not_started' | 'invited' | 'undeliverable' | 'opened'
+    | 'signing' | 'checking' | 'ready' | 'reported'
+  label: string
+  invited_at: string | null
+  invite_failed: boolean
+  opened_at: string | null
+  signed_at: string | null
+  bank_given_at: string | null
+  bank_confirmed: boolean
 }
 
 export interface MorSummary {
@@ -193,7 +224,26 @@ export interface MorBatch {
   cancelled_reason: string | null
   created_at: string | null
   payments: MorPayment[]
+  invoice_number?: string | null
+  invoice_url?: string | null
+  invoice_at?: string | null
+  receipt_url?: string | null
+  receipt_at?: string | null
 }
+
+/**
+ * How a brand pays us today.
+ *
+ * Bank transfer only. Card stays on screen beside it, clearly marked and not selectable:
+ * showing it disabled says we are building it, removing it says we do not take cards, and
+ * only one of those is true.
+ */
+export const BANK_DETAILS = {
+  accountHolder: 'Following FZC',
+  iban: 'AE84 0860 0000 0949 5758 656',
+  swift: 'WIOBAEADXXX',
+  address: 'Business Centre, Sharjah Publishing City Free Zone, Sharjah, United Arab Emirates',
+} as const
 
 /** One row of the table the brand types into. */
 export interface MorBatchCreatorInput {

@@ -24,7 +24,9 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { ArrowLeft, Check, CreditCard, ShieldCheck } from 'lucide-react'
-import { morPaymentsApi, aed, type MorPayment } from '@/services/morPaymentsApi'
+import {
+  morPaymentsApi, aed, BANK_DETAILS, type MorPayment,
+} from '@/services/morPaymentsApi'
 import { cn } from '@/lib/utils'
 
 const TOKENS = `
@@ -209,11 +211,46 @@ function Action({ payment, paying, onPay }: {
   if (payment.status !== 'awaiting_payment') return null
 
   if (payment.payment_method === 'transfer') {
+    /* This used to say "your invoice is on its way" and then show nothing: no account number,
+       no IBAN, no reference. A brand who chose bank transfer could not pay us even if they
+       wanted to. The details are the point of the block. */
     return (
-      <div className="mt-6 rounded-[14px] bg-muted/50 px-6 py-5">
-        <p className="max-w-[54ch] text-[14px] leading-relaxed">
-          Your invoice is on its way. We pay {payment.creator_name} as soon as it clears, and
-          you will see it move here.
+      <div className="mt-6 rounded-[14px] border border-[var(--mor-rule)] px-6 py-5">
+        {payment.invoice_at ? (
+          <p className="text-[14px] leading-relaxed">
+            <span className="font-medium">Invoice {payment.invoice_number}</span> is with you by
+            email{payment.invoice_url && (
+              <>, and <a href={payment.invoice_url} target="_blank" rel="noreferrer"
+                         className="underline underline-offset-2">here</a></>
+            )}.
+          </p>
+        ) : (
+          <p className="text-[14px] leading-relaxed">
+            <span className="font-medium">Your invoice is being prepared.</span> We will email
+            it and put it here. You can transfer now if you would rather not wait.
+          </p>
+        )}
+
+        <dl className="mt-5 space-y-2.5">
+          {[
+            ['Account holder', BANK_DETAILS.accountHolder],
+            ['IBAN', BANK_DETAILS.iban],
+            ['BIC / SWIFT', BANK_DETAILS.swift],
+          ].map(([k, v]) => (
+            <div key={k} className="flex flex-wrap items-baseline justify-between gap-3">
+              <dt className="text-[13px] text-muted-foreground">{k}</dt>
+              <dd className="font-mono text-[13.5px] tabular-nums">{v}</dd>
+            </div>
+          ))}
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <dt className="text-[13px] text-muted-foreground">Reference</dt>
+            <dd className="font-mono text-[13.5px]">{payment.reference}</dd>
+          </div>
+        </dl>
+
+        <p className="mt-4 max-w-[54ch] text-[12.5px] leading-relaxed text-muted-foreground">
+          Quote the reference so we can match it quickly. We contact{' '}
+          {payment.creator_name} as soon as it lands.
         </p>
       </div>
     )
@@ -230,32 +267,62 @@ function Action({ payment, paying, onPay }: {
   )
 }
 
-/* Where it has got to. Money down the left, paperwork folded in where it belongs. */
+/* Where it has got to.
+ *
+ * WHAT THIS USED TO HIDE. Three steps, and between "your payment cleared" and "the creator
+ * was paid" there was nothing at all: the longest part of the job, the part where the creator
+ * is actually signing and giving us their account, was a blank. The middle step now says what
+ * is really happening, named after the creator, because "awaiting payee verification" is our
+ * language and "Sara is filling in her details" is theirs.
+ *
+ * The agreement is no longer a step of its own. It happens inside the creator's enrolment,
+ * and a brand does not need a milestone for a document they never touch. */
 function Stages({ payment }: { payment: MorPayment }) {
+  const who = (payment.creator_name || 'They').split(' ')[0]
+  const e = payment.enrolment
+
+  const middle = () => {
+    if (!payment.funded_at) return `We contact ${who} the moment your payment clears.`
+    if (!e || e.stage === 'not_started') return `We are setting ${who} up now.`
+    if (e.stage === 'undeliverable') return `We could not reach ${who}. Check the email you gave us.`
+    if (e.stage === 'invited') return `We have emailed ${who}. Give them a nudge if you speak.`
+    if (e.stage === 'opened') return `${who} has opened the link and is filling it in.`
+    if (e.stage === 'signing') return `${who} has signed and is adding their bank details.`
+    if (e.stage === 'checking') return `${who} is done. We are checking their details.`
+    if (e.stage === 'reported') return `${who} told us this was not them. We have stopped.`
+    return `${who} is ready to be paid.`
+  }
+
   const stages = [
     {
-      title: 'Agreement drawn up',
-      done: payment.agreement_status !== 'pending',
-      at: payment.agreement_sent_at,
-      body: payment.agreement_status === 'signed'
-        ? `${payment.creator_name} has signed.`
-        : payment.agreement_status === 'sent'
-          ? `With ${payment.creator_name} to sign.`
-          : 'We are drawing it up in our name.',
+      title: 'Your invoice',
+      done: !!payment.invoice_at,
+      at: payment.invoice_at,
+      body: payment.invoice_at
+        ? `Invoice ${payment.invoice_number}. Sent to you by email.`
+        : 'Being prepared. We will email it and put it here.',
     },
     {
       title: 'Your payment cleared',
       done: !!payment.funded_at,
       at: payment.funded_at,
-      body: payment.funded_at ? 'Thank you.' : 'We pay the creator out of this, never before it.',
+      body: payment.funded_at
+        ? 'Thank you. Receipt below.'
+        : 'We pay the creator out of this, never before it.',
     },
     {
-      title: `${payment.creator_name} paid`,
+      title: `${who} signs and gives us their account`,
+      done: !!e && (e.stage === 'ready' || !!payment.creator_paid_at),
+      at: e?.signed_at ?? null,
+      body: middle(),
+    },
+    {
+      title: `${who} paid`,
       done: !!payment.creator_paid_at,
       at: payment.creator_paid_at,
       body: payment.payment_reference
         ? `Bank reference ${payment.payment_reference}.`
-        : 'Once your payment has cleared.',
+        : 'As soon as their details are in.',
     },
   ]
 
