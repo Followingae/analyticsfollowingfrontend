@@ -114,7 +114,11 @@ class WhatsAppApiService {
   /** Does the RUNNING SERVER have working Twilio credentials? Sends no message. */
   async credentials(): Promise<WhatsAppCredentials> {
     const res = await fetchWithAuth(`${this.baseUrl}/credentials`, { headers: getAuthHeaders() })
-    return this.json(res, 'Check credentials')
+    // ⚠️ The server wraps this as {success, data}. Returning the wrapper made `creds.ok`
+    // undefined, and the page read undefined as "not ok": a red "WhatsApp is not sending"
+    // banner with an empty reason, on a server that was sending fine.
+    const body = await this.json<{ data?: WhatsAppCredentials } & WhatsAppCredentials>(res, 'Check credentials')
+    return body.data ?? body
   }
 
   // ---- contacts ----
