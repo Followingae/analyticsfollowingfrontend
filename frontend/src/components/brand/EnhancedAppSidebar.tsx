@@ -32,7 +32,6 @@ import {
   Compass as IconCompass,
   List as IconList,
   FileText as IconFileText,
-  Megaphone as IconMegaphone,
   Wallet as IconWallet,
   Bell as IconBell,
 } from "lucide-react"
@@ -157,13 +156,10 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         icon: IconFileText,
         badge: pendingProposals,
       },
-      // Run: the brand posts a brief, creators come back with their own price.
-      // The other direction to Proposals, which is us pitching a roster.
-      {
-        title: "Briefs",
-        url: "/run",
-        icon: IconMegaphone,
-      },
+      // Briefs (/run) is OFF for brands, by decision on 2026-09-18. The screens and the
+      // routes are untouched and an operator can still reach them; what is gone is the
+      // standing invitation in every brand's menu to start a deal in a way we are not
+      // running today. Put the entry back here to turn it on again.
       // Merchant of Record, and ONLY for an account that holds it. It is bought, never
       // granted by a tier, so there is nothing to tease here: an account without it has no
       // route to buy it from this menu and a dead link would be worse than an absent one.
