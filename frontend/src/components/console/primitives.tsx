@@ -395,6 +395,10 @@ export function RoundButton({
       className={cn(
         'grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/[0.06] bg-white',
         'text-muted-foreground transition-colors hover:text-foreground',
+        // Hover was the only state it had, so Search and Refresh were keyboard-reachable and
+        // keyboard-invisible: tab onto one and nothing anywhere on the screen changed.
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'focus-visible:ring-offset-2 focus-visible:text-foreground',
         'dark:border-white/[0.08] dark:bg-neutral-900/70', className,
       )}
     >

@@ -63,10 +63,10 @@ const ICON: Record<string, React.ComponentType<{ className?: string }>> = {
 
 /** The four acts, and which stops belong to each. Order is the order work happens in. */
 const ACTS: { key: string; label: string; stops: string[] }[] = [
-  { key: 'find',    label: 'Find the work',   stops: ['logged', 'area'] },
-  { key: 'stock',   label: 'Stock the roster', stops: ['stock', 'price', 'clear'] },
-  { key: 'sell',    label: 'Sell it',          stops: ['share', 'proposal', 'confirm', 'partial'] },
-  { key: 'deliver', label: 'Deliver and get paid', stops: ['paper', 'ladder', 'pay'] },
+  { key: 'find',    label: 'Find',    stops: ['logged', 'area'] },
+  { key: 'stock',   label: 'Source',  stops: ['stock', 'price', 'clear'] },
+  { key: 'sell',    label: 'Sell',    stops: ['share', 'proposal', 'confirm', 'partial'] },
+  { key: 'deliver', label: 'Deliver', stops: ['paper', 'ladder', 'pay'] },
 ]
 
 export function FlowRail() {
@@ -90,18 +90,29 @@ export function FlowRail() {
     return () => { live = false }
   }, [])
 
-  // No data is not an empty state here. The rail is an explanation of the company; a broken
-  // one that draws twelve dashes explains nothing and takes the top of the screen to do it.
-  if (failed) return null
+  // Failure says so. This used to return null: the one thing on the screen that answers "I
+  // cannot see our process" would vanish without a word, so nobody could report it and the
+  // only symptom was an absence indistinguishable from a deliberate design. The stops are
+  // still worth drawing without their numbers, because the SEQUENCE is most of the value.
+  if (failed) {
+    return (
+      <section data-tour="flow-rail" className={cn(CARD, 'bg-card px-ds-4 py-ds-4 sm:px-ds-5')}>
+        <h2 className="text-[15px] font-semibold tracking-[-0.015em]">Process</h2>
+        <p className="mt-ds-1 text-ds-caption text-muted-foreground">
+          The stages are below. The counts could not be loaded.
+        </p>
+      </section>
+    )
+  }
 
   const by = (id: string) => stops?.find(s => s.id === id)
 
   return (
     <section data-tour="flow-rail" className={cn(CARD, 'bg-card px-ds-4 py-ds-4 sm:px-ds-5')}>
       <div className="flex flex-wrap items-baseline gap-x-ds-3 gap-y-ds-1">
-        <h2 className="text-[15px] font-semibold tracking-[-0.015em]">How the work flows</h2>
+        <h2 className="text-[15px] font-semibold tracking-[-0.015em]">Process</h2>
         <p className="text-ds-caption text-muted-foreground">
-          Every stage, in the order it happens. Yours are marked.
+          Every stage in order. Yours are marked.
         </p>
       </div>
 
@@ -191,10 +202,12 @@ function StopRow({ stop }: { stop: Stop }) {
     return (
       <div
         className={cn(shell, 'cursor-default')}
-        // Readable, not interactive: somebody else's stage. Saying so in the markup is what
-        // stops a screen reader offering a link that goes nowhere.
-        aria-disabled
-        title={`${stop.title} — ${stop.hint}. ${stop.owner} moves this one.`}
+        // Readable, not interactive: somebody else's stage. `group` gives it a role and a
+        // label, so it is reachable and announced as a stage rather than being silently
+        // skipped, and the owner is in the accessible name rather than only in a tooltip.
+        role="group"
+        aria-label={`${stop.title}. ${stop.hint}. Owned by ${stop.owner}.`}
+        title={`${stop.title}. ${stop.hint}. Owned by ${stop.owner}.`}
       >
         {body}
       </div>

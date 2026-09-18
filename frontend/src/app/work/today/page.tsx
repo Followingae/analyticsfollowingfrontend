@@ -39,6 +39,7 @@ import Link from 'next/link'
 import type { ColumnDef } from '@tanstack/react-table'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { FlowRail } from '@/components/console/FlowRail'
+import { AreaCards } from '@/components/console/AreaCards'
 import { WaitingOnYou } from '@/components/console/WaitingOnYou'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -251,18 +252,38 @@ export default function Today() {
   const { can } = useAdminAccess()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  // A failed load used to leave `waiting` at [], which the queue rendered as a green tick and
+  // "Nothing is waiting on you". That is the fabricated-zero sin in a new costume: silence
+  // reported as good news, on the one screen somebody uses to decide their day.
+  const [failed, setFailed] = useState(false)
+  const [badges, setBadges] = useState<Record<string, number>>({})
   const [allFlight, setAllFlight] = useState(false)
 
   const load = async (quiet = false) => {
+    if (quiet) setRefreshing(true)
     try {
       const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/today`)
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed')
       setData((await res.json()).data)
+      setFailed(false)
     } catch (e) {
+      setFailed(true)
       toast.error(e instanceof Error ? e.message : 'Could not load your day')
-    } finally { setLoading(false) }
+    } finally { setLoading(false); setRefreshing(false) }
   }
-  useEffect(() => { load() }, [])
+
+  // The bubbles on the area cards. Its own request, and its own silence: a missing badge
+  // means no bubble, which is the same thing the server means when it drops a zero.
+  const loadBadges = async () => {
+    try {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/today/badges`)
+      const json = await res.json()
+      setBadges(json?.data && typeof json.data === 'object' ? json.data : {})
+    } catch { /* no bubbles rather than wrong bubbles */ }
+  }
+
+  useEffect(() => { load(); loadBadges() }, [])
 
   const first = (user?.full_name || user?.email || '').split(/[\s@]/)[0]
   const headline: any[] = data?.headline || []
@@ -398,7 +419,9 @@ export default function Today() {
                 <RoundButton icon={Search} label="Search" onClick={() =>
                   document.dispatchEvent(
                     new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))} />
-                <RoundButton icon={RefreshCw} label="Refresh" onClick={() => load(true)} />
+                <RoundButton icon={RefreshCw} label="Refresh"
+                             className={refreshing ? 'animate-spin' : undefined}
+                             onClick={() => { load(true); loadBadges() }} />
                 {primary && (
                   <Button data-tour="today-add" className="rounded-ds-full"
                           onClick={() => router.push(primary.href)}>
@@ -410,10 +433,11 @@ export default function Today() {
           />
         </div>
 
-        {/* The company's process, above this person's slice of it. It sits here rather than
-            on a screen of its own because a process you have to navigate to is a process
-            nobody reads: this is the screen everyone already opens first. */}
-        <FlowRail />
+        {/* What this person works on, named and counted, before anything about their day.
+            The three regions that used to sit here were not three subjects: they were three
+            lenses on the same items, which is why each needed a sentence for a heading and a
+            bespoke component to draw it. A thing has a name and shadcn has a Card for it. */}
+        <AreaCards scope={role} badges={badges} loading={loading} />
 
         {/* the numbers. No box each: the gap is what says these are separate figures. */}
         {headline.length > 0 && (
@@ -464,7 +488,12 @@ export default function Today() {
               drawn seven times — and reading seven rows to learn one fact is most of why
               this screen felt like noise. Every original row is still here, inside its
               card. */}
-          <WaitingOnYou items={waiting} />
+          {failed
+            ? <div className="flex flex-col items-center gap-3 py-8 text-center">
+                <p className="text-sm text-muted-foreground">Could not load this.</p>
+                <Button variant="outline" size="sm" onClick={() => load(true)}>Try again</Button>
+              </div>
+            : <WaitingOnYou items={waiting} />}
         </section>
 
         {/* ── the rail ─────────────────────────────────────────────────────────────── */}
@@ -505,6 +534,11 @@ export default function Today() {
               table stays exactly as it was. */}
         </aside>
         </div>
+
+        {/* The process, below the work rather than above it. It answers "how does this company
+            operate", which is a question you ask in your first week and rarely again, so it
+            earns a place on the screen everybody opens but not the top of it. */}
+        <FlowRail />
 
         {/* The full table. The rail above answers "is anything moving"; this answers "show me
             all of it", with every column it always had. Collapsed by default because the same

@@ -39,32 +39,32 @@ type Item = {
 
 /** What each job is called when there are several of them, and the mark it carries. */
 const JOB: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
-  brief:             { label: 'Start sourcing',        icon: Layers },
-  cold_brand:        { label: 'Brands going cold',     icon: Building2 },
-  stock:             { label: 'Rosters to stock',      icon: Users },
-  stalled:           { label: 'Rosters that stalled',  icon: Clock },
-  rate_ask:          { label: 'Rates to ask for',      icon: Users },
-  rate:              { label: 'Rates to confirm',      icon: Tag },
-  price:             { label: 'Prices to set',         icon: Tag },
-  clear:             { label: 'Creators to clear',     icon: ShieldCheck },
-  unopened:          { label: 'Links nobody opened',   icon: Send },
-  picks:             { label: 'Picks to act on',       icon: Send },
+  brief:             { label: 'Sourcing',              icon: Layers },
+  cold_brand:        { label: 'Cold brands',           icon: Building2 },
+  stock:             { label: 'Roster gaps',           icon: Users },
+  stalled:           { label: 'Stalled rosters',       icon: Clock },
+  rate_ask:          { label: 'Rates to request',      icon: Users },
+  rate:              { label: 'Rate approvals',        icon: Tag },
+  price:             { label: 'Pricing',               icon: Tag },
+  clear:             { label: 'Clearing',              icon: ShieldCheck },
+  unopened:          { label: 'Unopened links',        icon: Send },
+  picks:             { label: 'Client picks',          icon: Send },
   send:              { label: 'Quotes to send',        icon: FileText },
-  proposal_silent:   { label: 'Quotes gone quiet',     icon: FileText },
-  proposal_more:     { label: 'Clients asking for more', icon: RotateCcw },
-  proposal_answered: { label: 'Quotes answered',       icon: CheckCircle2 },
-  agreement:         { label: 'Agreements and advances', icon: ClipboardCheck },
-  guide:             { label: 'Guides to send',        icon: FileText },
-  ladder_rate:       { label: 'Rates on live campaigns', icon: Megaphone },
+  proposal_silent:   { label: 'Unanswered quotes',     icon: FileText },
+  proposal_more:     { label: 'Change requests',       icon: RotateCcw },
+  proposal_answered: { label: 'Quote replies',         icon: CheckCircle2 },
+  agreement:         { label: 'Agreements',            icon: ClipboardCheck },
+  guide:             { label: 'Briefs to send',        icon: FileText },
+  ladder_rate:       { label: 'Campaign rates',        icon: Megaphone },
   content_due:       { label: 'Content due',           icon: Megaphone },
   content_late:      { label: 'Content late',          icon: Megaphone },
-  post_link:         { label: 'Post links to collect', icon: Megaphone },
-  delivery:          { label: 'Deliveries to chase',   icon: Megaphone },
-  invoice:           { label: 'Invoices to chase',     icon: Banknote },
-  pay:               { label: 'Creators to pay',       icon: HandCoins },
-  payables:          { label: 'Creators to pay',       icon: HandCoins },
-  signoff:           { label: 'Sign-offs',             icon: ShieldCheck },
-  quiet:             { label: 'Gone quiet',            icon: Clock },
+  post_link:         { label: 'Post links',            icon: Megaphone },
+  delivery:          { label: 'Late deliveries',       icon: Megaphone },
+  invoice:           { label: 'Overdue invoices',      icon: Banknote },
+  pay:               { label: 'Payouts',               icon: HandCoins },
+  payables:          { label: 'Payouts',               icon: HandCoins },
+  signoff:           { label: 'Approvals',             icon: ShieldCheck },
+  quiet:             { label: 'Quiet clients',         icon: Clock },
 }
 
 /** Old is a property of the wait, not of the job: one scale, so amber means one thing. */
@@ -114,7 +114,7 @@ export function WaitingOnYou({ items }: { items: Item[] }) {
     return (
       <div className="flex flex-col items-center gap-ds-2 py-ds-6 text-center">
         <CheckCircle2 className="h-8 w-8 text-[var(--tone-good-dot)]" />
-        <p className="text-ds-label">Nothing is waiting on you</p>
+        <p className="text-ds-label">Nothing pending</p>
       </div>
     )
   }
@@ -197,6 +197,13 @@ function JobCard({ group }: { group: Group }) {
         <span className={cn('flex-none rounded-ds-full px-2 py-1 text-[11.5px] font-medium tabular-nums',
                             AGE_CLASS[tone])}>
           {group.oldest}d
+          {/* Colour alone is not a state. The word is in the accessible name rather than on
+              screen, so the pill stays small and the meaning survives without it. */}
+          <span className="sr-only">
+            {tone === 'bad' ? ' waiting, overdue'
+              : tone === 'warn' ? ' waiting, getting old'
+              : ' waiting'}
+          </span>
         </span>
 
         <ChevronDown className={cn('h-4 w-4 flex-none text-muted-foreground transition-transform',
