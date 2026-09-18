@@ -29,7 +29,9 @@ const FORMAT: Record<string, string> = { reel: "Reels", carousel: "Carousels", i
 const STANDING: Record<string, string> = {
   exceptional: "Exceptional for their size",
   typical: "Typical for their size",
-  below_average: "Below average for their size",
+  // Kept so an older cached payload cannot render "undefined"; never reached now, because
+  // the client is not served this band at all.
+  below_average: "",
 }
 
 export function CreatorSheet({
@@ -96,11 +98,13 @@ export function CreatorSheet({
                 {why.title} · {why.value}
               </span>
             )}
-            {m?.standing && (
+            {/* Only ever a compliment. The bottom band is not served to a client by the
+                API any more, and this guard keeps it that way if anything else ever feeds
+                this sheet. */}
+            {m?.standing && m.standing !== "below_average" && (
               <span className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold",
                 m.standing === "exceptional" ? "bg-emerald-500/15 text-emerald-600"
-                  : m.standing === "below_average" ? "bg-destructive/10 text-destructive"
                   : "bg-muted text-muted-foreground",
               )}>
                 <Heart className="size-3" />{STANDING[m.standing]}

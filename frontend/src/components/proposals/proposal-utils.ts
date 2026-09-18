@@ -77,15 +77,21 @@ export function engagementStanding(
   else if (rate >= high) standing = "above_average"
   else if (rate >= low) standing = "typical"
 
-  // Deliberately no red. "Below average for this size" already says it in words; the
-  // colour only ever added alarm to a number the brand was going to judge anyway.
+  // We never run a creator down to a brand.
+  //
+  // These are people OUR team put on the roster and is asking the client to book. A verdict
+  // we volunteer against our own recommendation costs them the booking and tells the client
+  // nothing they could not read off the rate itself, which is right there beside it. So the
+  // bottom band gets no label at all - not a softer one, none - and the rate stands on its
+  // own. Nothing is hidden: every measured figure is still on the card.
   const map = {
     exceptional: { label: "Exceptional for this size", className: "text-emerald-600 dark:text-emerald-400" },
     above_average: { label: "Above average for this size", className: "text-emerald-600 dark:text-emerald-400" },
     typical: { label: "Typical for this size", className: "text-muted-foreground" },
-    below_average: { label: "Below average for this size", className: "text-muted-foreground" },
+    below_average: null,
   } as const
-  return { standing, ...map[standing] }
+  const hit = map[standing]
+  return hit ? { standing, ...hit } : null
 }
 
 export interface TierConfig {
