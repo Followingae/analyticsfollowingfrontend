@@ -49,6 +49,10 @@ export default function ProposalApprovalPage() {
   const proposalId = params.id as string
 
   const [ws, setWs] = useState<any>(null)
+  /* A barter proposal pays creators in product, which changes two things on this screen:
+     the picker opens narrowed to people who take barter, and a creator who has not agreed
+     is badged, because the client is only ever served the ones who have. */
+  const isBarterProposal = ws?.proposal?.campaign_type_target === 'barter_portal'
   const [chain, setChain] = useState<any>(null)
   const [talentManagers, setTalentManagers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -346,6 +350,22 @@ Cost prices and the master database are untouched.`))
                               {inf.internal_status === 'approved' && <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Approved</Badge>}
                               {inf.internal_status === 'flagged' && <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20" title={inf.internal_flag_note || ''}>Flagged</Badge>}
                               {(!inf.internal_status || inf.internal_status === 'pending') && <Badge variant="outline">Pending</Badge>}
+                              {/* On a barter proposal, whether this creator has agreed to
+                                  take the product. The client is served the ones on "agreed"
+                                  and nobody else, so a creator added from the picker who has
+                                  never been asked says so here rather than quietly sitting
+                                  in a roster the client will never see. */}
+                              {isBarterProposal && (inf as { barter_state?: string }).barter_state !== 'agreed' && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                                  title="Not shown to the client until they have agreed to the product"
+                                >
+                                  {(inf as { barter_state?: string }).barter_state === 'declined'
+                                    ? 'Said no'
+                                    : 'Not asked yet'}
+                                </Badge>
+                              )}
                             </TableCell>
                           )}
                           {viewer.is_operator && (
@@ -684,6 +704,9 @@ Cost prices and the master database are untouched.`))
         open={showPicker}
         onOpenChange={setShowPicker}
         onAdded={() => load()}
+        /* A barter proposal pays in product, so the picker opens narrowed to the creators
+           who have said they would consider one. */
+        isBarter={isBarterProposal}
       />
     </SuperadminLayout>
   )

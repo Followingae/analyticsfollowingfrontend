@@ -180,6 +180,8 @@ export const proposalApprovalApi = {
     excludeListId?: string
     sortBy?: string
     sortOrder?: 'asc' | 'desc'
+    /** Barter proposals: only creators who will consider product instead of a fee. */
+    acceptsBarter?: boolean
   } = {}) => {
     const p = new URLSearchParams({
       status: 'active',
@@ -194,6 +196,7 @@ export const proposalApprovalApi = {
     if (opts.countries?.length) p.set('countries', opts.countries.join(','))
     if (opts.excludeProposalId) p.set('exclude_proposal_id', opts.excludeProposalId)
     if (opts.excludeListId) p.set('exclude_list_id', opts.excludeListId)
+    if (opts.acceptsBarter) p.set('accepts_barter', 'true')
     return jfetch(`${API_CONFIG.BASE_URL}/api/v1/admin/influencers/database?${p.toString()}`)
   },
 

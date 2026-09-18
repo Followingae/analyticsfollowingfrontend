@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Search, UserPlus, Check, Minus, Plus, Users, ListPlus, X, Globe, ArrowUpDown, Tag } from "lucide-react";
+import { Loader2, Search, UserPlus, Check, Minus, Plus, Users, ListPlus, X, Globe, ArrowUpDown, Tag, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -132,8 +132,10 @@ function fmt(n?: number) {
   return String(n);
 }
 
-export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }: {
+export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, isBarter }: {
   proposalId: string; open: boolean; onOpenChange: (v: boolean) => void; onAdded?: () => void;
+  /** This proposal pays in product, so the picker opens narrowed to creators who take it. */
+  isBarter?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [country, setCountry] = useState<string>(ANY_COUNTRY);
@@ -144,6 +146,14 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
   // someone already added returns an empty list that reads as "we don't have them".
   const [alreadyAdded, setAlreadyAdded] = useState(0);
   const [sort, setSort] = useState<string>("created_at:desc");
+  /* On a barter proposal the picker OPENS narrowed to creators who have said they would
+     consider product. It is not a lock: somebody may well say yes to this hamper who has
+     never been asked before, and refusing to show them would send the operator to the
+     master database in another tab to flip a switch before they could do their job.
+     What stops a mistake is not the filter, it is what happens to an unflagged creator
+     once added - they land at "Asking" and cannot reach the client until a human says
+     they agreed. The filter saves time; the state is the safety. */
+  const [onlyBarter, setOnlyBarter] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -167,6 +177,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
         pageSize: PAGE_SIZE,
         countries: country !== ANY_COUNTRY ? [country] : undefined,
         excludeProposalId: proposalId,
+        acceptsBarter: onlyBarter || undefined,
         sortBy,
         sortOrder,
       });
@@ -180,12 +191,13 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
     } finally {
       setLoading(false); setLoadingMore(false);
     }
-  }, [search, country, proposalId, sort]);
+  }, [search, country, proposalId, sort, onlyBarter]);
 
   useEffect(() => {
     if (!open) return;
     setSelected({}); setSearch(""); setCountry(ANY_COUNTRY); setResults([]); setPage(1);
     setSort("created_at:desc");
+    setOnlyBarter(Boolean(isBarter));
     fetchPage(1, false);
     proposalApprovalApi.getCountries()
       .then((r) => setCountries(r?.data?.countries ?? []))
@@ -241,6 +253,12 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
       return { ...prev, [id]: { ...entry, deliverables: d } };
     });
   };
+
+  useEffect(() => {
+    if (!open) return;
+    fetchPage(1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlyBarter]);
 
   const count = Object.keys(selected).length;
   const hasMore = results.length < total;
@@ -320,6 +338,20 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded }:
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input placeholder="Search by username or name…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
             </div>
+            {/* Barter proposals open narrowed to people who take product. Clearing it is
+                allowed and visible: anyone added who has not agreed lands at "Asking" and
+                stays off the client's roster until somebody marks them. */}
+            {isBarter && (
+              <Button
+                type="button"
+                variant={onlyBarter ? "default" : "outline"}
+                onClick={() => setOnlyBarter((v) => !v)}
+                className="gap-1.5 sm:w-auto"
+              >
+                <Gift className="h-3.5 w-3.5" />
+                {onlyBarter ? "Takes barter" : "Everyone"}
+              </Button>
+            )}
             <Select value={country} onValueChange={setCountry}>
               <SelectTrigger className="sm:w-52">
                 <Globe className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
