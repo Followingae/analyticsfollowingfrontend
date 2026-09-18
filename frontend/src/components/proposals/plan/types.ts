@@ -24,7 +24,16 @@ export interface RetainerMonth {
 }
 
 export interface ProposalSelection {
-  mode: "budget" | "tiers"
+  /** budget: they spend dirhams. tiers: they spend places per band. count: they spend
+   *  creators, which is how a barter deal is sold - there is no money in it at all. */
+  mode: "budget" | "tiers" | "count"
+  /** count mode: how many creators they may take, how many they have, and what each one
+   *  receives in exchange. */
+  slots?: number | null
+  taken?: number
+  remaining?: number | null
+  product?: string | null
+  product_value_aed?: number | null
   bands?: Record<string, { label?: string }>
   allowances?: Record<string, number>
   state?: { tiers: TierRow[]; complete: boolean; total_picked: number; total_allowed: number }

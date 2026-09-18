@@ -14,6 +14,7 @@ import { proposalApprovalApi } from "@/services/proposalApprovalApi"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -47,6 +48,8 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
   const [notes, setNotes] = useState(influencer.internal_notes || "")
   const [status, setStatus] = useState(influencer.status)
   const [country, setCountry] = useState(influencer.country || "")
+  const [acceptsBarter, setAcceptsBarter] = useState(Boolean(influencer.accepts_barter))
+  const [barterNote, setBarterNote] = useState(influencer.barter_note || "")
   const [countryOptions, setCountryOptions] = useState<string[]>([])
 
   useEffect(() => {
@@ -240,6 +243,43 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      {/* Will they take product instead of a fee.
+          A record, not a memory: this gates who may be put on a barter line of a proposal,
+          and until it existed "will she take product" was answered from somebody's head,
+          per creator, per deal. It does not replace a sell price - a creator who takes
+          product this month still needs a rate on file for the month they want cash. */}
+      <div className="flex flex-col gap-ds-2">
+        <Label>Barter</Label>
+        <div className="flex items-start gap-ds-3">
+          <Switch
+            id="accepts-barter"
+            checked={acceptsBarter}
+            onCheckedChange={(v: boolean) => { setAcceptsBarter(v); onSave({ accepts_barter: v }) }}
+          />
+          <div className="min-w-0">
+            <Label htmlFor="accepts-barter" className="text-sm font-normal">
+              Will consider product instead of a fee
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Only creators with this on can be put on a product line of a proposal.
+            </p>
+          </div>
+        </div>
+        {acceptsBarter && (
+          <Textarea
+            value={barterNote}
+            onChange={(e) => setBarterNote(e.target.value)}
+            onBlur={() => {
+              if (barterNote !== (influencer.barter_note || "")) {
+                onSave({ barter_note: barterNote.trim() || null })
+              }
+            }}
+            placeholder="What they will take, or the condition they attached"
+            className="min-h-[60px] text-sm"
+          />
+        )}
       </div>
     </div>
   )

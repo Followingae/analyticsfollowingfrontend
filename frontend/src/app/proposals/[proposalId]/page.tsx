@@ -156,6 +156,18 @@ function ProposalPage() {
                 Agreed total AED {Number((p as { agreed_total_aed?: number }).agreed_total_aed).toLocaleString("en-US")}
               </p>
             )}
+            {/* Product is stated beside the money and never inside it. A client who agreed
+                to feed four creators has committed something real, and a screen that only
+                names the cash lets them find out at the restaurant. */}
+            {((p as { barter_total?: { value?: number; count?: number } }).barter_total?.count ?? 0) > 0 && (
+              <p className="text-muted-foreground">
+                Plus {(p as { barter_total?: { count?: number } }).barter_total?.count} creator
+                {((p as { barter_total?: { count?: number } }).barter_total?.count ?? 0) === 1 ? "" : "s"}
+                {" "}paid in product, worth AED{" "}
+                {Number((p as { barter_total?: { value?: number } }).barter_total?.value ?? 0).toLocaleString("en-US")}
+                {" "}— you provide these directly, they are not on your invoice.
+              </p>
+            )}
             {p.status === "client_confirmed" && (
               <p className="text-sm text-muted-foreground">
                 Our team is setting your campaign up now and will be in touch shortly.

@@ -52,6 +52,7 @@ import {
   unitSellPrice,
   type DeliverableAssignmentMap,
   type MasterInfluencer,
+  type BarterMap,
 } from "@/components/superadmin/proposals/builder/types"
 
 export const dynamic = "force-dynamic"
@@ -112,6 +113,12 @@ function CreateProposalContent() {
 
   // Target campaign type once the proposal is approved by the brand.
   const [campaignTypeTarget, setCampaignTypeTarget] = useState<CampaignTypeTarget>("influencer")
+  // The barter offer: what every creator receives, what it is worth, and how many creators
+  // the client may take. On a barter proposal these replace the budget entirely.
+  const [barterProduct, setBarterProduct] = useState("")
+  const [barterValue, setBarterValue] = useState("")
+  const [creatorSlots, setCreatorSlots] = useState("")
+  const isBarterProposal = campaignTypeTarget === "barter_portal"
 
   // Unified picker tab: master DB | FA members | add by Instagram handle
   const [pickerTab, setPickerTab] = useState<PickerTab>("master")
@@ -129,6 +136,9 @@ function CreateProposalContent() {
   const [search, setSearch] = useState("")
   const [tierFilter, setTierFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
+  // Narrow the database to people who will take product. Set automatically the moment the
+  // roster has a barter line on it, so building a product deal does not need remembering.
+  const [barterOnly, setBarterOnly] = useState(false)
   const [masterResults, setMasterResults] = useState<MasterInfluencer[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [searching, setSearching] = useState(false)
@@ -138,6 +148,16 @@ function CreateProposalContent() {
   // Per-influencer deliverable assignments: { influencer_id: [{ type: "reel", quantity: 2 }] }
   const [deliverableAssignments, setDeliverableAssignments] =
     useState<DeliverableAssignmentMap>({})
+  // Who on this roster is paid in product rather than cash, and with what.
+  // Per creator, not per proposal: a managed client's roster is usually part cash and part
+  // product, and a proposal-level switch would force two proposals for one campaign.
+  const [barter, setBarter] = useState<BarterMap>({})
+  /* On a barter proposal, who has agreed to take the product. Only the ones marked agreed
+     are served to the client, so this is the gate between "we are asking around" and "here
+     is your roster". Creators the master database already records as taking barter start
+     agreed; the server applies that same rule when the rows are created. */
+  const [barterStates, setBarterStates] =
+    useState<Record<string, "asking" | "agreed" | "declined">>({})
 
   // =========================================================================
   // Data fetching
@@ -231,6 +251,7 @@ function CreateProposalContent() {
       if (search) params.set("search", search)
       if (tierFilter !== "all") params.set("tier", tierFilter)
       if (categoryFilter !== "all") params.set("categories", categoryFilter)
+      if (barterOnly) params.set("accepts_barter", "true")
       const res = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/admin/influencers/database?${params}`,
         { headers: getAuthHeaders() }
@@ -244,7 +265,7 @@ function CreateProposalContent() {
     } finally {
       setSearching(false)
     }
-  }, [search, tierFilter, categoryFilter])
+  }, [search, tierFilter, categoryFilter, barterOnly])
 
   useEffect(() => {
     const t = setTimeout(searchInfluencers, 400)
@@ -459,6 +480,137 @@ function CreateProposalContent() {
     )
   }
 
+  /**
+   * Put a creator on product, or back on cash.
+   *
+   * Turning it off clears the product with it. A stale description sitting behind a false
+   * flag is how a creator ends up quoted for a dinner on the next round.
+   */
+  function toggleBarter(influencerId: string) {
+    setBarter((prev) => {
+      const on = prev[influencerId]?.paidInProduct
+      if (on) {
+        const next = { ...prev }
+        delete next[influencerId]
+        return next
+      }
+      return {
+        ...prev,
+        [influencerId]: { paidInProduct: true, product: "", valueAed: null },
+      }
+    })
+  }
+
+  function updateBarter(
+    influencerId: string,
+    patch: { product?: string; valueAed?: number | null }
+  ) {
+    setBarter((prev) => ({
+      ...prev,
+      [influencerId]: {
+        paidInProduct: true,
+        product: patch.product ?? prev[influencerId]?.product ?? "",
+        valueAed:
+          patch.valueAed !== undefined ? patch.valueAed : prev[influencerId]?.valueAed ?? null,
+      },
+    }))
+  }
+
+  /** Who has agreed, saved once the rows exist. Grouped by state so it is three calls at
+   *  most rather than one per creator. */
+  async function saveBarterStates(proposalId: string) {
+    if (!isBarterProposal) return
+    // The rows were created by addInfluencers, so their ids come back from the server. Read
+    // them once and map by master-database id, which is what this screen knows creators by.
+    try {
+      const detail = await adminProposalApi.getDetail(proposalId)
+      const rowByDbId = new Map<string, string>()
+      for (const row of detail.influencers || []) {
+        if (row.influencer_db_id) rowByDbId.set(String(row.influencer_db_id), String(row.id))
+      }
+      const groups: Record<string, string[]> = { agreed: [], asking: [], declined: [] }
+      for (const inf of addedInfluencers) {
+        const state = barterStates[inf.id]
+        const rowId = rowByDbId.get(inf.id)
+        // Untouched rows keep whatever the server decided when it created them.
+        if (!state || !rowId) continue
+        groups[state].push(rowId)
+      }
+      for (const [state, ids] of Object.entries(groups)) {
+        if (ids.length) {
+          await adminProposalApi.setBarterState(proposalId, ids, state as "asking" | "agreed" | "declined")
+        }
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "The roster saved, but who agreed did not")
+    }
+  }
+
+  /**
+   * Save the barter offer onto the proposal, after it exists.
+   *
+   * The offer is the deal on this kind of proposal - what the creator gets and how many the
+   * client may take - so a barter proposal saved without it is a proposal nobody can answer.
+   * Saving it also puts the proposal into count mode server-side, which is what replaces the
+   * client's budget bar with "5 of 8 chosen".
+   */
+  async function saveBarterOffer(proposalId: string) {
+    if (!isBarterProposal) return
+    const product = barterProduct.trim()
+    if (!product) {
+      toast.error("Say what each creator receives before sending this out")
+      return
+    }
+    try {
+      await adminProposalApi.setBarterOffer(proposalId, {
+        product,
+        value_aed: barterValue === "" ? null : Number(barterValue),
+        creator_slots: creatorSlots === "" ? null : Number(creatorSlots),
+      })
+    } catch (err: any) {
+      toast.error(err?.message || "The proposal saved, but the offer did not")
+    }
+  }
+
+  /**
+   * Record who is paid in product, after the creators themselves are attached.
+   *
+   * A second call rather than a field on the add: the barter line belongs to the row on the
+   * proposal, which does not exist until the add returns. It is deliberately not fatal - the
+   * creators are already on the proposal by this point, and losing the whole submit because
+   * one product description was rejected would throw away the roster with it.
+   */
+  async function saveBarter(proposalId: string) {
+    const lines = barterPayload()
+    if (!lines.length) return
+    const missing = lines.filter((l) => !l.product)
+    if (missing.length) {
+      toast.error(
+        `Name the product for ${missing.length} creator${missing.length !== 1 ? "s" : ""} `
+        + "before they can be paid in product"
+      )
+      return
+    }
+    try {
+      const res = await adminProposalApi.setBarter(proposalId, lines)
+      if (res?.message) toast.success(res.message)
+    } catch (err: any) {
+      toast.error(err?.message || "The creators were added, but the product terms were not saved")
+    }
+  }
+
+  /** The barter lines, for the one call that records them. */
+  function barterPayload() {
+    return addedInfluencers
+      .filter((inf) => barter[inf.id]?.paidInProduct)
+      .map((inf) => ({
+        influencer_db_id: inf.id,
+        paid_in_product: true,
+        product: (barter[inf.id]?.product || "").trim(),
+        value_aed: barter[inf.id]?.valueAed ?? null,
+      }))
+  }
+
   /** The assignments payload, in the roster's current order. */
   function deliverablePayload() {
     return addedInfluencers
@@ -508,6 +660,8 @@ function CreateProposalContent() {
         cover_image_url: coverImageUrl.trim() || undefined,
       })
 
+      await saveBarterOffer(editId!)
+
       // Add any new influencers
       if (addedInfluencers.length) {
         const delAssignments = deliverablePayload()
@@ -515,6 +669,8 @@ function CreateProposalContent() {
           influencer_ids: addedInfluencers.map((i) => i.id),
           deliverable_assignments: delAssignments.length > 0 ? delAssignments : undefined,
         })
+        await saveBarter(editId!)
+        await saveBarterStates(editId!)
       }
 
       toast.success("Proposal updated!")
@@ -554,6 +710,9 @@ function CreateProposalContent() {
         payment_terms: paymentTerms,
       } as any)
 
+      // The offer first: a barter proposal without one cannot be answered by anybody.
+      await saveBarterOffer(proposal.id)
+
       // Optionally pre-attach influencers if the operator added any (not required).
       if (addedInfluencers.length) {
         const delAssignments = deliverablePayload()
@@ -561,6 +720,8 @@ function CreateProposalContent() {
           influencer_ids: addedInfluencers.map((i) => i.id),
           deliverable_assignments: delAssignments.length > 0 ? delAssignments : undefined,
         })
+        await saveBarter(proposal.id)
+        await saveBarterStates(proposal.id)
       }
 
       if (startApproval) {
@@ -656,6 +817,12 @@ function CreateProposalContent() {
               isEditMode={isEditMode}
               campaignTypeTarget={campaignTypeTarget}
               onCampaignTypeTarget={setCampaignTypeTarget}
+              barterProduct={barterProduct}
+              onBarterProduct={setBarterProduct}
+              barterValue={barterValue}
+              onBarterValue={setBarterValue}
+              creatorSlots={creatorSlots}
+              onCreatorSlots={setCreatorSlots}
               brandUsers={brandUsers}
               usersLoading={usersLoading}
               selectedUserId={selectedUserId}
@@ -720,6 +887,8 @@ function CreateProposalContent() {
                   onCategoryFilter={setCategoryFilter}
                   tierFilter={tierFilter}
                   onTierFilter={setTierFilter}
+                  barterOnly={barterOnly}
+                  onBarterOnly={setBarterOnly}
                   masterResults={masterResults}
                   searching={searching}
                   selectedIds={selectedIds}
@@ -743,9 +912,16 @@ function CreateProposalContent() {
                   <RosterPanel
                     addedInfluencers={addedInfluencers}
                     deliverableAssignments={deliverableAssignments}
+                    barter={barter}
+                    isBarterProposal={isBarterProposal}
+                    barterStates={barterStates}
+                    onBarterState={(id, state) =>
+                      setBarterStates((prev) => ({ ...prev, [id]: state }))}
                     onToggleDeliverable={toggleDeliverable}
                     onUpdateQuantity={updateDeliverableQuantity}
                     onApplyToAll={applyDeliverableToAll}
+                    onToggleBarter={toggleBarter}
+                    onUpdateBarter={updateBarter}
                     onRemove={removeAdded}
                     onMove={moveInRoster}
                     onOpenAnalytics={setAnalyticsUsername}

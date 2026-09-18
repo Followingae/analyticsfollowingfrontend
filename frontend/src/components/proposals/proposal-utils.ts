@@ -352,6 +352,10 @@ type Priced = {
   cost_price_snapshot?: Record<string, number | null> | null
   custom_sell_pricing?: Record<string, number | null> | null
   assigned_deliverables?: Array<{ type: string; quantity?: number | string }> | null
+  /** This creator takes product rather than a fee. See `barterFor`. */
+  paid_in_product?: boolean | null
+  barter_product?: string | null
+  barter_value_aed?: number | null
 }
 
 function priceFrom(
@@ -376,12 +380,39 @@ function priceFrom(
   return 0
 }
 
-/** What the client is charged for this creator. Custom pricing wins over the snapshot. */
+/** What the client is charged for this creator. Custom pricing wins over the snapshot.
+ *
+ *  Zero for a creator paid in product, and that is the whole point: the client hands the
+ *  product over themselves, so there is nothing to invoice. The snapshot stays on the row -
+ *  it is what this creator would have cost - but it must never reach a cash total, or a
+ *  client gets billed for a dinner they served. What they DO give is `barterFor`.
+ */
 export function sellFor(i: Priced): number {
+  if (i.paid_in_product) return 0
   return priceFrom(i.custom_sell_pricing || i.sell_price_snapshot, i.assigned_deliverables)
 }
 
 /** What this creator was quoted to us. Never shown to a brand. */
 export function costFor(i: Priced): number {
+  if (i.paid_in_product) return 0
   return priceFrom(i.cost_price_snapshot, i.assigned_deliverables)
+}
+
+/** What the client hands over for this creator, in product. Zero unless it is a barter line. */
+export function barterFor(i: Priced): number {
+  return i.paid_in_product ? Number(i.barter_value_aed || 0) : 0
+}
+
+/** Is this creator paid in product rather than cash. */
+export function isBarter(i: Priced): boolean {
+  return Boolean(i.paid_in_product)
+}
+
+/** The product, in the words the operator wrote for the client. */
+export function barterLabel(i: Priced): string | null {
+  if (!i.paid_in_product) return null
+  const p = (i.barter_product || '').trim()
+  // Never the bare word "barter": the client is agreeing to give something specific, and a
+  // line that will not say what it is is a line they cannot agree to.
+  return p || null
 }

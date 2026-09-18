@@ -174,6 +174,11 @@ export interface AdminProposalInfluencer {
   sell_price_snapshot?: Record<string, number | null>
   cost_price_snapshot?: Record<string, number | null>
   custom_sell_pricing?: Record<string, number | null>
+  // Paid in product rather than cash. `barter_value_aed` is what the product is worth, and
+  // it is never money the client owes: see proposal-utils `sellFor` / `barterFor`.
+  paid_in_product?: boolean
+  barter_product?: string | null
+  barter_value_aed?: number | null
   assigned_deliverables?: Array<{ type: string; quantity: number; modifier_eligible?: boolean }>
 
   selected_deliverables?: Array<{ type: string; quantity?: number; modifier?: string }>
@@ -286,6 +291,9 @@ export interface BrandInfluencer {
   avg_comments?: number
   avg_views?: number
   sell_pricing?: Record<string, number | null>
+  paid_in_product?: boolean
+  barter_product?: string | null
+  barter_value_aed?: number | null
   available_deliverables?: string[]
   selected_deliverables?: Array<{ type: string; quantity?: number; modifier?: string }> | string[]
   assigned_deliverables?: Array<{ type: string; quantity: number; modifier_eligible?: boolean }>
@@ -525,6 +533,75 @@ export class AdminProposalApiService {
     }
     const result = await response.json()
     return result.data
+  }
+
+  // ---------------------------------------------------------------------------
+  // PUT /api/v1/admin/proposals/{id}/barter-offer - the deal on a barter proposal:
+  // what every creator receives, what it is worth, and how many the client may take.
+  // Saving it also puts the proposal into count mode, which is what replaces the
+  // client's budget bar with a headcount.
+  // ---------------------------------------------------------------------------
+  async setBarterOffer(proposalId: string, offer: {
+    product: string
+    value_aed?: number | null
+    creator_slots?: number | null
+  }): Promise<{ barter_product: string; barter_value_aed: number | null; creator_slots: number | null }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}/barter-offer`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(offer),
+    })
+    if (!response.ok) throw new Error(await errorMessage(response, 'Failed to save the offer'))
+    const result = await response.json()
+    return result.data
+  }
+
+  // ---------------------------------------------------------------------------
+  // PUT /api/v1/admin/proposals/{id}/barter-state - who has agreed to take the product.
+  // Only creators marked `agreed` are served to the client.
+  // ---------------------------------------------------------------------------
+  async setBarterState(proposalId: string, rowIds: string[], state: 'asking' | 'agreed' | 'declined'): Promise<{
+    data: { changed: string[]; state: string }
+    message: string
+  }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}/barter-state`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ row_ids: rowIds, state }),
+    })
+    if (!response.ok) throw new Error(await errorMessage(response, 'Failed to record that'))
+    return await response.json()
+  }
+
+  // ---------------------------------------------------------------------------
+  // PUT /api/v1/admin/proposals/{id}/barter - who is paid in product, and with what
+  //
+  // Not campaign_type_target='barter': that value already means the roster goes to the
+  // creator app. This is a managed client's product deal, run on the ordinary campaign
+  // screens by the ordinary operators, and it is answered per creator because a roster is
+  // usually part cash and part product.
+  // ---------------------------------------------------------------------------
+  async setBarter(proposalId: string, lines: Array<{
+    row_id?: string
+    influencer_db_id?: string
+    paid_in_product: boolean
+    product?: string | null
+    value_aed?: number | null
+  }>): Promise<{
+    data: { changed: Array<{ row_id: string; username: string; paid_in_product: boolean }>
+            refused: Array<{ username: string; reason: string }> }
+    message: string
+  }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}/barter`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ lines }),
+    })
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Failed to save the product terms: ${errorText}`)
+    }
+    return await response.json()
   }
 
   // ---------------------------------------------------------------------------

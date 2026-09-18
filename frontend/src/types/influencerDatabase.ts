@@ -116,6 +116,10 @@ export interface MasterInfluencer {
   tags: string[]
   categories: string[]
   internal_notes: string | null
+  /** Will consider product instead of a fee. Gates the barter line on a proposal. */
+  accepts_barter?: boolean | null
+  /** What they will take, or the condition. Internal only, never shown to a brand. */
+  barter_note?: string | null
   status: InfluencerStatus
   tier: string | null
   /** Country this creator is open to WORK in — our commercial record, set by an operator.

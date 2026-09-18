@@ -18,8 +18,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
-  Sparkles, Check, Users, Heart, Wallet, MoreHorizontal, Download, Plus, AlertTriangle, Calendar,
+  Sparkles, Check, Users, Heart, Wallet, MoreHorizontal, Download, Plus, AlertTriangle, Calendar, Gift,
 } from "lucide-react"
+import { ProductBarter } from "@/components/proposals/ProductBarter"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -75,8 +76,14 @@ export function PlanBuilder({ proposalId, data, onReload }: {
      dirham, by the head, or the same places repeating month by month. */
   const selection = ((data as unknown as { selection?: ProposalSelection }).selection) ?? { mode: "budget" as const }
   const byTier = selection.mode === "tiers"
+  /* Bought by the head, with a product instead of a fee. There is no money anywhere on this
+     screen: the allowance is a number of creators and the exchange is the product, so every
+     price, budget bar and optimiser that fills a budget is off. */
+  const byCount = selection.mode === "count"
+  const slots = selection.slots ?? null
   const months: RetainerMonth[] = selection.periods ?? []
-  const showPricing = !byTier && proposal.visible_fields?.show_sell_pricing !== false && budget > 0
+  const showPricing = !byTier && !byCount
+    && proposal.visible_fields?.show_sell_pricing !== false && budget > 0
 
   const [creators, setCreators] = useState<BrandInfluencer[]>(data.influencers)
   /* What THEY have already chosen, read back from the server. This started from nothing
@@ -311,6 +318,15 @@ export function PlanBuilder({ proposalId, data, onReload }: {
         return
       }
     }
+    /* Same rule, one currency simpler: a barter deal includes a number of creators, and the
+       number is the whole allowance. Refused here with the reason rather than accepted and
+       rejected on save, which is where a client finds out they wasted ten minutes. */
+    if (adding && byCount && slots && chosen.size >= slots) {
+      toast.error(`This campaign includes ${slots} creator${slots === 1 ? "" : "s"}`, {
+        description: "Take one off to swap somebody in.",
+      })
+      return
+    }
     setChosen(prev => {
       const next = new Set(prev)
       next.has(c.id) ? next.delete(c.id) : next.add(c.id)
@@ -318,7 +334,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
       return next
     })
     setBuiltSig(null)
-  }, [save, chosen, byTier, tierRows])
+  }, [save, chosen, byTier, tierRows, byCount, slots])
 
   const markOpened = useCallback((c: BrandInfluencer) => {
     if (c.client_opened_at || shownRef.current.has(c.id)) return
@@ -686,6 +702,35 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                   ? `Added to every creator in your line-up that can supply it.`
                   : `Not added. You can also add it to individual creators below.`}
               </p>
+            </section>
+          )}
+
+          {/* Bought by the head, paid in product. What a budget bar does on a paid deal,
+              done in the only currency this one has. */}
+          {byCount && (
+            <section className="rounded-[20px] border bg-card p-[18px]">
+              <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                <Gift className="size-3.5" />What this campaign includes
+              </p>
+              <div className="mt-3 text-[32px] font-extrabold leading-none tracking-[-0.04em]">
+                {chosen.size}
+                <span className="text-muted-foreground"> / {slots ?? "—"}</span>
+              </div>
+              <p className="mt-1.5 text-[13px] text-muted-foreground">
+                {slots == null
+                  ? "Creators chosen"
+                  : chosen.size >= slots
+                    ? "That is everybody. Swap one out to change your line-up."
+                    : `${slots - chosen.size} more to choose`}
+              </p>
+              {selection.product && (
+                <ProductBarter
+                  variant="panel"
+                  product={selection.product}
+                  value={selection.product_value_aed}
+                  className="mt-3.5 border-0 bg-muted/50 px-3 py-3"
+                />
+              )}
             </section>
           )}
 

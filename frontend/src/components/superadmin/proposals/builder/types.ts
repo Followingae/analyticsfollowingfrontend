@@ -31,12 +31,35 @@ export interface MasterInfluencer {
   sell_video_aed_cents?: number | null
   sell_bundle_aed_cents?: number | null
   sell_monthly_aed_cents?: number | null
+  /** Will this creator consider product instead of a fee. Gates the barter switch. */
+  accepts_barter?: boolean | null
+  /** What they said they would take, or the condition. Internal, never shown to a brand. */
+  barter_note?: string | null
 }
 
 export interface DeliverableAssignment {
   type: string
   quantity: number
 }
+
+/**
+ * One creator on this proposal, paid in product rather than cash.
+ *
+ * Kept per creator and not per proposal, because that is how these deals are actually
+ * agreed: a managed client's roster is usually part cash and part product, and a switch on
+ * the whole proposal would force an operator to build two proposals for one campaign.
+ *
+ * `valueAed` is what the product is WORTH. It is never money the client owes - they hand
+ * the product over themselves - so it is totalled separately everywhere it appears.
+ */
+export interface BarterLine {
+  paidInProduct: boolean
+  product: string
+  valueAed: number | null
+}
+
+/** influencer_db_id -> how that creator is being paid, when it is not cash */
+export type BarterMap = Record<string, BarterLine>
 
 /** influencer_db_id -> the deliverables assigned to that creator */
 export type DeliverableAssignmentMap = Record<string, DeliverableAssignment[]>
@@ -98,11 +121,27 @@ export function unitSellPrice(
 /** What this creator adds to the proposal, given their assigned deliverables. */
 export function creatorSubtotal(
   inf: MasterInfluencer,
-  assignments: DeliverableAssignment[] | undefined
+  assignments: DeliverableAssignment[] | undefined,
+  barter?: BarterLine
 ): number {
+  // A creator paid in product adds nothing to the cash total. Their product value is summed
+  // by `barterSubtotal` and reported as product: a client who serves the dinner themselves
+  // is not invoiced for it, and a builder that quietly added it would quote a number nobody
+  // agreed to pay.
+  if (barter?.paidInProduct) return 0
   return (assignments || []).reduce((sum, d) => {
     const unit = unitSellPrice(inf, d.type)
     if (unit == null) return sum
     return sum + unit * d.quantity
+  }, 0)
+}
+
+/** What the client hands over in product across the whole roster. */
+export function barterSubtotal(barter: BarterMap, ids?: string[]): number {
+  const keys = ids ?? Object.keys(barter)
+  return keys.reduce((sum, id) => {
+    const line = barter[id]
+    if (!line?.paidInProduct) return sum
+    return sum + (line.valueAed || 0)
   }, 0)
 }

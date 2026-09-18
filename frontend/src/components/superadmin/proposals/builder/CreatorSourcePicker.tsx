@@ -26,7 +26,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
-import { Plus, Search, Loader2, Users, X } from "lucide-react"
+import { Gift, Plus, Search, Loader2, Users, X } from "lucide-react"
 import {
   CATEGORY_OPTIONS, TIER_OPTIONS,
   followersLabel, engagementLabel,
@@ -52,6 +52,9 @@ interface Props {
   onCategoryFilter: (v: string) => void
   tierFilter: string
   onTierFilter: (v: string) => void
+  /** Narrow the search to creators who will consider product instead of a fee. */
+  barterOnly: boolean
+  onBarterOnly: (v: boolean) => void
   masterResults: MasterInfluencer[]
   searching: boolean
   selectedIds: Set<string>
@@ -82,7 +85,7 @@ export function CreatorSourcePicker(p: Props) {
   const addedUsernames = new Set(
     p.addedInfluencers.map((i) => i.username?.toLowerCase()).filter(Boolean)
   )
-  const filtersActive = p.categoryFilter !== "all" || p.tierFilter !== "all" || p.search !== ""
+  const filtersActive = p.categoryFilter !== "all" || p.tierFilter !== "all" || p.search !== "" || p.barterOnly
 
   return (
     <div className="space-y-4">
@@ -260,6 +263,21 @@ export function CreatorSourcePicker(p: Props) {
                 ))}
               </SelectContent>
             </Select>
+            {/* Building a product deal: show only the people who have agreed to consider
+                one. Without it an operator searches the whole database, adds somebody, and
+                finds out they cannot be paid in product only when the barter button is
+                missing from their row. */}
+            <Button
+              type="button"
+              variant={p.barterOnly ? "default" : "outline"}
+              size="sm"
+              className="h-9 gap-1.5"
+              onClick={() => p.onBarterOnly(!p.barterOnly)}
+              title="Only creators who will consider product instead of a fee"
+            >
+              <Gift className="h-3.5 w-3.5" />
+              Takes barter
+            </Button>
             {filtersActive && (
               <Button
                 variant="ghost"
@@ -269,6 +287,7 @@ export function CreatorSourcePicker(p: Props) {
                   p.onSearch("")
                   p.onCategoryFilter("all")
                   p.onTierFilter("all")
+                  p.onBarterOnly(false)
                 }}
               >
                 <X className="h-3.5 w-3.5 mr-1.5" />

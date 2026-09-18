@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Label } from "@/components/ui/label"
-import { Calendar, Image as ImageIcon, Loader2, Upload, X } from "lucide-react"
+import { Calendar, Gift, Image as ImageIcon, Loader2, Upload, X } from "lucide-react"
 import { ImageCropper } from "@/components/ui/image-cropper"
 import { DatePicker } from "@/components/ui/date-picker"
 import { STOCK_IMAGES } from "@/components/proposals/proposal-utils"
@@ -27,7 +27,12 @@ import { motion, AnimatePresence } from "motion/react"
 import { PaymentStructure, type PaymentTerms } from "@/components/superadmin/proposals/PaymentStructure"
 import type { BrandUser } from "./types"
 
-export type CampaignTypeTarget = "influencer" | "cashback" | "paid_deal" | "barter"
+export type CampaignTypeTarget =
+  | "influencer"      // paid, runs on our own campaign screens
+  | "barter_portal"   // product, runs on our own campaign screens
+  | "cashback"        // creator app
+  | "paid_deal"       // creator app
+  | "barter"          // creator app
 
 export type VisibilityFlags = {
   show_sell_pricing: boolean
@@ -37,18 +42,47 @@ export type VisibilityFlags = {
   show_content_analysis: boolean
 }
 
+/**
+ * Where this proposal goes when the client approves it.
+ *
+ * TWO FAMILIES, and the difference is who runs the campaign.
+ *
+ * `influencer` and `barter_portal` promote into `campaign_creators`: our own team runs them,
+ * on our own campaign screens, with creators taken from the master database. They differ
+ * only in what the creator receives and what the client spends - a fee against a budget, or
+ * a product against a number of creator slots.
+ *
+ * `cashback`, `paid_deal` and `barter` promote into `fa_campaign_participants`: the roster
+ * goes to the CREATOR APP, where creators apply and a brand approves them, and every creator
+ * on it must already have an app account.
+ *
+ * Two of these tiles say "barter" and they are not the same deal. The app one is last and
+ * named "App barter" for that reason: picking it for a managed client would put their roster
+ * into creators' phones as applications.
+ */
 const CAMPAIGN_TYPES = [
-  { key: "influencer", label: "Influencer", hint: "Paid posts via brand portal" },
-  { key: "cashback",   label: "Cashback",   hint: "QR scan earnings at merchant" },
-  { key: "paid_deal",  label: "Paid Deal",  hint: "Flat payout per creator" },
-  { key: "barter",     label: "Barter",     hint: "Product-for-content" },
+  { key: "influencer",    label: "Influencer",  hint: "Paid posts. The client picks against a budget" },
+  { key: "barter_portal", label: "Barter",      hint: "Product for posts. The client picks a number of creators" },
+  { key: "cashback",      label: "Cashback",    hint: "Creator app: QR scan earnings at merchant" },
+  { key: "paid_deal",     label: "Paid Deal",   hint: "Creator app: flat payout per creator" },
+  { key: "barter",        label: "App barter",  hint: "Creator app: creators apply for product" },
 ] as const
+
+/** The two that our own team runs, on our own campaign screens. */
+const PORTAL_TYPES = new Set(["influencer", "barter_portal"])
 
 interface Props {
   isEditMode: boolean
 
   campaignTypeTarget: CampaignTypeTarget
   onCampaignTypeTarget: (v: CampaignTypeTarget) => void
+  /* the barter offer: what they get, what it is worth, how many they may take */
+  barterProduct: string
+  onBarterProduct: (v: string) => void
+  barterValue: string
+  onBarterValue: (v: string) => void
+  creatorSlots: string
+  onCreatorSlots: (v: string) => void
 
   brandUsers: BrandUser[]
   usersLoading: boolean
@@ -101,7 +135,7 @@ export function ProposalDetailsCard(p: Props) {
           <p className="text-xs text-muted-foreground mt-1 mb-2">
             The type of campaign this proposal becomes when the brand approves it.
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
             {CAMPAIGN_TYPES.map((opt) => {
               const active = p.campaignTypeTarget === opt.key
               return (
@@ -124,7 +158,10 @@ export function ProposalDetailsCard(p: Props) {
               )
             })}
           </div>
-          {p.campaignTypeTarget !== "influencer" && (
+          {/* The three app types need an app account. Barter via the portal deliberately
+              does NOT: its whole purpose is putting master-database creators, most of whom
+              have never opened the app, on a product deal. */}
+          {!PORTAL_TYPES.has(p.campaignTypeTarget) && (
             <p className="text-[11px] text-muted-foreground mt-2 leading-snug">
               Note: for {p.campaignTypeTarget.replace("_", " ")} campaigns, creators must
               already be FA-app members. Use the <span className="font-medium">FA Members</span>{" "}
@@ -132,6 +169,56 @@ export function ProposalDetailsCard(p: Props) {
             </p>
           )}
         </div>
+
+        {/* The offer, on a barter proposal. Two facts and they are the whole deal: what the
+            creator receives, and how many creators the client may take. There is no budget
+            on this proposal because nobody is paying anybody. */}
+        {p.campaignTypeTarget === "barter_portal" && (
+          <div className="rounded-lg border border-dashed bg-muted/30 p-3">
+            <div className="flex items-center gap-2">
+              <Gift className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-sm">The offer</Label>
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_140px_160px]">
+              <div>
+                <Label className="text-xs text-muted-foreground">What each creator gets *</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="e.g. Skincare set, full range"
+                  value={p.barterProduct}
+                  onChange={(e) => p.onBarterProduct(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Worth (AED)</Label>
+                <Input
+                  className="mt-1 tabular-nums"
+                  type="number"
+                  min={0}
+                  placeholder="400"
+                  value={p.barterValue}
+                  onChange={(e) => p.onBarterValue(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Creators they may pick *</Label>
+                <Input
+                  className="mt-1 tabular-nums"
+                  type="number"
+                  min={1}
+                  placeholder="8"
+                  value={p.creatorSlots}
+                  onChange={(e) => p.onCreatorSlots(e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+              The client sees the product and a count, never a price. Creators are added from
+              the master database below, and only the ones who agree to the product are shown
+              to the client.
+            </p>
+          </div>
+        )}
 
         {/* Brand user */}
         <div>
@@ -177,26 +264,36 @@ export function ProposalDetailsCard(p: Props) {
               onChange={(e) => p.onCampaignName(e.target.value)}
             />
           </div>
-          <div>
-            <Label>Total Budget (AED)</Label>
-            <Input
-              className="mt-1"
-              type="number"
-              placeholder="e.g. 50000"
-              value={p.totalBudget}
-              onChange={(e) => p.onTotalBudget(e.target.value)}
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Hidden from talent managers; visible to approvers + the client.
-            </p>
-          </div>
+          {/* No budget on a barter proposal. Nobody is paying anybody, and a budget field
+              left on the screen invites a number that then has to be explained away on the
+              client's copy. Their allowance is the creator count, set in the offer above. */}
+          {p.campaignTypeTarget !== "barter_portal" && (
+            <div>
+              <Label>Total Budget (AED)</Label>
+              <Input
+                className="mt-1"
+                type="number"
+                placeholder="e.g. 50000"
+                value={p.totalBudget}
+                onChange={(e) => p.onTotalBudget(e.target.value)}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Hidden from talent managers; visible to approvers + the client.
+              </p>
+            </div>
+          )}
         </div>
 
-        <PaymentStructure
-          terms={p.paymentTerms}
-          onChange={p.onPaymentTerms}
-          total={Number(p.totalBudget) || 0}
-        />
+        {/* Nothing is invoiced on a barter deal, so there are no stages to bill in. Leaving
+            "50% advance" on the screen would put a payment schedule on a proposal that has
+            no payment in it. */}
+        {p.campaignTypeTarget !== "barter_portal" && (
+          <PaymentStructure
+            terms={p.paymentTerms}
+            onChange={p.onPaymentTerms}
+            total={Number(p.totalBudget) || 0}
+          />
+        )}
 
         <div>
           <Label>Description</Label>

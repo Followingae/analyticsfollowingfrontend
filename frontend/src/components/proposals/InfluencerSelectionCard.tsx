@@ -16,8 +16,9 @@ import {
   Video,
   Image as ImageIcon,
   GripVertical,
+  Gift,
 } from "lucide-react"
-import { getTierConfig, formatCount, formatCurrency } from "./proposal-utils"
+import { getTierConfig, formatCount, formatCurrency, isBarter, barterFor, barterLabel } from "./proposal-utils"
 import { motion, useMotionValue, useSpring, AnimatePresence } from "motion/react"
 
 interface InfluencerSelectionCardProps {
@@ -212,7 +213,27 @@ export function InfluencerSelectionCard({
           )}
 
           {/* Pricing */}
-          {showPricing && Object.keys(pricing).length > 0 && (
+          {/* Paid in product. Shown to the client whatever the pricing visibility says,
+              because it is not a price: it is what they are agreeing to hand over, and a
+              creator with no price and no product named reads as free. */}
+          {isBarter(inf) && (
+            <>
+              <Separator className="mb-3" />
+              <div className="mb-3 rounded-md bg-muted/60 px-3 py-2 text-center">
+                <p className="flex items-center justify-center gap-1.5 text-xs font-medium">
+                  <Gift className="h-3.5 w-3.5 text-muted-foreground" />
+                  {barterLabel(inf) ?? "Paid in product"}
+                </p>
+                {barterFor(inf) > 0 && (
+                  <p className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+                    worth {formatCurrency(barterFor(inf))} · you provide this, not a fee
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+
+          {showPricing && !isBarter(inf) && Object.keys(pricing).length > 0 && (
             <>
               <Separator className="mb-3" />
               <div className="flex items-center justify-center gap-4 text-xs mb-3">
