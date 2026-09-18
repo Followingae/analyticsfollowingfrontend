@@ -54,13 +54,13 @@ export function CreatorsHubHeader({ className, bare }: { className?: string; bar
   }, [mayHoldRates])
 
   const tabs: HubTab[] = [
-    { label: 'Database', href: '/work/influencers', module: 'influencers' },
-    { label: 'Creators needing a price', href: '/work/influencers/review', module: 'influencers', count: waiting },
-    { label: 'Analyzed creators', href: '/work/influencers/analyzed', module: 'influencers' },
-    { label: 'Brand rosters', href: '/work/areas', module: 'influencers' },
-    { label: "Where we're thin", href: '/work/coverage', module: 'influencers' },
-    { label: 'On the app', href: '/work/fa/members', module: 'fa' },
-    { label: 'Who actually delivers', href: '/work/fa/reliability', module: 'fa' },
+    { href: '/work/influencers', module: 'influencers' },
+    { href: '/work/influencers/review', module: 'influencers', count: waiting },
+    { label: 'Analysed', href: '/work/influencers/analyzed', module: 'influencers' },
+    { href: '/work/areas', module: 'influencers' },
+    { href: '/work/coverage', module: 'influencers' },
+    { href: '/work/fa/members', module: 'fa' },
+    { href: '/work/fa/reliability', module: 'fa' },
   ]
 
   // The `bare` screens print their own title and their own buttons, so there is no title bar

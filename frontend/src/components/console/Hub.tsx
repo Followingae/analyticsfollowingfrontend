@@ -21,11 +21,17 @@ import * as React from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAdminAccess, type AdminModule } from '@/hooks/useAdminAccess'
+import { shortName } from '@/lib/destinations'
 import { PageHead } from './primitives'
 
 export interface HubTab {
-  /** What the person is doing here, in their words. */
-  label: string
+  /**
+   * Almost never set. A tab takes its name from `destinations.ts` like everything else, and
+   * the only reason this is still here is the handful of tabs that are a FILTER of a screen
+   * rather than the screen itself. Writing a name here for a plain destination is how
+   * /work/coverage came to be "Coverage" in the menu and "Where we're thin" on the hub.
+   */
+  label?: string
   href: string
   /** Module required to see this tab at all. Omit for tabs everyone internal may use. */
   module?: AdminModule
@@ -77,7 +83,7 @@ export function Hub({
                     : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground',
                 )}
               >
-                {t.label}
+                {t.label ?? shortName(t.href)}
                 {t.count != null && t.count > 0 && (
                   <span className={cn(
                     'rounded-full px-1.5 py-0.5 text-[11px] font-medium tabular-nums',

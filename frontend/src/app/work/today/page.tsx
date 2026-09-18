@@ -39,6 +39,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { ColumnDef } from '@tanstack/react-table'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
+import { FlowRail } from '@/components/console/FlowRail'
 import { WaitingOnYou } from '@/components/console/WaitingOnYou'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -430,6 +431,11 @@ export default function Today() {
             A dashboard answers "what do I do now". Navigation answers "where can I go".
             This page does the first one only. */}
 
+        {/* Who holds the work, in the order it changes hands. It belongs here rather than
+            in the guide: it carries live counts, so it is the only place in the product that
+            says where work is piling up right now. */}
+        <FlowRail scope={role} />
+
         {/* the numbers. No box each: the gap is what says these are separate figures. */}
         {headline.length > 0 && (
           <div data-tour="today-numbers">
@@ -465,7 +471,7 @@ export default function Today() {
                             shadow-[var(--shadow-card)]">
           <div className="flex flex-wrap items-center justify-between gap-ds-3">
             <h2 className="flex items-center gap-ds-2 text-ds-heading">
-              Waiting on you
+              Pending
               {waiting.length > 0 && (
                 <span className="text-ds-caption tabular-nums text-muted-foreground">
                   {waiting.length}
@@ -495,7 +501,7 @@ export default function Today() {
           {target && (
             <div className="rounded-[var(--radius-card)] border bg-card p-ds-3
                             shadow-[var(--shadow-card)]">
-              <p className="text-ds-caption text-muted-foreground">Today's goal</p>
+              <p className="text-ds-caption text-muted-foreground">Target</p>
               <div className="mt-ds-2 flex items-center justify-between gap-ds-3">
                 <div>
                   <p className="text-[1.75rem] font-semibold leading-none tabular-nums">
@@ -539,7 +545,7 @@ export default function Today() {
                 aria-expanded={allFlight}
                 className="flex items-center gap-ds-2 text-ds-heading hover:underline"
               >
-                Running without you
+                Elsewhere
                 <span className="text-ds-caption tabular-nums text-muted-foreground">
                   {moving.length}
                 </span>
@@ -552,7 +558,7 @@ export default function Today() {
                 columns={movingCols}
                 data={moving}
                 hidePagination
-                emptyState="Nothing is running."
+                emptyState="Nothing here."
               />
             )}
           </section>

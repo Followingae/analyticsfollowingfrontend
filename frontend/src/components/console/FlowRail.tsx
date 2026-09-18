@@ -1,48 +1,38 @@
 'use client'
 
 /**
- * How the work flows — the whole process, on the screen everybody opens.
+ * The process — who holds the work, in the order it changes hands.
  *
- * The problem this exists to solve, in the founder's words: "if I, the creator of the
- * software, cannot know our process clearly, then how can my team?" Every stage below was
- * already built and every number below was already computed somewhere — on Today, in a
- * sidebar badge, inside a hub nobody visits. What did not exist was one place where they sit
- * in the order they happen, so the shape of the company is visible without a call.
+ * The founder's own words, and they are the specification: "BUSINESS DEVELOPMENT -> TALENT
+ * -> WITH APPROVALS -> WITH CLIENT (and then back to wherever in case of more rounds
+ * requested)". That is a relay. Five hands, one direction, one loop back.
  *
- * Twelve things in a row is a list, not a process, and the first version proved it: six
- * bordered tiles across, 8px of padding each, no icons, every stop the same weight. Legible
- * only if you already knew the answer.
+ * The first version of this drew twelve stops grouped into four acts, which is the process
+ * as the DATABASE experiences it, not as the company does. Twelve is the right number for a
+ * report and the wrong number for a wall chart: nobody learns their place in a company from
+ * twelve boxes. Nothing is lost by grouping them, because each stage still lists the stops
+ * inside it with their own numbers.
  *
- * So the twelve are grouped into the four acts the company actually works in — find it,
- * stock it, sell it, deliver it — and the grouping is done with space rather than with more
- * boxes, which is the rule the spacing scale itself sets out: a border round a number is a
- * second edge the eye must cross, and a gap costs nothing. Each act is a column, each stop a
- * row in it, and the eye reads down an act and across the four.
+ * What it is for: a new joiner should be able to point at one box and say "that is me", see
+ * who hands to them and who they hand to, and know at a glance whether the pile in front of
+ * them is theirs or somebody else's. Every role in the company independently reported the
+ * same missing fact - whether the person upstream has acted yet - and this is the answer.
  *
- * Two fields, two different questions, and conflating them was the other bug:
- *
- *   `mine`      whose job this is. Always shown, for everybody, on every stop.
- *   `can_open`  whether this person may go and do it. A founder may open all twelve —
- *               covering somebody's desk is a normal Tuesday, and the first version locked
- *               the owner of the company out of nine of his own screens.
- *
- * The names are `/work/manual`'s, stop for stop. That deck narrates this exact process, and
- * a second vocabulary for the same twelve things is how it stopped being legible before.
- *
- * A stop whose count failed to compute shows a dash, never a zero. Zero is an answer —
- * "nothing is waiting here" — and a broken query must not be allowed to give it.
+ * It belongs on the dashboard. It was moved to the guide once, on the reasoning that a thing
+ * you read in your first week does not deserve the home screen; that was wrong, and the
+ * reason it was wrong is worth keeping. This is not documentation. It carries live counts, so
+ * it is the only place in the product that says where the work is piling up right now, and a
+ * thing nobody navigates to is a thing nobody reads.
  */
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import {
-  Building2, Layers, Users, Tag, ShieldCheck, Send, FileText, CheckCircle2,
-  RotateCcw, ClipboardCheck, Megaphone, HandCoins,
-} from 'lucide-react'
+import { ArrowRight, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CARD } from '@/components/console/primitives'
 
 type Stop = {
   id: string
@@ -55,21 +45,33 @@ type Stop = {
   can_open: boolean
 }
 
-const ICON: Record<string, React.ComponentType<{ className?: string }>> = {
-  logged: Building2, area: Layers, stock: Users, price: Tag,
-  clear: ShieldCheck, share: Send, proposal: FileText, confirm: CheckCircle2,
-  partial: RotateCcw, paper: ClipboardCheck, ladder: Megaphone, pay: HandCoins,
-}
-
-/** The four acts, and which stops belong to each. Order is the order work happens in. */
-const ACTS: { key: string; label: string; stops: string[] }[] = [
-  { key: 'find',    label: 'Find',    stops: ['logged', 'area'] },
-  { key: 'stock',   label: 'Source',  stops: ['stock', 'price', 'clear'] },
-  { key: 'sell',    label: 'Sell',    stops: ['share', 'proposal', 'confirm', 'partial'] },
-  { key: 'deliver', label: 'Deliver', stops: ['paper', 'ladder', 'pay'] },
+/**
+ * The five hands, and which of the twelve stops sit in each.
+ *
+ * `scope` is who this stage belongs to, in the same words the rest of the console uses, so a
+ * person can find themselves on it. The client is not a scope: nobody internal holds that
+ * stage, which is exactly the point of showing it.
+ */
+const STAGES: {
+  key: string
+  title: string
+  who: string
+  scope: string | null
+  stops: string[]
+}[] = [
+  { key: 'bd', title: 'Business development', who: 'Brands in the door',
+    scope: 'business_development', stops: ['logged'] },
+  { key: 'talent', title: 'Talent', who: 'Finding and pricing creators',
+    scope: 'talent', stops: ['area', 'stock'] },
+  { key: 'approvals', title: 'Approvals', who: 'Only a founder can clear these',
+    scope: 'leadership', stops: ['price', 'clear', 'proposal'] },
+  { key: 'client', title: 'With the client', who: 'Waiting on them, not on us',
+    scope: null, stops: ['share', 'confirm', 'partial'] },
+  { key: 'deliver', title: 'Delivering', who: 'Live work, and paying people',
+    scope: null, stops: ['paper', 'ladder', 'pay'] },
 ]
 
-export function FlowRail() {
+export function FlowRail({ scope }: { scope?: string | null }) {
   const [stops, setStops] = useState<Stop[] | null>(null)
   const [failed, setFailed] = useState(false)
 
@@ -90,142 +92,102 @@ export function FlowRail() {
     return () => { live = false }
   }, [])
 
-  // Failure says so. This used to return null: the one thing on the screen that answers "I
-  // cannot see our process" would vanish without a word, so nobody could report it and the
-  // only symptom was an absence indistinguishable from a deliberate design. The stops are
-  // still worth drawing without their numbers, because the SEQUENCE is most of the value.
-  if (failed) {
-    return (
-      <section data-tour="flow-rail" className={cn(CARD, 'bg-card px-ds-4 py-ds-4 sm:px-ds-5')}>
-        <h2 className="text-[15px] font-semibold tracking-[-0.015em]">Process</h2>
-        <p className="mt-ds-1 text-ds-caption text-muted-foreground">
-          The stages are below. The counts could not be loaded.
-        </p>
-      </section>
-    )
-  }
-
   const by = (id: string) => stops?.find(s => s.id === id)
 
   return (
-    <section data-tour="flow-rail" className={cn(CARD, 'bg-card px-ds-4 py-ds-4 sm:px-ds-5')}>
-      <div className="flex flex-wrap items-baseline gap-x-ds-3 gap-y-ds-1">
-        <h2 className="text-[15px] font-semibold tracking-[-0.015em]">Process</h2>
-        <p className="text-ds-caption text-muted-foreground">
-          Every stage in order. Yours are marked.
+    <section data-tour="flow-rail" className="space-y-3">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-sm font-semibold">How work moves</h2>
+        <p className="text-xs text-muted-foreground">
+          Left to right. Yours is marked.
         </p>
       </div>
 
-      {stops === null ? (
-        <div className="mt-ds-4 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, n) => (
-            <div key={n} className="space-y-ds-3">
-              <Skeleton className="h-3 w-24 rounded-ds-xs" />
-              <Skeleton className="h-[52px] rounded-ds-md" />
-              <Skeleton className="h-[52px] rounded-ds-md" />
+      {failed ? (
+        // Say so. This used to disappear, so the one thing answering "I cannot see our
+        // process" vanished without a word and nobody could report it.
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">
+              The stages are below. The counts could not be loaded.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
+        {STAGES.map((stage, i) => {
+          const rows = stage.stops.map(by).filter(Boolean) as Stop[]
+          const total = rows.reduce((n, r) => n + (r.count ?? 0), 0)
+          const mine = stage.scope != null && scope === stage.scope
+
+          return (
+            <div key={stage.key} className="flex flex-1 items-stretch gap-2">
+              <Card className={cn('flex-1', mine && 'ring-2 ring-ring')}>
+                <CardContent className="flex h-full flex-col gap-3 p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{stage.title}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {stage.who}
+                      </p>
+                    </div>
+                    {mine && <Badge variant="secondary" className="shrink-0">You</Badge>}
+                  </div>
+
+                  {stops === null ? (
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-semibold leading-none tabular-nums">
+                        {total.toLocaleString('en-US')}
+                      </p>
+                      <ul className="mt-auto space-y-1">
+                        {rows.map(r => (
+                          <li key={r.id} className="flex items-baseline justify-between gap-2">
+                            {r.can_open ? (
+                              <Link
+                                href={r.href}
+                                className="truncate text-xs text-muted-foreground hover:text-foreground hover:underline"
+                              >
+                                {r.title}
+                              </Link>
+                            ) : (
+                              <span className="truncate text-xs text-muted-foreground">
+                                {r.title}
+                              </span>
+                            )}
+                            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                              {r.count == null ? '—' : r.count.toLocaleString('en-US')}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {i < STAGES.length - 1 && (
+                <ArrowRight
+                  className="hidden h-4 w-4 shrink-0 self-center text-muted-foreground/50 lg:block"
+                  aria-hidden
+                />
+              )}
             </div>
-          ))}
-        </div>
-      ) : (
-        /* Four columns, gap-ds-5 between them — a step wider than any gap inside an act, so
-           the grouping reads without a rule or a border doing it. */
-        <div className="mt-ds-4 grid gap-x-ds-5 gap-y-ds-5 sm:grid-cols-2 xl:grid-cols-4">
-          {ACTS.map((act, actIndex) => (
-            <div key={act.key}>
-              <p className="flex items-baseline gap-ds-2 px-ds-2 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
-                <span className="tabular-nums text-muted-foreground/45">{actIndex + 1}</span>
-                {act.label}
-              </p>
-              <div className="mt-ds-2 space-y-px">
-                {act.stops.map(id => {
-                  const s = by(id)
-                  return s ? <StopRow key={id} stop={s} /> : null
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  )
-}
-
-/**
- * One stop: an icon, its number, what it is and whose it is.
- *
- * The same row either way. A stage somebody else owns is still a stage, and redrawing it as
- * a different sort of object would break the sequence this component exists to show — so the
- * two states differ in weight and in what happens when you click, never in shape.
- */
-function StopRow({ stop }: { stop: Stop }) {
-  const Icon = ICON[stop.id] ?? Layers
-  const n = stop.count == null ? '—' : stop.count.toLocaleString('en-US')
-  // Work sitting on a stage that is yours is the one thing here that should catch the eye.
-  const attention = stop.mine && (stop.count ?? 0) > 0
-
-  const body = (
-    <>
-      <span
-        className={cn(
-          'grid h-9 w-9 flex-none place-items-center rounded-ds-md transition-colors',
-          attention
-            ? 'bg-[var(--tone-info-wash)] text-foreground'
-            : 'bg-black/[0.04] text-muted-foreground dark:bg-white/[0.06]',
-        )}
-      >
-        <Icon className="h-[17px] w-[17px]" />
-      </span>
-
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-medium leading-tight text-foreground">
-          {stop.title}
-        </span>
-        <span className="mt-0.5 block truncate text-[11px] leading-tight text-muted-foreground">
-          {stop.mine ? 'Yours' : stop.owner}
-        </span>
-      </span>
-
-      <span
-        className={cn(
-          'flex-none text-[19px] font-semibold leading-none tabular-nums tracking-[-0.02em]',
-          attention ? 'text-foreground' : 'text-muted-foreground/70',
-        )}
-      >
-        {n}
-      </span>
-    </>
-  )
-
-  const shell = 'flex w-full items-center gap-ds-3 rounded-ds-md px-ds-2 py-ds-2 text-left'
-
-  if (!stop.can_open) {
-    return (
-      <div
-        className={cn(shell, 'cursor-default')}
-        // Readable, not interactive: somebody else's stage. `group` gives it a role and a
-        // label, so it is reachable and announced as a stage rather than being silently
-        // skipped, and the owner is in the accessible name rather than only in a tooltip.
-        role="group"
-        aria-label={`${stop.title}. ${stop.hint}. Owned by ${stop.owner}.`}
-        title={`${stop.title}. ${stop.hint}. Owned by ${stop.owner}.`}
-      >
-        {body}
+          )
+        })}
       </div>
-    )
-  }
 
-  return (
-    <Link
-      href={stop.href}
-      title={`${stop.title} — ${stop.hint}`}
-      className={cn(
-        shell,
-        'transition-colors hover:bg-black/[0.035] focus-visible:outline-none',
-        'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-        'dark:hover:bg-white/[0.05]',
-      )}
-    >
-      {body}
-    </Link>
+      {/* The loop. A client asking for more creators does not start a new process, it sends
+          the same one back a stage, and leaving that out is what makes a straight line a lie. */}
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+        If the client asks for more, it goes back to Talent and round again.
+      </p>
+    </section>
   )
 }

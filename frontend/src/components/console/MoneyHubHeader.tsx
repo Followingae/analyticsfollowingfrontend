@@ -33,7 +33,7 @@ export function useMoneyTabs(): HubTab[] {
        payouts, so it is a destination rather than a view of something else. */
     { label: 'Merchant of Record', href: '/work/mor', module: 'billing', when: canSeeCost },
     // Cost, not just creators — see the note above.
-    { label: 'Creator payments', href: '/work/payables', module: 'influencers', when: canSeeCost },
+    { href: '/work/payables', module: 'influencers', when: canSeeCost },
     { label: 'Creator app balances', href: '/work/fa/wallets', module: 'fa', when: canSeeCost },
   ]
   if (loading) return []
