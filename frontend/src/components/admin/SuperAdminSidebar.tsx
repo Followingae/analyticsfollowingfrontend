@@ -127,161 +127,126 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   ]
 
   /**
-   * The menu is the job, not the filing cabinet.
+   * ONE menu, for everybody.
    *
-   * Six nouns was fewer entries than the forty-four before them, but it still asked people to
-   * know which noun their work lived under and then to find it behind two tab rows. So each
-   * role now gets the handful of screens their day is actually made of, named after the job:
-   * a talent manager opens "Creators needing a price", not Creators → Waiting room.
+   * What was here before: `managementItems` was a four-branch ternary, one arm per role,
+   * each producing a structurally different menu, and all four rendered under the same
+   * heading "Work". Two colleagues looking at the same product saw different words in a
+   * different order, so neither could tell the other where anything was. A superadmin got
+   * twenty-nine rows across five groups; a bizdev user got seven.
    *
-   * Nothing is lost. Every screen keeps its address, the hub tabs still sit on top of the
-   * screens themselves, and search reaches everything — which it could not do for staff until
-   * the palette stopped mistaking them for brand customers.
+   * Now there is one list in one order with one name per destination. A role changes which
+   * entries are PRESENT and nothing else - never the wording, never the order, never the
+   * grouping. That is what makes it possible to say "it's under Creators" and be understood.
+   *
+   * Names are not written here at all. `named()` fills every title from `destinations.ts`,
+   * which is why the entries below carry a url and no label: a hand-typed name is how
+   * /work/goals came to be "My target" in one arm and "Daily targets" twelve lines down.
    */
-  // Permissions arrive a beat after the first paint. Until they do, show the two entries
-  // everyone has rather than a menu that is briefly wrong for whoever is looking at it —
-  // an ungated item rendered during that beat is an item shown to the wrong person.
   const talentOnly = !isSuperAdmin && staffRole === "talent_manager"
   const bizdevOnly = !isSuperAdmin && staffRole === "business_development"
   const accountOnly = !isSuperAdmin && staffRole === "account_manager"
   const leadership = isSuperAdmin || isFullAccessStaff
 
-  const managementItems = accessLoading ? [] : talentOnly
-    ? [
-        { title: "Creators & rates", url: "/work/influencers", icon: Users2 },
-        { title: "Creators needing a price", url: "/work/influencers/review", icon: Coins,
-          badge: badges["needs-price"] },
-        // Brand rosters (Areas) is now the whole supply job: what a client asked us to
-        // source, who we found, who they turned down, and which round we are on. The
-        // separate "Sourcing rounds" entry is gone with the table behind it.
-        { title: "Brand rosters", url: "/work/areas", icon: Database },
-        { title: "Where we're thin", url: "/work/coverage", icon: Map },
-        { title: "Campaigns", url: "/work/campaigns", icon: Megaphone },
-        { title: "Creators to chase", url: "/work/chasing", icon: ClipboardCheck,
-          badge: badges["chasing"] },
-        // The paperwork after a brand confirms a creator. It is the talent team's own queue:
-        // they create the links and chase them, and they confirm the payee before anything pays.
-        { title: "Enrolments", url: "/work/enrolments", icon: FileSignature,
-          badge: badges["enrolments"] },
-        { title: "Creator payments", url: "/work/payables", icon: Banknote,
-          badge: badges["payables"] },
-        { title: "My target", url: "/work/goals", icon: BarChart3 },
-      ]
-    : bizdevOnly
-    ? [
-        { title: "Brands", url: "/work/brands", icon: Building2, badge: badges["brands"] },
-        { title: "Quotes", url: "/work/proposals", icon: FileText, badge: badges["proposals"] },
-        // Everything we hand a client that is not a proposal or an invoice.
-        { title: "Share Center", url: "/work/share", icon: Send },
-        { title: "Sample packs", url: "/work/areas?kind=sample", icon: Database },
-      ]
-    : accountOnly
-    ? [
-        { title: "My clients", url: "/work/clients", icon: Building2 },
-        { title: "Quotes", url: "/work/proposals", icon: FileText },
-        { title: "Share Center", url: "/work/share", icon: Send },
-        { title: "Campaigns", url: "/work/campaigns", icon: Megaphone },
-        { title: "Late & chasing", url: "/work/chasing", icon: ClipboardCheck,
-          badge: badges["chasing"] },
-        { title: "Brand rosters", url: "/work/areas", icon: Database },
-        { title: "App creators", url: "/work/fa/members", icon: Users2 },
-      ]
-    : [
-        // Leadership: the six surfaces, plus the two decisions that are theirs alone and had
-        // no entry anywhere — sign-offs, and the targets they set for everybody else.
-        ...(can("clients") || can("proposals") ? [{
-          title: "Clients", url: "/work/clients", icon: Building2,
-        }] : []),
-        // Brands and Quotes were tabs inside the Clients hub and nothing else, which is one
-        // click too many for the two screens a founder opens most: who has gone quiet, and
-        // what is priced and sitting with a client. Every other role reaches them from its
-        // own menu; leadership had to go through a hub to get there.
-        ...(can("clients") ? [{
-          title: "Brands", url: "/work/brands", icon: Building2, badge: badges["brands"],
-        }] : []),
-        ...(can("proposals") ? [{
-          title: "Quotes", url: "/work/proposals", icon: FileText, badge: badges["proposals"],
-        }] : []),
-        // Everything we have handed a client that is not a proposal or an invoice. It sits
-        // with the client work because that is what it is; until now it was reachable only
-        // by typing the address.
-        ...(can("clients") ? [{
-          title: "Share Center", url: "/work/share", icon: Send,
-        }] : []),
-        ...(can("campaigns") || can("operations") || can("fa") ? [{
-          title: "Campaigns", url: "/work/campaigns", icon: Megaphone,
-        }] : []),
-        ...(can("influencers") || can("fa") ? [{
-          title: "Creators", url: "/work/creators", icon: Users2,
-        }] : []),
-        // Enrolment links carry an approval queue only leadership can clear, so this must be
-        // reachable for them and not only for the talent team who create the links.
-        ...(can("influencers") || can("proposals") ? [{
-          title: "Enrolments", url: "/work/enrolments", icon: FileSignature,
-          badge: badges["enrolments"],
-        }] : []),
-        // Where sourcing actually happens: one roster per brand, the brief on it, and every
-        // creator researched against it. The comment here used to say this lived "above" on
-        // Brand rosters — it did for talent and bizdev, but leadership had no such entry, so
-        // the one person who releases an area could not see the areas.
-        ...(can("influencers") ? [{
-          title: "Rosters", url: "/work/areas", icon: Database,
-        }] : []),
-        // The supply side of Creators: the category and market cells we cannot serve yet.
-        ...(can("influencers") ? [{
-          title: "Where we're thin", url: "/work/coverage", icon: Map,
-        }] : []),
-        ...(can("billing") || can("influencers") ? [{
-          title: "Money", url: "/work/money", icon: Banknote,
-        }] : []),
-        ...(leadership
-          ? [{ title: "Sign-offs", url: "/work/approvals", icon: ClipboardCheck,
-              badge: badges["signoffs"] }]
-          : []),
-      ]
+  const scope = leadership ? "leadership"
+    : talentOnly ? "talent"
+    : bizdevOnly ? "business_development"
+    : accountOnly ? "account"
+    : "leadership"
 
-  // Running the company: set once a month, read every week, and until now reachable only by
-  // typing the address.
-  const companyItems = accessLoading || !leadership
-    ? []
-    : [
-        { title: "Daily targets", url: "/work/goals", icon: BarChart3 },
-        { title: "My team", url: "/work/team", icon: Users },
-        { title: "Office screens", url: "/work/system/displays", icon: Activity },
-      ]
+  /** Any-of on modules, any-of on scopes, and leadership passes everything. */
+  const allowed = (i: { modules?: string[]; scopes?: string[] }) => {
+    if (i.modules && !i.modules.some(m => can(m as Parameters<typeof can>[0]))) return false
+    if (i.scopes && !leadership && !i.scopes.includes(scope)) return false
+    return true
+  }
 
-  // Settings: the plumbing. Real screens, just not competing with daily work. The four
-  // Following-App entries are set-once screens, so they sit behind the app's own hub rather
-  // than taking four rows off a client manager's menu.
-  // The creator app is a second product administered from this console, not a setting of the
-  // first one. It gets its own group rather than sitting between Staff and Email alerts.
-  //
-  // The `!accountOnly` exclusion is kept exactly as it was, and it is deliberate: the comment
-  // it came with says a client manager's job is clients and the app's plumbing cost her four
-  // menu rows. She keeps every address and keeps them in search.
-  const appItems = accessLoading
-    ? []
-    : can("fa") && (isSuperAdmin || !accountOnly)
-      ? [
-          { title: "", url: "/work/fa/campaigns", icon: Megaphone },
-          { title: "", url: "/work/fa/merchants", icon: Store },
-          { title: "", url: "/work/fa/members", icon: Users2 },
-          { title: "", url: "/work/fa/reliability", icon: ShieldCheck },
-          { title: "", url: "/work/fa/activity", icon: Activity },
-          { title: "", url: "/work/fa/ad-banners", icon: ImageIcon },
-          { title: "", url: "/work/fa/notifications", icon: Bell },
-        ]
-      : []
+  type Entry = {
+    url: string
+    icon: typeof Users2
+    badge?: string
+    modules?: string[]
+    scopes?: string[]
+  }
+
+  // The order is the order the work happens in: who we sell to, what we sell them, who
+  // delivers it, what it costs and who signs it off.
+  const WORK: Entry[] = [
+    { url: "/work/clients", icon: Building2,
+      modules: ["clients", "proposals"], scopes: ["leadership", "account"] },
+    { url: "/work/brands", icon: Building2, badge: "brands",
+      modules: ["clients"], scopes: ["leadership", "account", "business_development"] },
+    { url: "/work/proposals", icon: FileText, badge: "proposals", modules: ["proposals"] },
+    { url: "/work/share", icon: Send,
+      modules: ["clients"], scopes: ["leadership", "account", "business_development"] },
+    { url: "/work/areas", icon: Database, badge: "areas", modules: ["influencers"] },
+    { url: "/work/influencers", icon: Users2, modules: ["influencers"] },
+    { url: "/work/influencers/review", icon: Coins, badge: "needs-price",
+      modules: ["influencers"], scopes: ["leadership", "talent"] },
+    { url: "/work/coverage", icon: Map,
+      modules: ["influencers"], scopes: ["leadership", "talent"] },
+    { url: "/work/campaigns", icon: Megaphone,
+      modules: ["campaigns", "operations", "fa"] },
+    { url: "/work/chasing", icon: ClipboardCheck, badge: "chasing",
+      modules: ["campaigns", "influencers"],
+      scopes: ["leadership", "talent", "account"] },
+    { url: "/work/enrolments", icon: FileSignature, badge: "enrolments",
+      modules: ["influencers", "proposals"], scopes: ["leadership", "talent"] },
+    { url: "/work/payables", icon: Banknote, badge: "payables",
+      modules: ["influencers"], scopes: ["leadership", "talent"] },
+    { url: "/work/money", icon: Wallet,
+      modules: ["billing", "influencers"], scopes: ["leadership"] },
+    { url: "/work/approvals", icon: ClipboardCheck, badge: "signoffs",
+      scopes: ["leadership"] },
+  ]
+
+  const managementItems = accessLoading ? [] : WORK.filter(allowed).map(e => ({
+    title: "", url: e.url, icon: e.icon,
+    ...(e.badge ? { badge: badges[e.badge] } : {}),
+  }))
+
+  /**
+   * Admin: three collapsed parents and the guide.
+   *
+   * These are categories, not destinations, so a parent is never also its own child - the
+   * bug the brand sidebar still has, where clicking "Creators" opens a group containing an
+   * item called "My Creators" pointing at the same page. Twelve rows of plumbing sit behind
+   * three, and nothing has been taken away.
+   */
+  const companyChildren = leadership && !accessLoading
+    ? [
+        { title: shortName("/work/goals"), url: "/work/goals" },
+        { title: shortName("/work/team"), url: "/work/team" },
+        { title: shortName("/work/system/displays"), url: "/work/system/displays" },
+      ]
+    : []
+
+  const appChildren = !accessLoading && can("fa") && (isSuperAdmin || !accountOnly)
+    ? [
+        "/work/fa/campaigns", "/work/fa/merchants", "/work/fa/members",
+        "/work/fa/reliability", "/work/fa/activity", "/work/fa/ad-banners",
+        "/work/fa/notifications",
+      ].map(url => ({ title: shortName(url), url }))
+    : []
+
+  const settingsChildren = [
+    ...(can("users") ? [{ title: shortName("/work/users"), url: "/work/users" }] : []),
+    ...(can("users") ? [{ title: shortName("/work/staff"), url: "/work/staff" }] : []),
+    ...(can("system") ? [{ title: shortName("/work/notifications"), url: "/work/notifications" }] : []),
+    ...(can("system") ? [{ title: shortName("/work/whatsapp"), url: "/work/whatsapp" }] : []),
+    ...(can("system") ? [{ title: shortName("/work/system"), url: "/work/system" }] : []),
+  ]
 
   const systemItems = [
-    ...(can("users") ? [{ title: "Users", url: "/work/users", icon: Users }] : []),
-    ...(can("users") ? [{ title: "Staff", url: "/work/staff", icon: ShieldCheck }] : []),
-    // A client manager's job is clients; the app's plumbing cost her four menu rows. It keeps
-    // every address and stays in search — a founder still sees them listed out.
-    ...(can("system") ? [{ title: "Email alerts", url: "/work/notifications", icon: MailCheck }] : []),
-    ...(can("system") ? [{ title: "WhatsApp", url: "/work/whatsapp", icon: MessageCircle }] : []),
-    ...(can("system") ? [{ title: "System", url: "/work/system", icon: Wrench }] : []),
+    ...(companyChildren.length
+      ? [{ title: "Company", url: "#company", icon: BarChart3, items: companyChildren }] : []),
+    ...(appChildren.length
+      ? [{ title: "Creator app", url: "#app", icon: Store, items: appChildren }] : []),
+    ...(settingsChildren.length
+      ? [{ title: "Settings", url: "#settings", icon: Wrench, items: settingsChildren }] : []),
   ]
+
+  // Kept so the render below does not have to change shape; the app group is inside Admin now.
 
   // Content pages not yet built; dead links removed.
   // Backend endpoints exist at /admin/content/profiles and /admin/content/unlocks
@@ -298,9 +263,6 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
 
   const overviewNamed = named(overviewItems)
   const managementNamed = named(managementItems)
-  const companyNamed = named(companyItems)
-  const appNamed = named(appItems)
-  const systemNamed = named(systemItems)
 
   const activeUrl = React.useMemo(() => {
     // Sub-items came from campaignItems, which is permanently empty — so a nested page like
@@ -309,18 +271,20 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     const urls = [
       ...overviewItems,
       ...managementItems,
-      ...companyItems,
-      ...appItems,
-      // Hubs have no sub-items now — the jobs live as tabs inside each hub.
       ...systemItems,
+      // Admin's three parents are categories, not destinations: their urls are anchors and
+      // the real screens are their children. Leaving the children out here meant every page
+      // under Settings highlighted nothing at all.
+      ...systemItems.flatMap((i) => ('items' in i && i.items ? i.items : [])),
     ]
       // An entry may carry a query (sample packs), which is not part of the path it matches.
+      // A category anchor (#settings) is not a path and never matches one.
       .map((i) => i.url?.split("?")[0])
-      .filter(Boolean) as string[]
+      .filter((u): u is string => Boolean(u) && !u.startsWith("#"))
     return urls
       .filter((url) => pathname === url || pathname.startsWith(url + "/"))
       .sort((a, b) => b.length - a.length)[0]
-  }, [pathname, overviewItems, managementItems, companyItems, appItems, systemItems])
+  }, [pathname, overviewItems, managementItems, systemItems])
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -347,21 +311,20 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Overview Section */}
+        {/* No heading. Two entries everybody has, whatever they do here, and a label above
+            them would only be naming the fact that they are at the top. */}
         {overviewItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Personal</SidebarGroupLabel>
             <SidebarGroupContent>
               <NavMain items={overviewNamed} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}
 
-        {/* Permissions arrive a beat after the first paint, and three of the five groups
-            return nothing until they do. The menu therefore rendered three items, then
-            tripled to as many as twenty-nine under the reader's hand: the page jumps, and
-            anyone tabbing through has their focus thrown off the element they were on.
-            Reserving the space costs nothing and keeps the menu still. */}
+        {/* Permissions arrive a beat after the first paint. The menu used to render three
+            items and then triple under the reader's hand: the page jumps and anyone tabbing
+            through has their focus thrown off whatever they were on. Reserving the space
+            costs nothing and keeps the menu still. */}
         {accessLoading && (
           <SidebarGroup>
             <SidebarGroupContent>
@@ -374,7 +337,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           </SidebarGroup>
         )}
 
-        {/* The working surfaces */}
+        {/* The work itself: one list, one order, one name per screen, for every role. */}
         {managementItems.length > 0 && (
           <SidebarGroup>
             <SidebarGroupLabel>Work</SidebarGroupLabel>
@@ -384,33 +347,13 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           </SidebarGroup>
         )}
 
-        {/* Running the company — leadership's own screens, which had no entry at all */}
-        {companyItems.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Company</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <NavMain items={companyNamed} activeUrl={activeUrl} />
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {/* The creator app: a second product administered from here, not a setting of this
-            one. It used to sit inside Settings between Staff and Email alerts. */}
-        {appNamed.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Creator app</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <NavMain items={appNamed} activeUrl={activeUrl} />
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {/* Settings — the plumbing, kept out of the daily path */}
+        {/* Everything that is set once and read occasionally, behind three collapsed parents
+            rather than twelve rows competing with the daily work. Five groups became three. */}
         {systemItems.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>Settings</SidebarGroupLabel>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>
-              <NavMain items={systemNamed} activeUrl={activeUrl} />
+              <NavMain items={systemItems} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}

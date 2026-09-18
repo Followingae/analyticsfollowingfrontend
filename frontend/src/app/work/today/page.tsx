@@ -1,32 +1,33 @@
 'use client'
 
 /**
- * Today — the dashboard a teammate runs their day from.
+ * The dashboard.
  *
- * Three rewrites got us here. The first was six competing regions. The second overcorrected
- * into a single scroll. The third put a grid back and, in doing so, drew four cards, five
- * heading sizes, thirteen hardcoded type sizes and three separate treatments for what was
- * always one thing: an item with a name, an age and somewhere to go.
+ * Five rewrites got here, and the fifth was the instructive one: the page grew a band of
+ * fourteen "areas you can open" cards, kept the shortcut strip that listed the same
+ * destinations, kept the process rail, and deleted nothing. Seven stacked regions and about
+ * forty-five clickable things. The founder's word for it was a ship console, and he was
+ * right.
  *
- * The fourth removed every card, on the rule that whitespace is the grouping mechanism and a
- * border round a number is a second edge the eye must cross to read it. That was a good rule
- * and it is now overridden, deliberately and by instruction: the founder supplied a reference
- * dashboard and asked for its composition, which is card-based. The argument against boxing a
- * number is kept here because it was right about its own screen, and because a later reader
- * deserves to know this was a decision rather than a drift.
+ * The lesson is written here because it is the one this screen keeps having to relearn:
  *
- * What the cards buy at the size this screen is now: a canvas that is no longer the same
- * white as the surfaces on it, so a figure sits on something rather than floating.
+ *   A DASHBOARD ANSWERS "WHAT DO I DO NOW". NAVIGATION ANSWERS "WHERE CAN I GO".
  *
- *   the greeting, the date, and the screen's one action
- *   four numbers, unboxed, gaps doing the work a hairline was doing
- *   Waiting on you        one table
- *   Running without you   the same table, with an owner column
- *   the shortcuts, last, as plain links
+ * The sidebar answers the second question on every screen in the product. Answering it again
+ * in cards, and a third time in a strip of chips, is not orientation - it is the same list
+ * three times, and it buries the one thing this page exists for.
  *
- * Two regions became one. The job card and the queue were listing the same decisions, and
- * the server reconciled them by deleting queue items whose titles began with certain English
- * words. They are one list now, so there is nothing to reconcile.
+ * So the page is three things:
+ *
+ *   who you are, the date, and the single action your role came here to do
+ *   four numbers
+ *   Pending - what is stopped on you, grouped by job, oldest first
+ *
+ * and one more, collapsed: what is running without you, for when you want it.
+ *
+ * The process rail moved to the guide, where a thing you read once in your first week
+ * belongs. Nothing was deleted from the product: every destination the cards and chips
+ * pointed at is in the sidebar, which is where a destination lives.
  *
  * The age is a number the server sends. It used to be formatted into a sentence there and
  * regexed back out here, which meant any row whose sentence had no age phrase in it - "AED
@@ -38,8 +39,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { ColumnDef } from '@tanstack/react-table'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { FlowRail } from '@/components/console/FlowRail'
-import { AreaCards } from '@/components/console/AreaCards'
 import { WaitingOnYou } from '@/components/console/WaitingOnYou'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -147,32 +146,6 @@ const PRIMARY: Record<string, { verb?: string; href: string }> = {
   business_development: { verb: 'Add', href: '/work/brands?new=1' },
 }
 
-/**
- * Shortcuts, carrying no names of their own.
- *
- * There is no `label` field on purpose: every one of these is drawn with `shortName(href)`,
- * so a screen cannot be called one thing in the menu and another thing here. Adding a label
- * back would be a type error, which is the point.
- */
-const SHORTCUTS: {
-  key: string; href: string
-  module?: AdminModule; scopes?: string[]
-}[] = [
-  { key: 'areas', href: '/work/areas',
-    scopes: ['leadership', 'talent', 'business_development'] },
-  { key: 'waiting-room', href: '/work/influencers/review',
-    module: 'influencers', scopes: ['leadership', 'talent'] },
-  { key: 'proposals', href: '/work/proposals', module: 'proposals' },
-  { key: 'campaigns', href: '/work/campaigns', module: 'campaigns' },
-  { key: 'brands', href: '/work/brands', module: 'clients' },
-  { key: 'approvals', href: '/work/approvals', scopes: ['leadership'] },
-  { key: 'payables', href: '/work/payables',
-    module: 'influencers', scopes: ['leadership', 'talent'] },
-  { key: 'coverage', href: '/work/coverage',
-    module: 'influencers', scopes: ['leadership', 'talent'] },
-  { key: 'screens', href: '/work/system/displays',
-    module: 'system', scopes: ['leadership'] },
-]
 
 /* The tone tokens are defined once in the .console-shell block in globals.css, so amber is
    a single decision rather than the same guess written out in twenty places. */
@@ -307,8 +280,6 @@ export default function Today() {
   const target = data?.target as { value: number; of: number } | null | undefined
   const role: string = data?.role || data?.scope || 'leadership'
   const primary = PRIMARY[role]
-  const shortcuts = SHORTCUTS.filter(
-    s => (!s.module || can(s.module)) && (!s.scopes || s.scopes.includes(role)))
 
   /**
    * A column appears when at least one row has something to put in it.
@@ -450,11 +421,14 @@ export default function Today() {
           />
         </div>
 
-        {/* What this person works on, named and counted, before anything about their day.
-            The three regions that used to sit here were not three subjects: they were three
-            lenses on the same items, which is why each needed a sentence for a heading and a
-            bespoke component to draw it. A thing has a name and shadcn has a Card for it. */}
-        <AreaCards scope={role} badges={badges} loading={loading} />
+        {/* The fourteen area cards that sat here have gone, and the reasoning is worth
+            keeping. The ask they answered was "tell me what I have access to" - but the
+            sidebar answers that on every screen in the product, and the shortcut strip at
+            the foot of this page answered it a third time. Three lists of the same
+            destinations is not orientation, it is the ship console the founder saw.
+
+            A dashboard answers "what do I do now". Navigation answers "where can I go".
+            This page does the first one only. */}
 
         {/* the numbers. No box each: the gap is what says these are separate figures. */}
         {headline.length > 0 && (
@@ -552,11 +526,6 @@ export default function Today() {
         </aside>
         </div>
 
-        {/* The process, below the work rather than above it. It answers "how does this company
-            operate", which is a question you ask in your first week and rarely again, so it
-            earns a place on the screen everybody opens but not the top of it. */}
-        <FlowRail />
-
         {/* The full table. The rail above answers "is anything moving"; this answers "show me
             all of it", with every column it always had. Collapsed by default because the same
             information now has a summary, and two full-width tables was the density complaint
@@ -589,25 +558,6 @@ export default function Today() {
           </section>
         )}
 
-        {/* The shortcuts. They were a card in the right column competing with the work; the
-            sidebar and Ctrl+K already reach all nine, so they go last and go quiet. */}
-        {shortcuts.length > 0 && (
-          <div data-tour="today-shortcuts"
-               className="flex flex-wrap items-center gap-x-ds-1 gap-y-ds-2 pt-ds-2">
-            {shortcuts.map(s => (
-              <Button
-                key={s.href}
-                data-tour={`shortcut-${s.key}`}
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground"
-                onClick={() => router.push(s.href)}
-              >
-                {shortName(s.href)}
-              </Button>
-            ))}
-          </div>
-        )}
       </div>
     </SuperadminLayout>
   )

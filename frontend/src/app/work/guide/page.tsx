@@ -26,6 +26,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
+import { FlowRail } from '@/components/console/FlowRail'
 import { PageHead } from '@/components/console/primitives'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -358,6 +359,12 @@ export default function GuidePage() {
           title="The manual"
           sub="What every screen in here is for, grouped by whose day it belongs to. Read your own role, and open somebody else's when you are covering for them."
         />
+
+        {/* The process, with a live number on every stage. It sat on the dashboard, where it
+            competed with the work: how the company operates is a question somebody asks in
+            their first week and rarely again, so it belongs on the page they were sent to in
+            their first week. */}
+        <FlowRail />
 
         <div className="relative max-w-sm">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
