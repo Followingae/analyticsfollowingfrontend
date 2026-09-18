@@ -33,13 +33,12 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
   const [cc, setCc] = useState("");
   const [bcc, setBcc] = useState("");
   const [mandatoryCc, setMandatoryCc] = useState<string[]>([]);
-  /* Put the way in inside this same email, for a client who has never signed in. Sending
-     it RESETS their password - we cannot read the one they have - so it is a switch the
-     operator throws on purpose, never a default. The password shown here is the one the
-     preview generated, and send uses exactly that: generating a second one at send time
-     would email a password nobody has seen. */
+  /* The way in, inside this same email: the platform link, their email and the password
+     the operator set for them. It changes nothing on the account - it prints what is typed
+     here - so the password has to be the real one. */
   const [withLogin, setWithLogin] = useState(false);
   const [password, setPassword] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
 
   const render = async (overrides: Record<string, unknown> = {}) => {
     if (!proposalId) return;
@@ -54,7 +53,7 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
     if (overrides.recipient_name === undefined && !cc) {
       setCc((d.suggested_cc || []).join(", "));
     }
-    if (d.fields?.password) setPassword(d.fields.password);
+    if (d.fields?.login_email && !loginEmail) setLoginEmail(d.fields.login_email);
   };
 
   useEffect(() => {
@@ -70,12 +69,14 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
     const t = setTimeout(() => {
       render({
         recipient_name: recipientName, subject, review_url: reviewUrl,
-        include_credentials: withLogin, password: password || undefined,
+        include_credentials: withLogin,
+        password: password || undefined,
+        login_email: loginEmail || undefined,
       }).catch(() => {});
     }, 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipientName, reviewUrl, withLogin]);
+  }, [recipientName, reviewUrl, withLogin, password, loginEmail]);
 
   const ccList = () => cc.split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -88,8 +89,8 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
         to, recipient_name: recipientName, subject, review_url: reviewUrl, cc: ccList(),
         bcc: bcc.split(",").map((x) => x.trim()).filter(Boolean),
         include_credentials: withLogin,
-        // The password the operator has been looking at, not a new one.
-        password: withLogin ? (password || undefined) : undefined,
+        password: withLogin ? password : undefined,
+        login_email: withLogin ? (loginEmail || undefined) : undefined,
       });
       toast.success(r.message || "Proposal email sent");
       onOpenChange(false);
@@ -133,7 +134,8 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
               </div>
               {/* The login, in this same email. A new client otherwise gets two emails a
                   minute apart: a proposal they cannot open, and a password with no idea
-                  what it is for. */}
+                  what it is for. Nothing on the account is changed by this - it prints what
+                  is typed, so what is typed has to be the password they were given. */}
               <div className="rounded-lg border p-3">
                 <div className="flex items-start gap-3">
                   <Switch id="with-login" checked={withLogin} onCheckedChange={setWithLogin} />
@@ -142,26 +144,32 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
                       Include their login in this email
                     </Label>
                     <p className="text-[11px] leading-snug text-muted-foreground">
-                      For a client who has never signed in. This <strong>resets their
-                      password</strong> to the one below, so anything they had written down
-                      stops working.
+                      Adds the platform link, their email and the password you type below.
                     </p>
                   </div>
                 </div>
                 {withLogin && (
-                  <div className="mt-3 space-y-1.5">
-                    <Label className="text-xs">Password to send</Label>
-                    <Input
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      onBlur={() => render({
-                        recipient_name: recipientName, subject, review_url: reviewUrl,
-                        include_credentials: true, password: password || undefined,
-                      }).catch(() => {})}
-                      className="font-mono"
-                    />
-                    <p className="text-[11px] text-muted-foreground">
-                      Generated for you. Type over it if you would rather choose.
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Login email</Label>
+                      <Input
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
+                        placeholder="client@brand.com"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Password</Label>
+                      <Input
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="The one you set for them"
+                        className="font-mono"
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground sm:col-span-2">
+                      Type the password they actually have. This does not change their
+                      account, so a different one here simply will not work for them.
                     </p>
                   </div>
                 )}
