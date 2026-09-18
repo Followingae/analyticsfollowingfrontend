@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Instrument_Serif } from "next/font/google";
+import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css"
 // The new Dirham sign is not in system fonts yet; this ships a face scoped to U+20C3.
@@ -25,19 +25,6 @@ const inter = Inter({
   display: "swap",
   adjustFontFallback: false, // Reduce retry attempts
   preload: true,
-});
-
-/**
- * The one serif in the product, and it has one job: the client's own name on their
- * dashboard. `--font-serif` already existed in globals.css but resolved to Geist, a sans,
- * so every `font-serif` in the app has been rendering in the body face - a variable that
- * named a thing the product did not have.
- */
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-instrument-serif",
-  display: "swap",
 });
 
 const aedFont = localFont({
@@ -76,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head />
-      <body className={`${inter.variable} ${aedFont.variable} ${instrumentSerif.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${aedFont.variable} font-sans antialiased`}>
         <QueryProvider>
           <ThemeProvider
             attribute="class"

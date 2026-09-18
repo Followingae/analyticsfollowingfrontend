@@ -276,7 +276,8 @@ export function BrandDashboardContent() {
           "Welcome," on its own line, small and italic; their name underneath, large. The
           greeting-plus-name sentence that replaced it - "Good evening, Damas Jewellery" -
           put both on one line at one weight, which reads as a label and buries the only
-          thing the block exists to say. The avatar is 90px, as it was. */}
+          thing the block exists to say. The avatar is 90px and the name is the app's own
+          font at 700, both as they were: no serif, nothing introduced. */}
       <header className="flex items-center gap-ds-4">
         <UserAvatar
           key={`dashboard-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
@@ -285,9 +286,9 @@ export function BrandDashboardContent() {
           className="shrink-0"
         />
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="welcome-text-primary font-semibold italic">Welcome,</span>
+          <span className="welcome-text-primary font-semibold italic text-muted-foreground">Welcome,</span>
           {who && (
-            <span className="welcome-text-brand font-serif" title={who}>
+            <span className="welcome-text-brand font-bold tracking-tight" title={who}>
               {who}
             </span>
           )}

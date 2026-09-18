@@ -98,15 +98,16 @@
   /* Was Geist, a SANS: every `font-serif` in the product rendered in the body face and
      the variable named something we did not ship. Instrument Serif is loaded in
      layout.tsx and is used for one thing, the client's own name on their dashboard. */
-  /* Named apart from the theme key on purpose. `@theme inline { --font-serif:
-     var(--font-serif) }` is a self-reference: invalid at computed-value time, so the
-     utility resolved to nothing and every `font-serif` in the product inherited the body
-     sans. --font-sans has always worked precisely because it reads --font-app-sans. */
+  /* Named apart from the theme key on purpose: `@theme inline { --font-serif:
+     var(--font-serif) }` is a self-reference, invalid at computed-value time, so the
+     utility resolved to nothing and every `font-serif` in the product silently inherited
+     the body sans. --font-sans has always worked because it reads --font-app-sans.
+     Nothing ships a serif face; this is the system stack, for anything that asks. */
   /* The fallback inside var() is load-bearing, for the reason recorded above --font-app-sans:
      next/font defines --font-instrument-serif on <body>, not on :root, and a var() naming an
      undefined variable makes the whole declaration invalid at computed-value time. Without
      the fallback this resolved to nothing and `font-serif` inherited the body sans. */
-  --font-app-serif: var(--font-instrument-serif, "Instrument Serif"), Georgia, "Times New Roman", serif;
+  --font-app-serif: Georgia, "Times New Roman", serif;
   --font-mono: monospace;
   --radius: 0.65rem;
   --shadow-2xs: 0px 1px 7px 0px hsl(0 0% 0% / 0.02);
@@ -177,15 +178,16 @@
   /* Was Geist, a SANS: every `font-serif` in the product rendered in the body face and
      the variable named something we did not ship. Instrument Serif is loaded in
      layout.tsx and is used for one thing, the client's own name on their dashboard. */
-  /* Named apart from the theme key on purpose. `@theme inline { --font-serif:
-     var(--font-serif) }` is a self-reference: invalid at computed-value time, so the
-     utility resolved to nothing and every `font-serif` in the product inherited the body
-     sans. --font-sans has always worked precisely because it reads --font-app-sans. */
+  /* Named apart from the theme key on purpose: `@theme inline { --font-serif:
+     var(--font-serif) }` is a self-reference, invalid at computed-value time, so the
+     utility resolved to nothing and every `font-serif` in the product silently inherited
+     the body sans. --font-sans has always worked because it reads --font-app-sans.
+     Nothing ships a serif face; this is the system stack, for anything that asks. */
   /* The fallback inside var() is load-bearing, for the reason recorded above --font-app-sans:
      next/font defines --font-instrument-serif on <body>, not on :root, and a var() naming an
      undefined variable makes the whole declaration invalid at computed-value time. Without
      the fallback this resolved to nothing and `font-serif` inherited the body sans. */
-  --font-app-serif: var(--font-instrument-serif, "Instrument Serif"), Georgia, "Times New Roman", serif;
+  --font-app-serif: Georgia, "Times New Roman", serif;
   --font-mono: monospace;
   --radius: 0.65rem;
   --shadow-2xs: 0px 1px 7px 0px hsl(0 0% 0% / 0.02);
@@ -412,6 +414,7 @@
   font-size: clamp(1.75rem, 3.5vw, 2.75rem);
   line-height: 1.1;
   color: var(--foreground);
+  font-weight: 700;
   /* Wrap long brand names within the block instead of overflowing under what is beside it */
   overflow-wrap: anywhere;
   word-break: break-word;
