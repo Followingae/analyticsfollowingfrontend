@@ -191,6 +191,16 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         ...(can("clients") || can("proposals") ? [{
           title: "Clients", url: "/work/clients", icon: Building2,
         }] : []),
+        // Brands and Quotes were tabs inside the Clients hub and nothing else, which is one
+        // click too many for the two screens a founder opens most: who has gone quiet, and
+        // what is priced and sitting with a client. Every other role reaches them from its
+        // own menu; leadership had to go through a hub to get there.
+        ...(can("clients") ? [{
+          title: "Brands", url: "/work/brands", icon: Building2, badge: badges["brands"],
+        }] : []),
+        ...(can("proposals") ? [{
+          title: "Quotes", url: "/work/proposals", icon: FileText, badge: badges["proposals"],
+        }] : []),
         // Everything we have handed a client that is not a proposal or an invoice. It sits
         // with the client work because that is what it is; until now it was reachable only
         // by typing the address.
@@ -209,8 +219,14 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           title: "Enrolments", url: "/work/enrolments", icon: FileSignature,
           badge: badges["enrolments"],
         }] : []),
+        // Where sourcing actually happens: one roster per brand, the brief on it, and every
+        // creator researched against it. The comment here used to say this lived "above" on
+        // Brand rosters — it did for talent and bizdev, but leadership had no such entry, so
+        // the one person who releases an area could not see the areas.
+        ...(can("influencers") ? [{
+          title: "Rosters", url: "/work/areas", icon: Database,
+        }] : []),
         // The supply side of Creators: the category and market cells we cannot serve yet.
-        // Sourcing itself lives on Brand rosters, above.
         ...(can("influencers") ? [{
           title: "Where we're thin", url: "/work/coverage", icon: Map,
         }] : []),
