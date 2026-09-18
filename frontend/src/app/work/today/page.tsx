@@ -38,6 +38,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { ColumnDef } from '@tanstack/react-table'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
+import { FlowRail } from '@/components/console/FlowRail'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -483,6 +484,11 @@ export default function Today() {
             }
           />
         </div>
+
+        {/* The company's process, above this person's slice of it. It sits here rather than
+            on a screen of its own because a process you have to navigate to is a process
+            nobody reads: this is the screen everyone already opens first. */}
+        <FlowRail />
 
         {/* the numbers. No box each: the gap is what says these are separate figures. */}
         {headline.length > 0 && (
