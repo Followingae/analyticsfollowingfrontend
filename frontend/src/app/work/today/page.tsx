@@ -17,17 +17,30 @@
  * in cards, and a third time in a strip of chips, is not orientation - it is the same list
  * three times, and it buries the one thing this page exists for.
  *
- * So the page is three things:
+ * So the page is, in order:
  *
- *   who you are, the date, and the single action your role came here to do
- *   four numbers
+ *   who you are and the date
+ *   the process, drawn, with your station marked and the pile-up named
+ *   the four to six places work is waiting for you, as buttons carrying their counts
+ *   the figures this role is judged on, as one line of text
  *   Pending - what is stopped on you, grouped by job, oldest first
  *
  * and one more, collapsed: what is running without you, for when you want it.
  *
- * The process rail moved to the guide, where a thing you read once in your first week
- * belongs. Nothing was deleted from the product: every destination the cards and chips
- * pointed at is in the sidebar, which is where a destination lives.
+ * THE SIXTH REWRITE, and what it corrected. The fifth deleted the cards and the chips and
+ * was right to, but it left five equal boxes for the process and four equal boxes for the
+ * numbers, so the screen still opened with nine same-sized boxes carrying about twenty
+ * figures at one weight. "What the hell do I even have to do" was the founder's reading of
+ * it, and equal weight is exactly why: nothing on the page claimed to matter more than
+ * anything else. The fix is not fewer facts, it is unequal weight. The process is now drawn
+ * rather than boxed, at a size that makes it the first thing you see, and its bands are as
+ * thick as the piles they carry, so the bottleneck is visible from across the room. The
+ * destinations came back as SHORTCUTS rather than as navigation: not everywhere you may go,
+ * but the few places where something is waiting for you, sorted by how much. The numbers
+ * kept their content and lost their boxes.
+ *
+ * Navigation still lives in the sidebar. A shortcut that carries no count and no urgency is
+ * navigation wearing a button, and it does not belong here.
  *
  * The age is a number the server sends. It used to be formatted into a sentence there and
  * regexed back out here, which meant any row whose sentence had no age phrase in it - "AED
@@ -39,24 +52,22 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { ColumnDef } from '@tanstack/react-table'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { FlowRail } from '@/components/console/FlowRail'
+import { ProcessFlow } from '@/components/console/ProcessFlow'
+import { Shortcuts } from '@/components/console/Shortcuts'
 import { WaitingOnYou } from '@/components/console/WaitingOnYou'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DataTable, DataTableColumnHeader } from '@/components/ui2/data-table'
-import {
-  ArrowUpRight, Banknote, CheckCircle2, Clock, FileText, GitBranch, Megaphone,
-  ChevronDown, Circle, Database, RefreshCw, Search, Users2,
-} from 'lucide-react'
+import { ArrowUpRight, ChevronDown, GitBranch, RefreshCw, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
 import { useAdminAccess, type AdminModule } from '@/hooks/useAdminAccess'
 import {
-  Aed, KpiCard, KpiRow, MiniBar, PageHead, Ring, RoundButton, ScoreDot, StageBar, Stat,
+  Aed, MiniBar, PageHead, Ring, RoundButton, ScoreDot, StageBar, Stat,
   StatGrid, type Tone,
 } from '@/components/console/primitives'
 import { shortName } from '@/lib/destinations'
@@ -215,25 +226,8 @@ function Detail({ row }: { row: Waiting | Flight }) {
   )
 }
 
-/* The reference draws an icon chip beside every figure. The server sends a label, not an
-   icon, and it should stay that way: an API that knows about lucide has to be redeployed to
-   change a picture. So the mapping lives here, keyed on the labels the today endpoint
-   actually returns, and anything unmatched gets no chip rather than a wrong one. */
-const ICON_FOR = (label: string) => {
-  const l = (label || '').toLowerCase()
-  if (l.includes('pipeline')) return GitBranch
-  if (l.includes('collected')) return CheckCircle2
-  if (l.includes('owed') || l.includes('rate') || l.includes('price')) return Banknote
-  if (l.includes('chas') || l.includes('late') || l.includes('overdue')) return Clock
-  if (l.includes('roster') || l.includes('coverage')) return Database
-  if (l.includes('quote') || l.includes('proposal')) return FileText
-  if (l.includes('campaign')) return Megaphone
-  if (l.includes('creator') || l.includes('added') || l.includes('client')) return Users2
-  // Never nothing. Four cards in a row where two carry a chip and two do not reads as a
-  // rendering failure, not as a design: the eye finds the gap before it finds the number.
-  // A neutral mark is a worse icon than a specific one and a far better card than none.
-  return Circle
-}
+/* The label-to-icon mapping that lived here went with the four number cards. The figures are
+   a line of text now, and a line of text does not want eight icon chips in it. */
 
 export default function Today() {
   const router = useRouter()
@@ -409,14 +403,10 @@ export default function Today() {
                 <RoundButton icon={RefreshCw} label="Refresh"
                              className={refreshing ? 'animate-spin' : undefined}
                              onClick={() => { load(true); loadBadges() }} />
-                {primary && (
-                  <Button data-tour="today-add" className="rounded-ds-full"
-                          onClick={() => router.push(primary.href)}>
-                    {primary.verb
-                      ? `${primary.verb} ${shortName(primary.href).toLowerCase()}`
-                      : shortName(primary.href)}
-                  </Button>
-                )}
+                {/* The primary action moved down into the shortcut row, where it is the one
+                    black button among the outlined ones. It was competing with the greeting
+                    up here, and a person looking for "the thing I press" should find every
+                    candidate in a single line rather than two corners of the screen. */}
               </>
             }
           />
@@ -434,28 +424,54 @@ export default function Today() {
         {/* Who holds the work, in the order it changes hands. It belongs here rather than
             in the guide: it carries live counts, so it is the only place in the product that
             says where work is piling up right now. */}
-        <FlowRail scope={role} />
+        <ProcessFlow scope={role} />
 
-        {/* the numbers. No box each: the gap is what says these are separate figures. */}
+        {/* Where this person goes next. The count is the argument for pressing it, so a
+            shortcut with work behind it sorts to the front and the rest keep their order. */}
+        <Shortcuts
+          scope={role}
+          badges={badges}
+          primary={primary ? {
+            href: primary.href,
+            label: primary.verb
+              ? `${primary.verb} ${shortName(primary.href).toLowerCase()}`
+              : shortName(primary.href),
+          } : null}
+        />
+
+        {/* The four number cards that sat here are one line now.
+            They were the same size as everything else on the screen, boxed like the queue
+            and the process, and two of the four repeated a figure the process drawing had
+            already shown - so a reader met the same number twice at the same weight and had
+            to work out whether it was the same thing. A dashboard may state a measure
+            without dressing it as an event: these are the figures this role is judged on,
+            they are readable in one pass, and the ones that lead somewhere are underlined
+            on hover like any other link. */}
         {headline.length > 0 && (
-          <div data-tour="today-numbers">
-            <KpiRow cols={4}>
-              {headline.map((h: any) => (
-                <KpiCard
-                  key={h.label}
-                  label={h.label}
-                  icon={ICON_FOR(h.label)}
-                  /* A headline the API did not return used to render as a confident AED 0.
-                     A zero that is really an absence is a lie about money, which is the one
-                     thing on this screen nobody should have to double-check. */
-                  value={h.value == null ? '—'
-                    : h.format === 'aed' ? <Aed>{aed(Number(h.value) || 0)}</Aed>
-                    : h.value}
-                  hint={h.hint || undefined}
-                  onClick={h.href ? () => router.push(h.href) : undefined}
-                />
-              ))}
-            </KpiRow>
+          <div data-tour="today-numbers"
+               className="flex flex-wrap items-center gap-x-6 gap-y-2 px-1 text-[13px]">
+            {headline.map((h: any) => {
+              const value = h.value == null ? '—'
+                : h.format === 'aed' ? <Aed>{aed(Number(h.value) || 0)}</Aed>
+                : h.value
+              const body = (
+                <>
+                  <span className="font-semibold tabular-nums text-foreground">{value}</span>
+                  <span className="text-muted-foreground">{h.label.toLowerCase()}</span>
+                  {h.hint && (
+                    <span className="text-muted-foreground/70">· {h.hint}</span>
+                  )}
+                </>
+              )
+              return h.href ? (
+                <button key={h.label} type="button" onClick={() => router.push(h.href)}
+                        className="inline-flex items-center gap-1.5 rounded-sm underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
+                  {body}
+                </button>
+              ) : (
+                <span key={h.label} className="inline-flex items-center gap-1.5">{body}</span>
+              )
+            })}
           </div>
         )}
 

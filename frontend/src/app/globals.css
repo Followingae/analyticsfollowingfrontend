@@ -660,6 +660,20 @@
     transform: translateY(-6px);
   }
 }
+/* ── The process drawing's one moment of motion ───────────────────────────────────────
+   A dotted line creeping along each band, left to right, so the picture states a
+   direction without anybody having to read the arrow. Slow on purpose: this runs on the
+   home screen all day and anything faster becomes something to look away from. */
+@keyframes pf-drift {
+  to { stroke-dashoffset: -24px; }
+}
+.pf-drift {
+  animation: pf-drift 2.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-drift { animation: none; }
+}
+
 /* ── The console ground ───────────────────────────────────────────────────────────────
    Internal screens only. The panels on them are white with a hairline edge, so the page
    behind has to be a shade off-white or the cards have no edge at all. Two very faint
