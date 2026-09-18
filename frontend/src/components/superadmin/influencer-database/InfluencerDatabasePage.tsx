@@ -30,6 +30,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { assertOk } from '@/services/assertOk'
 import { superadminApiService } from "@/services/superadminApi"
+import { API_CONFIG, getAuthHeaders } from "@/config/api"
+import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import {
   type MasterInfluencer,
@@ -308,6 +310,44 @@ export function InfluencerDatabasePage() {
     setBulkTagOpen(true)
   }, [selectedIds])
 
+  /**
+   * Turn "takes barter" on or off for everybody selected.
+   *
+   * Which creators will consider product is learned in batches - a category at a time, an
+   * event at a time - and setting it one record at a time is how it stays unset for three
+   * hundred people and a barter roster ends up built from memory.
+   *
+   * The note on each record is never touched: it holds what somebody actually said on the
+   * phone, and there is no undo for overwriting it.
+   */
+  const [bulkBarterBusy, setBulkBarterBusy] = useState(false)
+  const onBulkBarter = useCallback(async (accepts: boolean) => {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) {
+      toast.error("Select at least one creator")
+      return
+    }
+    setBulkBarterBusy(true)
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/admin/influencers/bulk-barter`,
+        {
+          method: "POST",
+          headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({ influencer_ids: ids, accepts_barter: accepts }),
+        },
+      )
+      if (!res.ok) throw new Error(await res.text())
+      const json = await res.json()
+      toast.success(json?.message || "Updated")
+      fetchData()
+    } catch {
+      toast.error("Could not update those creators")
+    } finally {
+      setBulkBarterBusy(false)
+    }
+  }, [selectedIds, fetchData])
+
   const onPageChange = useCallback((newPage: number) => {
     setFilters((prev) => ({ ...prev, page: newPage }))
   }, [])
@@ -478,6 +518,8 @@ export function InfluencerDatabasePage() {
           onExportClick={onExportClick}
           onBulkPricingClick={onBulkPricingClick}
           onBulkTagClick={onBulkTagClick}
+          onBulkBarter={onBulkBarter}
+          bulkBarterBusy={bulkBarterBusy}
           onAddToListClick={() => setAddToListOpen(true)}
           onAddToProposalClick={() => setAddToProposalOpen(true)}
         />

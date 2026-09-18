@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Download, Tag, Coins, ListPlus , FileText} from "lucide-react"
+import { Download, Tag, Coins, ListPlus, FileText, Gift } from "lucide-react"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 
 interface BulkActionsBarProps {
@@ -11,6 +11,9 @@ interface BulkActionsBarProps {
   onPricing: () => void
   onAddToList?: () => void
   onAddToProposal?: () => void
+  /** Turn "takes barter" on or off for everybody selected. */
+  onBarter?: (accepts: boolean) => void
+  barterBusy?: boolean
 }
 
 export function BulkActionsBar({
@@ -20,6 +23,8 @@ export function BulkActionsBar({
   onPricing,
   onAddToList,
   onAddToProposal,
+  onBarter,
+  barterBusy,
 }: BulkActionsBarProps) {
   // Bulk extraction is leadership-only — the server refuses regardless, this stops us
   // showing the team a button that always fails. See app/core/field_policy.py.
@@ -58,6 +63,25 @@ export function BulkActionsBar({
         <Coins className="size-4" />
         Set their rates
       </Button>
+      {/* Who will consider product instead of a fee. It is learned in batches - a category
+          at a time, an event at a time - so it is set in batches. Two buttons rather than one
+          toggle, because a mixed selection has no "current" state to flip and a single button
+          would have to guess which way the founder meant it. */}
+      {onBarter && (
+        <>
+          <div className="h-4 w-px bg-black/10 dark:bg-white/15" />
+          <Button variant="ghost" size="sm" disabled={barterBusy}
+                  onClick={() => onBarter(true)}>
+            <Gift className="size-4" />
+            Takes barter
+          </Button>
+          <Button variant="ghost" size="sm" disabled={barterBusy}
+                  onClick={() => onBarter(false)}
+                  className="text-muted-foreground">
+            Does not
+          </Button>
+        </>
+      )}
     </div>
   )
 }
