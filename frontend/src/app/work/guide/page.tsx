@@ -274,8 +274,8 @@ const SECTIONS: Section[] = [
       {
         title: 'App campaigns', href: '/work/fa/campaigns', icon: Megaphone,
         what: 'Campaigns creators can see and apply to in the app.',
-        why: 'Closing one leaves it on their board greyed out and marked Completed, because they worked on it. Delete takes it off the app entirely and is refused while anybody is still working on it.',
-        also: ['fa', 'barter', 'cashback', 'paid deal', 'close', 'delete'],
+        why: 'Closing one leaves it on their board greyed out and marked Completed, because they worked on it. Delete takes it off the app entirely and is refused while anybody is still working on it. On a campaign where the brand posts the product itself, every approved creator is asked for a delivery address and it shows on their card and in their panel on the campaign, along with Mark dispatched and Mark delivered.',
+        also: ['fa', 'barter', 'cashback', 'paid deal', 'close', 'delete', 'address', 'delivery', 'parcel', 'shipping', 'dispatch'],
       },
       {
         title: 'Merchants', href: '/work/fa/merchants', icon: Store,

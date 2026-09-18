@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Check, QrCode, Coins, Gift, Loader2, Sparkles, ChevronDown, Wand2, UtensilsCrossed } from "lucide-react"
+import { Check, QrCode, Coins, Gift, Loader2, Sparkles, ChevronDown, Wand2, UtensilsCrossed, Package } from "lucide-react"
 import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { toast } from "sonner"
@@ -79,6 +79,16 @@ interface Participant {
   paid_deal: { payout_cents: number | null }
   barter: { items: any }
   deliverables: { pending: number; submitted: number; verified: number; posting?: number }
+  /** brand_ships only. The server sends null on every other fulfilment mode, so the
+      delivery line and the parcel counts simply do not exist elsewhere. */
+  shipping?: {
+    given: boolean
+    stage: "awaiting_address" | "ready" | "dispatched" | "received"
+    address_line?: string | null
+    address_city?: string | null
+    dispatched_at?: string | null
+    received_at?: string | null
+  } | null
   /** Dine-in only — null on every other campaign type, so the card is unchanged there. */
   visit?: {
     code: string | null
@@ -174,6 +184,11 @@ function fmtCount(n?: number | null): string {
 }
 function fmtAED(amount: number): string {
   return `AED ${amount.toLocaleString("en-AE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+}
+function fmtDay(iso?: string | null): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
 }
 function hoursUntil(iso?: string | null): number | null {
   if (!iso) return null
@@ -362,6 +377,12 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
   // Pipeline counts — every number a real filter, no fabricated metrics.
   const completedN = participants.filter((p) => p.status === "completed").length
   const deliveringN = grouped.active.filter((p) => { const s = contentState(p); return s === "posting" || s === "review" }).length
+  // On a brand_ships campaign the parcel is the first thing that has to happen, and
+  // until it does nothing else can. The server sends `shipping` only on that mode, so
+  // its presence on any row is what decides whether these tiles exist at all.
+  const ships = participants.some((p) => !!p.shipping)
+  const awaitingAddressN = grouped.active.filter((p) => p.shipping && !p.shipping.given).length
+  const toSendN = grouped.active.filter((p) => p.shipping?.stage === "ready").length
   const totalCashback = useMemo(
     () => participants.reduce((s, p) => s + p.cashback.total_cashback_amount, 0),
     [participants]
@@ -409,10 +430,12 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
         </Card>
 
         {/* Pipeline strip — the status-wise overview */}
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+        <div className={`grid grid-cols-2 gap-4 ${ships ? "md:grid-cols-4 xl:grid-cols-7" : "md:grid-cols-5"}`}>
           <PipelineStage label="Applied / suggested" value={participants.length} />
           <PipelineStage label="Awaiting you" value={grouped.pending.length} attn />
           <PipelineStage label="Active" value={grouped.active.length} />
+          {ships && <PipelineStage label="Address needed" value={awaitingAddressN} attn={awaitingAddressN > 0} />}
+          {ships && <PipelineStage label="Ready to send" value={toSendN} attn={toSendN > 0} />}
           <PipelineStage label={campaignType === "cashback" ? "Total scans" : "Delivering"} value={campaignType === "cashback" ? totalScans : deliveringN} />
           <PipelineStage label={campaignType === "cashback" ? "Cashback paid" : "Completed"} value={campaignType === "cashback" ? fmtAED(totalCashback) : completedN} />
         </div>
@@ -726,6 +749,27 @@ function RosterCard({ p, campaignType, onOpen }: { p: Participant; campaignType:
             {p.visit.code ? ` · ${p.visit.code}` : ""}
           </div>
         )
+      )}
+
+      {/* Where the parcel is, on a campaign the brand posts itself. Same reasoning as
+          the dine-in line above: on this mode getting the product to them IS the
+          progress, so it belongs on the card and not one click away in the sheet. */}
+      {p.shipping && (p.status === "active" || p.status === "accepted" || p.status === "completed") && (
+        <div className={`mt-3 flex items-start gap-1.5 text-xs ${
+          p.shipping.stage === "awaiting_address" ? "text-amber-600 dark:text-amber-400"
+            : p.shipping.stage === "received" ? "text-emerald-600 dark:text-emerald-400"
+            : "text-muted-foreground"
+        }`}>
+          <Package className="h-3.5 w-3.5 shrink-0 translate-y-px" />
+          <span className="min-w-0">
+            {p.shipping.stage === "awaiting_address" ? "Waiting on their address"
+              : p.shipping.stage === "ready" ? (
+                  <>Ready to send · <span className="text-foreground">{[p.shipping.address_line, p.shipping.address_city].filter(Boolean).join(", ")}</span></>
+                )
+              : p.shipping.stage === "dispatched" ? `Sent ${fmtDay(p.shipping.dispatched_at)}`
+              : `Delivered ${fmtDay(p.shipping.received_at)}`}
+          </span>
+        </div>
       )}
 
       {p.posting_status && (p.status === "active" || p.status === "accepted") && (

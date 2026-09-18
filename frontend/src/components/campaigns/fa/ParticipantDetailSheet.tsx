@@ -914,11 +914,9 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                 {/* Timeline */}
                 <Section title="Timeline" icon={<Clock className="h-4 w-4 text-muted-foreground" />}>
                   <div className="space-y-2">
-                    <TimelineRow label="Invited / applied" at={participant.lifecycle.invited_at} />
-                    <TimelineRow label="Brand approved" at={participant.lifecycle.brand_approved_at} />
-                    <TimelineRow label="Creator accepted" at={participant.lifecycle.creator_accepted_at} />
-                    <TimelineRow label="Joined" at={participant.lifecycle.joined_at} />
-                    <TimelineRow label="Completed" at={participant.lifecycle.completed_at} />
+                    {timelineFor(participant).map((e) => (
+                      <TimelineRow key={e.label} label={e.label} at={e.at} />
+                    ))}
                   </div>
                 </Section>
               </div>
@@ -1064,6 +1062,49 @@ function Stat({ label, value, accent }: { label: string; value: React.ReactNode;
       <p className={`text-base font-semibold tabular-nums ${accent ? "text-emerald-600 dark:text-emerald-400" : ""}`}>{value}</p>
     </div>
   )
+}
+
+/** The steps this particular creator actually goes through, in the order they happen.
+ *
+ *  The list used to be five fixed rows, which on the common path told three lies at once.
+ *  A creator who APPLIED was never invited and never "accepts" - approval is the whole
+ *  event - so two of the five rows were dots that could never light up, and read as
+ *  something going wrong. "Joined" then repeated the application to the second and, since
+ *  it is stamped when they apply and not when they are let in, sat below "Brand approved"
+ *  carrying an EARLIER date, so the timeline ran backwards.
+ *
+ *  So: only steps that can happen for this route, the parcel included, sorted by when
+ *  they did happen. A step still ahead of them keeps its place at the end as a grey dot,
+ *  because knowing what comes next is the point of a timeline; a step that can never
+ *  come is simply not a step.
+ */
+function timelineFor(p: ParticipantLike): { label: string; at?: string | null }[] {
+  const L = p.lifecycle
+  const applied = p.source === "applied"
+  const rows: { label: string; at?: string | null }[] = applied
+    ? [
+        { label: "Applied", at: L.joined_at ?? L.invited_at },
+        { label: "Approved", at: L.brand_approved_at },
+      ]
+    : [
+        { label: "Invited", at: L.invited_at },
+        { label: "Brand approved", at: L.brand_approved_at },
+        { label: "Creator accepted", at: L.creator_accepted_at },
+      ]
+
+  // The parcel, on a brand_ships campaign. Three real events, and they are the only
+  // thing moving between approval and the first post.
+  if (p.shipping) {
+    rows.push({ label: "Address given", at: p.shipping.address_at })
+    rows.push({ label: "Sent", at: p.shipping.dispatched_at })
+    rows.push({ label: "Delivered", at: p.shipping.received_at })
+  }
+  rows.push({ label: "Completed", at: L.completed_at })
+
+  // Done steps in the order they happened; anything still outstanding keeps the
+  // declared order behind them.
+  const done = rows.filter((r) => r.at).sort((a, b) => +new Date(a.at!) - +new Date(b.at!))
+  return [...done, ...rows.filter((r) => !r.at)]
 }
 
 function TimelineRow({ label, at }: { label: string; at?: string | null }) {
