@@ -44,6 +44,11 @@ import { CampaignBars } from "@/components/brand/CampaignBars"
 import { ShareCenterCard } from "@/components/brand/ShareCenterCard"
 import { ContentAwaitingPanel } from "@/components/brand/ContentAwaitingPanel"
 import { brandProposalViewApi } from "@/services/adminProposalMasterApi"
+import { cn } from "@/lib/utils"
+
+/** The card surface the dials already carry, so the figures beside them match. */
+const CARD_SURFACE = 'rounded-[var(--radius-card,16px)] border bg-card'
+
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
 import { Button } from "@/components/ui/button"
 import { Balloons } from "@/components/ui/balloons"
@@ -355,20 +360,34 @@ export function BrandDashboardContent() {
             </p>
           )
         }
+        /* A ROW, not a grid. A four-column grid holding one item leaves that item stranded
+           beside three empty cells, which is what a client with a single proposal waiting
+           was looking at: one number, alone, against half a page of nothing. A row is the
+           same shape whether it carries one item or four. */
         return (
-          <StatBand cols={(shown.length >= 4 ? 4 : shown.length === 3 ? 3 : 2) as 2 | 3 | 4}>
+          <div className="flex flex-wrap items-stretch gap-x-ds-6 gap-y-ds-4">
             {shown.map((a) => (
-              <Stat
+              <button
                 key={a.key}
-                label={a.label}
-                value={a.loading ? UNKNOWN : a.value}
-                hint={a.hint}
-                tone={a.value > 0 ? a.tone : 'neutral'}
-                href={a.href}
-                loading={a.loading}
-              />
+                type="button"
+                onClick={() => router.push(a.href)}
+                className="group flex min-w-[168px] flex-col items-start rounded-ds-md text-left"
+              >
+                <span className="flex items-center gap-1.5 text-ds-caption text-muted-foreground">
+                  {a.value > 0 && (
+                    <span className={cn('size-1.5 rounded-full',
+                      a.tone === 'warn' ? 'bg-[var(--warning)]' : 'bg-muted-foreground/40')} />
+                  )}
+                  {a.label}
+                </span>
+                <span className="mt-ds-1 text-[28px] font-semibold leading-none tabular-nums
+                                 transition-colors group-hover:text-primary">
+                  {a.loading ? UNKNOWN : a.value}
+                </span>
+                <span className="mt-ds-1 text-ds-caption text-muted-foreground">{a.hint}</span>
+              </button>
             ))}
-          </StatBand>
+          </div>
         )
       })()}
 
@@ -382,7 +401,7 @@ export function BrandDashboardContent() {
           Half the page, not two thirds. Stretched wide it read as a banner across the top
           of everything below it; at half it is one thing among several, which is what it
           is. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2">
+      <div className="max-w-[640px]">
         <SmartDiscovery onDiscover={() => router.push('/discover')}
                         className="h-[280px]" />
       </div>
@@ -399,28 +418,35 @@ export function BrandDashboardContent() {
             subjects. The dials are shorter than they were, because a dial does not need to
             be 300px tall to be read - it needed that height only to fill a card that was
             too wide. */}
-        <div className="grid grid-cols-1 items-center gap-ds-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div aria-label="Profile unlocks remaining this billing cycle" className="h-[220px]">
+        <div className="grid grid-cols-1 gap-ds-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div aria-label="Profile unlocks remaining this billing cycle" className="h-[240px]">
             <ChartProfileAnalysisV2 />
           </div>
-          <div aria-label="Remaining credits this billing cycle" className="h-[220px]">
+          <div aria-label="Remaining credits this billing cycle" className="h-[240px]">
             <ChartRemainingCreditsV2 />
           </div>
-          <Stat
-            label="Creators unlocked, all time"
-            value={unlockedProfilesCount}
-            hint="Everyone your team has ever opened"
-            href="/creators"
-            loading={profilesLoading}
-            error={!!profilesError}
-          />
-          <Stat
-            label="Your plan"
-            value={tierValue ?? UNKNOWN}
-            hint="Seats, unlocks and credits"
-            href="/billing"
-            loading={userStoreLoading || teamsLoading}
-          />
+          {/* The same surface and the same height as the dials beside them. Left bare they
+              floated in the middle of the row with the dials boxed either side, which read
+              as two different things rather than one balance. */}
+          <div className={cn(CARD_SURFACE, 'flex h-[240px] flex-col justify-center gap-ds-1 p-ds-4')}>
+            <Stat
+              label="Creators unlocked, all time"
+              value={unlockedProfilesCount}
+              hint="Everyone your team has ever opened"
+              href="/creators"
+              loading={profilesLoading}
+              error={!!profilesError}
+            />
+          </div>
+          <div className={cn(CARD_SURFACE, 'flex h-[240px] flex-col justify-center gap-ds-1 p-ds-4')}>
+            <Stat
+              label="Your plan"
+              value={tierValue ?? UNKNOWN}
+              hint="Seats, unlocks and credits"
+              href="/billing"
+              loading={userStoreLoading || teamsLoading}
+            />
+          </div>
         </div>
       </section>
 
