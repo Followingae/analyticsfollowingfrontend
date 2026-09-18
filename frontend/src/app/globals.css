@@ -393,19 +393,26 @@
    COMPONENT-SPECIFIC STYLES
    ============================================================================ */
 
-/* Welcome Section Custom Typography */
+/* The brand dashboard's welcome.
+ *
+ * The April block, which is the one to keep: "Welcome," small and italic, and under it the
+ * client's own name, large. Two lines. Setting them on one line as "Good evening, Damas
+ * Jewellery" at one weight lost the only thing this block is for, which is their name.
+ *
+ * The colours were `hsl(var(--muted-foreground))`, and those variables are complete oklch()
+ * colours - so hsl() got a colour where it wanted three numbers, the declaration was invalid
+ * and both lines fell back to inherited text. */
 .welcome-text-primary {
   font-size: clamp(1.25rem, 2.5vw, 2rem);
   line-height: 1.1;
-  color: hsl(var(--muted-foreground));
+  color: var(--muted-foreground);
 }
 
 .welcome-text-brand {
-  font-size: clamp(1rem, 2.4vw, 2rem);
-  line-height: 1.15;
-  color: hsl(var(--foreground));
-  font-weight: 700;
-  /* Wrap long brand names within the card instead of overflowing under the metric cards */
+  font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+  line-height: 1.1;
+  color: var(--foreground);
+  /* Wrap long brand names within the block instead of overflowing under what is beside it */
   overflow-wrap: anywhere;
   word-break: break-word;
   max-width: 100%;

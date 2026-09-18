@@ -272,32 +272,25 @@ export function BrandDashboardContent() {
 
       {/* The greeting IS the page head. It used to be a card of its own, sitting beside
           three more cards, which spent a border and a shadow on saying hello. */}
+      {/* The welcome, as it was in April and as the founder asked for it back.
+          "Welcome," on its own line, small and italic; their name underneath, large. The
+          greeting-plus-name sentence that replaced it - "Good evening, Damas Jewellery" -
+          put both on one line at one weight, which reads as a label and buries the only
+          thing the block exists to say. The avatar is 90px, as it was. */}
       <header className="flex items-center gap-ds-4">
         <UserAvatar
           key={`dashboard-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
           user={user || undefined}
-          size={72}
+          size={90}
           className="shrink-0"
         />
-        <div className="flex min-w-0 flex-col gap-ds-1">
-          {/* Their own name, in the one serif this product ships, at a size that makes it
-              the first thing read. The greeting stays in the body face: it is the sentence
-              around the name, not the subject. Nothing else on the client side uses this
-              face, which is what keeps it feeling like an address rather than a style. */}
-          <h1 className="truncate text-[28px] leading-[1.1] text-foreground lg:text-[34px]">
-            <span className="text-muted-foreground">{greeting}</span>
-            {who ? (
-              <>
-                <span className="text-muted-foreground">, </span>
-                <span className="font-serif tracking-[-0.01em]">{who}</span>
-              </>
-            ) : null}
-          </h1>
-          <p className="max-w-[65ch] text-ds-body text-muted-foreground">
-            {content?.awaiting_you
-              ? `${content.awaiting_you} piece${content.awaiting_you === 1 ? '' : 's'} of content to review.`
-              : 'Here is where your campaigns and creators stand today.'}
-          </p>
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="welcome-text-primary font-semibold italic">Welcome,</span>
+          {who && (
+            <span className="welcome-text-brand font-serif" title={who}>
+              {who}
+            </span>
+          )}
         </div>
       </header>
 
