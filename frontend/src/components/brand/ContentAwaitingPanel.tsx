@@ -1,16 +1,22 @@
 "use client"
 
 /**
- * What is waiting on the client, on their home screen, with the buttons right there.
+ * Content ready for approval — one card, the creators side by side.
  *
  * THE POINT OF THIS COMPONENT is that a client should be able to clear their queue without
  * opening anything. The dashboard used to be organised around profile unlocks, which is a
  * thing they bought rather than a thing they have to DO; the one thing a brand actually owes
  * us an answer on is content, and it was not on this page at all.
  *
- * Big pictures, generous space, and the two decisions. A creator approved from here
- * disappears from the panel, and when the last one goes the whole panel goes with it, so a
- * client who is up to date sees a shorter page rather than an empty box congratulating them.
+ * It was a stack of full-width rows, one per creator: avatar, name, buttons and a strip of
+ * thumbnails, repeated down the page. With two creators that reads fine. With seven it is a
+ * column of near-identical bars and the client cannot see their queue, only the top of it.
+ * The work is the same shape every time, so it belongs in a grid: each creator is a tile,
+ * three across, and the whole queue fits on one screen where it can be compared and cleared.
+ *
+ * Each tile leads with the content rather than with the person, because the decision is
+ * about the content. Clicking it opens the same player the content page uses, so the two
+ * behave identically.
  *
  * RENDERS NOTHING when there is nothing waiting. That is the house rule for this product:
  * no empty states, no placeholders, no upsell where a feature would be.
@@ -23,6 +29,8 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { ContentPlayer } from "@/components/content/ContentPlayer"
 import {
@@ -42,7 +50,8 @@ function initials(name?: string | null, username?: string | null) {
   return s.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()
 }
 
-function Row({
+/** One creator's content, as a tile. */
+function CreatorTile({
   group, campaignId, onOpen, onDone,
 }: {
   group: CreatorContentGroup
@@ -76,98 +85,95 @@ function Row({
     } finally { setBusy(false) }
   }
 
+  const cover = group.items[0]
+  const more = group.items.length - 1
+
   return (
-    <div className="border-t border-black/[0.06] py-ds-4 first:border-t-0 first:pt-0
-                    dark:border-white/[0.07]">
-      <div className="flex flex-wrap items-center justify-between gap-ds-3">
-        <div className="flex min-w-0 items-center gap-ds-3">
-          <Avatar className="h-11 w-11">
+    <div className="flex flex-col overflow-hidden rounded-lg border">
+      {/* The content first: it is what the decision is about. */}
+      <button
+        type="button"
+        onClick={() => onOpen(group.items, 0)}
+        className={cn(
+          "group relative isolate aspect-[4/3] w-full overflow-hidden bg-muted",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "focus-visible:ring-inset",
+        )}
+        aria-label={`Watch ${group.full_name || group.username || "this creator"}'s content`}
+      >
+        {cover?.poster_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={cover.poster_url} alt="" loading="lazy"
+               className="absolute inset-0 h-full w-full object-cover transition duration-500
+                          group-hover:scale-[1.04]" />
+        )}
+        {cover && isVideo(cover.media_type) && (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="rounded-full bg-black/45 p-2 backdrop-blur-sm">
+              <Play className="h-4 w-4 fill-white text-white" />
+            </span>
+          </span>
+        )}
+        {more > 0 && (
+          <Badge variant="secondary" className="absolute right-2 top-2 tabular-nums">
+            +{more}
+          </Badge>
+        )}
+      </button>
+
+      <div className="flex flex-1 flex-col gap-3 p-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Avatar className="h-7 w-7 shrink-0">
             <AvatarImage src={group.avatar ?? undefined} alt="" />
-            <AvatarFallback className="text-ds-caption">
+            <AvatarFallback className="text-[10px]">
               {initials(group.full_name, group.username)}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
             {/* dir="auto" so an Arabic creator name reads correctly rather than being
                 forced left to right. Same reason the email does it. */}
-            <p dir="auto" className="truncate text-ds-body font-medium">
+            <p dir="auto" className="truncate text-sm font-medium leading-tight">
               {group.full_name || group.username || "Creator"}
             </p>
-            <p className="mt-0.5 truncate text-ds-caption text-muted-foreground">
-              {group.username ? `@${group.username} · ` : ""}
+            <p className="truncate text-xs text-muted-foreground">
               {group.counts.in_review} piece{group.counts.in_review === 1 ? "" : "s"}
             </p>
           </div>
         </div>
 
-        {!asking && (
-          <div className="flex shrink-0 items-center gap-ds-2">
-            <Button variant="ghost" size="sm" onClick={() => setAsking(true)}
-                    className="gap-1.5 text-muted-foreground">
-              <MessageSquareWarning className="h-4 w-4" /> Changes
+        {asking ? (
+          <div className="space-y-2">
+            <Textarea
+              autoFocus value={note} onChange={(e) => setNote(e.target.value)}
+              placeholder="What needs to change?"
+              className="min-h-[68px] resize-none text-sm"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm"
+                      onClick={() => { setAsking(false); setNote("") }}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={() => act("changes")} disabled={busy || !note.trim()}>
+                {busy && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                Send
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" className="flex-1 gap-1.5"
+                    onClick={() => setAsking(true)}>
+              <MessageSquareWarning className="h-3.5 w-3.5" /> Changes
             </Button>
-            <Button size="sm" onClick={() => act("approve")} disabled={busy} className="gap-1.5">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+            <Button size="sm" className="flex-1 gap-1.5"
+                    onClick={() => act("approve")} disabled={busy}>
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <Check className="h-3.5 w-3.5" />}
               Approve
             </Button>
           </div>
         )}
       </div>
-
-      {/* The content itself. Clicking one opens the player, which is the same player the
-          content page uses, so the two behave identically. */}
-      <div className="mt-ds-3 flex flex-wrap gap-ds-2">
-        {group.items.slice(0, 5).map((it, i) => (
-          <button
-            key={it.id}
-            onClick={() => onOpen(group.items, i)}
-            className={cn(
-              "group relative isolate aspect-[9/13] w-[86px] overflow-hidden rounded-ds-md",
-              "bg-muted ring-1 ring-black/[0.06] transition hover:ring-black/[0.14]",
-              "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
-              "focus-visible:outline-primary dark:ring-white/[0.08] dark:hover:ring-white/20",
-            )}
-          >
-            {it.poster_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={it.poster_url} alt="" loading="lazy"
-                   className="absolute inset-0 h-full w-full object-cover transition duration-500
-                              group-hover:scale-[1.04]" />
-            )}
-            {isVideo(it.media_type) && (
-              <span className="absolute inset-0 flex items-center justify-center">
-                <span className="rounded-full bg-black/45 p-1.5 backdrop-blur-sm">
-                  <Play className="h-3 w-3 fill-white text-white" />
-                </span>
-              </span>
-            )}
-          </button>
-        ))}
-        {group.items.length > 5 && (
-          <span className="self-center text-ds-caption text-muted-foreground">
-            +{group.items.length - 5}
-          </span>
-        )}
-      </div>
-
-      {asking && (
-        <div className="mt-ds-3 space-y-ds-2">
-          <Textarea
-            autoFocus value={note} onChange={(e) => setNote(e.target.value)}
-            placeholder="What needs to change?"
-            className="min-h-[76px] resize-none text-ds-body"
-          />
-          <div className="flex justify-end gap-ds-2">
-            <Button variant="ghost" size="sm" onClick={() => { setAsking(false); setNote("") }}>
-              Cancel
-            </Button>
-            <Button size="sm" onClick={() => act("changes")} disabled={busy || !note.trim()}>
-              {busy && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-              Send to the team
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -182,34 +188,37 @@ export function ContentAwaitingPanel({
   if (!focus || !focus.creators.length) return null
 
   return (
-    <section className="flex flex-col gap-ds-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-ds-2">
-        <div>
-          <h2 className="text-ds-subheading">
-            {focus.waiting} piece{focus.waiting === 1 ? "" : "s"} waiting on you
-          </h2>
-          <p className="mt-ds-1 text-ds-body-sm text-muted-foreground">
-            On {focus.campaign_name}. Watch it here, then approve it or tell us what to change.
-          </p>
+    <Card>
+      <CardHeader className="flex-row flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <CardTitle>Content ready for approval</CardTitle>
+          <CardDescription>
+            {focus.waiting} piece{focus.waiting === 1 ? "" : "s"} on {focus.campaign_name}.
+            Watch it here, then approve it or tell us what to change.
+          </CardDescription>
         </div>
         <Link href={`/campaigns/${focus.campaign_id}/content`}
-              className="inline-flex items-center gap-1.5 text-ds-body-sm text-primary
+              className="inline-flex shrink-0 items-center gap-1.5 text-sm text-primary
                          hover:underline">
           See all content <ArrowRight className="h-3.5 w-3.5" />
         </Link>
-      </div>
+      </CardHeader>
 
-      <div className="rounded-ds-lg border border-black/[0.06] p-ds-4 dark:border-white/[0.07]">
-        {focus.creators.map((g) => (
-          <Row
-            key={g.campaign_creator_id}
-            group={g}
-            campaignId={focus.campaign_id}
-            onOpen={(items, i) => setPlayer({ items, index: i })}
-            onDone={onChanged}
-          />
-        ))}
-      </div>
+      <CardContent>
+        {/* Three across on a laptop. The tiles are the same shape every time, so a client
+            with seven creators waiting sees seven decisions rather than the top of a list. */}
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {focus.creators.map((g) => (
+            <CreatorTile
+              key={g.campaign_creator_id}
+              group={g}
+              campaignId={focus.campaign_id}
+              onOpen={(items, i) => setPlayer({ items, index: i })}
+              onDone={onChanged}
+            />
+          ))}
+        </div>
+      </CardContent>
 
       {player && (
         <ContentPlayer
@@ -220,6 +229,6 @@ export function ContentAwaitingPanel({
           onChanged={onChanged}
         />
       )}
-    </section>
+    </Card>
   )
 }
