@@ -294,95 +294,34 @@ export function BrandDashboardContent() {
         </div>
       </header>
 
-      {/* What is waiting, and nothing else.
-          This was four figures that were nearly always four zeros: "Creators working 0",
-          "Content approved 0", "Live campaigns 0" - a wall of nothing that told a client
-          their account was empty when it was simply quiet that week. Status counters read
-          as zeros; requests read as work. So the band carries only the figures that are
-          asking something of them, only when they are asking, and when nothing is, it says
-          so in one line instead of four boxes. */}
-      {(() => {
-        const asks = [
-          {
-            key: 'content',
-            label: 'Content to approve',
-            value: content?.awaiting_you ?? 0,
-            hint: 'Watch it, then approve it',
-            tone: 'warn' as const,
-            href: content?.focus ? `/campaigns/${content.focus.campaign_id}/content` : '/campaigns',
-            loading: content === null,
-          },
-          {
-            key: 'proposals',
-            label: 'Proposals to answer',
-            value: pendingProposals ?? 0,
-            hint: 'Pick your creators, or ask for more',
-            tone: 'warn' as const,
-            href: '/proposals',
-            loading: pendingProposals === null,
-          },
-          {
-            key: 'live',
-            label: 'Live campaigns',
-            value: activeCampaignsCount ?? 0,
-            hint: 'Running right now',
-            tone: 'neutral' as const,
-            href: '/campaigns',
-            loading: campaignsLoading,
-          },
-          {
-            key: 'working',
-            label: 'Creators filming',
-            value: content?.creators_working ?? 0,
-            hint: 'Shooting or posting for you',
-            tone: 'neutral' as const,
-            href: '/campaigns',
-            loading: content === null,
-          },
-        ]
-        const shown = asks.filter((a) => a.loading || a.value > 0)
-        if (!shown.length) {
-          return (
-            <p className="text-ds-body text-muted-foreground">
-              Nothing is waiting on you.{' '}
-              <button type="button" onClick={() => router.push('/discover')}
-                      className="underline underline-offset-4 hover:text-foreground">
-                Find your next creators
-              </button>
-              .
-            </p>
-          )
-        }
-        /* A ROW, not a grid. A four-column grid holding one item leaves that item stranded
-           beside three empty cells, which is what a client with a single proposal waiting
-           was looking at: one number, alone, against half a page of nothing. A row is the
-           same shape whether it carries one item or four. */
-        return (
-          <div className="flex flex-wrap items-stretch gap-x-ds-6 gap-y-ds-4">
-            {shown.map((a) => (
-              <button
-                key={a.key}
-                type="button"
-                onClick={() => router.push(a.href)}
-                className="group flex min-w-[168px] flex-col items-start rounded-ds-md text-left"
-              >
-                <span className="flex items-center gap-1.5 text-ds-caption text-muted-foreground">
-                  {a.value > 0 && (
-                    <span className={cn('size-1.5 rounded-full',
-                      a.tone === 'warn' ? 'bg-[var(--warning)]' : 'bg-muted-foreground/40')} />
-                  )}
-                  {a.label}
-                </span>
-                <span className="mt-ds-1 text-[28px] font-semibold leading-none tabular-nums
-                                 transition-colors group-hover:text-primary">
-                  {a.loading ? UNKNOWN : a.value}
-                </span>
-                <span className="mt-ds-1 text-ds-caption text-muted-foreground">{a.hint}</span>
-              </button>
-            ))}
-          </div>
-        )
-      })()}
+      {/* The analytics cards. First thing under the welcome, because they are the two
+          standing facts about this account - how many creators it has ever opened, and what
+          it is on. Everything below them is this cycle's movement. */}
+      <div className="grid grid-cols-1 gap-ds-3 sm:grid-cols-2">
+        <div className={cn(CARD_SURFACE, 'flex flex-col justify-center gap-ds-1 p-ds-4')}>
+          <Stat
+            label="Creators unlocked, all time"
+            value={unlockedProfilesCount}
+            hint="Everyone your team has ever opened"
+            href="/creators"
+            loading={profilesLoading}
+            error={!!profilesError}
+          />
+        </div>
+        <div className={cn(CARD_SURFACE, 'flex flex-col justify-center gap-ds-1 p-ds-4')}>
+          <Stat
+            label="Your plan"
+            value={tierValue ?? UNKNOWN}
+            hint="Seats, unlocks and credits"
+            href="/billing"
+            loading={userStoreLoading || teamsLoading}
+          />
+        </div>
+      </div>
+
+      {/* The "what is waiting" band is gone, by decision: the two analytics cards below are
+          what this page opens with. Pending proposals already carry a badge on the sidebar,
+          which is where a count belongs when the page it points at is one click away. */}
 
       {/* The queue itself, with the buttons in it. Renders nothing when nothing is waiting,
           so a client who is up to date gets a shorter page rather than an empty box. */}
@@ -411,34 +350,14 @@ export function BrandDashboardContent() {
             subjects. The dials are shorter than they were, because a dial does not need to
             be 300px tall to be read - it needed that height only to fill a card that was
             too wide. */}
-        <div className="grid grid-cols-1 gap-ds-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div aria-label="Profile unlocks remaining this billing cycle" className="h-[240px]">
+        {/* Two dials, one row. They are the same measure - what is left of this cycle -
+            so they read as a pair rather than as two cards among four. */}
+        <div className="grid grid-cols-1 gap-ds-3 sm:grid-cols-2">
+          <div aria-label="Profile unlocks remaining this billing cycle" className="h-[280px]">
             <ChartProfileAnalysisV2 />
           </div>
-          <div aria-label="Remaining credits this billing cycle" className="h-[240px]">
+          <div aria-label="Remaining credits this billing cycle" className="h-[280px]">
             <ChartRemainingCreditsV2 />
-          </div>
-          {/* The same surface and the same height as the dials beside them. Left bare they
-              floated in the middle of the row with the dials boxed either side, which read
-              as two different things rather than one balance. */}
-          <div className={cn(CARD_SURFACE, 'flex h-[240px] flex-col justify-center gap-ds-1 p-ds-4')}>
-            <Stat
-              label="Creators unlocked, all time"
-              value={unlockedProfilesCount}
-              hint="Everyone your team has ever opened"
-              href="/creators"
-              loading={profilesLoading}
-              error={!!profilesError}
-            />
-          </div>
-          <div className={cn(CARD_SURFACE, 'flex h-[240px] flex-col justify-center gap-ds-1 p-ds-4')}>
-            <Stat
-              label="Your plan"
-              value={tierValue ?? UNKNOWN}
-              hint="Seats, unlocks and credits"
-              href="/billing"
-              loading={userStoreLoading || teamsLoading}
-            />
           </div>
         </div>
       </section>
