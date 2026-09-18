@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { API_CONFIG } from "@/config/api";
 import { fetchWithAuth } from "@/utils/apiInterceptor";
@@ -32,6 +33,13 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
   const [cc, setCc] = useState("");
   const [bcc, setBcc] = useState("");
   const [mandatoryCc, setMandatoryCc] = useState<string[]>([]);
+  /* Put the way in inside this same email, for a client who has never signed in. Sending
+     it RESETS their password - we cannot read the one they have - so it is a switch the
+     operator throws on purpose, never a default. The password shown here is the one the
+     preview generated, and send uses exactly that: generating a second one at send time
+     would email a password nobody has seen. */
+  const [withLogin, setWithLogin] = useState(false);
+  const [password, setPassword] = useState("");
 
   const render = async (overrides: Record<string, unknown> = {}) => {
     if (!proposalId) return;
@@ -46,6 +54,7 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
     if (overrides.recipient_name === undefined && !cc) {
       setCc((d.suggested_cc || []).join(", "));
     }
+    if (d.fields?.password) setPassword(d.fields.password);
   };
 
   useEffect(() => {
@@ -59,11 +68,14 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
   useEffect(() => {
     if (!open || !proposalId || loading) return;
     const t = setTimeout(() => {
-      render({ recipient_name: recipientName, subject, review_url: reviewUrl }).catch(() => {});
+      render({
+        recipient_name: recipientName, subject, review_url: reviewUrl,
+        include_credentials: withLogin, password: password || undefined,
+      }).catch(() => {});
     }, 500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipientName, reviewUrl]);
+  }, [recipientName, reviewUrl, withLogin]);
 
   const ccList = () => cc.split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -75,6 +87,9 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
       const r = await post(`/api/v1/admin/proposals/${proposalId}/proposal-email/send`, {
         to, recipient_name: recipientName, subject, review_url: reviewUrl, cc: ccList(),
         bcc: bcc.split(",").map((x) => x.trim()).filter(Boolean),
+        include_credentials: withLogin,
+        // The password the operator has been looking at, not a new one.
+        password: withLogin ? (password || undefined) : undefined,
       });
       toast.success(r.message || "Proposal email sent");
       onOpenChange(false);
@@ -115,6 +130,41 @@ export function ProposalEmailDialog({ proposalId, open, onOpenChange }: {
                 <p className="text-[11px] text-muted-foreground">
                   A blind copy, for the person who needs to see it without the client knowing they are on it.
                 </p>
+              </div>
+              {/* The login, in this same email. A new client otherwise gets two emails a
+                  minute apart: a proposal they cannot open, and a password with no idea
+                  what it is for. */}
+              <div className="rounded-lg border p-3">
+                <div className="flex items-start gap-3">
+                  <Switch id="with-login" checked={withLogin} onCheckedChange={setWithLogin} />
+                  <div className="min-w-0 space-y-1">
+                    <Label htmlFor="with-login" className="text-xs font-medium">
+                      Include their login in this email
+                    </Label>
+                    <p className="text-[11px] leading-snug text-muted-foreground">
+                      For a client who has never signed in. This <strong>resets their
+                      password</strong> to the one below, so anything they had written down
+                      stops working.
+                    </p>
+                  </div>
+                </div>
+                {withLogin && (
+                  <div className="mt-3 space-y-1.5">
+                    <Label className="text-xs">Password to send</Label>
+                    <Input
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onBlur={() => render({
+                        recipient_name: recipientName, subject, review_url: reviewUrl,
+                        include_credentials: true, password: password || undefined,
+                      }).catch(() => {})}
+                      className="font-mono"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Generated for you. Type over it if you would rather choose.
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Recipient name</Label>
