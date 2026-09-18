@@ -35,9 +35,15 @@ export function ChartProfileAnalysisV2() {
   const profilesRemaining = useProfilesRemaining()
   const subscriptionTier = useSubscriptionTier()
 
+  // `null` remaining means the plan has no ceiling. Feeding null to the chart draws an empty
+  // dial, which is the visual half of telling a paying customer they have nothing left.
+  const uncapped = profilesRemaining === null
+  const used = subscription?.usage.profiles ?? 0
+
   const chartData = useMemo(() => [
-    { browser: "safari", visitors: profilesRemaining, fill: "oklch(0.4718 0.2853 280.0726)" }
-  ], [profilesRemaining])
+    { browser: "safari", visitors: uncapped ? used : profilesRemaining,
+      fill: "oklch(0.4718 0.2853 280.0726)" }
+  ], [profilesRemaining, uncapped, used])
 
   const usageData = useMemo(() => {
     if (!subscription) return null
@@ -53,7 +59,10 @@ export function ChartProfileAnalysisV2() {
 
   // Calculate percentage for the radial chart
   const getEndAngle = () => {
-    if (!usageData || usageData.limit === 0) return 0
+    // No ceiling, so there is no fraction to draw. A full ring reads as "you are fine",
+    // which is the truth, where the old empty ring said the exact opposite.
+    if (uncapped) return 360
+    if (!usageData || !usageData.limit || usageData.remaining === null) return 0
     return (usageData.remaining / usageData.limit) * 360
   }
 
@@ -81,7 +90,9 @@ export function ChartProfileAnalysisV2() {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium">Profile Unlocks</CardTitle>
         <div className="text-xs text-muted-foreground">
-          {isLoading ? "Loading..." : `${usageData?.tierDisplay || 'Free'} tier • ${usageData?.limit || 0}/month`}
+          {isLoading ? "Loading..."
+            : uncapped ? `${usageData?.tierDisplay || 'Free'} plan • no monthly cap`
+            : `${usageData?.tierDisplay || 'Free'} plan • ${usageData?.limit ?? 0}/month`}
         </div>
       </CardHeader>
       <CardContent className="p-1">
@@ -127,14 +138,16 @@ export function ChartProfileAnalysisV2() {
                           y={viewBox.cy}
                           className="fill-foreground text-4xl font-bold"
                         >
-                          {isLoading ? "..." : (usageData?.remaining || 0).toLocaleString()}
+                          {isLoading ? "..."
+                            : uncapped ? used.toLocaleString()
+                            : (usageData?.remaining ?? 0).toLocaleString()}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          {isLoading ? "Loading" : "remaining"}
+                          {isLoading ? "Loading" : uncapped ? "unlocked" : "remaining"}
                         </tspan>
                       </text>
                     )

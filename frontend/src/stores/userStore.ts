@@ -30,9 +30,15 @@ export interface User {
 
 export interface Subscription {
   tier: 'free' | 'standard' | 'premium' | 'enterprise'
+  /** A null limit means NO CEILING, not a ceiling of zero. `limits_unlimited` says which. */
   limits: {
-    profiles: number
-    posts: number
+    profiles: number | null
+    posts: number | null
+  }
+  /** Sent by the server precisely so a null never has to be guessed at. */
+  limits_unlimited?: {
+    profiles: boolean
+    posts: boolean
   }
   usage: {
     profiles: number
@@ -286,11 +292,31 @@ export const useUserError = () => useUserStore((state) => state.error)
 
 // Computed subscription helpers
 export const useSubscriptionTier = () => useUserStore((state) => state.subscription?.tier || 'free')
+/**
+ * What is left, where `null` means "no ceiling" and is NOT a number.
+ *
+ * Standard and Premium have no unlock ceiling: the plan carries an included allowance and
+ * nothing above it, so the server sends the limit as null and sets `limits_unlimited` to say
+ * why. This read did `Math.max(0, null - used)`, which is always 0 in JavaScript — so every
+ * paying customer was told on their own dashboard that they had zero unlocks remaining, zero
+ * per month, with an empty dial, while Free users (genuinely capped at five) saw the truth.
+ *
+ * Callers must handle null by saying "Unlimited" rather than printing it.
+ */
+const remaining = (limit: number | null | undefined, used: number, unlimited?: boolean) => {
+  if (unlimited || limit === null || limit === undefined) return null
+  return Math.max(0, limit - used)
+}
+
 export const useProfilesRemaining = () => useUserStore((state) => {
-  if (!state.subscription) return 0
-  return Math.max(0, state.subscription.limits.profiles - state.subscription.usage.profiles)
+  if (!state.subscription) return null
+  return remaining(state.subscription.limits.profiles,
+                   state.subscription.usage.profiles,
+                   state.subscription.limits_unlimited?.profiles)
 })
 export const usePostsRemaining = () => useUserStore((state) => {
-  if (!state.subscription) return 0
-  return Math.max(0, state.subscription.limits.posts - state.subscription.usage.posts)
+  if (!state.subscription) return null
+  return remaining(state.subscription.limits.posts,
+                   state.subscription.usage.posts,
+                   state.subscription.limits_unlimited?.posts)
 })
