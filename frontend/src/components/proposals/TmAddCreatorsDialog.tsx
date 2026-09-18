@@ -213,6 +213,19 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, country, sort]);
 
+  /**
+   * Is a missing sell price a reason to refuse this creator?
+   *
+   * On a paid proposal, yes: nobody can be QUOTED without one, so taking them only produces
+   * a row somebody deletes later. On a barter proposal, no - the creator is paid in product
+   * and the client is spending creator slots, so a price is not a fact this deal needs.
+   *
+   * One function because the answer was written out four separate times - the tick, the
+   * select-all, the row's opacity and the checkbox's disabled state - and fixing two of them
+   * left a roster that looked greyed out and refused to be ticked for no stated reason.
+   */
+  const blockedByPrice = (c: Creator) => !isBarter && c.sellable === false;
+
   const toggle = (c: Creator) => {
     // Nobody can be quoted without a sell price, so taking them would only produce a row
     // the builder has to delete again — and, until now, a toast blaming a duplicate.
@@ -222,7 +235,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
     // asking for a barter are exactly the ones nobody has priced, so the rule that protects
     // a paid roster was emptying a barter one - and it did it by silently refusing the tick,
     // which reads as a broken checkbox rather than as a rule.
-    if (!isBarter && c.sellable === false) {
+    if (blockedByPrice(c)) {
       toast.error(`@${c.username} has no sell price yet`, {
         description: isLeadership
           ? "Use “Price them” on their row to set one."
@@ -241,7 +254,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
   const selectAllVisible = () => {
     setSelected((prev) => {
       const next = { ...prev };
-      const pickable = results.filter((c) => c.sellable !== false);
+      const pickable = results.filter((c) => !blockedByPrice(c));
       const allOn = pickable.every((c) => next[c.id]);
       if (allOn) pickable.forEach((c) => delete next[c.id]);
       else pickable.forEach((c) => { if (!next[c.id]) next[c.id] = { creator: c, deliverables: { reel: 1 } }; });
@@ -440,13 +453,13 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
               {results.map((c) => {
                 const sel = selected[c.id];
                 return (
-                  <div key={c.id} className={`rounded-xl border p-3 transition-colors ${sel ? "border-primary/40 bg-primary/5" : ""} ${c.sellable === false ? "opacity-70" : ""}`}>
+                  <div key={c.id} className={`rounded-xl border p-3 transition-colors ${sel ? "border-primary/40 bg-primary/5" : ""} ${blockedByPrice(c) ? "opacity-70" : ""}`}>
                     <div className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={() => toggle(c)}
-                        disabled={c.sellable === false}
-                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${sel ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"} ${c.sellable === false ? "cursor-not-allowed opacity-40" : ""}`}
+                        disabled={blockedByPrice(c)}
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${sel ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"} ${blockedByPrice(c) ? "cursor-not-allowed opacity-40" : ""}`}
                       >
                         {sel && <Check className="h-3.5 w-3.5" />}
                       </button>
@@ -464,7 +477,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
                       {/* A missing price is not a problem on a barter proposal, so it is
                           not reported as one. Saying "No sell price" beside a creator we are
                           about to send a hamper to is an answer to a question nobody asked. */}
-                      {!isBarter && c.sellable === false && (
+                      {blockedByPrice(c) && (
                         <>
                           <Badge variant="outline" className="shrink-0 border-amber-400 text-amber-700 dark:text-amber-400">
                             No sell price
