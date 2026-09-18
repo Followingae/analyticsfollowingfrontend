@@ -43,6 +43,7 @@ import { BrandQuotaWidget } from "@/components/brand/BrandQuotaWidget"
 import { CampaignBars } from "@/components/brand/CampaignBars"
 import { ShareCenterCard } from "@/components/brand/ShareCenterCard"
 import { ContentAwaitingPanel } from "@/components/brand/ContentAwaitingPanel"
+import { brandProposalViewApi } from "@/services/adminProposalMasterApi"
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
 import { Button } from "@/components/ui/button"
 import { Balloons } from "@/components/ui/balloons"
@@ -155,6 +156,16 @@ export function BrandDashboardContent() {
   }, [])
   useEffect(() => { loadContent() }, [loadContent])
 
+  /* Proposals still waiting on THEM - sent, in review, or more asked for. The server has
+     always counted this; nothing on the dashboard read it, so the one thing a client is
+     most often here to do had no number anywhere on their home screen. */
+  const [pendingProposals, setPendingProposals] = useState<number | null>(null)
+  useEffect(() => {
+    brandProposalViewApi.listProposals({ limit: 1 })
+      .then((r) => setPendingProposals(r.pending_count ?? 0))
+      .catch(() => setPendingProposals(null))
+  }, [])
+
   const userDisplayData = useMemo(() => {
     if (!user || isLoading) return null
 
@@ -256,16 +267,26 @@ export function BrandDashboardContent() {
 
       {/* The greeting IS the page head. It used to be a card of its own, sitting beside
           three more cards, which spent a border and a shadow on saying hello. */}
-      <header className="flex items-center gap-ds-3">
+      <header className="flex items-center gap-ds-4">
         <UserAvatar
           key={`dashboard-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
           user={user || undefined}
-          size={56}
+          size={72}
           className="shrink-0"
         />
         <div className="flex min-w-0 flex-col gap-ds-1">
-          <h1 className="truncate text-ds-title text-foreground">
-            {greeting}{who ? <>, {who}</> : null}
+          {/* Their own name, in the one serif this product ships, at a size that makes it
+              the first thing read. The greeting stays in the body face: it is the sentence
+              around the name, not the subject. Nothing else on the client side uses this
+              face, which is what keeps it feeling like an address rather than a style. */}
+          <h1 className="truncate text-[28px] leading-[1.1] text-foreground lg:text-[34px]">
+            <span className="text-muted-foreground">{greeting}</span>
+            {who ? (
+              <>
+                <span className="text-muted-foreground">, </span>
+                <span className="font-serif tracking-[-0.01em]">{who}</span>
+              </>
+            ) : null}
           </h1>
           <p className="max-w-[65ch] text-ds-body text-muted-foreground">
             {content?.awaiting_you
@@ -275,58 +296,95 @@ export function BrandDashboardContent() {
         </div>
       </header>
 
-      {/* Four figures, and the order is the argument. "Waiting on you" is first because it
-          is the only one of the four that is a request; the rest are status. Each carries
-          its own loading and error state, so none can print a zero it does not have. */}
-      <StatBand cols={4}>
-        <Stat
-          label="Content waiting on you"
-          value={content ? content.awaiting_you : UNKNOWN}
-          hint={content?.awaiting_you ? 'Watch it, then approve it' : 'Nothing to review'}
-          tone={content && content.awaiting_you > 0 ? 'warn' : 'neutral'}
-          href={content?.focus ? `/campaigns/${content.focus.campaign_id}/content` : '/campaigns'}
-          loading={content === null}
-        />
-        <Stat
-          label="Creators working"
-          value={content ? content.creators_working : UNKNOWN}
-          hint="Filming or posting for you"
-          href="/campaigns"
-          loading={content === null}
-        />
-        <Stat
-          label="Live campaigns"
-          value={activeCampaignsCount}
-          hint="Running right now"
-          href="/campaigns"
-          loading={campaignsLoading}
-          error={!!campaignsError}
-        />
-        <Stat
-          label="Content approved"
-          value={content ? content.approved : UNKNOWN}
-          hint="Signed off and locked"
-          tone={content && content.approved > 0 ? 'good' : 'neutral'}
-          href="/campaigns"
-          loading={content === null}
-        />
-      </StatBand>
+      {/* What is waiting, and nothing else.
+          This was four figures that were nearly always four zeros: "Creators working 0",
+          "Content approved 0", "Live campaigns 0" - a wall of nothing that told a client
+          their account was empty when it was simply quiet that week. Status counters read
+          as zeros; requests read as work. So the band carries only the figures that are
+          asking something of them, only when they are asking, and when nothing is, it says
+          so in one line instead of four boxes. */}
+      {(() => {
+        const asks = [
+          {
+            key: 'content',
+            label: 'Content to approve',
+            value: content?.awaiting_you ?? 0,
+            hint: 'Watch it, then approve it',
+            tone: 'warn' as const,
+            href: content?.focus ? `/campaigns/${content.focus.campaign_id}/content` : '/campaigns',
+            loading: content === null,
+          },
+          {
+            key: 'proposals',
+            label: 'Proposals to answer',
+            value: pendingProposals ?? 0,
+            hint: 'Pick your creators, or ask for more',
+            tone: 'warn' as const,
+            href: '/proposals',
+            loading: pendingProposals === null,
+          },
+          {
+            key: 'live',
+            label: 'Live campaigns',
+            value: activeCampaignsCount ?? 0,
+            hint: 'Running right now',
+            tone: 'neutral' as const,
+            href: '/campaigns',
+            loading: campaignsLoading,
+          },
+          {
+            key: 'working',
+            label: 'Creators filming',
+            value: content?.creators_working ?? 0,
+            hint: 'Shooting or posting for you',
+            tone: 'neutral' as const,
+            href: '/campaigns',
+            loading: content === null,
+          },
+        ]
+        const shown = asks.filter((a) => a.loading || a.value > 0)
+        if (!shown.length) {
+          return (
+            <p className="text-ds-body text-muted-foreground">
+              Nothing is waiting on you.{' '}
+              <button type="button" onClick={() => router.push('/discover')}
+                      className="underline underline-offset-4 hover:text-foreground">
+                Find your next creators
+              </button>
+              .
+            </p>
+          )
+        }
+        return (
+          <StatBand cols={(shown.length >= 4 ? 4 : shown.length === 3 ? 3 : 2) as 2 | 3 | 4}>
+            {shown.map((a) => (
+              <Stat
+                key={a.key}
+                label={a.label}
+                value={a.loading ? UNKNOWN : a.value}
+                hint={a.hint}
+                tone={a.value > 0 ? a.tone : 'neutral'}
+                href={a.href}
+                loading={a.loading}
+              />
+            ))}
+          </StatBand>
+        )
+      })()}
 
       {/* The queue itself, with the buttons in it. Renders nothing when nothing is waiting,
           so a client who is up to date gets a shorter page rather than an empty box. */}
       <ContentAwaitingPanel focus={content?.focus ?? null} onChanged={loadContent} />
 
       {/* The one thing we want them to do next. It keeps its card because it is a real
-          object, and it keeps its height because the tile's own padding is built for it -
-          squashing it to 168px pushed its contents against its edges.
+          object, and it keeps its height because the tile's own padding is built for it.
 
-          What it does NOT keep is the full width of the page. A single prompt stretched to
-          1400px reads as a banner rather than as one thing among several, and it made the
-          two blocks under it look like a different page. Two thirds, matching the gauges
-          below, so the right-hand gutter is the same all the way down. */}
-      <div className="grid grid-cols-1 lg:grid-cols-3">
+          Half the page, not two thirds. Stretched wide it read as a banner across the top
+          of everything below it; at half it is one thing among several, which is what it
+          is. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2">
         <SmartDiscovery onDiscover={() => router.push('/discover')}
-                        className="h-[280px] lg:col-span-2" />
+                        className="h-[280px]" />
       </div>
 
       {/* Unlocks and credits. Still exact, still metered, and NOT removed: they have moved
@@ -336,18 +394,18 @@ export function BrandDashboardContent() {
           at the top of the page. */}
       <section className="flex flex-col gap-ds-3">
         <GroupLabel>Usage this cycle</GroupLabel>
-        {/* Two dials side by side, over two thirds rather than the whole page. At full
-            width each gauge sat in the middle of an enormous card with its own drawing
-            floating in the space, which is what made a balance look like a report. */}
-        <div className="grid grid-cols-1 gap-ds-3 lg:grid-cols-3">
-          <div aria-label="Profile unlocks remaining this billing cycle" className="h-[300px]">
+        {/* One line: two dials and the two figures that belong with them. They were a row
+            of dials and then a separate band underneath, which made a balance read as two
+            subjects. The dials are shorter than they were, because a dial does not need to
+            be 300px tall to be read - it needed that height only to fill a card that was
+            too wide. */}
+        <div className="grid grid-cols-1 items-center gap-ds-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div aria-label="Profile unlocks remaining this billing cycle" className="h-[220px]">
             <ChartProfileAnalysisV2 />
           </div>
-          <div aria-label="Remaining credits this billing cycle" className="h-[300px]">
+          <div aria-label="Remaining credits this billing cycle" className="h-[220px]">
             <ChartRemainingCreditsV2 />
           </div>
-        </div>
-        <StatBand cols={2}>
           <Stat
             label="Creators unlocked, all time"
             value={unlockedProfilesCount}
@@ -363,7 +421,7 @@ export function BrandDashboardContent() {
             href="/billing"
             loading={userStoreLoading || teamsLoading}
           />
-        </StatBand>
+        </div>
       </section>
 
       {/* Companion detail. Every one of these renders nothing at all when it has nothing
