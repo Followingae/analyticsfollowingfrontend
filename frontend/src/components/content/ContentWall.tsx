@@ -248,16 +248,34 @@ function CreatorCard({
       ) : (
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px]
                         text-muted-foreground">
-          {/* An unmapped stage is a database code, not a sentence, so it is not shown at
-              all. A missing line reads as "we have not said"; "rate_agreed" reads as a bug. */}
-          <span className="inline-flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5" />
-            {(group.stage && STAGE_COPY[group.stage]) || "Not started"}
-          </span>
-          {due && (
-            <span className={cn(overdue && "font-medium text-rose-700 dark:text-rose-400")}>
-              {overdue ? "Was due " : "Due "}{due.toLocaleDateString()}
-            </span>
+          {/* TEAM ONLY, both of these.
+
+              The ladder - Booked, Agreement signed, Brief sent - is our operational state
+              with a creator. It tells a client which of our internal steps we have got
+              through, which is not their business, not something they can act on, and reads
+              as an excuse. "Brief sent" is us saying we did our bit.
+
+              The date is worse. `content_due` is the deadline WE agreed with the creator, so
+              "Was due 28/08/2026" in red on a client's screen is the platform reporting our
+              own missed deadline to the customer, unprompted, with no context and nothing
+              they can do about it. If a delivery has slipped, that is a conversation an
+              account manager has, not a line of red text a brand finds on their own.
+
+              An unmapped stage is a database code rather than a sentence, so it is not
+              shown at all: a missing line reads as "we have not said", where "rate_agreed"
+              reads as a bug. */}
+          {side === "team" && (
+            <>
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                {(group.stage && STAGE_COPY[group.stage]) || "Not started"}
+              </span>
+              {due && (
+                <span className={cn(overdue && "font-medium text-rose-700 dark:text-rose-400")}>
+                  {overdue ? "Was due " : "Due "}{due.toLocaleDateString()}
+                </span>
+              )}
+            </>
           )}
           {(group.in_production ?? 0) > 0 && (
             <span>{group.in_production} piece{group.in_production === 1 ? "" : "s"} being prepared</span>
@@ -363,8 +381,14 @@ export function ContentWall({
       },
       { key: "done", title: "Approved", sub: "Locked, with what was approved kept exactly as it was.",
         groups: bucket(["approved"]) },
-      { key: "await", title: "Not delivered yet", sub: "Where each creator has got to.",
-        groups: bucket(["awaited"]) },
+      {
+        key: "await",
+        title: side === "brand" ? "Still to come" : "Not delivered yet",
+        // "Where each creator has got to" is a promise to show internal progress, which is
+        // exactly what a client should not be reading.
+        sub: side === "brand" ? "" : "Where each creator has got to.",
+        groups: bucket(["awaited"]),
+      },
     ].filter((s) => s.groups.length > 0)
   }, [wall, side])
 
@@ -401,7 +425,9 @@ export function ContentWall({
         <section key={s.key} className="space-y-4">
           <div>
             <h2 className="text-[17px] font-semibold tracking-[-0.01em]">{s.title}</h2>
-            <p className="mt-1 text-[13.5px] text-muted-foreground">{s.sub}</p>
+            {/* A section with nothing to add says nothing, rather than reserving a line for
+                a sentence explaining its own heading. */}
+            {s.sub && <p className="mt-1 text-[13.5px] text-muted-foreground">{s.sub}</p>}
           </div>
           <div className="space-y-4">
             {s.groups.map((g) => (
