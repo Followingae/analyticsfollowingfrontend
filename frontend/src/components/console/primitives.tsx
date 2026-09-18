@@ -16,11 +16,35 @@
  * and one black pill per screen for the action you actually came to do. Colour is only ever
  * status, never decoration, and it always arrives with a word beside it.
  *
+ * ── These are shadcn compositions now, not replacements for it ──────────────────────────
+ *
+ * This file used to hand-roll every shell it needed and imported nothing from `ui/`. That is
+ * the single reason the console did not look like shadcn: shadcn was installed, configured
+ * and complete, and simply was not in the render path. Seventy-five screens import from here,
+ * so rewriting the insides rather than the call sites converts all of them at once and none
+ * of them have to change.
+ *
+ * Card, Badge, Button, Progress and Tabs are stock. What stays bespoke is only what shadcn
+ * has no answer for: the Dirham mark, the completion ring, and the tone tokens.
+ *
+ * Type sizes come from the Tailwind scale, four steps and no more: `text-2xl` for a figure,
+ * `text-sm font-medium` for a title, `text-sm text-muted-foreground` for body, `text-xs` for
+ * meta. There were twenty distinct hardcoded sizes across this directory, which is not a
+ * hierarchy, it is noise: at 11px, 11.5px, 12px and 12.5px the reader cannot tell which
+ * difference is meant to mean something.
+ *
  * Washes are deliberately desaturated. Our lime is a headline colour at full strength and
  * unreadable as a background, so surfaces get a pale version of it and the full strength is
  * saved for the one thing that matters on the screen.
  */
 import * as React from 'react'
+import {
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
+} from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
 export type Tone = 'neutral' | 'good' | 'warn' | 'bad' | 'info'
@@ -142,7 +166,7 @@ export function Stat({
       </div>
       <p
         className={cn(
-          'mt-ds-2 text-[40px] font-semibold leading-none tracking-[-0.025em] tabular-nums',
+          'mt-ds-2 text-3xl font-semibold leading-none tracking-[-0.025em] tabular-nums',
           TEXT[tone],
         )}
       >
@@ -196,19 +220,16 @@ export function Panel({
   className?: string
 }) {
   return (
-    <section
-      data-tour={`panel-${slug(title)}`}
-      className={cn(CARD, 'flex flex-col', WASH.neutral, className)}
-    >
-      <header className="flex items-start justify-between gap-4 px-6 pb-4 pt-5">
-        <div className="space-y-1">
-          <h2 className="text-[15.5px] font-semibold tracking-[-0.01em]">{title}</h2>
-          {description && <p className="text-[13px] text-muted-foreground">{description}</p>}
+    <Card data-tour={`panel-${slug(title)}`} className={cn('flex flex-col', className)}>
+      <CardHeader className="flex-row items-start justify-between gap-4 pb-4">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <CardTitle>{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
         </div>
         {action && <div className="shrink-0">{action}</div>}
-      </header>
-      <div className={cn('flex-1', flush ? 'pb-2' : 'px-6 pb-6')}>{children}</div>
-    </section>
+      </CardHeader>
+      <CardContent className={cn('flex-1', flush && 'px-0 pb-2')}>{children}</CardContent>
+    </Card>
   )
 }
 
@@ -247,8 +268,8 @@ export function Row({
     >
       <span className={cn('mt-[3px] h-2 w-2 flex-none self-start rounded-full', DOT[tone])} />
       <div className="min-w-0 flex-1 space-y-0.5">
-        <div className="truncate text-[14px] font-medium leading-snug">{title}</div>
-        {meta && <div className="truncate text-[12.5px] text-muted-foreground">{meta}</div>}
+        <div className="truncate text-sm font-medium leading-snug">{title}</div>
+        {meta && <div className="truncate text-xs text-muted-foreground">{meta}</div>}
       </div>
       {right && <div className="flex shrink-0 items-center gap-2">{right}</div>}
     </Tag>
@@ -274,9 +295,12 @@ export function MiniBar({ value, max, tone = 'info' }: { value: number; max: num
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/10">
-        <div className={cn('h-full rounded-full', DOT[tone])} style={{ width: `${pct}%` }} />
-      </div>
+      {/* Stock Progress, tinted by tone through the indicator rather than redrawn. */}
+      <Progress
+        value={pct}
+        aria-label={`${value} of ${max}`}
+        className={cn('h-1.5 w-16', `[&>[data-slot=progress-indicator]]:${DOT[tone]}`)}
+      />
       <span className="text-xs tabular-nums text-muted-foreground">{value}/{max}</span>
     </div>
   )
@@ -327,17 +351,13 @@ export function StageBar({
   return (
     <div className="flex flex-wrap items-center gap-1">
       {stages.map((s, i) => (
-        <span
+        <Badge
           key={s.key}
-          className={cn(
-            'rounded-full px-3 py-1 text-[11.5px] font-medium transition-colors',
-            i < at && 'bg-black/[0.05] text-muted-foreground dark:bg-white/[0.07]',
-            i === at && 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900',
-            i > at && 'text-muted-foreground/60',
-          )}
+          variant={i === at ? 'default' : i < at ? 'secondary' : 'outline'}
+          className={cn('rounded-full font-medium', i > at && 'text-muted-foreground/70')}
         >
           {s.label}
-        </span>
+        </Badge>
       ))}
     </div>
   )
@@ -390,27 +410,25 @@ export function RoundButton({
   className?: string
 }) {
   return (
-    <button
-      type="button" onClick={onClick} title={label} aria-label={label}
-      className={cn(
-        'grid h-8 w-8 shrink-0 place-items-center rounded-full border border-black/[0.06] bg-white',
-        'text-muted-foreground transition-colors hover:text-foreground',
-        // Hover was the only state it had, so Search and Refresh were keyboard-reachable and
-        // keyboard-invisible: tab onto one and nothing anywhere on the screen changed.
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        'focus-visible:ring-offset-2 focus-visible:text-foreground',
-        'dark:border-white/[0.08] dark:bg-neutral-900/70', className,
-      )}
+    /* Stock Button. It brings the focus ring with it, which this did not have: Search and
+       Refresh were keyboard-reachable and keyboard-invisible, so tabbing onto one changed
+       nothing anywhere on the screen. */
+    <Button
+      type="button" variant="outline" size="icon" onClick={onClick}
+      title={label} aria-label={label}
+      className={cn('size-8 shrink-0 rounded-full text-muted-foreground', className)}
     >
       <Icon className="h-3.5 w-3.5" />
-    </button>
+    </Button>
   )
 }
 
 /** The little grey heading a list uses to break itself into "Today" and "Earlier". */
 export function GroupLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-3 pb-1.5 pt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground first:pt-1">
+    /* Was uppercase at 0.14em tracking, which is the most "admin template" mark a screen can
+       wear. Sentence case in muted says the same thing and does not shout it. */
+    <p className="px-3 pb-1.5 pt-4 text-xs font-medium text-muted-foreground first:pt-1">
       {children}
     </p>
   )
@@ -428,10 +446,8 @@ export function FieldStrip({
     <div className="flex flex-wrap gap-x-8 gap-y-3">
       {fields.map(f => (
         <div key={f.label} className="min-w-[92px]">
-          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-            {f.label}
-          </p>
-          <p className="mt-1 text-[14px] font-medium">{f.value ?? '—'}</p>
+          <p className="text-xs font-medium text-muted-foreground">{f.label}</p>
+          <p className="mt-1 text-sm font-medium">{f.value ?? '—'}</p>
         </div>
       ))}
     </div>
@@ -443,23 +459,15 @@ export function RecordTabs({
   tabs, value, onChange,
 }: { tabs: { key: string; label: string }[]; value: string; onChange: (k: string) => void }) {
   return (
-    <div className="flex flex-wrap items-center gap-1">
-      {tabs.map(t => (
-        <button
-          key={t.key}
-          type="button"
-          onClick={() => onChange(t.key)}
-          className={cn(
-            'rounded-full px-4 py-2 text-[13px] font-medium transition-colors',
-            value === t.key
-              ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'
-              : 'text-muted-foreground hover:bg-black/[0.04] hover:text-foreground dark:hover:bg-white/[0.06]',
-          )}
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
+    /* Stock Tabs. This was a row of hand-rolled pills implementing what Tabs already does,
+       including its keyboard behaviour, which the pills did not have. */
+    <Tabs value={value} onValueChange={onChange}>
+      <TabsList>
+        {tabs.map(t => (
+          <TabsTrigger key={t.key} value={t.key}>{t.label}</TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
   )
 }
 
@@ -509,21 +517,22 @@ export function KpiCard({
   hint?: React.ReactNode
   onClick?: () => void
 }) {
-  const Tag = onClick ? 'button' : 'div'
   const hasDelta = typeof delta === 'number' && Boolean(since)
   const rising = (delta ?? 0) > 0
   const flat = (delta ?? 0) === 0
   const good = flat ? false : rising === (goodWhen === 'up')
 
   return (
-    <Tag
-      {...(onClick ? { type: 'button' as const, onClick } : {})}
+    <Card
+      {...(onClick ? { role: 'button' as const, tabIndex: 0, onClick,
+                       onKeyDown: (e: React.KeyboardEvent) => {
+                         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() }
+                       } } : {})}
       className={cn(
-        'flex w-full items-start gap-4 rounded-[var(--radius-card)] border bg-card p-5 text-left',
-        'shadow-[var(--shadow-card)] transition-colors',
-        onClick &&
-          'cursor-pointer hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 ' +
-          'focus-visible:ring-ring focus-visible:ring-offset-2',
+        'flex w-full flex-row items-start gap-4 p-5 text-left',
+        onClick && 'cursor-pointer transition-colors hover:bg-accent/40 ' +
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' +
+          'focus-visible:ring-offset-2',
       )}
     >
       {Icon && (
@@ -536,16 +545,16 @@ export function KpiCard({
       )}
 
       <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-medium text-muted-foreground">{label}</span>
+        <span className="block text-sm font-medium text-muted-foreground">{label}</span>
 
         <span className="mt-1 flex flex-wrap items-baseline gap-2">
-          <span className="text-[1.75rem] font-semibold leading-none tracking-[-0.02em] tabular-nums">
+          <span className="text-2xl font-semibold leading-none tracking-[-0.02em] tabular-nums">
             {value}
           </span>
           {hasDelta && (
             <span
               className={cn(
-                'rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums',
+                'rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums',
                 flat
                   ? 'bg-[var(--tone-neutral-wash)] text-muted-foreground'
                   : good
@@ -559,12 +568,12 @@ export function KpiCard({
         </span>
 
         {hasDelta ? (
-          <span className="mt-1.5 block text-[12px] text-muted-foreground">{since}</span>
+          <span className="mt-1.5 block text-xs text-muted-foreground">{since}</span>
         ) : hint ? (
-          <span className="mt-1.5 block text-[12px] text-muted-foreground">{hint}</span>
+          <span className="mt-1.5 block text-xs text-muted-foreground">{hint}</span>
         ) : null}
       </span>
-    </Tag>
+    </Card>
   )
 }
 
