@@ -1,41 +1,44 @@
 "use client"
 
 /**
- * Content ready for approval — one card, the creators side by side.
+ * Content ready for approval — what is waiting, and one way in.
  *
- * THE POINT OF THIS COMPONENT is that a client should be able to clear their queue without
- * opening anything. The dashboard used to be organised around profile unlocks, which is a
- * thing they bought rather than a thing they have to DO; the one thing a brand actually owes
- * us an answer on is content, and it was not on this page at all.
+ * This has now been wrong in three different directions, and the reasoning is worth keeping
+ * so it is not rediscovered a fourth time.
  *
- * It was a stack of full-width rows, one per creator: avatar, name, buttons and a strip of
- * thumbnails, repeated down the page. With two creators that reads fine. With seven it is a
- * column of near-identical bars and the client cannot see their queue, only the top of it.
- * The work is the same shape every time, so it belongs in a grid: each creator is a tile,
- * three across, and the whole queue fits on one screen where it can be compared and cleared.
+ * It began as a stack of full-width rows, one per creator, each carrying Approve and
+ * Changes. The argument was that a client should be able to clear their queue without
+ * opening anything. With seven creators that is seven near-identical bars down the page, and
+ * the client sees the top of their queue rather than the queue.
  *
- * Each tile leads with the content rather than with the person, because the decision is
- * about the content. Clicking it opens the same player the content page uses, so the two
- * behave identically.
+ * It was then a grid of tiles, three across, still carrying Approve and Changes, with a big
+ * poster on each. Better shape, same mistake twice over: the posters were the largest thing
+ * on the dashboard, and the decision was still here.
+ *
+ * THE DECISION DOES NOT BELONG ON A DASHBOARD. Approving a piece of content is a judgement
+ * about the content, and it should be made where the content is actually watched, at a size
+ * where it can be judged. A dashboard that offers Approve next to a 90-pixel thumbnail is
+ * inviting somebody to approve work they have not seen, and the client is the one who
+ * carries that. The dashboard's job is to say a thing is waiting and to open the door.
+ *
+ * So: what is waiting, who it is from, a strip of small stills to show it is real, and one
+ * proper button. The stills open the player for a quick look, because watching is not
+ * deciding.
  *
  * RENDERS NOTHING when there is nothing waiting. That is the house rule for this product:
  * no empty states, no placeholders, no upsell where a feature would be.
  */
 
-import { useState } from "react"
-import Link from "next/link"
-import { ArrowRight, Check, Loader2, MessageSquareWarning, Play } from "lucide-react"
-import { toast } from "sonner"
+import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { ArrowRight, Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { ContentPlayer } from "@/components/content/ContentPlayer"
 import {
-  contentBrandApi, isVideo,
-  type ContentItem, type CreatorContentGroup,
+  isVideo, type ContentItem, type CreatorContentGroup,
 } from "@/services/contentDeliveryApi"
 
 export interface ContentFocus {
@@ -50,174 +53,96 @@ function initials(name?: string | null, username?: string | null) {
   return s.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()
 }
 
-/** One creator's content, as a tile. */
-function CreatorTile({
-  group, campaignId, onOpen, onDone,
-}: {
-  group: CreatorContentGroup
-  campaignId: string
-  onOpen: (items: ContentItem[], i: number) => void
-  onDone: () => void
-}) {
-  const [asking, setAsking] = useState(false)
-  const [note, setNote] = useState("")
-  const [busy, setBusy] = useState(false)
-
-  const act = async (kind: "approve" | "changes") => {
-    try {
-      setBusy(true)
-      if (kind === "approve") {
-        const r = await contentBrandApi.approve(campaignId, {
-          campaign_creator_id: group.campaign_creator_id,
-        })
-        toast.success(`Approved ${r.approved} piece${r.approved === 1 ? "" : "s"}`)
-      } else {
-        if (!note.trim()) { toast.error("Say what needs changing."); return }
-        await contentBrandApi.requestChanges(campaignId, {
-          note, campaign_creator_id: group.campaign_creator_id,
-        })
-        toast.success("Sent to the team")
-        setAsking(false); setNote("")
-      }
-      onDone()
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "That did not work.")
-    } finally { setBusy(false) }
-  }
-
-  const cover = group.items[0]
-  const more = group.items.length - 1
-
-  return (
-    <div className="flex flex-col overflow-hidden rounded-lg border">
-      {/* The content first: it is what the decision is about. */}
-      <button
-        type="button"
-        onClick={() => onOpen(group.items, 0)}
-        className={cn(
-          "group relative isolate aspect-[4/3] w-full overflow-hidden bg-muted",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "focus-visible:ring-inset",
-        )}
-        aria-label={`Watch ${group.full_name || group.username || "this creator"}'s content`}
-      >
-        {cover?.poster_url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover.poster_url} alt="" loading="lazy"
-               className="absolute inset-0 h-full w-full object-cover transition duration-500
-                          group-hover:scale-[1.04]" />
-        )}
-        {cover && isVideo(cover.media_type) && (
-          <span className="absolute inset-0 flex items-center justify-center">
-            <span className="rounded-full bg-black/45 p-2 backdrop-blur-sm">
-              <Play className="h-4 w-4 fill-white text-white" />
-            </span>
-          </span>
-        )}
-        {more > 0 && (
-          <Badge variant="secondary" className="absolute right-2 top-2 tabular-nums">
-            +{more}
-          </Badge>
-        )}
-      </button>
-
-      <div className="flex flex-1 flex-col gap-3 p-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <Avatar className="h-7 w-7 shrink-0">
-            <AvatarImage src={group.avatar ?? undefined} alt="" />
-            <AvatarFallback className="text-[10px]">
-              {initials(group.full_name, group.username)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            {/* dir="auto" so an Arabic creator name reads correctly rather than being
-                forced left to right. Same reason the email does it. */}
-            <p dir="auto" className="truncate text-sm font-medium leading-tight">
-              {group.full_name || group.username || "Creator"}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {group.counts.in_review} piece{group.counts.in_review === 1 ? "" : "s"}
-            </p>
-          </div>
-        </div>
-
-        {asking ? (
-          <div className="space-y-2">
-            <Textarea
-              autoFocus value={note} onChange={(e) => setNote(e.target.value)}
-              placeholder="What needs to change?"
-              className="min-h-[68px] resize-none text-sm"
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" size="sm"
-                      onClick={() => { setAsking(false); setNote("") }}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={() => act("changes")} disabled={busy || !note.trim()}>
-                {busy && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                Send
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-auto flex items-center gap-2">
-            <Button variant="outline" size="sm" className="flex-1 gap-1.5"
-                    onClick={() => setAsking(true)}>
-              <MessageSquareWarning className="h-3.5 w-3.5" /> Changes
-            </Button>
-            <Button size="sm" className="flex-1 gap-1.5"
-                    onClick={() => act("approve")} disabled={busy}>
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    : <Check className="h-3.5 w-3.5" />}
-              Approve
-            </Button>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 export function ContentAwaitingPanel({
   focus, onChanged,
 }: { focus: ContentFocus | null; onChanged: () => void }) {
+  const router = useRouter()
   const [player, setPlayer] = useState<{ items: ContentItem[]; index: number } | null>(null)
+
+  // Every waiting piece, flattened, because the strip is a sample of the work rather than a
+  // roster of the people. Who made what is answered on the page the button opens.
+  const all = useMemo(
+    () => (focus?.creators ?? []).flatMap((c) => c.items),
+    [focus],
+  )
 
   // No content waiting is not an empty state to be drawn, it is a section that does not
   // exist. Same rule as everywhere else in this product.
   if (!focus || !focus.creators.length) return null
 
+  const href = `/campaigns/${focus.campaign_id}/content`
+  const people = focus.creators.length
+  const shown = all.slice(0, 6)
+  const more = all.length - shown.length
+
   return (
     <Card>
-      <CardHeader className="flex-row flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <CardTitle>Content ready for approval</CardTitle>
-          <CardDescription>
-            {focus.waiting} piece{focus.waiting === 1 ? "" : "s"} on {focus.campaign_name}.
-            Watch it here, then approve it or tell us what to change.
-          </CardDescription>
-        </div>
-        <Link href={`/campaigns/${focus.campaign_id}/content`}
-              className="inline-flex shrink-0 items-center gap-1.5 text-sm text-primary
-                         hover:underline">
-          See all content <ArrowRight className="h-3.5 w-3.5" />
-        </Link>
+      <CardHeader>
+        <CardTitle>Content ready for approval</CardTitle>
+        <CardDescription>
+          {focus.waiting} piece{focus.waiting === 1 ? "" : "s"} from {people}{" "}
+          creator{people === 1 ? "" : "s"} on {focus.campaign_name}.
+        </CardDescription>
       </CardHeader>
 
-      <CardContent>
-        {/* Three across on a laptop. The tiles are the same shape every time, so a client
-            with seven creators waiting sees seven decisions rather than the top of a list. */}
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {focus.creators.map((g) => (
-            <CreatorTile
-              key={g.campaign_creator_id}
-              group={g}
-              campaignId={focus.campaign_id}
-              onOpen={(items, i) => setPlayer({ items, index: i })}
-              onDone={onChanged}
-            />
-          ))}
+      <CardContent className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          {/* Who it is from: faces, overlapped, the way every product shows a small group. */}
+          <div className="flex -space-x-2">
+            {focus.creators.slice(0, 4).map((c) => (
+              <Avatar key={c.campaign_creator_id} className="h-7 w-7 ring-2 ring-card">
+                <AvatarImage src={c.avatar ?? undefined} alt="" />
+                <AvatarFallback className="text-[10px]">
+                  {initials(c.full_name, c.username)}
+                </AvatarFallback>
+              </Avatar>
+            ))}
+            {people > 4 && (
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-muted text-[10px]
+                               font-medium tabular-nums ring-2 ring-card">
+                +{people - 4}
+              </span>
+            )}
+          </div>
+
+          {/* A sample of the work, small. These are for recognising that something is there,
+              not for judging it: judging happens at full size behind the button. */}
+          <div className="flex items-center gap-1.5">
+            {shown.map((it, i) => (
+              <button
+                key={it.id}
+                type="button"
+                onClick={() => setPlayer({ items: all, index: i })}
+                aria-label="Watch this"
+                className={cn(
+                  "group relative isolate h-12 w-12 shrink-0 overflow-hidden rounded-md",
+                  "bg-muted ring-1 ring-border transition hover:ring-foreground/25",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                )}
+              >
+                {it.poster_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={it.poster_url} alt="" loading="lazy"
+                       className="absolute inset-0 h-full w-full object-cover" />
+                )}
+                {isVideo(it.media_type) && (
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <Play className="h-3 w-3 fill-white text-white drop-shadow" />
+                  </span>
+                )}
+              </button>
+            ))}
+            {more > 0 && (
+              <span className="text-xs tabular-nums text-muted-foreground">+{more}</span>
+            )}
+          </div>
         </div>
+
+        {/* One action, at the size an action should be. This was a small text link while the
+            thumbnails beside it were the biggest thing on the page. */}
+        <Button onClick={() => router.push(href)} className="gap-1.5">
+          Review content <ArrowRight className="h-4 w-4" />
+        </Button>
       </CardContent>
 
       {player && (

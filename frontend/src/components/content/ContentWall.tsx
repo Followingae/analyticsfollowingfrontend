@@ -372,14 +372,16 @@ export function ContentWall({
 
   return (
     <div className="space-y-10">
-      {/* The count that matters, said once, in words. */}
+      {/* The count, and nothing round it. This used to read "22 pieces waiting for you to
+          look at." - a sentence explaining to somebody, on the screen they deliberately
+          opened, that there is content on it. The number is the information; the rest was
+          the interface talking about itself. */}
       {wall.totals.awaiting_client > 0 && (
-        <p className="text-[15px]">
-          {side === "brand"
-            ? <><span className="font-medium">{wall.totals.awaiting_client} piece
-                {wall.totals.awaiting_client === 1 ? "" : "s"}</span> waiting for you to look at.</>
-            : <><span className="font-medium">{wall.totals.awaiting_client} piece
-                {wall.totals.awaiting_client === 1 ? "" : "s"}</span> with the client.</>}
+        <p className="text-sm text-muted-foreground">
+          <span className="font-medium text-foreground tabular-nums">
+            {wall.totals.awaiting_client}
+          </span>{" "}
+          {side === "brand" ? "to review" : "with the client"}
         </p>
       )}
 
@@ -389,7 +391,7 @@ export function ContentWall({
           <p className="text-[15px]">Nothing here yet</p>
           <p className="mx-auto mt-2 max-w-md text-[13.5px] text-muted-foreground">
             {side === "brand"
-              ? "Content will appear here as your creators deliver it, and we will email you when there is something to look at."
+              ? "Content appears here as your creators deliver it. We will email you when there is something to review."
               : "No creators on this campaign yet."}
           </p>
         </div>

@@ -269,7 +269,7 @@ export function BrandDashboardContent() {
           </h1>
           <p className="max-w-[65ch] text-ds-body text-muted-foreground">
             {content?.awaiting_you
-              ? `You have ${content.awaiting_you} piece${content.awaiting_you === 1 ? '' : 's'} of content to look at.`
+              ? `${content.awaiting_you} piece${content.awaiting_you === 1 ? '' : 's'} of content to review.`
               : 'Here is where your campaigns and creators stand today.'}
           </p>
         </div>
