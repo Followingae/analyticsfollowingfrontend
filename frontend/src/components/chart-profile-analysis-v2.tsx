@@ -78,8 +78,14 @@ export function ChartProfileAnalysisV2() {
 
   return (
     <Card className="flex flex-col relative">
-      {/* Usage Badge */}
-      {!isLoading && usageData && (
+      {/* An uncapped plan has no allowance to reset, so the countdown was answering a
+          question nobody asked and implying a ceiling that does not exist. It is kept for
+          capped plans only.
+          ⚠️ Still wrong even there: it counts to the first of the calendar month, while
+          billing runs from each customer's subscription anniversary. The real reset date is
+          not sent to the client today, and inventing one is what this whole pass is about,
+          so it stays as it is until the server returns it. */}
+      {!isLoading && usageData && !uncapped && (
         <Badge 
           variant="outline" 
           className="absolute top-3 right-3 z-20 text-xs text-muted-foreground border-border bg-muted/30"

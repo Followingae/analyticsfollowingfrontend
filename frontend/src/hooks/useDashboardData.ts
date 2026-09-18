@@ -61,24 +61,18 @@ export const useDashboardData = () => {
             console.error('Dashboard context fallback failed:', ctxError)
           }
 
-          // Both endpoints failed — use hardcoded Free tier as last resort
-
-          return {
-            team_name: 'Personal Account',
-            user_role: 'owner',
-            subscription_tier: 'free',
-            subscription_status: 'active',
-            monthly_limits: { profiles: 5, posts: 0 },
-            current_usage: { profiles: 0, posts: 0 },
-            remaining_capacity: { profiles: 5, posts: 0 },
-            user_permissions: {
-              can_analyze_profiles: true,
-              can_analyze_posts: false,
-              can_manage_team: false,
-              can_invite_members: false,
-              can_view_billing: false
-            }
-          }
+          // Both endpoints failed. This used to invent a Free tier here: 'Personal Account',
+          // five profiles, posts switched off. A Premium customer whose team lookup happened
+          // to fail was therefore shown, on their own dashboard, as being on the free plan
+          // with no way to tell it was a failure rather than the truth. Downgrading someone
+          // in the interface because a request failed is the worst of the fabricated-zero
+          // family: it is a fabricated fact about what they are paying for.
+          //
+          // null is already the shape this query returns when it cannot answer (see the
+          // 401/403 branch above), so callers handle it: they show unknown rather than a
+          // number nobody can stand behind.
+          console.error('Teams overview and context both failed; reporting unknown, not free')
+          return null
         }
 
         throw new Error(`Failed to fetch teams overview: ${response.statusText}`)
