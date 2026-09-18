@@ -45,6 +45,7 @@ import { ShareCenterCard } from "@/components/brand/ShareCenterCard"
 import { ContentAwaitingPanel } from "@/components/brand/ContentAwaitingPanel"
 import { brandProposalViewApi } from "@/services/adminProposalMasterApi"
 import { cn } from "@/lib/utils"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 /** The card surface the dials already carry, so the figures beside them match. */
 const CARD_SURFACE = 'rounded-[var(--radius-card,16px)] border bg-card'
@@ -295,29 +296,45 @@ export function BrandDashboardContent() {
         </div>
       </header>
 
-      {/* The analytics cards. First thing under the welcome, because they are the two
-          standing facts about this account - how many creators it has ever opened, and what
-          it is on. Everything below them is this cycle's movement. */}
-      <div className="grid grid-cols-1 gap-ds-3 sm:grid-cols-2">
-        <div className={cn(CARD_SURFACE, 'flex flex-col justify-center gap-ds-1 p-ds-4')}>
-          <Stat
-            label="Creators unlocked, all time"
-            value={unlockedProfilesCount}
-            hint="Everyone your team has ever opened"
-            href="/creators"
-            loading={profilesLoading}
-            error={!!profilesError}
-          />
-        </div>
-        <div className={cn(CARD_SURFACE, 'flex flex-col justify-center gap-ds-1 p-ds-4')}>
-          <Stat
-            label="Your plan"
-            value={tierValue ?? UNKNOWN}
-            hint="Seats, unlocks and credits"
-            href="/billing"
-            loading={userStoreLoading || teamsLoading}
-          />
-        </div>
+      {/* The analytics cards, in the shape shadcn draws them: the label small above, the
+          figure big, one line of meaning under it. They were a Stat block inside a padded
+          box of my own, which is how two figures became two tall panels with an inch of air
+          around each. A card is sized by its content. */}
+      <div className="grid grid-cols-1 gap-ds-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => router.push('/creators')}
+          onKeyDown={(e) => { if (e.key === 'Enter') router.push('/creators') }}
+          className="cursor-pointer transition-colors hover:border-primary/40"
+        >
+          <CardHeader className="gap-1 pb-3">
+            <CardDescription>Creators unlocked, all time</CardDescription>
+            <CardTitle className="text-3xl font-semibold tabular-nums">
+              {profilesLoading ? UNKNOWN : (profilesError ? UNKNOWN : unlockedProfilesCount)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-xs text-muted-foreground">Everyone your team has ever opened</p>
+          </CardContent>
+        </Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => router.push('/billing')}
+          onKeyDown={(e) => { if (e.key === 'Enter') router.push('/billing') }}
+          className="cursor-pointer transition-colors hover:border-primary/40"
+        >
+          <CardHeader className="gap-1 pb-3">
+            <CardDescription>Your plan</CardDescription>
+            <CardTitle className="text-3xl font-semibold">
+              {(userStoreLoading || teamsLoading) ? UNKNOWN : (tierValue ?? UNKNOWN)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <p className="text-xs text-muted-foreground">Seats, unlocks and credits</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* The "what is waiting" band is gone, by decision: the two analytics cards below are
