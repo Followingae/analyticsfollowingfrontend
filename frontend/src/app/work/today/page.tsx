@@ -39,6 +39,7 @@ import Link from 'next/link'
 import type { ColumnDef } from '@tanstack/react-table'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { FlowRail } from '@/components/console/FlowRail'
+import { WaitingOnYou } from '@/components/console/WaitingOnYou'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -286,82 +287,6 @@ export default function Today() {
     return v !== null && v !== undefined && v !== ''
   })
 
-  const waitingCols = useMemo<ColumnDef<Waiting, any>[]>(() => {
-    const cols: ColumnDef<Waiting, any>[] = [
-      {
-        id: 'what',
-        accessorKey: 'title',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="What" />,
-        cell: ({ row }) => {
-          const r = row.original
-          return r.href
-            ? <Link href={r.href} className="font-medium hover:underline">{r.title}</Link>
-            : <span className="font-medium">{r.title}</span>
-        },
-      },
-    ]
-    if (has(waiting, r => r.where)) cols.push({
-      id: 'where',
-      accessorKey: 'where',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Where" />,
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.where || ''}</span>,
-    })
-    if (has(waiting, r => r.of)) cols.push({
-      id: 'progress',
-      accessorFn: r => r.value ?? 0,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Found" />,
-      cell: ({ row }) => {
-        const r = row.original
-        return typeof r.of === 'number' && r.of > 0
-          ? <MiniBar value={r.value ?? 0} max={r.of} tone="info" />
-          : null
-      },
-    })
-    cols.push({
-      id: 'why',
-      accessorKey: 'reason',
-      header: 'Why it is stopped',
-      cell: ({ row }) => {
-        const r = row.original
-        return (
-          <span className="flex flex-wrap items-center gap-ds-2">
-            {r.stage_label && (
-              <Badge className={cn('whitespace-nowrap', TONE_BADGE[r.tone || 'neutral'])}>
-                {r.stage_label}
-              </Badge>
-            )}
-            <span className="text-muted-foreground">{r.reason}</span>
-          </span>
-        )
-      },
-    })
-    cols.push({
-      id: 'waiting',
-      accessorFn: r => r.age_days ?? 0,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Waiting" />,
-      cell: ({ row }) => (
-        <Age days={row.original.age_days ?? 0} urgency={row.original.urgency} />
-      ),
-    })
-    cols.push({
-      id: 'open',
-      header: '',
-      enableSorting: false,
-      cell: ({ row }) => {
-        const r = row.original
-        return (
-          <div className="flex items-center justify-end gap-1">
-            <Detail row={r} />
-            {r.href && (
-              <RoundButton icon={ArrowUpRight} label={`Open ${r.title}`}
-                           onClick={() => router.push(r.href!)} />
-            )}
-          </div>
-        )
-      },
-    })
-    return cols
-  }, [waiting, router])
 
   const movingCols = useMemo<ColumnDef<Flight, any>[]>(() => {
     const cols: ColumnDef<Flight, any>[] = [
@@ -534,19 +459,12 @@ export default function Today() {
             </h2>
           </div>
 
-          {waiting.length > 0 ? (
-            <DataTable
-              columns={waitingCols}
-              data={waiting}
-              hidePagination
-              emptyState="Nothing is waiting on you."
-            />
-          ) : (
-            <div className="flex flex-col items-center gap-ds-2 py-ds-6 text-center">
-              <CheckCircle2 className="h-8 w-8 text-[var(--tone-good-dot)]" />
-              <p className="text-ds-label">Nothing is waiting on you</p>
-            </div>
-          )}
+          {/* Grouped by the job rather than listed by the row. Eleven rows, seven of them
+              saying "Clear N creators" with the same sentence beside each, is one decision
+              drawn seven times — and reading seven rows to learn one fact is most of why
+              this screen felt like noise. Every original row is still here, inside its
+              card. */}
+          <WaitingOnYou items={waiting} />
         </section>
 
         {/* ── the rail ─────────────────────────────────────────────────────────────── */}
@@ -580,38 +498,11 @@ export default function Today() {
             </div>
           )}
 
-          {/* What is running without them, as a glance rather than a second table. The full
-              table is still one click away and nothing has been removed from it. */}
-          {moving.length > 0 && (
-            <div className="rounded-[var(--radius-card)] border bg-card p-ds-3
-                            shadow-[var(--shadow-card)]">
-              <div className="flex items-baseline justify-between gap-ds-2">
-                <p className="text-ds-label font-medium">Running without you</p>
-                <span className="text-ds-caption tabular-nums text-muted-foreground">
-                  {moving.length}
-                </span>
-              </div>
-              <ul className="mt-ds-2 divide-y">
-                {moving.slice(0, 6).map((r: any, i: number) => (
-                  <li key={`${r.title}-${i}`} className="flex items-start gap-ds-2 py-ds-2">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--tone-info-dot)]" />
-                    <div className="min-w-0 flex-1">
-                      {r.href
-                        ? <Link href={r.href} className="block truncate text-ds-label hover:underline">
-                            {r.title}
-                          </Link>
-                        : <span className="block truncate text-ds-label">{r.title}</span>}
-                      {(r.stage_label || r.reason) && (
-                        <span className="block truncate text-ds-caption text-muted-foreground">
-                          {r.stage_label || r.reason}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {/* "Running without you" used to be summarised here as well as listed in full
+              lower down, so the same heading appeared twice on one screen. The flow rail at
+              the top now answers "what is moving elsewhere" better than a six-row summary
+              did — with every stage and a number on each — so the summary goes and the full
+              table stays exactly as it was. */}
         </aside>
         </div>
 
