@@ -88,7 +88,10 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const [chosen, setChosen] = useState<Set<string>>(
     () => new Set(data.influencers.filter(c => c.selected_by_user && !c.locked).map(c => c.id)))
   const [strategy, setStrategy] = useState<Strategy>("mix")
-  const [sort, setSort] = useState<"rec" | "f" | "er" | "p">("rec")
+  /* Newest first by default: when we add creators to a live proposal the client's question
+     is "what's new since I last looked", and that answer should be the first row, not
+     somewhere down the wall. */
+  const [sort, setSort] = useState<"new" | "rec" | "f" | "er" | "p">("new")
   const [builtSig, setBuiltSig] = useState<string | null>(null)
   const [building, setBuilding] = useState(false)
   const [buildLog, setBuildLog] = useState<string[]>([])
@@ -219,7 +222,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
 
   const sorted = useMemo(() => {
     const list = [...creators]
-    if (sort === "f") list.sort((a, b) => (b.followers_count ?? 0) - (a.followers_count ?? 0))
+    // Older rows can predate added_at; priority_order climbs as creators are added, so it
+    // stands in for the timestamp rather than dropping them all to the bottom together.
+    const added = (c: BrandInfluencer) => (c.added_at ? Date.parse(c.added_at) : 0)
+    if (sort === "new") list.sort((a, b) => (added(b) - added(a)) || ((b.priority_order ?? 0) - (a.priority_order ?? 0)))
+    else if (sort === "f") list.sort((a, b) => (b.followers_count ?? 0) - (a.followers_count ?? 0))
     else if (sort === "er") list.sort((a, b) => (b.measured?.engagement_rate ?? b.engagement_rate ?? 0) - (a.measured?.engagement_rate ?? a.engagement_rate ?? 0))
     else if (sort === "p") list.sort((a, b) => creatorCost(b) - creatorCost(a))
     // The line-up floats to the top; anyone turned down sinks. Our own recommendations ride
@@ -538,6 +545,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
               <Select value={sort} onValueChange={(v: string) => setSort(v as typeof sort)}>
                 <SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="new">Latest added</SelectItem>
                   <SelectItem value="rec">Recommended</SelectItem>
                   <SelectItem value="f">Most followers</SelectItem>
                   <SelectItem value="er">Best engagement</SelectItem>
