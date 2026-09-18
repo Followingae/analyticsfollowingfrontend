@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+import { Skeleton } from "@/components/ui/skeleton"
 import { shortName } from "@/lib/destinations"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { API_CONFIG } from "@/config/api"
@@ -352,6 +353,23 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
             <SidebarGroupLabel>Personal</SidebarGroupLabel>
             <SidebarGroupContent>
               <NavMain items={overviewNamed} activeUrl={activeUrl} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Permissions arrive a beat after the first paint, and three of the five groups
+            return nothing until they do. The menu therefore rendered three items, then
+            tripled to as many as twenty-nine under the reader's hand: the page jumps, and
+            anyone tabbing through has their focus thrown off the element they were on.
+            Reserving the space costs nothing and keeps the menu still. */}
+        {accessLoading && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <div className="space-y-1.5 px-2 py-1.5" aria-hidden>
+                {Array.from({ length: 9 }).map((_, n) => (
+                  <Skeleton key={n} className="h-7 w-full rounded-md" />
+                ))}
+              </div>
             </SidebarGroupContent>
           </SidebarGroup>
         )}

@@ -59,6 +59,7 @@ import {
   Aed, KpiCard, KpiRow, MiniBar, PageHead, Ring, RoundButton, ScoreDot, StageBar, Stat,
   StatGrid, type Tone,
 } from '@/components/console/primitives'
+import { shortName } from '@/lib/destinations'
 import { cn } from '@/lib/utils'
 
 const greeting = () => {
@@ -128,34 +129,48 @@ const FLOWS: Record<string, { key: string; label: string }[]> = {
   ],
 }
 
-const PRIMARY: Record<string, { label: string; href: string }> = {
-  leadership: { label: 'Sign-offs', href: '/work/approvals' },
+/**
+ * The one action each role came here to do.
+ *
+ * `verb` only. The NOUN is never written here: it comes from `destinations.ts`, which is the
+ * single register of what each screen is called. This file used to carry its own names, and
+ * that is how one screen ended up with three: the sidebar said "Coverage" because it reads
+ * the register, while this page still said "Where we're thin" because it did not.
+ */
+const PRIMARY: Record<string, { verb?: string; href: string }> = {
+  leadership: { href: '/work/approvals' },
   // A talent manager had no primary action at all, on the one screen whose whole job for
   // them is finding people. Adding costs nothing, which is exactly why it should be here.
-  talent: { label: 'Add a creator', href: '/work/influencers?new=1' },
-  // The clients list holds no owner filter, so this opened everybody's book. Until it
-  // does, the label says what the destination actually is.
-  account: { label: 'Open the client list', href: '/work/clients' },
-  business_development: { label: 'Log a brand', href: '/work/brands?new=1' },
+  talent: { verb: 'Add', href: '/work/influencers?new=1' },
+  // The clients list holds no owner filter, so this opens everybody's book.
+  account: { href: '/work/clients' },
+  business_development: { verb: 'Add', href: '/work/brands?new=1' },
 }
 
+/**
+ * Shortcuts, carrying no names of their own.
+ *
+ * There is no `label` field on purpose: every one of these is drawn with `shortName(href)`,
+ * so a screen cannot be called one thing in the menu and another thing here. Adding a label
+ * back would be a type error, which is the point.
+ */
 const SHORTCUTS: {
-  key: string; label: string; href: string
+  key: string; href: string
   module?: AdminModule; scopes?: string[]
 }[] = [
-  { key: 'areas', label: 'Brand rosters', href: '/work/areas',
+  { key: 'areas', href: '/work/areas',
     scopes: ['leadership', 'talent', 'business_development'] },
-  { key: 'waiting-room', label: 'Needs a price', href: '/work/influencers/review',
+  { key: 'waiting-room', href: '/work/influencers/review',
     module: 'influencers', scopes: ['leadership', 'talent'] },
-  { key: 'proposals', label: 'Proposals', href: '/work/proposals', module: 'proposals' },
-  { key: 'campaigns', label: 'Campaigns', href: '/work/campaigns', module: 'campaigns' },
-  { key: 'brands', label: 'Brands', href: '/work/brands', module: 'clients' },
-  { key: 'approvals', label: 'Sign-offs', href: '/work/approvals', scopes: ['leadership'] },
-  { key: 'payables', label: 'Creator payments', href: '/work/payables',
+  { key: 'proposals', href: '/work/proposals', module: 'proposals' },
+  { key: 'campaigns', href: '/work/campaigns', module: 'campaigns' },
+  { key: 'brands', href: '/work/brands', module: 'clients' },
+  { key: 'approvals', href: '/work/approvals', scopes: ['leadership'] },
+  { key: 'payables', href: '/work/payables',
     module: 'influencers', scopes: ['leadership', 'talent'] },
-  { key: 'coverage', label: "Where we're thin", href: '/work/coverage',
+  { key: 'coverage', href: '/work/coverage',
     module: 'influencers', scopes: ['leadership', 'talent'] },
-  { key: 'screens', label: 'Office screens', href: '/work/system/displays',
+  { key: 'screens', href: '/work/system/displays',
     module: 'system', scopes: ['leadership'] },
 ]
 
@@ -425,7 +440,9 @@ export default function Today() {
                 {primary && (
                   <Button data-tour="today-add" className="rounded-ds-full"
                           onClick={() => router.push(primary.href)}>
-                    {primary.label}
+                    {primary.verb
+                      ? `${primary.verb} ${shortName(primary.href).toLowerCase()}`
+                      : shortName(primary.href)}
                   </Button>
                 )}
               </>
@@ -586,7 +603,7 @@ export default function Today() {
                 className="text-muted-foreground"
                 onClick={() => router.push(s.href)}
               >
-                {s.label}
+                {shortName(s.href)}
               </Button>
             ))}
           </div>
