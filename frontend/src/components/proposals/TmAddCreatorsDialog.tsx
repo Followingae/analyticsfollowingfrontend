@@ -216,7 +216,13 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
   const toggle = (c: Creator) => {
     // Nobody can be quoted without a sell price, so taking them would only produce a row
     // the builder has to delete again — and, until now, a toast blaming a duplicate.
-    if (c.sellable === false) {
+    //
+    // Except on a barter proposal, where nobody is being quoted at all: the creator is paid
+    // in product and the client is spending creator slots, not money. Half the people worth
+    // asking for a barter are exactly the ones nobody has priced, so the rule that protects
+    // a paid roster was emptying a barter one - and it did it by silently refusing the tick,
+    // which reads as a broken checkbox rather than as a rule.
+    if (!isBarter && c.sellable === false) {
       toast.error(`@${c.username} has no sell price yet`, {
         description: isLeadership
           ? "Use “Price them” on their row to set one."
@@ -327,8 +333,9 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
         <DialogHeader className="border-b p-5">
           <DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4" /> Add creators from the master database</DialogTitle>
           <DialogDescription>
-            Active creators only, and anyone already on this proposal is hidden. A creator with
-            no sell price yet is shown, and a founder can price them from their row.
+            {isBarter
+              ? "This proposal pays in product, so a sell price is not needed to take somebody. Anyone you add who has not agreed to the product stays off the client's roster until you mark them."
+              : "Active creators only, and anyone already on this proposal is hidden. A creator with no sell price yet is shown, and a founder can price them from their row."}
           </DialogDescription>
         </DialogHeader>
 
@@ -454,7 +461,10 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
                       </div>
                       {c.country && <Badge variant="secondary" className="shrink-0">{c.country}</Badge>}
                       {c.tier && <Badge variant="outline" className="shrink-0 capitalize">{c.tier}</Badge>}
-                      {c.sellable === false && (
+                      {/* A missing price is not a problem on a barter proposal, so it is
+                          not reported as one. Saying "No sell price" beside a creator we are
+                          about to send a hamper to is an answer to a question nobody asked. */}
+                      {!isBarter && c.sellable === false && (
                         <>
                           <Badge variant="outline" className="shrink-0 border-amber-400 text-amber-700 dark:text-amber-400">
                             No sell price

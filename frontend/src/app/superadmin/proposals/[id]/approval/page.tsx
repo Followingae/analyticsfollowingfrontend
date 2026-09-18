@@ -195,7 +195,21 @@ export default function ProposalApprovalPage() {
                 It lived only on the proposal record, which is not where anybody builds a
                 roster: the work happens here, so a deal bought as "three micro and one
                 nano a month" had nowhere on this page to say so. */}
-            {viewer.is_operator && <SellingMode proposalId={proposalId} />}
+            {/* A barter proposal is sold by the head and cannot be anything else: there is
+                no budget to pick against and no rates to band into tiers. Offering "by
+                budget" here would let one click flip it out of count mode and leave the
+                client with a budget bar on a deal that has no money in it. */}
+            {viewer.is_operator && !isBarterProposal && <SellingMode proposalId={proposalId} />}
+            {viewer.is_operator && isBarterProposal && (
+              <div className="rounded-lg border bg-card px-4 py-3 text-sm">
+                <span className="font-medium">Sold by the head.</span>{' '}
+                <span className="text-muted-foreground">
+                  The client picks
+                  {ws?.proposal?.creator_slots ? ` up to ${ws.proposal.creator_slots}` : ' a set number of'}
+                  {' '}creators and sees the product, not a price.
+                </span>
+              </div>
+            )}
 
             {viewer.is_operator && anyDiscounted && (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
