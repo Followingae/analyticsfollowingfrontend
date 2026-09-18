@@ -47,7 +47,7 @@ import { CreatorTile } from "./CreatorTile"
 import { SmartPickModal } from "./SmartPickModal"
 import { CreatorSheet } from "./CreatorSheet"
 import {
-  creatorCost, optimise, optimiseByPlaces, whyFor, STRATEGIES, type Strategy,
+  creatorCost, optimise, optimiseByPlaces, optimiseByCount, whyFor, STRATEGIES, type Strategy,
   modifierEligible, modifierExtra, lineEligible, tookModifier, type PriceModifier,
 } from "./optimiser"
 import type { ProposalSelection, RetainerMonth, TierRow } from "./types"
@@ -218,10 +218,14 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     let alive = true
     if (!live.length) { setRecommended([]); return }
     if (byTier) { setRecommended(optimiseByPlaces(live, selection.allowances ?? {}, costOf, strategy)); return }
+    /* Bought by the head: the allowance is a number of creators, so the line-up is simply
+       the strongest that many. Without this the button had nothing to call on a barter
+       proposal and silently did nothing. */
+    if (byCount) { setRecommended(optimiseByCount(live, slots ?? 0, strategy)); return }
     if (!showPricing) { setRecommended([]); return }
     optimise(live, spendable, strategy, undefined, 0).then(r => { if (alive) setRecommended(r.picks) })
     return () => { alive = false }
-  }, [live, spendable, strategy, showPricing, byTier, selection.allowances, costOf])
+  }, [live, spendable, strategy, showPricing, byTier, byCount, slots, selection.allowances, costOf])
   const recIds = useMemo(() => new Set(recommended.map(c => c.id)), [recommended])
 
   const sig = (ids: Set<string>, s: Strategy) => `${s}:${[...ids].sort().join(",")}`
@@ -383,15 +387,30 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     if (strong) await beat(`${strong} of them engage above what is typical at their size`)
     if (cats.length) await beat(`Covering ${cats.slice(0, 4).join(", ")}${cats.length > 4 ? " and more" : ""}`)
 
-    const r = await optimise(live, spendable, strategy, p => setTested({ n: p.tested, total: p.total, best: p.best, spend: p.spend }))
-    const ids = new Set(r.picks.map(c => c.id))
+    /* Which question this deal actually asks. A barter proposal has no budget, so the
+       budget optimiser was being handed a spendable of 0: it ran, picked nobody, and
+       reported "AED 0 of AED 0" - a button that looks broken because it answered a
+       question this client was never asked. */
+    let picks: BrandInfluencer[]
+    let closing: string
+    if (byCount) {
+      picks = optimiseByCount(live, slots ?? 0, strategy)
+      closing = slots
+        ? `Line-up of ${picks.length} of your ${slots} creators, strongest first`
+        : `Line-up of ${picks.length} creators, strongest first`
+    } else {
+      const r = await optimise(live, spendable, strategy, p => setTested({ n: p.tested, total: p.total, best: p.best, spend: p.spend }))
+      picks = r.picks
+      closing = `Best fit found: ${aed(r.spend)} of ${aed(spendable)}, ${aed(r.leftover)} unspent`
+    }
+    const ids = new Set(picks.map(c => c.id))
     /* Put on their screen, NOT written down as their answer. This used to autosave, so a
        client who tapped "Build my line-up" once and went away had sixteen creators
        recorded against them as chosen - our side showed those as selected while the
        client, who had picked nobody, saw nothing. The machine proposes; only a tick or a
        confirmation from them is an answer. */
     setChosen(ids); setBuiltSig(sig(ids, strategy))
-    setBuildLog(l => [...l, `Best fit found: ${aed(r.spend)} of ${aed(spendable)}, ${aed(r.leftover)} unspent`])
+    setBuildLog(l => [...l, closing])
     await new Promise(r2 => setTimeout(r2, 900))
     setBuilding(false)
   }

@@ -187,6 +187,30 @@ export async function optimise(
  * `costOf` is the server's resolved cost map, and a creator is only taken if what they
  * spend still fits in every band they draw from.
  */
+/**
+ * The strongest N, when N is the whole allowance.
+ *
+ * A barter proposal is bought by the head: "you may take eight creators", no budget and no
+ * bands. Both existing optimisers answer a different question - one fills a budget, the
+ * other fills per-tier places - so on a count deal "Build my line-up" had nothing to call
+ * and quietly did nothing, which reads as a broken button.
+ *
+ * Recommends only. What it returns is a suggestion the client may adopt, never a selection
+ * written on their behalf: autosaving the optimiser's picks as the client's own answer is a
+ * mistake this product has already made once.
+ */
+export function optimiseByCount(
+  pool: BrandInfluencer[],
+  slots: number,
+  strategy: Strategy,
+): BrandInfluencer[] {
+  const n = Math.trunc(Number(slots))
+  if (!Number.isFinite(n) || n <= 0) return []
+  const live = pool.filter(c => !c.declined_at && !c.locked)
+  const score = scorer(strategy, live)
+  return [...live].sort((a, b) => score(b) - score(a)).slice(0, n)
+}
+
 export function optimiseByPlaces(
   pool: BrandInfluencer[],
   allowances: Record<string, number>,
