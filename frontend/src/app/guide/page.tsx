@@ -162,6 +162,18 @@ const EXPLAINERS: Explainer[] = [
     ),
   },
   {
+    q: "Where do I see a creator's own Instagram insights?",
+    a: (
+      <>
+        Open the creator on a proposal. Where the creator has sent us screenshots of their own
+        Instagram insights, a Creator insights button sits under their name: it opens them full
+        screen, and you can flip through with the arrows, your keyboard or a swipe. These are
+        the creator&apos;s own numbers, shown exactly as they sent them, alongside what we
+        measured ourselves. Not every creator has them.
+      </>
+    ),
+  },
+  {
     q: 'Why can I not select a creator I like on a proposal?',
     a: (
       <>

@@ -260,6 +260,8 @@ export interface BrandInfluencer {
   categories: string[]
   tags: string[]
   tier?: string
+  /** Insights screenshots the creator sent us (CDN URLs, in order). Empty = no button. */
+  direct_analytics?: string[]
   /** The band's display name, as this deal names it. */
   tier_label?: string
   /**

@@ -18,6 +18,7 @@ import { InfluencerAnalyticsTab } from "./InfluencerAnalyticsTab"
 import { InfluencerPricingTab } from "./InfluencerPricingTab"
 import { InfluencerPostsTab } from "./InfluencerPostsTab"
 import { InfluencerAccessTab } from "./InfluencerAccessTab"
+import { InfluencerInsightsTab } from "./InfluencerInsightsTab"
 import { useMoneyColumns } from "./useMoneyColumns"
 
 interface InfluencerDetailSheetProps {
@@ -97,6 +98,7 @@ export function InfluencerDetailSheet({
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             {showRates && <TabsTrigger value="pricing">Rates</TabsTrigger>}
             <TabsTrigger value="posts">Posts</TabsTrigger>
+            <TabsTrigger value="insights">Insights</TabsTrigger>
             <TabsTrigger value="access">Sharing</TabsTrigger>
           </TabsList>
 
@@ -125,6 +127,10 @@ export function InfluencerDetailSheet({
 
           <TabsContent value="posts" className="p-6 pt-ds-3">
             <InfluencerPostsTab influencer={influencer} />
+          </TabsContent>
+
+          <TabsContent value="insights" className="p-6 pt-ds-3">
+            <InfluencerInsightsTab influencer={influencer} />
           </TabsContent>
 
           <TabsContent value="access" className="p-6 pt-ds-3">

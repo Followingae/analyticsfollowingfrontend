@@ -89,8 +89,8 @@ const SECTIONS: Section[] = [
       {
         title: 'Creators & rates', href: '/work/influencers', icon: Users2,
         what: 'The master database: every creator we know, with our cost and our sell price per deliverable.',
-        why: 'This is where a creator becomes sellable. One with no sell price is held inactive and cannot be put on a quote at all. Tick several creators to tag them, set their rates, mark barter, or set their country (UAE, KSA, QAT, KWT, BHR, OMN) in one go.',
-        also: ['imd', 'master database', 'pricing', 'cost', 'country', 'bulk', 'gcc'],
+        why: 'This is where a creator becomes sellable. One with no sell price is held inactive and cannot be put on a quote at all. Tick several creators to tag them, set their rates, mark barter, or set their country (UAE, KSA, QAT, KWT, BHR, OMN) in one go. The Insights tab on a creator holds the screenshots of their own Instagram insights they send us: brands open them from that creator in any proposal, and a creator with none shows no button.',
+        also: ['imd', 'master database', 'pricing', 'cost', 'country', 'bulk', 'gcc', 'insights', 'screenshots', 'direct analytics'],
       },
       {
         title: 'Creators needing a price', href: '/work/influencers/review', icon: Coins,

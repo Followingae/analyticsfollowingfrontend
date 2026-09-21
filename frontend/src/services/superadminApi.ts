@@ -197,7 +197,12 @@ export class SuperadminApiService {
         let errorMessage = `Request failed with status ${response.status}`
         try {
           const errorData = await response.json()
-          errorMessage = errorData.detail || errorData.message || errorData.error || errorMessage
+          const raw = errorData.detail || errorData.message || errorData.error || errorMessage
+          // FastAPI 422s return detail as [{type, loc, msg, input}]; rendering that object
+          // in a toast crashed the whole page (React #31). Always hand back a string.
+          errorMessage = Array.isArray(raw)
+            ? raw.map((d: any) => d?.msg || JSON.stringify(d)).join('; ')
+            : typeof raw === 'string' ? raw : JSON.stringify(raw)
         } catch (parseError) {
           console.error('Failed to parse superadmin API error response:', parseError)
           const errorText = await response.text().catch(() => '')
@@ -302,9 +307,11 @@ export class SuperadminApiService {
 
   // Backend: POST /api/superadmin/users/{user_id}/status
   async updateUserStatus(userId: string, status: string): Promise<ApiResponse<any>> {
-    return this.makeRequest(`/api/superadmin/users/${userId}/status`, {
-      method: 'POST',
-      body: JSON.stringify({ status })
+    // The backend reads new_status from the query string, not the body (a JSON body 422'd),
+    // and knows the "deactivated" option as "inactive".
+    const newStatus = status === 'deactivated' ? 'inactive' : status
+    return this.makeRequest(`/api/superadmin/users/${userId}/status?new_status=${encodeURIComponent(newStatus)}`, {
+      method: 'POST'
     })
   }
 

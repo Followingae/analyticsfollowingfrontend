@@ -13,7 +13,10 @@
  */
 import {
   Instagram, Heart, Users, Eye, MessageCircle, CalendarDays, Clock, BarChart3, Check, Plus, Star, TriangleAlert,
+  ChevronRight,
 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { ScreenshotLightbox } from "@/components/ScreenshotLightbox"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -44,8 +47,11 @@ export function CreatorSheet({
   onToggle: (c: BrandInfluencer) => void
   onOpenChange: (open: boolean) => void
 }) {
+  const [insightsOpen, setInsightsOpen] = useState(false)
+  useEffect(() => { setInsightsOpen(false) }, [c?.id])
   if (!c) return null
   const m = c.measured
+  const insights = c.direct_analytics ?? []
   const why = whyFor(c, pool)
   const er = m?.engagement_rate ?? c.engagement_rate
   const byFormat = Object.entries(m?.by_content_type ?? {})
@@ -112,6 +118,35 @@ export function CreatorSheet({
             )}
             {m?.category && <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground">{m.category}</span>}
           </div>
+
+          {/* Screenshots of their own Instagram insights, sent to us by the creator. Only
+              there when we have some: no screenshots, no button. */}
+          {insights.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setInsightsOpen(true)}
+              className="group flex w-full items-center gap-3.5 rounded-2xl border bg-card p-3 text-left transition hover:border-foreground/20 hover:bg-muted/40"
+            >
+              <span className="relative h-14 w-[4.5rem] shrink-0">
+                {insights.slice(0, 3).map((src, i) => (
+                  <img
+                    key={src}
+                    src={src}
+                    alt=""
+                    style={{ left: i * 14, zIndex: 3 - i, transform: `rotate(${(i - 1) * 5}deg)` }}
+                    className="absolute top-0 h-14 w-10 rounded-md border-2 border-background object-cover object-top shadow-sm transition group-hover:-translate-y-0.5"
+                  />
+                ))}
+              </span>
+              <span className="min-w-0 flex-1">
+                <b className="block text-[14px] font-bold tracking-[-0.01em]">Creator insights</b>
+                <span className="block text-xs text-muted-foreground">
+                  {insights.length} screenshot{insights.length === 1 ? "" : "s"} from their own Instagram
+                </span>
+              </span>
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
+            </button>
+          )}
 
           <div className="flex overflow-hidden rounded-2xl border bg-muted/40">
             <div className="flex-1 p-3.5 text-center">
@@ -253,6 +288,13 @@ export function CreatorSheet({
           )}
         </div>
       </SheetContent>
+      <ScreenshotLightbox
+        images={insights}
+        open={insightsOpen}
+        onOpenChange={setInsightsOpen}
+        title={`${c.full_name || `@${c.username}`}: insights`}
+        subtitle="Screenshots from the creator's own Instagram"
+      />
     </Sheet>
   )
 }
