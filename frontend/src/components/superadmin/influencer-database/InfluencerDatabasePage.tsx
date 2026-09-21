@@ -348,6 +348,34 @@ export function InfluencerDatabasePage() {
     }
   }, [selectedIds, fetchData])
 
+  /** Set the country everybody selected is open to work in. null clears it to "not set". */
+  const onBulkCountry = useCallback(async (country: string | null) => {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) {
+      toast.error("Select at least one creator")
+      return
+    }
+    setBulkBarterBusy(true)
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/admin/influencers/bulk-country`,
+        {
+          method: "POST",
+          headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({ influencer_ids: ids, country }),
+        },
+      )
+      if (!res.ok) throw new Error(await res.text())
+      const json = await res.json()
+      toast.success(json?.message || "Updated")
+      fetchData()
+    } catch {
+      toast.error("Could not update those creators")
+    } finally {
+      setBulkBarterBusy(false)
+    }
+  }, [selectedIds, fetchData])
+
   const onPageChange = useCallback((newPage: number) => {
     setFilters((prev) => ({ ...prev, page: newPage }))
   }, [])
@@ -520,6 +548,7 @@ export function InfluencerDatabasePage() {
           onBulkTagClick={onBulkTagClick}
           onBulkBarter={onBulkBarter}
           bulkBarterBusy={bulkBarterBusy}
+          onBulkCountry={onBulkCountry}
           onAddToListClick={() => setAddToListOpen(true)}
           onAddToProposalClick={() => setAddToProposalOpen(true)}
         />

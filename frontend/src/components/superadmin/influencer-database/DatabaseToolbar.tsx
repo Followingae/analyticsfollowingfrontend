@@ -45,6 +45,7 @@ interface DatabaseToolbarProps {
   /** Turn "takes barter" on or off for everybody selected. */
   onBulkBarter?: (accepts: boolean) => void
   bulkBarterBusy?: boolean
+  onBulkCountry?: (country: string | null) => void
   onAddToListClick?: () => void
   onAddToProposalClick?: () => void
 }
@@ -62,6 +63,7 @@ export function DatabaseToolbar({
   onBulkTagClick,
   onBulkBarter,
   bulkBarterBusy,
+  onBulkCountry,
   onAddToListClick,
   onAddToProposalClick,
 }: DatabaseToolbarProps) {
@@ -147,6 +149,7 @@ export function DatabaseToolbar({
           onTag={onBulkTagClick}
           onBarter={onBulkBarter}
           barterBusy={bulkBarterBusy}
+          onCountry={onBulkCountry}
           onPricing={onBulkPricingClick}
           onAddToList={onAddToListClick}
           onAddToProposal={onAddToProposalClick}
