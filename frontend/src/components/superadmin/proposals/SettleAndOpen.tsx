@@ -16,7 +16,7 @@
  * started working for.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Loader2, PlayCircle, Wallet } from 'lucide-react'
+import { CheckCircle2, Loader2, PlayCircle, Send, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { CreateEnrolmentDialog } from '@/components/enrolment/CreateEnrolmentDialog'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { cdnAvatar } from '@/lib/avatar'
@@ -66,6 +67,10 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [opening, setOpening] = useState(false)
+  /* Which creator's enrolment popup is open. A confirmed, priced creator can be papered
+     right here: the campaign is deliberately weeks away, and waiting for it to send the
+     agreement was the whole delay. */
+  const [enrolFor, setEnrolFor] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -145,6 +150,7 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
   const allTyped = live?.missing === 0
 
   return (
+    <>
     <Card className="border-primary/40">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
@@ -153,23 +159,26 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
         </CardTitle>
         <CardDescription>
           {state.total} creator{state.total === 1 ? ' is' : 's are'} booked. No campaign is open
-          yet. Record what we are paying each of them, then open it.
+          yet. Record what we are paying each of them. Once a cost is saved that creator can be
+          sent their enrolment link straight away, and the campaign opens when the budget is
+          spent.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-5">
         <div className="rounded-lg border">
-          <div className="grid grid-cols-[1fr_110px_130px_110px] gap-2 border-b bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="grid grid-cols-[1fr_110px_130px_110px_128px] gap-2 border-b bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             <span>Creator</span>
             <span className="text-right">We charge</span>
             <span className="text-right">We pay</span>
             <span className="text-right">Margin</span>
+            <span className="text-right">Paperwork</span>
           </div>
           {state.creators.map(c => {
             const typed = parseFloat(draft[c.id] ?? '')
             const m = Number.isFinite(typed) ? c.sell - typed : null
             return (
-              <div key={c.id} className="grid grid-cols-[1fr_110px_130px_110px] items-center gap-2 border-b px-3 py-2.5 last:border-b-0">
+              <div key={c.id} className="grid grid-cols-[1fr_110px_130px_110px_128px] items-center gap-2 border-b px-3 py-2.5 last:border-b-0">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <Avatar className="size-8">
                     <AvatarImage src={cdnAvatar(c.profile_image_url || undefined)} alt="" />
@@ -195,6 +204,19 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
                   m == null ? 'text-muted-foreground' : m < 0 ? 'text-destructive' : 'text-emerald-600')}>
                   {m == null ? '—' : aed(m)}
                 </span>
+                {/* Off the SAVED cost, never the box beside it. A number typed and not saved
+                    is not what the agreement would carry, and an enabled button there would
+                    promise a fee nobody has recorded. */}
+                {c.settled ? (
+                  <Button size="sm" variant="outline" className="h-8 justify-self-end"
+                    onClick={() => setEnrolFor(c.id)}>
+                    <Send className="mr-1.5 size-3.5" />Send link
+                  </Button>
+                ) : (
+                  <span className="text-right text-[11px] text-muted-foreground">
+                    cost first
+                  </span>
+                )}
               </div>
             )
           })}
@@ -239,5 +261,15 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
         </div>
       </CardContent>
     </Card>
+
+    {/* Reloading afterwards is what refreshes the costs the dialog reads back, and the
+        popup itself refuses a creator who already has a link open. */}
+    <CreateEnrolmentDialog
+      proposalInfluencerId={enrolFor}
+      open={!!enrolFor}
+      onOpenChange={(v) => { if (!v) setEnrolFor(null) }}
+      onCreated={() => { void load() }}
+    />
+    </>
   )
 }

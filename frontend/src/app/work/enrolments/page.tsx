@@ -29,10 +29,11 @@ import {
 } from "@/components/ui/alert-dialog"
 import {
   Loader2, Copy, Check, Download, ShieldCheck, X, ExternalLink, Search,
-  FileSignature, Clock, CircleAlert, CircleCheck, Banknote,
+  FileSignature, Clock, CircleAlert, CircleCheck, Banknote, Plus,
 } from "lucide-react"
 import { toast } from "sonner"
 import { enrolmentApi, type EnrolmentRow } from "@/services/enrolmentApi"
+import { DirectEnrolmentDialog } from "@/components/enrolment/DirectEnrolmentDialog"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 
 const money = (c?: number | null) =>
@@ -80,7 +81,11 @@ export default function EnrolmentsPageWrapper() {
 }
 
 function EnrolmentsPage() {
-  const { can } = useAdminAccess()
+  /* `canExport` is the same set of people the server calls leadership: operators plus the
+     CEO and co-founder. The server refuses either way; this only stops us showing a button
+     that would always come back 403. */
+  const { can, canExport: isLeadership } = useAdminAccess()
+  const [direct, setDirect] = useState(false)
   const [rows, setRows] = useState<EnrolmentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
@@ -165,7 +170,16 @@ function EnrolmentsPage() {
         </TableCell>
         <TableCell className="hidden md:table-cell">
           <div className="truncate text-sm">{r.campaign_display_name || "—"}</div>
-          <div className="truncate text-xs text-muted-foreground">{r.brand_display_name}</div>
+          <div className="truncate text-xs text-muted-foreground">
+            {r.brand_display_name}
+            {/* A direct link has no booking behind it, and until it is tagged its payments
+                sit outside every campaign money screen. Worth seeing from the list. */}
+            {r.purpose === "direct" && !r.campaign_id && (
+              <span className="ml-1.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium">
+                direct, untagged
+              </span>
+            )}
+          </div>
         </TableCell>
         <TableCell className="hidden lg:table-cell text-sm">{r.deliverables_summary || "—"}</TableCell>
         <TableCell className="text-sm tabular-nums">{money(r.fee_aed_cents)}</TableCell>
@@ -268,8 +282,17 @@ function EnrolmentsPage() {
           >
             <Download className="mr-2 h-4 w-4" /> Export
           </Button>
+          {/* Every other link on this screen was raised from a booking that already exists.
+              This is the one way to paper a creator with no proposal behind them. */}
+          {isLeadership && (
+            <Button onClick={() => setDirect(true)}>
+              <Plus className="mr-2 h-4 w-4" /> New link
+            </Button>
+          )}
         </div>
       </div>
+
+      <DirectEnrolmentDialog open={direct} onOpenChange={setDirect} onCreated={() => { void load() }} />
 
       {err && (
         <div className="mt-6 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">

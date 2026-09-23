@@ -135,7 +135,7 @@ const SECTIONS: Section[] = [
       {
         title: 'Enrolments', href: '/work/enrolments', icon: FileSignature,
         what: 'The paperwork after a client confirms a creator: the link they sign, the details they give us, and where their product goes.',
-        why: 'A creator only appears here once leadership has settled their cost. Raising the link, sending it and chasing it is yours.',
+        why: 'A creator only appears here once leadership has settled their cost. That is the only thing a link waits for, not the campaign: the moment a cost is saved on the confirmed proposal you can send the agreement, which is usually weeks before the campaign opens. Raising the link, sending it and chasing it is yours. New link is for a creator with no proposal at all, a direct or agency booking: leadership only, because the fee is typed rather than fetched, and it can be tagged to a campaign later so the payments join it.',
         also: ['agreement', 'sign', 'bank details', 'contract', 'inflink'],
       },
       {
@@ -381,9 +381,11 @@ export default function GuidePage() {
             </p>
             <p className="text-[15px] leading-relaxed text-muted-foreground">
               <strong className="text-foreground">A quote becomes a campaign only once the
-              client confirms and somebody settles the real costs.</strong> Between those two
-              moments a creator is agreed but not yet enrolled, which is why half a confirmed
-              roster can have no campaign row and no enrolment link yet.
+              client confirms, somebody settles the real costs, and the budget is spent or
+              close.</strong> The client can keep coming back for more creators in the
+              meantime, which is why half a confirmed roster can have no campaign row against
+              it. Paperwork does not wait for that: once a creator&rsquo;s cost is saved they can
+              be sent their enrolment link, and the links join the campaign when it opens.
             </p>
           </section>
         )}

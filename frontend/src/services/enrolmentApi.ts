@@ -35,6 +35,9 @@ export interface EnrolmentRow {
   reported_at?: string | null
   talent_name?: string | null
   created_by_name?: string | null
+  /** 'proposal', 'mor', or 'direct' for one raised with no booking behind it. */
+  purpose?: string | null
+  campaign_id?: string | null
   completed_at?: string | null
   signed_at?: string | null
   email_verified_at?: string | null
@@ -208,6 +211,29 @@ export const enrolmentApi = {
     call<{ id: string; token: string; status: EnrolmentStatus; url: string }>('', {
       method: 'POST', body: JSON.stringify(body),
     }),
+
+  /**
+   * A link with no proposal behind it. Leadership only, because the fee is typed rather
+   * than fetched, and the person typing it is the person entitled to decide it.
+   */
+  createDirect: (body: Record<string, unknown>) =>
+    call<{
+      id: string; token: string; status: EnrolmentStatus; url: string
+      creator_handle?: string | null
+      other_open_links?: { id: string; status: EnrolmentStatus; campaign?: string | null }[]
+    }>('/direct', { method: 'POST', body: JSON.stringify(body) }),
+
+  /** Campaigns a direct link can be tagged onto. Its own lookup: the campaigns list is
+   *  scoped to the team that owns each one and would hide the ones being tagged. */
+  attachableCampaigns: (q?: string) =>
+    call<{ id: string; name: string; brand?: string | null; client?: string | null
+           has_proposal: boolean }[]>(
+      `/attach/campaigns${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+
+  /** Tag a direct link onto a campaign or proposal afterwards, moving its payments with it. */
+  attach: (id: string, body: { campaign_id?: string | null; proposal_id?: string | null }) =>
+    call<{ campaign_id?: string | null; proposal_id?: string | null; payments_moved: number }>(
+      `/${id}/attach`, { method: 'POST', body: JSON.stringify(body) }),
 
   bulkCreate: (campaignId: string, body?: { assigned_talent_id?: string | null; product_sent?: boolean }) =>
     call<BulkResult>(`/campaigns/${campaignId}/bulk`, {

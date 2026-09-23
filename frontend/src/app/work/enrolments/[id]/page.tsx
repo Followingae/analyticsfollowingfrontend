@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
   Loader2, ArrowLeft, Download, FileSignature, ShieldCheck, Copy, Check,
-  CircleAlert, Mail, MapPin, Landmark, User, Clock,
+  CircleAlert, Mail, MapPin, Landmark, User, Clock, Link2 as LinkIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 import { enrolmentApi, type EnrolmentDetail } from "@/services/enrolmentApi"
@@ -43,6 +43,10 @@ const at = (iso?: unknown) => {
 
 const s = (v: unknown) => (v == null || v === "" ? "—" : String(v))
 
+type AttachableCampaign = {
+  id: string; name: string; brand?: string | null; client?: string | null
+}
+
 export default function DetailWrapper() {
   return <AuthGuard><SuperAdminInterface><Detail /></SuperAdminInterface></AuthGuard>
 }
@@ -58,6 +62,12 @@ function Detail() {
   const [holder, setHolder] = useState("")
   const [last4, setLast4] = useState("")
   const [confirming, setConfirming] = useState(false)
+
+  /* Tagging a direct link onto a campaign after the fact. */
+  const [campQ, setCampQ] = useState("")
+  const [camps, setCamps] = useState<AttachableCampaign[]>([])
+  const [chosen, setChosen] = useState<AttachableCampaign | null>(null)
+  const [attaching, setAttaching] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true); setErr(null)
@@ -85,6 +95,28 @@ function Detail() {
   const S = data.submission as Record<string, unknown>
   const bankStatus = String(S.bank_status || "")
   const needsPayee = !!S.bank_iban_present || (!!S.bank_last4 && bankStatus === "pending")
+
+  const searchCampaigns = async (term: string) => {
+    setChosen(null)
+    if (term.trim().length < 2) { setCamps([]); return }
+    try { setCamps(await enrolmentApi.attachableCampaigns(term.trim())) }
+    catch { setCamps([]) }
+  }
+
+  const attach = async () => {
+    if (!chosen) return
+    setAttaching(true)
+    try {
+      const res = await enrolmentApi.attach(id, { campaign_id: chosen.id })
+      toast.success(res.payments_moved
+        ? `Tagged. ${res.payments_moved} payment${res.payments_moved === 1 ? "" : "s"} moved onto the campaign.`
+        : "Tagged.")
+      setCampQ(""); setCamps([]); setChosen(null)
+      await load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not tag it.")
+    } finally { setAttaching(false) }
+  }
 
   const confirmPayee = async () => {
     setConfirming(true)
@@ -154,6 +186,54 @@ function Detail() {
           )}
         </div>
       </div>
+
+      {/* A link raised with no booking behind it. Said here because its payments sit outside
+          every campaign money screen until somebody tags it, which is easy to not notice. */}
+      {L.campaign_id == null && (
+        <div className="mt-6 rounded-2xl border p-5">
+          <div className="mb-1 flex items-center gap-2 text-sm font-semibold">
+            <LinkIcon className="h-4 w-4 text-muted-foreground" />
+            {String(L.purpose || "") === "direct"
+              ? "Raised directly, on no campaign"
+              : "Not on a campaign yet"}
+          </div>
+          <p className="mb-4 max-w-2xl text-sm text-muted-foreground">
+            {String(L.purpose || "") === "direct"
+              ? "Nothing is wrong with that, but what we owe this creator will not appear on any campaign's money screen until it is tagged. Tagging moves their payments with it."
+              : "The campaign for this proposal has not been opened yet. It will be tagged on its own the moment somebody opens it."}
+          </p>
+          {String(L.purpose || "") === "direct" && (
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="attach-camp">Campaign</Label>
+                <div className="flex gap-2">
+                  <Input id="attach-camp" value={campQ} className="w-72"
+                    placeholder="Search by campaign, brand or client"
+                    onChange={(e) => { setCampQ(e.target.value); void searchCampaigns(e.target.value) }} />
+                </div>
+                {camps.length > 0 && (
+                  <div className="max-h-44 w-72 overflow-y-auto rounded-lg border">
+                    {camps.map((c) => (
+                      <button key={c.id} type="button"
+                        onClick={() => { setChosen(c); setCamps([]); setCampQ(c.name) }}
+                        className="flex w-full flex-col items-start gap-0.5 border-b px-3 py-2 text-left last:border-0 hover:bg-muted/60">
+                        <span className="text-sm font-medium">{c.name}</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {c.client || c.brand || "No client"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button disabled={!chosen || attaching} onClick={attach}>
+                {attaching && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Tag to {chosen ? chosen.name : "a campaign"}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* The payee check, first because it is the thing blocking money. */}
       {bankStatus === "pending" && S.bank_last4 != null && (

@@ -8,8 +8,10 @@
  * because it is always about one creator you are already looking at, and sending somebody
  * to a separate screen to do it loses the row they came from.
  *
- * THE FEE IS NOT TYPED HERE. It is the negotiated cost leadership already settled on the
- * campaign's costs screen, shown read only with the name of whoever agreed it. Letting the
+ * THE FEE IS NOT TYPED HERE. It is the negotiated cost leadership already settled, on the
+ * confirmed proposal or on the campaign's costs screen once one is open, shown read only
+ * with the name of whoever agreed it. Both are the same number: opening a campaign copies
+ * the proposal's agreed cost onto the creator verbatim. Letting the
  * person sending the link retype it would put cost control back in the hands it was
  * deliberately taken out of, and the proposal's own quote is the WRONG number: on the live
  * Lago campaign the quote and the settled rate differ on most of the roster.
@@ -292,7 +294,8 @@ export function CreateEnrolmentDialog({
                 </div>
                 <p className="text-[11px] text-muted-foreground">
                   The negotiated cost{pre.fee_agreed_by_name ? `, settled by ${pre.fee_agreed_by_name}` : ""}.
-                  Change it on the campaign's costs screen, not here.
+                  Change it where it was settled, on the confirmed proposal or the campaign's
+                  costs screen, not here.
                 </p>
               </div>
               <div className="space-y-1.5">
