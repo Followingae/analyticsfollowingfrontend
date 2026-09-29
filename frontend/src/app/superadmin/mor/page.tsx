@@ -148,7 +148,7 @@ function Ops() {
 
           {waiting.transfer.length > 0 && (
             <Panel title={`${waiting.transfer.length} waiting on their transfer`}
-                   description="Invoiced. Watch the bank, then mark it in and the creators get their links."
+                   description="Invoiced. Watch the bank, then mark it in. Any already started early are marked, and their creators are contracted but cannot be paid."
                    flush>
               <OrderTable orders={waiting.transfer} onOpen={setOpen} />
             </Panel>
@@ -238,7 +238,16 @@ function OrderTable({ orders, onOpen, showStatus }: {
             <TableRow key={`${o.kind}-${o.id}`} className="cursor-pointer"
                       onClick={() => onOpen(o)}>
               <TableCell className="pl-6">
-                <div className="font-medium">{o.label || o.reference}</div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-medium">{o.label || o.reference}</span>
+                  {/* Contracted on the brand's word. Worth seeing from the list, because it
+                      is the one state where creators are working and we hold nothing. */}
+                  {o.advance_released_at && !o.receipt_attached_at && (
+                    <span className="rounded-full border px-1.5 py-0.5 text-[10px] font-medium">
+                      started early
+                    </span>
+                  )}
+                </div>
                 <div className="font-mono text-[11px] text-muted-foreground">{o.reference}</div>
               </TableCell>
               <TableCell className="text-muted-foreground">{o.client || '—'}</TableCell>
@@ -384,6 +393,9 @@ function OrderSheet({ order, onClose, onChange }: {
   const [invName, setInvName] = useState('')
   const [rcptUrl, setRcptUrl] = useState('')
   const [rcptName, setRcptName] = useState('')
+  const [advUrl, setAdvUrl] = useState('')
+  const [advName, setAdvName] = useState('')
+  const [advNote, setAdvNote] = useState('')
   const [uploading, setUploading] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -415,6 +427,28 @@ function OrderSheet({ order, onClose, onChange }: {
       setRcptUrl(r.data.url); setRcptName(r.data.name)
     } catch (e) { toast.error((e as Error).message) }
     finally { setUploading(false) }
+  }
+
+  const pickProof = async (file: File) => {
+    setUploading(true)
+    try {
+      const r = await morOpsApi.uploadAdvanceProof(order.kind, order.id, file)
+      setAdvUrl(r.data.url); setAdvName(r.data.name)
+    } catch (e) { toast.error((e as Error).message) }
+    finally { setUploading(false) }
+  }
+
+  const releaseEarly = async () => {
+    setBusy(true)
+    try {
+      const r = await morOpsApi.releaseEarly(order.kind, order.id, advUrl, advNote)
+      toast.success(
+        `${r.data.invited} of ${r.data.creators} ${r.data.creators === 1 ? 'creator' : 'creators'} invited`,
+        { description: 'The order still shows as owed to us until you mark the transfer in.' })
+      setAdvUrl(''); setAdvName(''); setAdvNote('')
+      onChange(); void load()
+    } catch (e) { toast.error((e as Error).message) }
+    finally { setBusy(false) }
   }
 
   useEffect(() => { void load() }, [load])
@@ -479,6 +513,48 @@ function OrderSheet({ order, onClose, onChange }: {
                   {busy && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}Attach and send
                 </Button>
               </div>
+            </section>
+          )}
+
+          {/* Starting the creators before the money lands. Offered only while the order is
+              still owed, and never again once it has been done. */}
+          {!order.receipt_attached_at && !detail?.order.advance_released_at && (
+            <section className="rounded-ds-lg border border-black/[0.08] p-4 dark:border-white/[0.1]">
+              <p className="text-ds-label">Start without the money</p>
+              <p className="mt-1 text-ds-body-sm text-muted-foreground">
+                For when the brand says the transfer is a day or two away. The creators get
+                their links now, so nobody is still doing paperwork when it lands. The order
+                stays owed to us, still wants the bank receipt, and nothing can be paid out
+                until you mark that in.
+              </p>
+              <div className="mt-ds-3 space-y-2">
+                <FilePick label="What the brand sent you" name={advName} busy={uploading}
+                          onPick={pickProof} id="mor-advance-file" />
+                <Input value={advNote} onChange={e => setAdvNote(e.target.value)}
+                       placeholder="Who told you, and when they said it will land" />
+                <Button size="sm" variant="outline"
+                        onClick={releaseEarly} disabled={busy || uploading || !advUrl}>
+                  {busy && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+                  Send the creators their links now
+                </Button>
+              </div>
+            </section>
+          )}
+
+          {detail?.order.advance_released_at && !order.receipt_attached_at && (
+            <section className="rounded-ds-lg border border-[var(--tone-warn-line)] bg-[var(--tone-warn-bg)] p-4">
+              <p className="text-ds-label">Started early, money still owed</p>
+              <p className="mt-1 text-ds-body-sm">
+                The creators have their links. {aedFromCents(order.total_cents)} has not
+                reached us, and nobody on this order can be paid until it does.
+                {detail.order.advance_note ? ` “${detail.order.advance_note}”` : ''}
+              </p>
+              {detail.order.advance_proof_url && (
+                <a href={detail.order.advance_proof_url} target="_blank" rel="noreferrer"
+                   className="mt-ds-2 inline-flex items-center gap-1.5 text-[12.5px] underline underline-offset-2">
+                  <FileText className="size-3.5" />What the brand sent
+                </a>
+              )}
             </section>
           )}
 

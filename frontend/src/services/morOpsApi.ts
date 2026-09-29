@@ -60,6 +60,8 @@ export interface MorOrder {
   invoice_number: string | null
   invoice_attached_at: string | null
   receipt_attached_at: string | null
+  /** Set when the creators were started on the brand's word, before the money landed. */
+  advance_released_at: string | null
   client: string | null
   creators: number
   paid: number
@@ -155,6 +157,8 @@ export interface MorOrderDetail {
     submitted_at: string | null
     invoice_file_url: string | null
     receipt_file_url: string | null
+    advance_proof_url: string | null
+    advance_note: string | null
     payment_method: string | null
     vat_rate: string | null
   }
@@ -190,6 +194,21 @@ export const morOpsApi = {
   /** The bank receipt, as a file. */
   uploadReceiptFile: (kind: OrderKind, id: string, file: File): Promise<{ data: { url: string; name: string } }> =>
     upload(`${BASE}/orders/${kind}/${id}/receipt-file`, file),
+
+  /** Whatever the brand sent to show their payment is on its way. */
+  uploadAdvanceProof: (kind: OrderKind, id: string, file: File): Promise<{ data: { url: string; name: string } }> =>
+    upload(`${BASE}/orders/${kind}/${id}/advance-file`, file),
+
+  /**
+   * Start the creator side before the brand's money lands.
+   *
+   * NOT funding. The order stays owed to us and still wants the bank receipt; this only
+   * contracts the creators early, and the payout run still refuses to pay them.
+   */
+  releaseEarly: (kind: OrderKind, id: string, proof_url: string, note: string) =>
+    jfetch(`${BASE}/orders/${kind}/${id}/release-early`, {
+      method: 'POST', body: JSON.stringify({ proof_url, note }),
+    }) as Promise<{ data: { released: boolean; creators: number; invited: number } }>,
 
   /** Record the QuickBooks invoice. This is what moves the brand off "being prepared". */
   attachInvoice: (kind: OrderKind, id: string, invoice_number: string, invoice_file_url: string) =>
