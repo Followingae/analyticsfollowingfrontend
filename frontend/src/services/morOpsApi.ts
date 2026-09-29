@@ -126,6 +126,12 @@ export interface MorOrderCreator {
   bank_holder: string | null
   bank_last4: string | null
   verified_email: string | null
+  /* Their link, so a creator who is not answering email can be sent it another way. Staff
+     only: the rule MoR is built on is that the BRAND never holds a token. */
+  link_id: string | null
+  token: string | null
+  invite_email: string | null
+  reported_at: string | null
   /* The money, per creator. An order for six creators is six fees, six commissions and six
      lines of VAT, and the invoice is typed out of them one by one. */
   our_fee_cents: number
@@ -247,6 +253,17 @@ export const morOpsApi = {
    * Who can be paid on this order right now, without their account numbers.
    * So the screen can offer "pay these nine" and show the same nine the file will contain.
    */
+  /**
+   * Send a creator their link again, optionally to a corrected address.
+   *
+   * The state this fixes is an invite that bounced, or one that went to an address the brand
+   * typed wrong. Without it the only remedy was somebody with database access.
+   */
+  resendInvite: (paymentId: string, email?: string): Promise<{ data: { sent: boolean; to: string } }> =>
+    jfetch(`${BASE}/payments/${paymentId}/resend-invite`, {
+      method: 'POST', body: JSON.stringify({ email: email || null }),
+    }),
+
   payable: (kind: OrderKind, id: string): Promise<{ data: MorPayable }> =>
     jfetch(`${BASE}/orders/${kind}/${id}/payable`),
 
