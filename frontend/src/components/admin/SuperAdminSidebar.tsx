@@ -194,6 +194,10 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       modules: ["influencers", "proposals"], scopes: ["leadership", "talent"] },
     { url: "/work/payables", icon: Banknote, badge: "payables",
       modules: ["influencers"], scopes: ["leadership", "talent"] },
+    // Merchant of record. It was reachable only as a tab inside the money hub, so the first
+    // real order sat for a day: nobody opens a screen they cannot see. Leadership only,
+    // because every action on it moves money.
+    { url: "/work/mor", icon: Receipt, modules: ["billing"], scopes: ["leadership"] },
     { url: "/work/money", icon: Wallet,
       modules: ["billing", "influencers"], scopes: ["leadership"] },
     { url: "/work/approvals", icon: ClipboardCheck, badge: "signoffs",

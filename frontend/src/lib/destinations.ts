@@ -151,6 +151,11 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Creator payments',
     hint: 'What we owe every creator',
   },
+  '/work/mor': {
+    short: 'Merchant of record',
+    full: 'Merchant of record',
+    hint: 'Brand orders we invoice, collect and pay out',
+  },
   '/work/money': {
     short: 'Finance',
     full: 'Finance',

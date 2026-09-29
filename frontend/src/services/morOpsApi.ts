@@ -29,6 +29,22 @@ async function jfetch(url: string, options: RequestInit = {}) {
   return res.json()
 }
 
+/**
+ * A multipart POST. `fetchWithAuth` must not set a Content-Type here: the browser writes it
+ * itself, including the boundary, and a hand-set header makes the body unparseable on the
+ * other end.
+ */
+async function upload(url: string, file: File) {
+  const body = new FormData()
+  body.append('file', file)
+  const res = await fetchWithAuth(url, { method: 'POST', body })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    throw new Error(err.detail || `That file did not upload (${res.status})`)
+  }
+  return res.json()
+}
+
 export type OrderKind = 'batch' | 'payment'
 
 export interface MorOrder {
@@ -108,6 +124,48 @@ export interface MorOrderCreator {
   bank_holder: string | null
   bank_last4: string | null
   verified_email: string | null
+  /* The money, per creator. An order for six creators is six fees, six commissions and six
+     lines of VAT, and the invoice is typed out of them one by one. */
+  our_fee_cents: number
+  our_fee_pct: string | number | null
+  fee_waived: boolean
+  vat_rate: string | number | null
+  vat_cents: number
+  total_cents: number
+  /* What they actually bought. */
+  deliverables: { what?: string; quantity?: number }[] | null
+  usage_terms: string | null
+  posting_dates: string | null
+  brand_notes: string | null
+}
+
+/** Who to invoice, from the client's own billing record. */
+export interface MorBilling {
+  trn?: string | null
+  legal_name?: string | null
+  invoice_address?: string | null
+  trade_licence_url?: string | null
+  trade_licence_name?: string | null
+  /** Fields the client never filled in. Chase them rather than invent a legal name. */
+  missing: string[]
+}
+
+export interface MorOrderDetail {
+  order: MorOrder & {
+    submitted_at: string | null
+    invoice_file_url: string | null
+    receipt_file_url: string | null
+    payment_method: string | null
+    vat_rate: string | null
+  }
+  money: {
+    creator_fees_cents: number
+    our_fee_cents: number
+    vat_cents: number
+    total_cents: number
+  }
+  billing: MorBilling
+  creators: MorOrderCreator[]
 }
 
 export const morOpsApi = {
@@ -115,6 +173,23 @@ export const morOpsApi = {
 
   creators: (kind: OrderKind, id: string): Promise<{ data: { creators: MorOrderCreator[] } }> =>
     jfetch(`${BASE}/orders/${kind}/${id}/creators`),
+
+  /** One order with everything the invoice has to be typed out of. */
+  detail: (kind: OrderKind, id: string): Promise<{ data: MorOrderDetail }> =>
+    jfetch(`${BASE}/orders/${kind}/${id}`),
+
+  /**
+   * Store the invoice PDF and hand back its url, which `attachInvoice` then records.
+   *
+   * Two steps on purpose: uploading a file is not the same as declaring the invoice ready,
+   * and it is the attach that tells the brand.
+   */
+  uploadInvoiceFile: (kind: OrderKind, id: string, file: File): Promise<{ data: { url: string; name: string } }> =>
+    upload(`${BASE}/orders/${kind}/${id}/invoice-file`, file),
+
+  /** The bank receipt, as a file. */
+  uploadReceiptFile: (kind: OrderKind, id: string, file: File): Promise<{ data: { url: string; name: string } }> =>
+    upload(`${BASE}/orders/${kind}/${id}/receipt-file`, file),
 
   /** Record the QuickBooks invoice. This is what moves the brand off "being prepared". */
   attachInvoice: (kind: OrderKind, id: string, invoice_number: string, invoice_file_url: string) =>

@@ -42,7 +42,8 @@ import {
 } from 'lucide-react'
 import {
   morOpsApi, aedFromCents,
-  type MorOpsOverview, type MorOrder, type MorOrderCreator, type MorPayable, type OrderKind,
+  type MorBilling, type MorOpsOverview, type MorOrder, type MorOrderCreator,
+  type MorOrderDetail, type MorPayable, type OrderKind,
 } from '@/services/morOpsApi'
 import { cn } from '@/lib/utils'
 
@@ -376,20 +377,45 @@ function PayButton({ id, name, onDone }: { id: string; name: string; onDone: () 
 function OrderSheet({ order, onClose, onChange }: {
   order: MorOrder; onClose: () => void; onChange: () => void
 }) {
-  const [creators, setCreators] = useState<MorOrderCreator[]>([])
+  const [detail, setDetail] = useState<MorOrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [invNo, setInvNo] = useState(order.invoice_number || '')
   const [invUrl, setInvUrl] = useState('')
+  const [invName, setInvName] = useState('')
   const [rcptUrl, setRcptUrl] = useState('')
+  const [rcptName, setRcptName] = useState('')
+  const [uploading, setUploading] = useState(false)
   const [busy, setBusy] = useState(false)
+
+  const creators = detail?.creators ?? []
 
   const load = useCallback(async () => {
     try {
-      const r = await morOpsApi.creators(order.kind as OrderKind, order.id)
-      setCreators(r.data.creators)
+      const r = await morOpsApi.detail(order.kind as OrderKind, order.id)
+      setDetail(r.data)
     } catch (e) { toast.error((e as Error).message) }
     finally { setLoading(false) }
   }, [order])
+
+  /* The file is stored first and recorded second, so a failed upload never leaves an order
+     claiming an invoice that does not exist. */
+  const pickInvoice = async (file: File) => {
+    setUploading(true)
+    try {
+      const r = await morOpsApi.uploadInvoiceFile(order.kind, order.id, file)
+      setInvUrl(r.data.url); setInvName(r.data.name)
+    } catch (e) { toast.error((e as Error).message) }
+    finally { setUploading(false) }
+  }
+
+  const pickReceipt = async (file: File) => {
+    setUploading(true)
+    try {
+      const r = await morOpsApi.uploadReceiptFile(order.kind, order.id, file)
+      setRcptUrl(r.data.url); setRcptName(r.data.name)
+    } catch (e) { toast.error((e as Error).message) }
+    finally { setUploading(false) }
+  }
 
   useEffect(() => { void load() }, [load])
 
@@ -427,20 +453,29 @@ function OrderSheet({ order, onClose, onChange }: {
         </SheetHeader>
 
         <div className="space-y-ds-4 px-4 pb-10">
+          {/* Who the invoice is made out to. It is the client's own billing record, and
+              raising an invoice against a half-finished one is how a legal name gets
+              invented, so what is missing is named rather than left blank. */}
+          {detail && <InvoiceTo billing={detail.billing} />}
+
+          {/* What we are charging, split the way the payout is split. One creator is one
+              line: their fee, our commission on it, the VAT, what the brand pays. */}
+          {detail && <MoneySplit detail={detail} />}
+
           {/* The two actions, in the order they happen. */}
           {!order.invoice_attached_at && (
             <section className="rounded-ds-lg border border-black/[0.08] p-4 dark:border-white/[0.1]">
               <p className="text-ds-label">Attach the invoice</p>
               <p className="mt-1 text-ds-body-sm text-muted-foreground">
-                Raise it in QuickBooks, then put the number and the PDF here. They are told the
-                moment you do.
+                Raise it in QuickBooks off the figures above, then put the number and the PDF
+                here. They are told the moment you do.
               </p>
               <div className="mt-ds-3 space-y-2">
                 <Input value={invNo} onChange={e => setInvNo(e.target.value)}
                        placeholder="Invoice number, e.g. INV-1042" />
-                <Input value={invUrl} onChange={e => setInvUrl(e.target.value)}
-                       placeholder="Link to the PDF" />
-                <Button size="sm" onClick={attach} disabled={busy || !invNo.trim() || !invUrl.trim()}>
+                <FilePick label="Choose the invoice PDF" name={invName} busy={uploading}
+                          onPick={pickInvoice} id="mor-invoice-file" />
+                <Button size="sm" onClick={attach} disabled={busy || uploading || !invNo.trim() || !invUrl}>
                   {busy && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}Attach and send
                 </Button>
               </div>
@@ -455,9 +490,9 @@ function OrderSheet({ order, onClose, onChange }: {
                 creator on this order their link. There is no undo.
               </p>
               <div className="mt-ds-3 space-y-2">
-                <Input value={rcptUrl} onChange={e => setRcptUrl(e.target.value)}
-                       placeholder="Link to the bank receipt" />
-                <Button size="sm" onClick={received} disabled={busy || !rcptUrl.trim()}>
+                <FilePick label="Choose the bank receipt" name={rcptName} busy={uploading}
+                          onPick={pickReceipt} id="mor-receipt-file" />
+                <Button size="sm" onClick={received} disabled={busy || uploading || !rcptUrl}>
                   {busy && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
                   Money is in, invite the creators
                 </Button>
@@ -639,6 +674,192 @@ function creatorStage(c: MorOrderCreator): { label: string; tone: string } {
   if (c.invite_failed_reason) return { label: 'We could not reach them', tone: 'text-[var(--tone-bad-ink)]' }
   if (c.invite_sent_at) return { label: 'Invited', tone: 'text-muted-foreground' }
   return { label: 'Not invited yet', tone: 'text-muted-foreground' }
+}
+
+/**
+ * Who the invoice is made out to.
+ *
+ * It is the client's own billing record, entered by them. An order whose client never
+ * finished that form cannot be invoiced correctly, and the failure mode is somebody here
+ * typing a legal name from memory, so the gaps are named rather than rendered as blanks.
+ */
+function InvoiceTo({ billing }: { billing: MorBilling }) {
+  const incomplete = billing.missing.length > 0
+  const label: Record<string, string> = {
+    trn: 'their TRN', legal_name: 'their legal name', invoice_address: 'their invoice address',
+  }
+  return (
+    <section className={cn(
+      'rounded-ds-lg border p-4',
+      incomplete
+        ? 'border-[var(--tone-warn-line)] bg-[var(--tone-warn-bg)]'
+        : 'border-black/[0.08] dark:border-white/[0.1]',
+    )}>
+      <p className="text-ds-label">Invoice to</p>
+      {incomplete ? (
+        <p className="mt-1 text-ds-body-sm">
+          They have not given us {billing.missing.map(k => label[k] || k).join(', ')}. Ask them
+          to finish their billing details before this is invoiced.
+        </p>
+      ) : null}
+      <dl className="mt-ds-3 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+        <Field k="Legal name" v={billing.legal_name} />
+        <Field k="TRN" v={billing.trn} mono />
+        <Field k="Address" v={billing.invoice_address} span />
+      </dl>
+      {billing.trade_licence_url && (
+        <a href={billing.trade_licence_url} target="_blank" rel="noreferrer"
+           className="mt-ds-3 inline-flex items-center gap-1.5 text-[12.5px] underline underline-offset-2">
+          <FileText className="size-3.5" />{billing.trade_licence_name || 'Trade licence'}
+        </a>
+      )}
+    </section>
+  )
+}
+
+function Field({ k, v, mono, span }: { k: string; v?: string | null; mono?: boolean; span?: boolean }) {
+  return (
+    <div className={span ? 'sm:col-span-2' : undefined}>
+      <dt className="text-[11.5px] text-muted-foreground">{k}</dt>
+      <dd className={cn('text-[13.5px]', mono && 'font-mono', !v && 'text-muted-foreground')}>
+        {v || 'not given'}
+      </dd>
+    </div>
+  )
+}
+
+/**
+ * What we are charging, split the way the payout is split.
+ *
+ * One creator is one line, because that is how the order was priced and how it will be paid:
+ * their fee, our commission on it, the VAT, and what the brand pays for them. An order for
+ * six creators showed a single total, which is not something anybody can raise an invoice
+ * from without opening the brand's own screen to see the parts.
+ */
+function MoneySplit({ detail }: { detail: MorOrderDetail }) {
+  const { creators, money } = detail
+  const many = creators.length > 1
+  return (
+    <section className="rounded-ds-lg border border-black/[0.08] dark:border-white/[0.1]">
+      <div className="flex items-baseline justify-between gap-3 px-4 pt-4">
+        <p className="text-ds-label">What we are charging</p>
+        <p className="text-[11.5px] text-muted-foreground">
+          {creators.length} {creators.length === 1 ? 'creator' : 'creators'}
+          {detail.order.vat_rate ? ` · VAT ${Math.round(Number(detail.order.vat_rate) * 100)}%` : ''}
+        </p>
+      </div>
+      <div className="mt-ds-3 overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="pl-4">Creator</TableHead>
+              <TableHead className="text-right">Their fee</TableHead>
+              <TableHead className="text-right">Our fee</TableHead>
+              <TableHead className="text-right">VAT</TableHead>
+              <TableHead className="pr-4 text-right">Brand pays</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {creators.map(c => (
+              <TableRow key={c.id}>
+                <TableCell className="pl-4">
+                  <span className="text-[13.5px] font-medium">{c.creator_name}</span>
+                  {c.creator_handle && (
+                    <span className="ml-1.5 text-[11.5px] text-muted-foreground">@{c.creator_handle}</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{aedFromCents(c.creator_fee_cents)}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {c.fee_waived
+                    ? <span className="text-muted-foreground">waived</span>
+                    : <>
+                        {aedFromCents(c.our_fee_cents)}
+                        {c.our_fee_pct != null && (
+                          <span className="ml-1 text-[11px] text-muted-foreground">
+                            {Number(c.our_fee_pct)}%
+                          </span>
+                        )}
+                      </>}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{aedFromCents(c.vat_cents)}</TableCell>
+                <TableCell className="pr-4 text-right font-medium tabular-nums">
+                  {aedFromCents(c.total_cents)}
+                </TableCell>
+              </TableRow>
+            ))}
+            {/* Only worth a totals row when there is more than one line to add up. */}
+            {many && (
+              <TableRow className="border-t-2">
+                <TableCell className="pl-4 text-[13.5px] font-semibold">Total</TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">
+                  {aedFromCents(money.creator_fees_cents)}
+                </TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">
+                  {aedFromCents(money.our_fee_cents)}
+                </TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">
+                  {aedFromCents(money.vat_cents)}
+                </TableCell>
+                <TableCell className="pr-4 text-right font-semibold tabular-nums">
+                  {aedFromCents(money.total_cents)}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* What they actually bought. It lived only on the brand's own screen. */}
+      {creators.some(c => (c.deliverables?.length || c.usage_terms || c.posting_dates)) && (
+        <div className="space-y-ds-3 border-t border-black/[0.06] px-4 py-ds-3 dark:border-white/[0.08]">
+          <p className="text-ds-label">What they ordered</p>
+          {creators.map(c => (
+            <div key={c.id} className="text-[12.5px] leading-relaxed text-muted-foreground">
+              {many && <span className="font-medium text-foreground">{c.creator_name}: </span>}
+              {(c.deliverables || []).map(d =>
+                `${d.quantity && d.quantity > 1 ? `${d.quantity} × ` : ''}${d.what || ''}`).join('; ')
+                || 'nothing written'}
+              {c.posting_dates && <> · posting {c.posting_dates}</>}
+              {c.usage_terms && <> · usage {c.usage_terms}</>}
+              {c.brand_notes && <div className="mt-0.5 italic">“{c.brand_notes}”</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+/**
+ * A file picker that uploads on selection.
+ *
+ * Both of these used to be "paste a link to the PDF", which quietly requires the operator to
+ * go and host a file somewhere first. Nobody does that, so orders sat un-invoiced while the
+ * brand watched a screen telling them their invoice was being prepared.
+ */
+function FilePick({ id, label, name, busy, onPick }: {
+  id: string; label: string; name: string; busy: boolean; onPick: (f: File) => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <input id={id} type="file" accept="application/pdf,image/*" className="sr-only"
+             onChange={e => { const f = e.target.files?.[0]; if (f) onPick(f) }} />
+      {/* `asChild` hands the styling to the label, and a label ignores `disabled`, so the
+          busy state has to stop the click itself or a second file can be picked mid-upload. */}
+      <Button asChild size="sm" variant="outline">
+        <label htmlFor={id}
+               className={cn('cursor-pointer', busy && 'pointer-events-none opacity-60')}>
+          {busy ? <Loader2 className="mr-1.5 size-3.5 animate-spin" /> : <FileText className="mr-1.5 size-3.5" />}
+          {label}
+        </label>
+      </Button>
+      {name && (
+        <span className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
+          <CheckCircle2 className="size-3.5 text-[var(--tone-good-ink)]" />{name}
+        </span>
+      )}
+    </div>
+  )
 }
 
 function CreatorRow({ c }: { c: MorOrderCreator }) {
