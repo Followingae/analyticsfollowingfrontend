@@ -277,6 +277,27 @@ function Action({ payment, paying, onPay }: {
  *
  * The agreement is no longer a step of its own. It happens inside the creator's enrolment,
  * and a brand does not need a milestone for a document they never touch. */
+/**
+ * Which of the two channels actually reached them.
+ *
+ * "We have emailed them" was said whether or not it arrived, and the brand is the only one
+ * who can correct a wrong address or number, so they are told what happened on each.
+ */
+function reached(e: NonNullable<MorPayment['enrolment']>): string {
+  const c = e.contact
+  if (!c) return 'We have emailed them.'
+  const ok: string[] = []
+  if (c.email_sent_at && !c.email_failed) ok.push('email')
+  if (c.whatsapp_sent_at && !c.whatsapp_failed) ok.push('WhatsApp')
+  if (ok.length === 2) return 'We have sent their link by email and WhatsApp.'
+  if (ok.length === 1) {
+    const failed = c.email_failed ? 'the email bounced'
+      : c.whatsapp_failed ? 'the WhatsApp did not go through' : null
+    return `We have sent their link by ${ok[0]}${failed ? `, and ${failed}` : ''}.`
+  }
+  return 'We could not reach them on the email or the number you gave us.'
+}
+
 function Stages({ payment }: { payment: MorPayment }) {
   const who = (payment.creator_name || 'They').split(' ')[0]
   const e = payment.enrolment
@@ -284,8 +305,8 @@ function Stages({ payment }: { payment: MorPayment }) {
   const middle = () => {
     if (!payment.funded_at) return `We contact ${who} the moment your payment clears.`
     if (!e || e.stage === 'not_started') return `We are setting ${who} up now.`
-    if (e.stage === 'undeliverable') return `We could not reach ${who}. Check the email you gave us.`
-    if (e.stage === 'invited') return `We have emailed ${who}. Give them a nudge if you speak.`
+    if (e.stage === 'undeliverable') return `We could not reach ${who}. Check the email and number you gave us.`
+    if (e.stage === 'invited') return `${reached(e)} Give them a nudge if you speak.`
     if (e.stage === 'opened') return `${who} has opened the link and is filling it in.`
     if (e.stage === 'signing') return `${who} has signed and is adding their bank details.`
     if (e.stage === 'checking') return `${who} is done. We are checking their details.`

@@ -132,6 +132,13 @@ export interface MorOrderCreator {
   token: string | null
   invite_email: string | null
   reported_at: string | null
+  /* The second channel. Separate from the email's state because the two genuinely differ:
+     an address can bounce while a number delivers. */
+  invite_whatsapp: string | null
+  whatsapp_sent_at: string | null
+  whatsapp_failed_reason: string | null
+  /** Twilio's verdict once the receipt lands: queued, sent, delivered, read, failed. */
+  whatsapp_status: string | null
   /* The money, per creator. An order for six creators is six fees, six commissions and six
      lines of VAT, and the invoice is typed out of them one by one. */
   our_fee_cents: number
@@ -259,7 +266,7 @@ export const morOpsApi = {
    * The state this fixes is an invite that bounced, or one that went to an address the brand
    * typed wrong. Without it the only remedy was somebody with database access.
    */
-  resendInvite: (paymentId: string, email?: string): Promise<{ data: { sent: boolean; to: string } }> =>
+  resendInvite: (paymentId: string, email?: string): Promise<{ data: { sent: boolean; whatsapp: boolean; to: string } }> =>
     jfetch(`${BASE}/payments/${paymentId}/resend-invite`, {
       method: 'POST', body: JSON.stringify({ email: email || null }),
     }),

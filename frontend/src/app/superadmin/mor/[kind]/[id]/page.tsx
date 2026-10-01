@@ -34,7 +34,7 @@ import { PageHead, Panel } from '@/components/console/primitives'
 import { toast } from 'sonner'
 import {
   AlertTriangle, ArrowLeft, Check, CheckCircle2, Copy, Download, FileText, Loader2,
-  Mail, RefreshCw, Send,
+  Mail, MessageCircle, RefreshCw, Send,
 } from 'lucide-react'
 import {
   morOpsApi, aedFromCents,
@@ -561,7 +561,11 @@ function CreatorCard({ c, onChange }: { c: MorOrderCreator; onChange: () => void
     setBusy(true)
     try {
       const r = await morOpsApi.resendInvite(c.id, email.trim() || undefined)
-      toast.success(`Sent to ${r.data.to}`)
+      /* Both channels are attempted and the toast says which actually went, because "sent"
+         over a WhatsApp that silently failed is the message that wastes a week. */
+      const went = [r.data.sent && 'email', r.data.whatsapp && 'WhatsApp'].filter(Boolean)
+      toast.success(went.length ? `Sent by ${went.join(' and ')}` : 'Nothing sent',
+                    { description: `${r.data.to}` })
       setEmail(''); onChange()
     } catch (e) { toast.error((e as Error).message) }
     finally { setBusy(false) }
@@ -604,21 +608,35 @@ function CreatorCard({ c, onChange }: { c: MorOrderCreator; onChange: () => void
         </Badge>
       </div>
 
-      {/* The email, which is the thing no screen used to show. */}
+      {/* How we have tried to reach them. Both channels, because an address that bounces and
+          a number that delivers are different facts and only one of them is a problem. */}
       <div className={cn(
         'rounded-ds-lg border p-3',
-        c.invite_failed_reason
+        c.invite_failed_reason && c.whatsapp_failed_reason
           ? 'border-[var(--tone-bad-line)] bg-[var(--tone-bad-bg)]'
           : 'border-black/[0.06] dark:border-white/[0.08]',
       )}>
         <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
           <Mail className="size-3.5 shrink-0 text-muted-foreground" />
           <span className="font-medium">{c.invite_email || c.creator_email || 'no address'}</span>
-          <span className="text-muted-foreground">
+          <span className={cn(c.invite_failed_reason ? 'text-[var(--tone-bad-ink)]' : 'text-muted-foreground')}>
             {c.invite_failed_reason
               ? `· did not send: ${c.invite_failed_reason}`
               : c.invite_sent_at
                 ? `· sent ${when(c.invite_sent_at)}`
+                : '· not sent yet'}
+          </span>
+        </div>
+        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[12.5px]">
+          <MessageCircle className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="font-medium">{c.invite_whatsapp || 'no WhatsApp number'}</span>
+          <span className={cn(c.whatsapp_failed_reason ? 'text-[var(--tone-bad-ink)]' : 'text-muted-foreground')}>
+            {c.whatsapp_failed_reason
+              ? `· did not send: ${c.whatsapp_failed_reason}`
+              : c.whatsapp_sent_at
+                /* Twilio's own verdict where we have it. "Sent" only means they accepted it,
+                   "delivered" means the phone has it, "read" means they opened it. */
+                ? `· ${c.whatsapp_status || 'sent'} ${when(c.whatsapp_sent_at)}`
                 : '· not sent yet'}
           </span>
         </div>

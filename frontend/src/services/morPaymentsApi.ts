@@ -138,6 +138,20 @@ export interface MorEnrolmentState {
   signed_at: string | null
   bank_given_at: string | null
   bank_confirmed: boolean
+  /**
+   * How we have tried to reach this creator, and whether it worked.
+   *
+   * The brand gave us the address and the number, so the brand is the one who can fix a
+   * wrong one. Until now they were told "we have emailed them" whether or not it arrived.
+   */
+  contact?: {
+    email_sent_at: string | null
+    email_failed: boolean
+    whatsapp_sent_at: string | null
+    whatsapp_failed: boolean
+    /** Twilio's verdict once the receipt lands: delivered, read, failed. */
+    whatsapp_status: string | null
+  } | null
 }
 
 export interface MorSummary {
