@@ -629,7 +629,12 @@ function CreatorCard({ c, onChange }: { c: MorOrderCreator; onChange: () => void
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[12.5px]">
           <MessageCircle className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="font-medium">{c.invite_whatsapp || 'no WhatsApp number'}</span>
+          {/* The number we messaged, falling back to the one on the order. `invite_whatsapp`
+              is only written once a message has gone, so reading it alone said "no WhatsApp
+              number" about a creator whose number we were holding all along. */}
+          <span className="font-medium">
+            {c.invite_whatsapp || c.creator_whatsapp || 'no WhatsApp number'}
+          </span>
           <span className={cn(c.whatsapp_failed_reason ? 'text-[var(--tone-bad-ink)]' : 'text-muted-foreground')}>
             {c.whatsapp_failed_reason
               ? `· did not send: ${c.whatsapp_failed_reason}`

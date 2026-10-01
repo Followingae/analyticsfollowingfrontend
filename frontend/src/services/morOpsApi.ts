@@ -135,6 +135,8 @@ export interface MorOrderCreator {
   /* The second channel. Separate from the email's state because the two genuinely differ:
      an address can bounce while a number delivers. */
   invite_whatsapp: string | null
+  /** The number on the order, which exists before any message has gone. */
+  creator_whatsapp: string | null
   whatsapp_sent_at: string | null
   whatsapp_failed_reason: string | null
   /** Twilio's verdict once the receipt lands: queued, sent, delivered, read, failed. */
