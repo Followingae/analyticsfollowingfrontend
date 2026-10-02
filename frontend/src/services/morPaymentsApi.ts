@@ -285,6 +285,35 @@ export interface MorDraftInput {
 }
 
 export const morPaymentsApi = {
+  /**
+   * The brand's copy of the agreement their creator signed.
+   *
+   * Fetched with the token and handed over as a blob rather than linked: the endpoint is
+   * authenticated, and a plain `<a href>` carries no Authorization header, so it would come
+   * back 401 and read to the user as a broken button.
+   *
+   * It is a redacted copy. The creator's mobile, date of birth, signing IP, device and drawn
+   * signature are not in it.
+   */
+  agreementPdf: async (paymentId: string) => {
+    const res = await fetchWithAuth(`${BASE}/payments/${paymentId}/agreement.pdf`)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }))
+      throw new Error(err.detail || 'That agreement could not be opened.')
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Agreement-${paymentId.slice(0, 8)}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    // Revoked on the next tick: revoking synchronously races the click in Safari and the
+    // download silently produces a zero byte file.
+    setTimeout(() => URL.revokeObjectURL(url), 2000)
+  },
+
   overview: (): Promise<{ data: MorOverview }> => jfetch(`${BASE}/overview`),
 
   quote: (creator_fee_aed: number | string): Promise<{ data: MorQuote }> =>
