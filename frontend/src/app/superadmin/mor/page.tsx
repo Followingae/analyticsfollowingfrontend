@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Merchant of Record, the operator's module.
+ * Creator Contracting, the operator's module.
  *
  * WHAT THIS REPLACES. Nothing. Every money action on MoR existed as an endpoint with no call
  * site anywhere in the app: marking a transfer received, releasing a payout, settling a name
@@ -40,7 +40,7 @@ import {
 } from 'lucide-react'
 import {
   morOpsApi, aedFromCents,
-  type MorOpsOverview, type MorOrder,
+  type MorOpsMoney, type MorOpsOverview, type MorOrder,
 } from '@/services/morOpsApi'
 import { cn } from '@/lib/utils'
 
@@ -86,7 +86,6 @@ function Ops() {
     }
   }, [data])
 
-  const m = data?.money
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-ds-5 p-ds-3 md:p-ds-4">
@@ -110,12 +109,12 @@ function Ops() {
       )}
 
       <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-3 xl:grid-cols-5">
-        <Stat icon={Wallet} label="Owed to us" value={m ? aedFromCents(m.owed_to_us) : '—'} />
-        <Stat icon={CheckCircle2} label="Received" value={m ? aedFromCents(m.received) : '—'} />
-        <Stat icon={Users} label="Owed to creators" value={m ? aedFromCents(m.owed_to_creators) : '—'} />
-        <Stat icon={Banknote} label="Paid out" value={m ? aedFromCents(m.paid_out) : '—'} />
-        {/* The only number in the product that says what MoR earns. */}
-        <Stat icon={Receipt} label="Our margin" value={m ? aedFromCents(m.our_margin) : '—'} />
+        <Stat icon={Wallet} label="Owed to us" value={<Figure data={data} k="owed_to_us" />} />
+        <Stat icon={CheckCircle2} label="Received" value={<Figure data={data} k="received" />} />
+        <Stat icon={Users} label="Owed to creators" value={<Figure data={data} k="owed_to_creators" />} />
+        <Stat icon={Banknote} label="Paid out" value={<Figure data={data} k="paid_out" />} />
+        {/* The only number in the product that says what creator contracting earns. */}
+        <Stat icon={Receipt} label="Our margin" value={<Figure data={data} k="our_margin" />} />
       </div>
 
       {loading && !data ? (
@@ -180,7 +179,7 @@ function Ops() {
                           {r.bank_holder} · ····{r.bank_last4}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          {aedFromCents(r.creator_fee_cents)}
+                          {aedFromCents(r.creator_fee_cents, r.currency)}
                         </TableCell>
                         <TableCell className="pr-6 text-right">
                           <PayButton id={r.id} name={r.creator_name || 'them'} onDone={load} />
@@ -211,6 +210,33 @@ const STATUS_TONE: Record<string, string> = {
   funded: 'bg-[var(--tone-info-wash)] text-[var(--tone-info-ink)]',
   paid: 'bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]',
 }
+
+/**
+ * One headline figure, in the currency or currencies it is actually in.
+ *
+ * ⚠️ THERE IS NO CROSS-CURRENCY TOTAL HERE, DELIBERATELY. These tiles used to print a single
+ * sum over every order in the module, which was correct only while everything was in
+ * dirhams. Adding dirham cents to dollar cents produces an integer that is money in neither,
+ * and the tile is read as a figure to act on. So the moment a second currency exists, each
+ * one gets its own line. Converting them into one number would need a rate, and a rate
+ * invented on a dashboard is a number somebody eventually invoices from.
+ */
+function Figure({ data, k }: { data: MorOpsOverview | null; k: keyof MorOpsMoney }) {
+  if (!data) return <>—</>
+  if (!data.money_mixed) return <>{aedFromCents(data.money[k], data.money_currency)}</>
+  const parts = data.money_split.filter(p => p[k])
+  if (!parts.length) return <>{aedFromCents(0, data.money_split[0]?.currency)}</>
+  return (
+    <span className="flex flex-col gap-0.5">
+      {parts.map(p => (
+        <span key={p.currency} className="text-xl leading-tight">
+          {aedFromCents(p[k], p.currency)}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 
 function OrderTable({ orders, onOpen, showStatus }: {
   orders: MorOrder[]; onOpen: (o: MorOrder) => void; showStatus?: boolean
@@ -253,7 +279,7 @@ function OrderTable({ orders, onOpen, showStatus }: {
               <TableCell className="text-right tabular-nums">
                 {o.paid > 0 ? `${o.paid}/${o.creators}` : o.creators}
               </TableCell>
-              <TableCell className="text-right tabular-nums">{aedFromCents(o.total_cents)}</TableCell>
+              <TableCell className="text-right tabular-nums">{aedFromCents(o.total_cents, o.currency)}</TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1">
                   <Doc on={!!o.invoice_attached_at} label="Invoice" />

@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Merchant of Record — the one screen.
+ * Creator Contracting — the one screen.
  *
  * A brand arrives here having already agreed terms with a creator, and wants us to contract
  * that creator and pay them. There is no campaign, no brief and no proposal in that
@@ -30,6 +30,7 @@ import { morApi, type MorOffer } from '@/services/morApi'
 import {
   morPaymentsApi, aed,
   type MorOverview, type MorPayment, type MorBatch, type FeeFreeState,
+  type MorSummaryBucket,
 } from '@/services/morPaymentsApi'
 import { cn } from '@/lib/utils'
 
@@ -174,11 +175,9 @@ function Live({ data, onGo, onGoMany }: {
 
       {payments.length > 0 && (
         <div className="mt-14 flex flex-wrap gap-x-14 gap-y-8">
-          <Figure label="Waiting on you" value={aed(summary.awaiting_payment.aed)}
-                  count={summary.awaiting_payment.n} />
-          <Figure label="Paying the creator" value={aed(summary.paying_creator.aed)}
-                  count={summary.paying_creator.n} />
-          <Figure label="Paid" value={aed(summary.paid.aed)} count={summary.paid.n} />
+          <Figure label="Waiting on you" bucket={summary.awaiting_payment} />
+          <Figure label="Paying the creator" bucket={summary.paying_creator} />
+          <Figure label="Paid" bucket={summary.paid} />
         </div>
       )}
 
@@ -199,15 +198,34 @@ function Live({ data, onGo, onGoMany }: {
   )
 }
 
-function Figure({ label, value, count }: { label: string; value: string; count: number }) {
+/**
+ * One headline figure.
+ *
+ * ⚠️ A CLIENT WITH TWO CURRENCIES HAS NO SINGLE TOTAL. Dirhams and dollars are different
+ * money, and adding their integers together produces a number that is not true in either.
+ * So when the server says the bucket is mixed, the tile shows each currency on its own line
+ * rather than one confident figure nobody could reconcile against a bank statement.
+ */
+function Figure({ label, bucket }: { label: string; bucket: MorSummaryBucket }) {
+  const { n, mixed, split } = bucket
   return (
     <div>
       <div className="text-[21px] font-semibold tabular-nums tracking-[-0.02em]">
-        {count === 0 ? <span className="text-muted-foreground">None</span> : value}
+        {n === 0
+          ? <span className="text-muted-foreground">None</span>
+          : mixed
+            ? (
+              <div className="space-y-0.5">
+                {split.map(part => (
+                  <div key={part.currency} className="text-[17px] leading-tight">{part.label}</div>
+                ))}
+              </div>
+            )
+            : aed(bucket.aed, bucket.currency)}
       </div>
       <div className="mt-1.5 text-[12.5px] text-muted-foreground">
         {label}
-        {count > 0 && <span className="tabular-nums"> · {count}</span>}
+        {n > 0 && <span className="tabular-nums"> · {n}</span>}
       </div>
     </div>
   )
@@ -297,7 +315,7 @@ function Row({ payment, first }: { payment: MorPayment; first: boolean }) {
         <div className="flex shrink-0 items-center gap-4">
           <div className="text-right">
             <div className="text-[15px] font-medium tabular-nums tracking-[-0.01em]">
-              {aed(payment.total_aed)}
+              {aed(payment.total_aed, payment.currency)}
             </div>
             {payment.fee_waived && (
               <div className="mt-0.5 text-[11.5px] font-medium text-muted-foreground">
@@ -350,7 +368,7 @@ function BatchRow({ batch, first }: { batch: MorBatch; first: boolean }) {
         <div className="flex shrink-0 items-center gap-4">
           <div className="text-right">
             <div className="text-[15px] font-medium tabular-nums tracking-[-0.01em]">
-              {aed(batch.total_aed)}
+              {aed(batch.total_aed, batch.currency)}
             </div>
             {batch.status === 'funded' && (
               <div className="mt-0.5 text-[11.5px] tabular-nums text-muted-foreground">

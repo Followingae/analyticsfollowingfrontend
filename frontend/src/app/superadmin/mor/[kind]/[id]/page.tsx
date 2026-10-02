@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * One merchant of record order, as a page.
+ * One creator contracting order, as a page.
  *
  * WHY A PAGE AND NOT THE SLIDE-OVER IT REPLACES. An order is where the money, the paperwork
  * and four or five people's state all meet, and a panel 640px wide forced that into a column
@@ -30,17 +30,21 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { PageHead, Panel } from '@/components/console/primitives'
 import { toast } from 'sonner'
 import {
   AlertTriangle, ArrowLeft, Check, CheckCircle2, Copy, Download, FileSignature, FileText,
-  Loader2, Mail, MessageCircle, Receipt, RefreshCw, Send,
+  Loader2, Lock, Mail, MessageCircle, Receipt, RefreshCw, Send,
 } from 'lucide-react'
 import {
   morOpsApi, aedFromCents,
   type MorBilling, type MorOrderCreator, type MorOrderDetail, type MorPayable, type OrderKind,
 } from '@/services/morOpsApi'
 import { enrolmentApi } from '@/services/enrolmentApi'
+import { morPaymentsApi, type MorCurrency } from '@/services/morPaymentsApi'
 import { cn } from '@/lib/utils'
 
 const when = (iso?: string | null) => {
@@ -104,7 +108,7 @@ function Order() {
 
       <PageHead
         title={o.label || o.reference || 'Order'}
-        sub={`${o.client || 'Unknown client'} · ${data.creators.length} ${data.creators.length === 1 ? 'creator' : 'creators'} · ${aedFromCents(data.money.total_cents)}`}
+        sub={`${o.client || 'Unknown client'} · ${data.creators.length} ${data.creators.length === 1 ? 'creator' : 'creators'} · ${aedFromCents(data.money.total_cents, o.currency)}`}
         action={
           <Button variant="outline" size="sm" onClick={() => { setLoading(true); void load() }}>
             <RefreshCw className="mr-2 size-4" />Refresh
@@ -114,7 +118,7 @@ function Order() {
 
       <Progress detail={data} />
       <InvoiceTo billing={data.billing} />
-      <MoneySplit detail={data} />
+      <MoneySplit detail={data} onChange={load} />
       <Actions detail={data} onChange={load} />
 
       <Panel title="The creators" description="Where each of them has got to, and whether our email actually reached them." flush>
@@ -227,16 +231,24 @@ function Field({ k, v, mono, span }: { k: string; v?: string | null; mono?: bool
 
 /* ── the money ────────────────────────────────────────────────────────────────────── */
 
-function MoneySplit({ detail }: { detail: MorOrderDetail }) {
+function MoneySplit({ detail, onChange }: { detail: MorOrderDetail; onChange: () => void }) {
   const { creators, money } = detail
   const many = creators.length > 1
+  // One currency for the whole order. A creator row carries its own copy, which on a batch
+  // is the same value; the fallback is there for an order written before the column existed.
+  const ccy = detail.order.currency
   return (
     <section className="rounded-ds-lg border border-black/[0.08] dark:border-white/[0.1]">
-      <div className="flex items-baseline justify-between gap-3 px-4 pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4">
         <p className="text-ds-label">What we are charging</p>
-        <p className="text-[11.5px] text-muted-foreground">
-          {detail.order.vat_rate ? `VAT ${Math.round(Number(detail.order.vat_rate) * 100)}%` : ''}
-        </p>
+        <div className="flex items-center gap-3">
+          {detail.order.vat_rate ? (
+            <p className="text-[11.5px] text-muted-foreground">
+              VAT {Math.round(Number(detail.order.vat_rate) * 100)}%
+            </p>
+          ) : null}
+          <CurrencyPicker detail={detail} onChange={onChange} />
+        </div>
       </div>
       <div className="mt-ds-3 overflow-x-auto">
         <Table>
@@ -258,30 +270,30 @@ function MoneySplit({ detail }: { detail: MorOrderDetail }) {
                     <span className="ml-1.5 text-[11.5px] text-muted-foreground">@{c.creator_handle}</span>
                   )}
                 </TableCell>
-                <TableCell className="text-right tabular-nums">{aedFromCents(c.creator_fee_cents)}</TableCell>
+                <TableCell className="text-right tabular-nums">{aedFromCents(c.creator_fee_cents, c.currency ?? ccy)}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {c.fee_waived
                     ? <span className="text-muted-foreground">waived</span>
                     : <>
-                        {aedFromCents(c.our_fee_cents)}
+                        {aedFromCents(c.our_fee_cents, c.currency ?? ccy)}
                         {c.our_fee_pct != null && (
                           <span className="ml-1 text-[11px] text-muted-foreground">{Number(c.our_fee_pct)}%</span>
                         )}
                       </>}
                 </TableCell>
-                <TableCell className="text-right tabular-nums">{aedFromCents(c.vat_cents)}</TableCell>
+                <TableCell className="text-right tabular-nums">{aedFromCents(c.vat_cents, c.currency ?? ccy)}</TableCell>
                 <TableCell className="pr-4 text-right font-medium tabular-nums">
-                  {aedFromCents(c.total_cents)}
+                  {aedFromCents(c.total_cents, c.currency ?? ccy)}
                 </TableCell>
               </TableRow>
             ))}
             {many && (
               <TableRow className="border-t-2">
                 <TableCell className="pl-4 text-[13.5px] font-semibold">Total</TableCell>
-                <TableCell className="text-right font-semibold tabular-nums">{aedFromCents(money.creator_fees_cents)}</TableCell>
-                <TableCell className="text-right font-semibold tabular-nums">{aedFromCents(money.our_fee_cents)}</TableCell>
-                <TableCell className="text-right font-semibold tabular-nums">{aedFromCents(money.vat_cents)}</TableCell>
-                <TableCell className="pr-4 text-right font-semibold tabular-nums">{aedFromCents(money.total_cents)}</TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">{aedFromCents(money.creator_fees_cents, ccy)}</TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">{aedFromCents(money.our_fee_cents, ccy)}</TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">{aedFromCents(money.vat_cents, ccy)}</TableCell>
+                <TableCell className="pr-4 text-right font-semibold tabular-nums">{aedFromCents(money.total_cents, ccy)}</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -309,6 +321,121 @@ function MoneySplit({ detail }: { detail: MorOrderDetail }) {
 }
 
 /* ── the thing to do next ─────────────────────────────────────────────────────────── */
+
+/**
+ * Which money this order is priced in.
+ *
+ * WHY THE OPERATOR AND NOT THE BRAND. The brand types a figure; which currency that figure
+ * is in is a commercial decision taken with them, by the person who will raise the invoice
+ * and make the transfer. Epii agreed their fees in dollars and their order arrived labelled
+ * dirhams, and until this existed the only way to correct that was a database write.
+ *
+ * ⚠️ IT RELABELS, IT DOES NOT CONVERT. 22,000 dirhams becomes 22,000 dollars, not 5,994.
+ * There is no exchange rate anywhere in this module, and one invented here would end up on
+ * an invoice. The confirm step says so in those words, because an operator reaching for this
+ * at speed will assume otherwise.
+ *
+ * Locked rather than hidden once the order is real. An invoiced, funded or signed order
+ * cannot change currency, and a control that quietly disappears reads as a bug; one that
+ * says why reads as an answer.
+ */
+function CurrencyPicker({ detail, onChange }: { detail: MorOrderDetail; onChange: () => void }) {
+  const o = detail.order
+  const kind = o.kind as OrderKind
+  const current = (o.currency || 'AED').toUpperCase()
+
+  const [options, setOptions] = useState<MorCurrency[]>([])
+  const [picked, setPicked] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    void (async () => {
+      try { setOptions((await morPaymentsApi.currencies()).data.currencies) }
+      catch { /* the trigger still shows the order's own currency */ }
+    })()
+  }, [])
+
+  // The same three gates the server enforces, named here so the screen explains itself
+  // rather than waiting for a refusal.
+  const locked =
+    o.invoice_number ? 'Invoiced already'
+    : (o.status === 'funded' || o.status === 'paid') ? 'Their money has arrived'
+    : detail.creators.some(c => c.signed_at) ? 'A creator has signed'
+    : null
+
+  if (locked) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-ds-sm bg-muted/60 px-2 py-1 text-[11.5px] text-muted-foreground">
+        <Lock className="size-3" />
+        {current} · {locked}
+      </span>
+    )
+  }
+
+  const apply = async () => {
+    if (!picked) return
+    setBusy(true)
+    try {
+      await morOpsApi.setCurrency(kind, o.id, picked)
+      toast.success(`Priced in ${picked}`, {
+        description: 'The amounts did not move. Change the fee if the figures should too.',
+      })
+      setPicked(null)
+      onChange()
+    } catch (e) {
+      toast.error('Could not change the currency', { description: (e as Error).message })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <Select value={current} onValueChange={(v: string) => { if (v !== current) setPicked(v) }}>
+        <SelectTrigger className="h-7 w-[104px] text-[12px]" aria-label="Order currency">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {(options.length ? options : [{ code: current, label: current, name: current }]).map(c => (
+            <SelectItem key={c.code} value={c.code} className="text-[12.5px]">{c.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Dialog open={!!picked} onOpenChange={(open: boolean) => { if (!open) setPicked(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Price this order in {picked}?</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-2 text-[13px]">
+                <p>
+                  Every amount on the order keeps its figure and changes its currency.{' '}
+                  {aedFromCents(detail.money.total_cents, current)} becomes{' '}
+                  <span className="font-medium text-foreground">
+                    {aedFromCents(detail.money.total_cents, picked)}
+                  </span>.
+                </p>
+                <p>
+                  Nothing is converted. There is no exchange rate here, and inventing one
+                  would put a made-up number on an invoice. If the figures should change too,
+                  change the fee and the split is worked out again.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPicked(null)} disabled={busy}>Keep {current}</Button>
+            <Button onClick={apply} disabled={busy}>
+              {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+              Price in {picked}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
 
 function Actions({ detail, onChange }: { detail: MorOrderDetail; onChange: () => void }) {
   const o = detail.order
@@ -394,7 +521,7 @@ function Actions({ detail, onChange }: { detail: MorOrderDetail; onChange: () =>
         <section className="rounded-ds-lg border border-[var(--tone-warn-line)] bg-[var(--tone-warn-bg)] p-4">
           <p className="text-ds-label">Started early, money still owed</p>
           <p className="mt-1 text-ds-body-sm">
-            The creators have their links. {aedFromCents(detail.money.total_cents)} has not
+            The creators have their links. {aedFromCents(detail.money.total_cents, o.currency)} has not
             reached us, and nobody on this order can be paid until it does.
             {o.advance_note ? ` “${o.advance_note}”` : ''}
           </p>
@@ -426,7 +553,7 @@ function Actions({ detail, onChange }: { detail: MorOrderDetail; onChange: () =>
         </section>
       )}
 
-      {o.receipt_attached_at && <PayoutRun kind={kind} id={o.id} reference={o.reference} onChange={onChange} />}
+      {o.receipt_attached_at && <PayoutRun kind={kind} id={o.id} reference={o.reference} currency={o.currency} onChange={onChange} />}
 
       {/* The order's own files. Once attached they vanished from this screen: the upload
           section is replaced by the next step, so nobody could re-read the invoice they
@@ -488,8 +615,11 @@ function FilePick({ id, label, name, busy, onPick }: {
 
 /* ── the payout run ───────────────────────────────────────────────────────────────── */
 
-function PayoutRun({ kind, id, reference, onChange }: {
-  kind: OrderKind; id: string; reference: string | null; onChange: () => void
+function PayoutRun({ kind, id, reference, currency, onChange }: {
+  kind: OrderKind; id: string; reference: string | null
+  /** The order's currency, so the run reads in the money it will actually be paid in. */
+  currency: string | null
+  onChange: () => void
 }) {
   const [rows, setRows] = useState<MorPayable['creators']>([])
   const [total, setTotal] = useState(0)
@@ -535,7 +665,7 @@ function PayoutRun({ kind, id, reference, onChange }: {
         <div>
           <p className="text-ds-label">{rows.length} ready to be paid</p>
           <p className="mt-1 text-ds-body-sm text-muted-foreground">
-            {aedFromCents(total)} in total. One visit to the bank, one reference back.
+            {aedFromCents(total, currency)} in total. One visit to the bank, one reference back.
           </p>
         </div>
         <div className="flex gap-2">
@@ -553,7 +683,7 @@ function PayoutRun({ kind, id, reference, onChange }: {
           <DialogHeader>
             <DialogTitle>Mark {rows.length} paid</DialogTitle>
             <DialogDescription>
-              Do this after the transfers have left the bank. {aedFromCents(total)} to{' '}
+              Do this after the transfers have left the bank. {aedFromCents(total, currency)} to{' '}
               {rows.length} {rows.length === 1 ? 'creator' : 'creators'}. There is no undo.
             </DialogDescription>
           </DialogHeader>
@@ -631,7 +761,7 @@ function CreatorCard({ c, onChange }: { c: MorOrderCreator; onChange: () => void
             )}
           </p>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
-            {aedFromCents(c.creator_fee_cents)}
+            {aedFromCents(c.creator_fee_cents, c.currency)}
             {c.signed_name && c.signed_name !== c.creator_name && ` · signed as ${c.signed_name}`}
             {c.bank_last4 && ` · ····${c.bank_last4}`}
           </p>

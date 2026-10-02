@@ -366,7 +366,7 @@ function Next({ payment, paying, onPay }: {
         {yours && payment.payment_method !== 'transfer' && (
           <Button onClick={onPay} disabled={paying} className="gap-2">
             <CreditCard className="size-4" />
-            {paying ? 'Opening…' : `Pay ${aed(payment.total_aed)}`}
+            {paying ? 'Opening…' : `Pay ${aed(payment.total_aed, payment.currency)}`}
           </Button>
         )}
       </div>
@@ -397,18 +397,18 @@ function Money({ payment }: { payment: MorPayment }) {
     <section className="rounded-[14px] border border-[var(--mor-rule)] px-6 py-5">
       <h2 className="text-[15px] font-semibold tracking-[-0.01em]">What it costs</h2>
       <dl className="mt-4 space-y-2.5">
-        <Row k={`${payment.creator_name.split(' ')[0]}'s fee`} v={aed(payment.creator_fee_aed)} />
+        <Row k={`${payment.creator_name.split(' ')[0]}'s fee`} v={aed(payment.creator_fee_aed, payment.currency)} />
         <Row k={`Our fee, ${payment.our_fee_pct}%`}
-             v={payment.fee_waived ? 'waived' : aed(payment.our_fee_aed)}
+             v={payment.fee_waived ? 'waived' : aed(payment.our_fee_aed, payment.currency)}
              muted={payment.fee_waived} />
         {payment.vat_aed > 0 && (
-          <Row k={payment.vat_label || 'VAT'} v={aed(payment.vat_aed)} />
+          <Row k={payment.vat_label || 'VAT'} v={aed(payment.vat_aed, payment.currency)} />
         )}
       </dl>
       <div className="mt-4 flex items-baseline justify-between border-t border-[var(--mor-rule)] pt-4">
         <span className="text-[13px] font-medium">Total</span>
         <span className="text-[19px] font-semibold tabular-nums tracking-[-0.01em]">
-          {aed(payment.total_aed)}
+          {aed(payment.total_aed, payment.currency)}
         </span>
       </div>
     </section>

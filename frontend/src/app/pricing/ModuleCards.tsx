@@ -18,7 +18,7 @@
  *    the three plans are the first thing on the page.
  *
  * MODULES ARE INFORMATION HERE, NOT A SECOND SELECTION. Find is the plan. Run is switched on
- * for an existing account and nothing in this basket can charge for it. Merchant of Record
+ * for an existing account and nothing in this basket can charge for it. Creator Contracting
  * and Manage are quoted per campaign and per client. Presenting all four as things to tick
  * implied a basket that does not exist.
  *

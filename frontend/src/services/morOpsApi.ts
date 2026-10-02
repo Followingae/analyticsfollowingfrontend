@@ -1,5 +1,5 @@
 /**
- * The operator's side of Merchant of Record.
+ * The operator's side of Creator Contracting.
  * Mirrors the admin half of app/api/mor_payment_routes.py.
  *
  * AN ORDER IS A BATCH OR A SINGLE PAYMENT. The brand pays once per order, so the invoice, the
@@ -56,6 +56,8 @@ export interface MorOrder {
   status: string
   total_cents: number
   our_fee_cents: number
+  /** What the amounts on this order mean. Three letters; AED when it was never chosen. */
+  currency: string | null
   created_at: string | null
   invoice_number: string | null
   invoice_attached_at: string | null
@@ -84,6 +86,7 @@ export interface MorReadyToPay {
   client: string | null
   creator_name: string | null
   creator_fee_cents: number
+  currency: string | null
   bank_holder: string | null
   bank_last4: string | null
 }
@@ -100,7 +103,17 @@ export interface MorOpsOverview {
   orders: MorOrder[]
   mismatches: MorMismatch[]
   ready_to_pay: MorReadyToPay[]
+  /**
+   * The five headline figures.
+   *
+   * ⚠️ Only a real total while `money_mixed` is false. Orders in two currencies cannot be
+   * added together, so when it is true the screen reads `money_split` instead.
+   */
   money: MorOpsMoney
+  /** The one currency everything is in, or null when there is more than one. */
+  money_currency: string | null
+  money_mixed: boolean
+  money_split: Array<MorOpsMoney & { currency: string }>
 }
 
 /** One creator on an order, as an operator needs to see them. */
@@ -110,6 +123,8 @@ export interface MorOrderCreator {
   creator_handle: string | null
   creator_email: string | null
   creator_fee_cents: number
+  /** This creator's own currency. On a batch it matches the order's. */
+  currency: string | null
   status: string
   name_check: 'pending' | 'matched' | 'mismatch' | 'accepted' | 'rejected'
   name_check_note: string | null
@@ -249,6 +264,19 @@ export const morOpsApi = {
       method: 'POST', body: JSON.stringify({ proof_url, note }),
     }) as Promise<{ data: { released: boolean; creators: number; invited: number } }>,
 
+  /**
+   * Re-price the order in another currency, before it has been invoiced.
+   *
+   * ⚠️ It relabels the amounts, it never converts them: 22,000 dirhams becomes 22,000
+   * dollars. There is no exchange rate in this module and a made-up one would end up on an
+   * invoice. The server refuses once an invoice is out, the money has arrived, or a creator
+   * has signed.
+   */
+  setCurrency: (kind: OrderKind, id: string, currency: string) =>
+    jfetch(`${BASE}/orders/${kind}/${id}/currency`, {
+      method: 'POST', body: JSON.stringify({ currency }),
+    }) as Promise<{ data: { currency: string; was?: string; changed: boolean } }>,
+
   /** Record the QuickBooks invoice. This is what moves the brand off "being prepared". */
   attachInvoice: (kind: OrderKind, id: string, invoice_number: string, invoice_file_url: string) =>
     jfetch(`${BASE}/orders/${kind}/${id}/invoice`, {
@@ -349,11 +377,18 @@ export interface MorPaidTogether {
   order_complete: boolean
 }
 
-/** AED from fils. One formatter so the operator screen and the brand screen cannot disagree. */
-export function aedFromCents(cents: number | null | undefined): string {
+/**
+ * Minor units to a written amount. One formatter so the operator screen and the brand
+ * screen cannot disagree.
+ *
+ * Takes the order's currency; defaults to AED only when none was given. Every supported
+ * currency has two minor digits, which is what lets one divisor serve all of them.
+ */
+export function aedFromCents(cents: number | null | undefined, ccy?: string | null): string {
   if (cents == null) return '—'
+  const code = (ccy || 'AED').toUpperCase()
   const n = cents / 100
-  return `AED ${n.toLocaleString('en-AE', {
+  return `${code} ${n.toLocaleString('en-AE', {
     minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
     maximumFractionDigits: 2,
   })}`

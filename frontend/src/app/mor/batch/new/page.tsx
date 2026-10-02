@@ -29,6 +29,9 @@ import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
@@ -39,7 +42,7 @@ import {
 } from 'lucide-react'
 import {
   morPaymentsApi, aed,
-  type MorBatchQuote, type MorBatchLine, type MorBatchCreatorInput,
+  type MorBatchQuote, type MorBatchLine, type MorBatchCreatorInput, type MorCurrency,
 } from '@/services/morPaymentsApi'
 import { BillingDetailsDialog, needsBillingDetails } from '@/components/mor/BillingDetailsDialog'
 import { cn } from '@/lib/utils'
@@ -139,6 +142,20 @@ function BatchForm() {
 
   const [rows, setRows] = useState<Row[]>(() => [blank(), blank(), blank()])
   const [label, setLabel] = useState('')
+  /* One currency for the whole list, because a batch is one invoice and one transfer in.
+     Letting the rows disagree would mean a total that cannot be written down. */
+  const [ccy, setCcy] = useState('AED')
+  const [currencies, setCurrencies] = useState<MorCurrency[]>([])
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const r = await morPaymentsApi.currencies()
+        setCurrencies(r.data.currencies)
+        setCcy(c => c || r.data.default)
+      } catch { /* the list still prices in the default */ }
+    })()
+  }, [])
   const [quote, setQuote] = useState<MorBatchQuote | null>(null)
   const [quoting, setQuoting] = useState(false)
   // Card is coming soon and unselectable, so transfer is chosen from the start
@@ -196,7 +213,7 @@ function BatchForm() {
     const ticket = ++latest.current
     timer.current = setTimeout(async () => {
       try {
-        const r = await morPaymentsApi.batches.quote(payload)
+        const r = await morPaymentsApi.batches.quote(payload, ccy)
         if (ticket === latest.current) setQuote(r.data)
       } catch {
         if (ticket === latest.current) setQuote(null)
@@ -206,7 +223,7 @@ function BatchForm() {
     }, 420)
     return () => { if (timer.current) clearTimeout(timer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature])
+  }, [signature, ccy])
 
   const patch = useCallback((key: string, p: Partial<Row>) => {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...p } : r)))
@@ -270,7 +287,7 @@ function BatchForm() {
     if (await needsBillingDetails()) { setAskBilling(true); return }
     setSaving(true)
     try {
-      const created = await morPaymentsApi.batches.create(payload, label.trim() || undefined)
+      const created = await morPaymentsApi.batches.create(payload, label.trim() || undefined, ccy)
       await morPaymentsApi.batches.submit(created.data.id, method)
       router.push(`/mor/batch/${created.data.id}`)
     } catch (e) {
@@ -406,7 +423,7 @@ function BatchForm() {
                         onKeyDown={(e) => onKey(i, e)}
                         inputMode="decimal"
                         placeholder={i === 0 ? '5,000' : ''}
-                        aria-label={`Creator ${i + 1} fee in AED`}
+                        aria-label={`Creator ${i + 1} fee in ${ccy}`}
                         className={cn('text-right tabular-nums',
                           noFee && 'border-amber-500/60 bg-amber-500/5')}
                       />
@@ -415,7 +432,7 @@ function BatchForm() {
                       {line ? (
                         <div className="pr-2">
                           <div className="text-[13.5px] font-medium tabular-nums">
-                            {aed(line.total_aed)}
+                            {aed(line.total_aed, quote?.currency)}
                           </div>
                           {waived ? (
                             <span
@@ -426,7 +443,7 @@ function BatchForm() {
                             </span>
                           ) : (
                             <div className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
-                              incl. {aed(line.our_fee_aed)} fee
+                              incl. {aed(line.our_fee_aed, quote?.currency)} fee
                             </div>
                           )}
                         </div>
@@ -465,10 +482,10 @@ function BatchForm() {
                       : 'Working out the total…'}
                   </TableCell>
                   <TableCell className="text-right text-[13px] tabular-nums">
-                    {quote ? aed(quote.creator_fee_aed) : <Skeleton className="ml-auto h-4 w-20" />}
+                    {quote ? aed(quote.creator_fee_aed, quote.currency) : <Skeleton className="ml-auto h-4 w-20" />}
                   </TableCell>
                   <TableCell colSpan={2} className="pr-4 text-right text-[15px] font-semibold tabular-nums">
-                    {quote ? aed(quote.total_aed) : <Skeleton className="ml-auto h-5 w-24" />}
+                    {quote ? aed(quote.total_aed, quote.currency) : <Skeleton className="ml-auto h-5 w-24" />}
                   </TableCell>
                 </TableRow>
               </TableFooter>
@@ -536,6 +553,24 @@ function BatchForm() {
                 className="mt-2.5"
               />
             </div>
+
+            <div className="mt-10 max-w-[420px]">
+              <Label className="text-[13.5px] font-medium">What the fees are in</Label>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
+                One currency for the whole list. It is on the invoice and on every agreement
+                these creators sign.
+              </p>
+              <Select value={ccy} onValueChange={setCcy}>
+                <SelectTrigger className="mt-2.5 w-[180px]" aria-label="Currency for this list">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(currencies.length ? currencies : [{ code: 'AED', label: 'AED · UAE dirham', name: 'UAE dirham' }]).map(c => (
+                    <SelectItem key={c.code} value={c.code} className="text-[13px]">{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <Summary quote={quote} />
@@ -545,7 +580,7 @@ function BatchForm() {
       <div className="mt-14 flex flex-wrap items-center gap-4 border-t border-[var(--mor-rule)] pt-8">
         <Button onClick={submit} disabled={!ready} className="min-w-[200px]">
           {saving ? 'Setting it up…'
-            : method === 'card' ? `Confirm and pay ${quote ? aed(quote.total_aed) : ''}`
+            : method === 'card' ? `Confirm and pay ${quote ? aed(quote.total_aed, quote.currency) : ''}`
             : method === 'transfer' ? 'Confirm and invoice me'
             : 'Confirm'}
         </Button>
@@ -567,7 +602,7 @@ function Summary({ quote }: { quote: MorBatchQuote }) {
   return (
     <aside className="lg:sticky lg:top-8 lg:self-start">
       <div className="rounded-[14px] border border-[var(--mor-rule)] px-6 py-5">
-        <Line label={`Creators' fees`} value={aed(quote.creator_fee_aed)} />
+        <Line label={`Creators' fees`} value={aed(quote.creator_fee_aed, quote.currency)} />
         <Line
           label="Our service fee"
           value={
@@ -579,15 +614,15 @@ function Summary({ quote }: { quote: MorBatchQuote }) {
                 <ShieldCheck className="size-3" aria-hidden />Waived
               </span>
             ) : (
-              `${aed(quote.our_fee_aed)}  ·  ${quote.standard_fee_pct}%`
+              `${aed(quote.our_fee_aed, quote.currency)}  ·  ${quote.standard_fee_pct}%`
             )
           }
         />
-        <Line label={quote.vat_label} value={aed(quote.vat_aed)} />
+        <Line label={quote.vat_label} value={aed(quote.vat_aed, quote.currency)} />
         <div className="mt-4 flex items-baseline justify-between border-t border-[var(--mor-rule)] pt-4">
           <span className="text-[14px] font-medium">Total</span>
           <span className="text-[22px] font-semibold tabular-nums tracking-[-0.02em]">
-            {aed(quote.total_aed)}
+            {aed(quote.total_aed, quote.currency)}
           </span>
         </div>
 
@@ -598,7 +633,7 @@ function Summary({ quote }: { quote: MorBatchQuote }) {
           >
             <span className="font-semibold">
               {quote.waived_count} fee-free {quote.waived_count === 1 ? 'creator' : 'creators'} on
-              this list, saving you {aed(quote.waived_saving_aed)}.
+              this list, saving you {aed(quote.waived_saving_aed, quote.currency)}.
             </span>{' '}
             <span className="opacity-80">
               We put them on your largest fees, where they are worth the most. VAT still

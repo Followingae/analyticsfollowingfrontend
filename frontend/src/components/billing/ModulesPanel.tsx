@@ -15,7 +15,7 @@
  * The shape of the live data
  * --------------------------
  * Today every account in production has exactly one module, Find, granted, with
- * Run, Merchant of Record and Manage in `available_to_add`. That is the normal
+ * Run, Creator Contracting and Manage in `available_to_add`. That is the normal
  * case, not an error, so the panel is built as two plain groups: what you have,
  * and what you can add. One row above three reads as a price list, which is
  * what it is, rather than as a wall of "Off" badges.
@@ -47,7 +47,7 @@
  * is immediate and prorated onto the current cycle, and the panel says so before
  * anyone commits.
  *
- * Merchant of Record is included with Manage at no charge, and a Manage client
+ * Creator Contracting is included with Manage at no charge, and a Manage client
  * is never shown a price for it. `invoice_only` carries the same idea for a
  * module that can never go on a card: the action there is a conversation.
  */
@@ -103,7 +103,7 @@ export function ModulesPanel({ status, managed, isSuperAdmin, modules }: Modules
   const [request, setRequest] = useState<{ module: ModuleKey; ending: boolean } | null>(null)
 
   // `RequestModuleDialog` knows every module in src/config/modules.ts, which is
-  // now all four including Merchant of Record, so MoR gets the same dialog as
+  // now all four including Creator Contracting, so MoR gets the same dialog as
   // the rest rather than a bare mailto. The mailto stays as the fallback for a
   // module the SERVER offers that this catalogue has never heard of: that is
   // the drift this endpoint is designed to survive, and a dialog keyed on a
@@ -392,7 +392,7 @@ function OfferedModule({ offer, onAdd }: { offer: BrandModuleOffer; onAdd: () =>
   //
   // GET /billing/account-modules sends `price_aed_per_month` for EVERY module
   // it offers, straight out of app/core/modules.py module_price(). For
-  // Merchant of Record that number is MOR_ADDON_AED_PER_MONTH, which that file
+  // Creator Contracting that number is MOR_ADDON_AED_PER_MONTH, which that file
   // labels a PLACEHOLDER that has not been agreed commercially, and MoR is not
   // in INVOICE_ONLY_MODULES, so `invoice_only` does not stop it. Rendering the
   // response as it arrives would quote a customer a price nobody has set.

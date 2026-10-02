@@ -10,7 +10,7 @@
  *  - show a price on a module that is included in the plan
  *  - show a price to a managed account (they get "Request")
  *  - hardcode a price (every figure comes from src/config/planPricing.ts)
- *  - put a figure on a module whose price is not agreed. Merchant of Record
+ *  - put a figure on a module whose price is not agreed. Creator Contracting
  *    reads "Quoted", because both halves of its price, the monthly fee and the
  *    settlement percentage, are provisional in the backend.
  */
@@ -64,7 +64,7 @@ export function ModuleRow({
   const isIncluded = def.availability === 'included'
   // An add-on whose price is not published. formatModulePrice already returns
   // "Quoted" rather than a figure for it, and the action has to match: "Add
-  // Merchant of Record" beside the word Quoted reads as a one-click purchase of
+  // Creator Contracting" beside the word Quoted reads as a one-click purchase of
   // something we have not priced.
   const isQuoted = isAddon && MODULE_PRICING[module] === 'quoted'
 

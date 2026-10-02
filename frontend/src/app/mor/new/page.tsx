@@ -22,9 +22,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { toast } from 'sonner'
 import { ArrowLeft, CreditCard, Landmark, Plus, ShieldCheck, X } from 'lucide-react'
-import { morPaymentsApi, aed, type MorQuote } from '@/services/morPaymentsApi'
+import {
+  morPaymentsApi, aed, type MorCurrency, type MorQuote,
+} from '@/services/morPaymentsApi'
 import { BillingDetailsDialog, needsBillingDetails } from '@/components/mor/BillingDetailsDialog'
 import { cn } from '@/lib/utils'
 
@@ -63,6 +68,11 @@ function NewPaymentForm() {
   const [dates, setDates] = useState('')
   const [usage, setUsage] = useState('')
   const [fee, setFee] = useState('')
+  /* What the fee is in. Defaults to dirhams because most of our clients pay in them, and is
+     a choice because some do not: a brand agreeing dollar fees with their creators and
+     reading a dirham total has to do the conversion in their head on every line. */
+  const [ccy, setCcy] = useState('AED')
+  const [currencies, setCurrencies] = useState<MorCurrency[]>([])
 
   const [quote, setQuote] = useState<MorQuote | null>(null)
   const [quoting, setQuoting] = useState(false)
@@ -73,6 +83,16 @@ function NewPaymentForm() {
      they fill it in, and the lock they already asked for carries on by itself. */
   const [askBilling, setAskBilling] = useState(false)
 
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const r = await morPaymentsApi.currencies()
+        setCurrencies(r.data.currencies)
+        setCcy(c => c || r.data.default)
+      } catch { /* the field keeps its default and the order still prices */ }
+    })()
+  }, [])
 
   const feeNumber = Number(fee.replace(/,/g, ''))
   const feeValid = Number.isFinite(feeNumber) && feeNumber > 0
@@ -89,7 +109,7 @@ function NewPaymentForm() {
     setQuoting(true)
     timer.current = setTimeout(async () => {
       try {
-        const r = await morPaymentsApi.quote(feeNumber)
+        const r = await morPaymentsApi.quote(feeNumber, ccy)
         setQuote(r.data)
       } catch {
         setQuote(null)   // a failed quote shows nothing rather than a number we cannot stand behind
@@ -98,7 +118,7 @@ function NewPaymentForm() {
       }
     }, 420)
     return () => { if (timer.current) clearTimeout(timer.current) }
-  }, [feeNumber, feeValid])
+  }, [feeNumber, feeValid, ccy])
 
   const setDeliverable = useCallback((i: number, patch: Partial<Deliverable>) => {
     setDeliverables((prev) => prev.map((d, n) => (n === i ? { ...d, ...patch } : d)))
@@ -120,6 +140,7 @@ function NewPaymentForm() {
         posting_dates: dates.trim() || undefined,
         usage_terms: usage.trim() || undefined,
         creator_fee_aed: feeNumber,
+        currency: ccy,
       })
       await morPaymentsApi.submit(created.data.id, method)
       router.push(`/mor/${created.data.id}`)
@@ -238,16 +259,23 @@ function NewPaymentForm() {
             label="What you agreed to pay them"
             hint="Final and all in. It is taken to include their own taxes and costs, and nothing can be added to it later."
           >
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] text-muted-foreground">
-                AED
-              </span>
+            <div className="flex items-stretch gap-2">
+              <Select value={ccy} onValueChange={setCcy}>
+                <SelectTrigger className="w-[88px] shrink-0 text-[14px]" aria-label="Currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(currencies.length ? currencies : [{ code: 'AED', label: 'AED', name: 'UAE dirham' }]).map(c => (
+                    <SelectItem key={c.code} value={c.code} className="text-[13px]">{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 value={fee}
                 onChange={(e) => setFee(e.target.value.replace(/[^\d.,]/g, ''))}
                 placeholder="10,000"
                 inputMode="decimal"
-                className="pl-[3.25rem] text-[15px] tabular-nums"
+                className="text-[15px] tabular-nums"
                 autoComplete="off"
               />
             </div>
@@ -330,7 +358,7 @@ function Field({ label, hint, children }: {
 function Cost({ quote }: { quote: MorQuote }) {
   return (
     <div className="mor-total-in mt-8 rounded-[14px] border border-[var(--mor-rule)] px-6 py-5">
-      <Line label="Creator’s fee" value={aed(quote.creator_fee_aed)} />
+      <Line label="Creator’s fee" value={aed(quote.creator_fee_aed, quote.currency)} />
       <Line
         label="Our service fee"
         value={
@@ -345,15 +373,15 @@ function Cost({ quote }: { quote: MorQuote }) {
               </span>
             </span>
           ) : (
-            `${aed(quote.our_fee_aed)}  ·  ${quote.our_fee_pct}%`
+            `${aed(quote.our_fee_aed, quote.currency)}  ·  ${quote.our_fee_pct}%`
           )
         }
       />
-      <Line label={quote.vat_label} value={aed(quote.vat_aed)} />
+      <Line label={quote.vat_label} value={aed(quote.vat_aed, quote.currency)} />
       <div className="mt-4 flex items-baseline justify-between border-t border-[var(--mor-rule)] pt-4">
         <span className="text-[14px] font-medium">Total</span>
         <span className="text-[22px] font-semibold tabular-nums tracking-[-0.02em]">
-          {aed(quote.total_aed)}
+          {aed(quote.total_aed, quote.currency)}
         </span>
       </div>
       {quote.fee_waived && (

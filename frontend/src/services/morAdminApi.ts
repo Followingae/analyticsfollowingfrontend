@@ -1,5 +1,5 @@
 /**
- * Merchant of Record, the operator's side. Mirrors the admin half of
+ * Creator Contracting, the operator's side. Mirrors the admin half of
  * app/api/mor_payment_routes.py.
  *
  * Everything here is leadership-scoped on the server: it moves money and it sets what a

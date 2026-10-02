@@ -1,5 +1,5 @@
 /**
- * Merchant of Record — paying a creator.
+ * Creator Contracting — paying a creator.
  * Mirrors app/api/mor_payment_routes.py.
  *
  * There is no campaign anywhere in this file, deliberately. A brand arrives having already
@@ -154,10 +154,26 @@ export interface MorEnrolmentState {
   } | null
 }
 
+/**
+ * One bucket of the client's headline figures.
+ *
+ * `currency` is null and `mixed` is true when the client has orders in more than one
+ * currency. In that case `cents` is the sum of integers that are not the same money, so the
+ * screen reads `split` instead of printing a total that is not true in any currency.
+ */
+export interface MorSummaryBucket {
+  n: number
+  cents: number
+  aed: number
+  currency: string | null
+  mixed: boolean
+  split: Array<{ currency: string; n: number; cents: number; label: string }>
+}
+
 export interface MorSummary {
-  awaiting_payment: { n: number; cents: number; aed: number }
-  paying_creator: { n: number; cents: number; aed: number }
-  paid: { n: number; cents: number; aed: number }
+  awaiting_payment: MorSummaryBucket
+  paying_creator: MorSummaryBucket
+  paid: MorSummaryBucket
   creators_total: number
   fee_free: FeeFreeState
 }
@@ -282,9 +298,28 @@ export interface MorDraftInput {
   brand_notes?: string
   creator_fee_aed?: number | string
   creator_fee_cents?: number
+  /** What the fee is in. Omitted keeps whatever the draft already had, or the house default. */
+  currency?: string
+}
+
+/** One currency an order may be priced in, as the server offers it. */
+export interface MorCurrency {
+  code: string
+  label: string
+  name: string
 }
 
 export const morPaymentsApi = {
+  /**
+   * What an order may be priced in.
+   *
+   * Fetched rather than hard-coded here, so a picker can never offer a code the server will
+   * refuse on save. That mismatch only ever shows up on the order somebody is in a hurry
+   * with.
+   */
+  currencies: (): Promise<{ data: { default: string; currencies: MorCurrency[] } }> =>
+    jfetch(`${BASE}/currencies`),
+
   /**
    * The brand's copy of the agreement their creator signed.
    *
@@ -316,8 +351,12 @@ export const morPaymentsApi = {
 
   overview: (): Promise<{ data: MorOverview }> => jfetch(`${BASE}/overview`),
 
-  quote: (creator_fee_aed: number | string): Promise<{ data: MorQuote }> =>
-    jfetch(`${BASE}/quote`, { method: 'POST', body: JSON.stringify({ creator_fee_aed }) }),
+  /** The currency is sent with the fee, because the VAT and the commission are quoted on
+   *  it. Omitted, the server prices in the house currency. */
+  quote: (creator_fee_aed: number | string, currency?: string): Promise<{ data: MorQuote }> =>
+    jfetch(`${BASE}/quote`, {
+      method: 'POST', body: JSON.stringify({ creator_fee_aed, currency }),
+    }),
 
   create: (input: MorDraftInput): Promise<{ data: MorPayment }> =>
     jfetch(`${BASE}/payments`, { method: 'POST', body: JSON.stringify(input) }),
@@ -352,17 +391,20 @@ export const morPaymentsApi = {
     list: (): Promise<{ data: { batches: MorBatch[] } }> => jfetch(`${BASE}/batches`),
 
     /** Price a whole list while they are still typing it. Writes nothing, claims no waiver. */
-    quote: (creators: MorBatchCreatorInput[]): Promise<{ data: MorBatchQuote }> =>
+    quote: (creators: MorBatchCreatorInput[], currency?: string): Promise<{ data: MorBatchQuote }> =>
       jfetch(`${BASE}/batches/quote`, {
         method: 'POST',
-        body: JSON.stringify({ creators }),
+        body: JSON.stringify({ creators, currency }),
       }),
 
     create: (
       creators: MorBatchCreatorInput[],
       label?: string,
+      currency?: string,
     ): Promise<{ data: MorBatch }> =>
-      jfetch(`${BASE}/batches`, { method: 'POST', body: JSON.stringify({ creators, label }) }),
+      jfetch(`${BASE}/batches`, {
+        method: 'POST', body: JSON.stringify({ creators, label, currency }),
+      }),
 
     read: (id: string): Promise<{ data: MorBatch }> => jfetch(`${BASE}/batches/${id}`),
 
@@ -438,11 +480,22 @@ export interface MorBilling {
   hold_reason?: string | null
 }
 
-/** AED, grouped, no decimals on whole amounts. One formatter so screens cannot drift. */
-export function aed(amount: number | null | undefined): string {
+/**
+ * An amount written in its own currency, grouped, no decimals on whole amounts. One
+ * formatter so screens cannot drift.
+ *
+ * The currency is a parameter with AED as the default, rather than a literal. An order can
+ * be priced in dollars and this printed "AED" over the figure regardless, which is the
+ * worst kind of wrong on a money screen: the number is right, so nobody checks it.
+ *
+ * The code leads instead of a symbol, matching the invoice and the agreement PDF. "$" is
+ * ambiguous across four of the currencies we handle.
+ */
+export function aed(amount: number | null | undefined, ccy?: string | null): string {
   if (amount == null) return '—'
+  const code = (ccy || 'AED').toUpperCase()
   const whole = Math.round(amount) === amount
-  return `AED ${amount.toLocaleString('en-AE', {
+  return `${code} ${amount.toLocaleString('en-AE', {
     minimumFractionDigits: whole ? 0 : 2,
     maximumFractionDigits: 2,
   })}`

@@ -125,7 +125,7 @@ const EXPLAINERS: Explainer[] = [
     q: 'Why are you asking for my TRN and trade licence?',
     a: (
       <>
-        Because we invoice you in our own name. We are the merchant of record on these
+        Because we invoice you in our own name. We are the contracting agency on these
         payments, so the invoice you get is a UAE tax invoice from us, and it needs your TRN
         and your registered details on it or you cannot claim the VAT back at your own filing.
         This is not verification and nobody is being screened: it is the same information your
@@ -146,6 +146,19 @@ const EXPLAINERS: Explainer[] = [
         correct their email. Worth telling them it is coming and to check their junk folder:
         an unexpected email about money looks like a scam, and your word is what makes it not
         one. When the transfers go out you get the receipts against the order.
+      </>
+    ),
+  },
+  {
+    q: 'Can I pay a creator in dollars rather than dirhams?',
+    a: (
+      <>
+        Yes. The fee field on a creator payment has a currency beside it, and whatever you
+        choose is what the invoice, the agreement the creator signs and the transfer out are
+        all written in. Pick it before you confirm the order: once we have invoiced you, the
+        money has arrived or a creator has signed, the currency is on paperwork and cannot be
+        changed, and we would credit the invoice and raise a new one instead. A list paid
+        together is one currency for the whole list, because it is one invoice.
       </>
     ),
   },

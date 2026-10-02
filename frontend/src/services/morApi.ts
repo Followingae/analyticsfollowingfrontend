@@ -1,5 +1,5 @@
 /**
- * Merchant of Record — the brand's side.
+ * Creator Contracting — the brand's side.
  * Mirrors app/api/mor_routes.py.
  *
  * Three things live behind this: what the module costs (shown before anyone commits),

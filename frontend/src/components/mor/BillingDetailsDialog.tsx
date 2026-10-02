@@ -5,7 +5,7 @@
  *
  * WHY IT IS HERE AND NOT ON A SETTINGS PAGE. It is asked at the first lock, because that is
  * the moment the information becomes necessary rather than merely useful: the TRN goes on the
- * invoice we are about to raise. A brand can open Merchant of Record, add creators and see a
+ * invoice we are about to raise. A brand can open Creator Contracting, add creators and see a
  * total without ever being asked for a trade licence, which is the point.
  *
  * THIS IS NOT KYC AND MUST NEVER READ AS IF IT WERE. We are not verifying anybody. This is

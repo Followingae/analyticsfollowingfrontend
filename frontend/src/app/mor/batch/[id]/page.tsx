@@ -213,16 +213,16 @@ function Money({ batch, paying, onPay }: {
         <div className="min-w-0">
           <div className="text-[12.5px] text-muted-foreground">{batch.status_label}</div>
           <div className="mt-2 text-[32px] font-semibold leading-none tabular-nums tracking-[-0.025em]">
-            {aed(batch.total_aed)}
+            {aed(batch.total_aed, batch.currency)}
           </div>
           <div className="mt-4 space-y-1 text-[13px] text-muted-foreground">
-            <Split label="Creators' fees" value={aed(batch.creator_fee_aed)} />
+            <Split label="Creators' fees" value={aed(batch.creator_fee_aed, batch.currency)} />
             <Split
               label="Our service fee"
-              value={batch.our_fee_aed === 0 ? 'Waived' : aed(batch.our_fee_aed)}
+              value={batch.our_fee_aed === 0 ? 'Waived' : aed(batch.our_fee_aed, batch.currency)}
               lime={batch.our_fee_aed === 0}
             />
-            <Split label={batch.vat_label} value={aed(batch.vat_aed)} />
+            <Split label={batch.vat_label} value={aed(batch.vat_aed, batch.currency)} />
           </div>
         </div>
 
@@ -230,7 +230,7 @@ function Money({ batch, paying, onPay }: {
           {owed && batch.payment_method === 'card' && (
             <Button onClick={onPay} disabled={paying} className="gap-1.5">
               <CreditCard className="size-4" />
-              {paying ? 'Opening…' : `Pay ${aed(batch.total_aed)}`}
+              {paying ? 'Opening…' : `Pay ${aed(batch.total_aed, batch.currency)}`}
             </Button>
           )}
           {owed && batch.payment_method === 'transfer' && (
@@ -305,10 +305,10 @@ function CreatorRow({ payment }: { payment: MorPayment }) {
         </span>
       </TableCell>
       <TableCell className="text-right text-[13.5px] tabular-nums">
-        {aed(payment.creator_fee_aed)}
+        {aed(payment.creator_fee_aed, payment.currency)}
       </TableCell>
       <TableCell className="pr-4 text-right">
-        <div className="text-[13.5px] font-medium tabular-nums">{aed(payment.total_aed)}</div>
+        <div className="text-[13.5px] font-medium tabular-nums">{aed(payment.total_aed, payment.currency)}</div>
         {payment.fee_waived && (
           <span
             className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold"

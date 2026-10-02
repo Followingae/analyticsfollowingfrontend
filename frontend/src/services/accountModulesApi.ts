@@ -2,7 +2,7 @@
  * Module entitlements, the operator's side.
  * Mirrors app/api/admin/entitlement_routes.py, base path /api/v1/admin/accounts.
  *
- * Four product modules exist: Find, Run, Merchant of Record, Manage. What an account has,
+ * Four product modules exist: Find, Run, Creator Contracting, Manage. What an account has,
  * how each part of it is billed, and where its payments stand all come from one read.
  *
  * Three things the types here deliberately preserve rather than re-derive:
@@ -86,7 +86,7 @@ export interface AccountModulesResponse {
   grace_ends_at: string | null
 }
 
-/** What Merchant of Record costs this account, in the words it is sold in. */
+/** What Creator Contracting costs this account, in the words it is sold in. */
 export interface MorFeeStructure {
   /** The whole price: a percentage of each payout settled. There is no monthly fee. */
   settlement_fee_pct: string
