@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useMemo } from "react"
 import {
   Label,
   PolarGrid,
@@ -15,9 +15,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useSubscriptionData, useProfilesRemaining, useSubscriptionTier } from "@/stores/userStore"
+import { planTierLabel } from "@/lib/plan-tier"
 
 const chartConfig = {
   visitors: {
@@ -25,7 +25,7 @@ const chartConfig = {
   },
   safari: {
     label: "Profile Analysis",
-    color: "hsl(var(--chart-1))",
+    color: "var(--chart-1)",
   },
 } satisfies ChartConfig
 
@@ -40,10 +40,16 @@ export function ChartProfileAnalysisV2() {
   const uncapped = profilesRemaining === null
   const used = subscription?.usage.profiles ?? 0
 
+  // On an uncapped plan the ring is a COMPLETE ring, drawn from a constant rather than from
+  // a count. It used to be drawn from `used`, so a customer who had unlocked nobody yet got
+  // `visitors: 0` and an empty grey circle sitting next to a full credits dial — which reads
+  // as "you have nothing left", the exact opposite of "you have no ceiling", and precisely
+  // what the endAngle note below says it was fixing. The figure in the middle is still the
+  // real `used` count; this value only decides how much of the arc is painted.
   const chartData = useMemo(() => [
-    { browser: "safari", visitors: uncapped ? used : profilesRemaining,
-      fill: "oklch(0.4718 0.2853 280.0726)" }
-  ], [profilesRemaining, uncapped, used])
+    { browser: "safari", visitors: uncapped ? 1 : profilesRemaining,
+      fill: "var(--chart-1)" }
+  ], [profilesRemaining, uncapped])
 
   const usageData = useMemo(() => {
     if (!subscription) return null
@@ -53,7 +59,10 @@ export function ChartProfileAnalysisV2() {
       limit: subscription.limits.profiles,
       remaining: profilesRemaining,
       tier: subscriptionTier,
-      tierDisplay: subscriptionTier ? subscriptionTier.charAt(0).toUpperCase() + subscriptionTier.slice(1) : 'Free'
+      // The plan name comes from one place now, and it is never guessed. See
+      // src/lib/plan-tier.ts: printing "Free" over a missing tier told paying customers
+      // they were on the free plan.
+      tierDisplay: planTierLabel(subscriptionTier)
     }
   }, [subscription, profilesRemaining, subscriptionTier])
 
@@ -66,43 +75,51 @@ export function ChartProfileAnalysisV2() {
     return (usageData.remaining / usageData.limit) * 360
   }
 
-  // Calculate days until first of next month (billing reset)
-  const getDaysUntilReset = () => {
-    const now = new Date()
-    const firstOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-    const days = Math.ceil((firstOfNextMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    return Math.max(days, 0)
-  }
-
   const isLoading = !subscription
+
+  /** What a screen reader is told, since the figure itself lives in an SVG <tspan>. */
+  const spokenValue = isLoading
+    ? 'Loading your profile unlocks'
+    : uncapped
+      ? `${used.toLocaleString()} creators unlocked this cycle. Your plan has no monthly cap.`
+      : `${(usageData?.remaining ?? 0).toLocaleString()} profile unlocks remaining${
+          usageData?.limit != null ? ` of ${usageData.limit} this month` : ''}`
 
   return (
     <Card className="flex flex-col relative">
-      {/* An uncapped plan has no allowance to reset, so the countdown was answering a
-          question nobody asked and implying a ceiling that does not exist. It is kept for
-          capped plans only.
-          ⚠️ Still wrong even there: it counts to the first of the calendar month, while
-          billing runs from each customer's subscription anniversary. The real reset date is
-          not sent to the client today, and inventing one is what this whole pass is about,
-          so it stays as it is until the server returns it. */}
-      {!isLoading && usageData && !uncapped && (
-        <Badge 
-          variant="outline" 
-          className="absolute top-3 right-3 z-20 text-xs text-muted-foreground border-border bg-muted/30"
-        >
-          {getDaysUntilReset() === 0 ? 'resets today' : `resets in ${getDaysUntilReset()}d`}
-        </Badge>
-      )}
+      {/* The "resets in Nd" badge is gone.
+          It counted to the first of the calendar month, while billing runs from each
+          customer's subscription anniversary, so a client on a 14th-of-month subscription
+          read "resets in 3d" on the 28th and planned an unlock run against an allowance that
+          was not coming. The previous note here admitted the number was wrong and left it on
+          screen "until the server returns it", which quietly became the shipped state.
+          A knowingly-wrong date is worse than no date: this page asks clients to trust an en
+          dash when a figure did not load, and it cannot ask for that trust while inventing a
+          number elsewhere. When the API sends a real `next_reset_at`, render it as an
+          absolute date ("resets 14 Oct") so a stale cache cannot drift it. */}
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium">Profile Unlocks</CardTitle>
+        {/* The plan name is omitted when we do not have one, rather than replaced with
+            "Free". The cap sentence itself is the server's: Standard and Premium carry
+            `limits_unlimited.profiles`, so "no monthly cap" is what the API says, not a
+            guess made here. */}
         <div className="text-xs text-muted-foreground">
           {isLoading ? "Loading..."
-            : uncapped ? `${usageData?.tierDisplay || 'Free'} plan • no monthly cap`
-            : `${usageData?.tierDisplay || 'Free'} plan • ${usageData?.limit ?? 0}/month`}
+            : uncapped
+              ? [usageData?.tierDisplay && `${usageData.tierDisplay} plan`, 'no monthly cap']
+                  .filter(Boolean).join(' • ')
+              : [usageData?.tierDisplay && `${usageData.tierDisplay} plan`,
+                 usageData?.limit != null ? `${usageData.limit}/month` : null]
+                  .filter(Boolean).join(' • ')}
         </div>
       </CardHeader>
       <CardContent className="p-1">
+        {/* The figure lives in an SVG <tspan>, which assistive tech does not announce, and
+            the aria-label that used to cover this sat on a plain <div> with no role, where
+            it is dropped. So the number is said here, in text, and the drawing is hidden. */}
+        <p className="sr-only">{spokenValue}</p>
         <ChartContainer
+          aria-hidden
           config={chartConfig}
           className="mx-auto h-[180px] w-[180px]"
         >
@@ -123,10 +140,10 @@ export function ChartProfileAnalysisV2() {
             <RadialBar 
               dataKey="visitors" 
               background={{ 
-                fill: "hsl(var(--muted))" 
+                fill: "var(--muted)" 
               }} 
               cornerRadius={10} 
-              fill="oklch(0.4718 0.2853 280.0726)"
+              fill="var(--chart-1)"
             />
             <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
               <Label

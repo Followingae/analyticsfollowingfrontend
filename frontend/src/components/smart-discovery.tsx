@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { OpenAICodexAnimatedBackground } from "@/components/open-ai-codex-animated-background"
 
@@ -43,35 +42,38 @@ export function SmartDiscovery({
         </div>
       </div>
       
-      {/* Adaptive gradient overlay for better text readability in both light and dark modes */}
-      <div className="absolute inset-0 z-10 bg-background/20 dark:bg-background/40 transition-all duration-700 ease-out rounded-xl" />
-      <div className="absolute inset-0 z-10 opacity-0 group-hover:opacity-100 bg-background/30 dark:bg-background/20 transition-all duration-700 ease-out rounded-xl" />
-      
-      
-      
+      {/* The scrim.
+          It was `bg-background/20` in light mode under `text-white`, which a contrast check
+          measured at 1.0:1 — white text on a white-ish surface, twice, at whatever the
+          animation happened to be doing. A scrim that varies frame by frame cannot be relied
+          on to carry text, so the text no longer depends on it: the headline uses the theme's
+          own foreground colour in both modes, and the scrim is here to settle the background
+          rather than to rescue the type. */}
+      <div className="absolute inset-0 z-10 bg-background/70 dark:bg-background/60 transition-all duration-700 ease-out rounded-xl" />
+      <div className="absolute inset-0 z-10 opacity-0 group-hover:opacity-100 bg-background/50 dark:bg-background/40 transition-all duration-700 ease-out rounded-xl" />
+
       {/* Content overlay — the whole Card is the interactive control, so the
           content layer stays non-interactive (no nested tab stop / no dead
           large target: clicking anywhere activates the Card). */}
       <div className="relative z-20 p-6 h-full flex flex-col items-center justify-center pointer-events-none">
         <div className="text-center">
-          <h2 className="text-white dark:text-foreground group-hover:text-foreground font-black text-4xl md:text-5xl relative z-10 transition-colors duration-700 ease-out tracking-tight leading-tight">
+          {/* This was `text-4xl md:text-5xl font-black`: 48px at weight 900, which made an
+              advertisement for a feature the largest thing on the client's home screen,
+              louder than the client's own name at 44px and louder than every measured number
+              on a page whose whole argument is that the numbers are trustworthy. It is now
+              one thing among several, which is what it is. */}
+          <h2 className="text-foreground font-semibold text-2xl relative z-10 tracking-tight leading-tight">
             Creator Discovery
           </h2>
-          <p className="text-white/80 dark:text-foreground/80 group-hover:text-foreground/80 text-lg mt-3 mb-6 relative z-10 transition-colors duration-700 ease-out">
+          <p className="text-muted-foreground text-sm mt-2 relative z-10">
             AI-powered insights to find the right voices instantly
           </p>
-          {/* Filled primary affordance (visual only — the Card carries the
-              click + keyboard handling). Promoted from `outline` to `default`. */}
-          <Button
-            asChild
-            variant="default"
-            className={cn(
-              "transition-all duration-200",
-              "shadow-sm group-hover:shadow-md"
-            )}
-          >
-            <span>Discover Now</span>
-          </Button>
+          {/* There used to be a <Button asChild> wrapping a <span> here: a control that
+              looked like a button, was not focusable, and sat inside a layer with
+              `pointer-events-none` — so it advertised an action it could not perform, and
+              the card underneath already carried the real one. Two affordances for one
+              action, one of them fake. The card's own hover and focus ring carry the
+              invitation now. */}
         </div>
       </div>
     </Card>

@@ -92,7 +92,7 @@ const SCREENS: Entry[] = [
     also: ['post a brief', 'inbound', 'applications'],
   },
   {
-    title: 'Merchant of Record', href: '/mor', icon: Wallet,
+    title: 'Creator Contracting', href: '/mor', icon: Wallet,
     what: 'You have already agreed terms with a creator and want us to contract and pay them. '
         + 'Tell us who, and what you agreed. We draw up the agreement in our name, you settle '
         + 'one invoice, and we pay them. Several creators at once works the same way and still '
@@ -130,7 +130,7 @@ const EXPLAINERS: Explainer[] = [
         and your registered details on it or you cannot claim the VAT back at your own filing.
         This is not verification and nobody is being screened: it is the same information your
         accounts team puts on any supplier form. We ask once, at your first order, and never
-        again. You can look around Merchant of Record, add creators and see a total without
+        again. You can look around Creator Contracting, add creators and see a total without
         being asked for any of it.
       </>
     ),

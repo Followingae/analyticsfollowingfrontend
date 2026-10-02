@@ -141,7 +141,7 @@ function NewPaymentForm() {
 
       <Button variant="ghost" size="sm" className="-ml-2.5 gap-1.5 text-muted-foreground"
               onClick={() => router.push('/mor')}>
-        <ArrowLeft className="size-4" />Merchant of Record
+        <ArrowLeft className="size-4" />Creator Contracting
       </Button>
 
       <h1 className="mt-6 text-[28px] font-semibold leading-tight tracking-[-0.02em]">
@@ -332,7 +332,7 @@ function Cost({ quote }: { quote: MorQuote }) {
     <div className="mor-total-in mt-8 rounded-[14px] border border-[var(--mor-rule)] px-6 py-5">
       <Line label="Creator’s fee" value={aed(quote.creator_fee_aed)} />
       <Line
-        label="Our Merchant of Record fee"
+        label="Our service fee"
         value={
           quote.fee_waived ? (
             <span className="inline-flex items-center gap-2.5">

@@ -291,7 +291,7 @@ function BatchForm() {
 
       <Button variant="ghost" size="sm" className="-ml-2.5 gap-1.5 text-muted-foreground"
               onClick={() => router.push('/mor')}>
-        <ArrowLeft className="size-4" />Merchant of Record
+        <ArrowLeft className="size-4" />Creator Contracting
       </Button>
 
       <header className="mt-6 flex flex-wrap items-start justify-between gap-6">
@@ -569,7 +569,7 @@ function Summary({ quote }: { quote: MorBatchQuote }) {
       <div className="rounded-[14px] border border-[var(--mor-rule)] px-6 py-5">
         <Line label={`Creators' fees`} value={aed(quote.creator_fee_aed)} />
         <Line
-          label="Our Merchant of Record fee"
+          label="Our service fee"
           value={
             quote.waived_count > 0 && quote.our_fee_aed === 0 ? (
               <span

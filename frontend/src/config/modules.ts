@@ -16,7 +16,7 @@
  *           paid). The rate lives in run_money/config.py and is stamped onto a
  *           campaign at award time. It is priced as a percentage rather than a
  *           monthly figure, so a plan card still cannot print a number for it.
- *           Merchant of Record was once missing from this file entirely, so a
+ *           Creator Contracting was once missing from this file entirely, so a
  *           client could neither see nor ask for a module the backend gates a
  *           whole product area on (app/api/mor_routes.py).
  *   manage  Not an add-on - it is the Managed plan. Quoted, so its action is
@@ -90,7 +90,7 @@ export const MODULES: Record<ModuleKey, ModuleDefinition> = {
     ],
     availability: 'addon',
     // The module owns its whole cycle now, so this points at the module. It used to point at
-    // /campaigns, which sent a client who had just bought Merchant of Record off to find a
+    // /campaigns, which sent a client who had just bought Creator Contracting off to find a
     // campaign before they could see any of it.
     href: '/mor',
     gatedRoutes: ['/campaigns'],
@@ -100,7 +100,7 @@ export const MODULES: Record<ModuleKey, ModuleDefinition> = {
   },
   mor: {
     key: 'mor',
-    name: 'Merchant of Record',
+    name: 'Creator Contracting',
     // The words app/services/run_money/mor.py uses to sell it.
     summary:
       'You pay us, we pay the creators, and you watch every payout move from awaiting funds to paid.',
@@ -116,7 +116,7 @@ export const MODULES: Record<ModuleKey, ModuleDefinition> = {
     // and settlement endpoints (app/api/mor_routes.py), not on a page, so
     // claiming a route here would lock a screen nothing enforces.
     gatedRoutes: [],
-    wallHeadline: 'Merchant of Record pays your creators for you',
+    wallHeadline: 'Creator Contracting pays your creators for you',
     wallBody:
       'You pay us once, we contract and pay every creator, and you watch each payout move from awaiting funds to paid. It costs a percentage of what we settle for you and nothing else, so a month in which nothing moved costs you nothing.',
   },

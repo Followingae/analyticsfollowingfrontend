@@ -143,7 +143,7 @@ function Detail() {
 
       <Button variant="ghost" size="sm" className="-ml-2.5 gap-1.5 text-muted-foreground"
               onClick={() => router.push('/mor')}>
-        <ArrowLeft className="size-4" />Merchant of Record
+        <ArrowLeft className="size-4" />Creator Contracting
       </Button>
 
       {loading ? (

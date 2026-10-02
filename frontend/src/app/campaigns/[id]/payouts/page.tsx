@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Merchant of Record — the client's status view for one campaign.
+ * Creator Contracting — the client's status view for one campaign.
  *
  * Who is owed, how much, and where each payout has got to: awaiting funds, approved, in a
  * transfer file, paid, with the date and bank reference once our team marks it. Read-only.
@@ -116,7 +116,7 @@ function PayoutsContent() {
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            Merchant of Record is not switched on for this campaign, so no payouts are being
+            Creator Contracting is not switched on for this campaign, so no payouts are being
             settled through us here.
           </AlertDescription>
         </Alert>

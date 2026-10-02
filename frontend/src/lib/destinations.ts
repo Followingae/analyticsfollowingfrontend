@@ -151,10 +151,12 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Creator payments',
     hint: 'What we owe every creator',
   },
+  /* The URL stays /work/mor. Renaming it would break every link already sent in a
+     notification email, and the path is not what anybody reads. */
   '/work/mor': {
-    short: 'Merchant of record',
-    full: 'Merchant of record',
-    hint: 'Brand orders we invoice, collect and pay out',
+    short: 'Creator contracting',
+    full: 'Creator contracting and payouts',
+    hint: 'Brand orders we contract, invoice, collect and pay out',
   },
   '/work/money': {
     short: 'Finance',

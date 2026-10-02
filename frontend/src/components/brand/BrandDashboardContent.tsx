@@ -36,6 +36,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useDashboardData } from "@/hooks/useDashboardData"
 import { useUserStore, useSubscriptionData, useTeamData } from "@/stores/userStore"
+import { planTierLabel } from "@/lib/plan-tier"
 import { useNotifications } from "@/contexts/NotificationContext"
 import { ChartProfileAnalysisV2 } from "@/components/chart-profile-analysis-v2"
 import { ChartRemainingCreditsV2 } from "@/components/chart-remaining-credits-v2"
@@ -43,12 +44,7 @@ import { BrandQuotaWidget } from "@/components/brand/BrandQuotaWidget"
 import { CampaignBars } from "@/components/brand/CampaignBars"
 import { ShareCenterCard } from "@/components/brand/ShareCenterCard"
 import { ContentAwaitingPanel } from "@/components/brand/ContentAwaitingPanel"
-import { brandProposalViewApi } from "@/services/adminProposalMasterApi"
-import { cn } from "@/lib/utils"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-/** The card surface the dials already carry, so the figures beside them match. */
-const CARD_SURFACE = 'rounded-[var(--radius-card,16px)] border bg-card'
 
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
 import { Button } from "@/components/ui/button"
@@ -162,18 +158,14 @@ export function BrandDashboardContent() {
   }, [])
   useEffect(() => { loadContent() }, [loadContent])
 
-  /* Proposals still waiting on THEM - sent, in review, or more asked for. The server has
-     always counted this; nothing on the dashboard read it, so the one thing a client is
-     most often here to do had no number anywhere on their home screen. */
-  const [pendingProposals, setPendingProposals] = useState<number | null>(null)
-  useEffect(() => {
-    brandProposalViewApi.listProposals({ limit: 1 })
-      .then((r) => setPendingProposals(r.pending_count ?? 0))
-      .catch(() => setPendingProposals(null))
-  }, [])
+  /* The pending-proposal count used to be fetched here, on every dashboard load, and then
+     fed nothing: the "what is waiting" band that consumed it was removed and the request
+     was left behind. The sidebar already carries that badge, and it fetches it itself. */
 
+  // Deliberately independent of `isLoading`: a name we already hold should not wait on three
+  // API calls before it can be said.
   const userDisplayData = useMemo(() => {
-    if (!user || isLoading) return null
+    if (!user) return null
 
     const getDisplayName = () => {
       if (user.first_name && user.last_name) return `${user.first_name} ${user.last_name}`
@@ -187,38 +179,37 @@ export function BrandDashboardContent() {
       displayName: getDisplayName(),
       companyName: user.company || null,
     }
-  }, [user, isLoading])
+  }, [user])
 
   // Derive subscription tier display. `null` means we do not know yet, which is a
   // different thing from Free — a brand on Premium must never be shown "Free" because a
   // request was still in flight.
+  //
+  // The rule above was stated here and then broken three lines later by `: 'Free'`, which
+  // fired whenever every source came back undefined on a DEGRADED response rather than a
+  // pending one. A paying customer was told they were on the free plan. The label now comes
+  // from one shared place and stays null when nothing named a tier, so the card renders
+  // UNKNOWN instead of a guess. See src/lib/plan-tier.ts.
   const tierValue = useMemo(() => {
     if (userStoreLoading || teamsLoading) return null
-
-    const tier = team?.subscription_tier
+    return planTierLabel(
+      team?.subscription_tier
       || subscription?.tier
       || teamsOverview?.team_info?.subscription_tier
-
-    const tierMap: Record<string, string> = {
-      free: 'Free',
-      standard: 'Standard',
-      premium: 'Premium',
-      enterprise: 'Enterprise',
-    }
-
-    return tier ? (tierMap[tier] || tier) : 'Free'
+    )
   }, [userStoreLoading, teamsLoading, team, subscription, teamsOverview])
 
-  if (isLoading) {
+  // The page waits for the CLIENT, not for their numbers.
+  //
+  // This used to gate on `isLoading`, which ORs three separate queries inside
+  // useDashboardData, so the greeting — which needs no network at all — waited on the
+  // slowest of three endpoints, and one slow call held the section labels and the discovery
+  // tile hostage with it. Each figure now carries its own loading state through `Stat`, and
+  // the dials have always carried theirs, so the page paints immediately and fills in.
+  // The skeleton is kept for the one case where there is genuinely nothing to draw yet.
+  if (!user) {
     return <DashboardSkeleton />
   }
-
-  const greeting = (() => {
-    const h = new Date().getHours()
-    if (h < 12) return 'Good morning'
-    if (h < 18) return 'Good afternoon'
-    return 'Good evening'
-  })()
 
   const who = userDisplayData?.companyName || userDisplayData?.displayName
 
@@ -279,6 +270,11 @@ export function BrandDashboardContent() {
           put both on one line at one weight, which reads as a label and buries the only
           thing the block exists to say. The avatar is 90px and the name is the app's own
           font at 700, both as they were: no serif, nothing introduced. */}
+      {/* The client's name is the page's <h1>.
+          There was no h1 anywhere on this screen, so the first heading a screen reader
+          reached was <h2>Creator Discovery</h2> — a promotional tile. The name was two
+          <span>s, which is the right look and the wrong document. The look is unchanged:
+          "Welcome," small and italic above, the name large underneath. */}
       <header className="flex items-center gap-ds-4">
         <UserAvatar
           key={`dashboard-avatar-${JSON.stringify(user?.avatar_config) || 'default'}`}
@@ -286,56 +282,48 @@ export function BrandDashboardContent() {
           size={90}
           className="shrink-0"
         />
-        <div className="flex min-w-0 flex-col gap-0.5">
+        <h1 className="flex min-w-0 flex-col gap-0.5">
           <span className="welcome-text-primary font-semibold italic text-muted-foreground">Welcome,</span>
           {who && (
             <span className="welcome-text-brand font-bold tracking-tight" title={who}>
               {who}
             </span>
           )}
-        </div>
+        </h1>
       </header>
 
       {/* The analytics cards, in the shape shadcn draws them: the label small above, the
           figure big, one line of meaning under it. They were a Stat block inside a padded
           box of my own, which is how two figures became two tall panels with an inch of air
           around each. A card is sized by its content. */}
-      <div className="grid grid-cols-1 gap-ds-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Card
-          role="button"
-          tabIndex={0}
+      {/* These two figures are `Stat`s now, which is what `Stat` was written for.
+          They were hand-rolled Cards that produced a byte-identical en dash for loading and
+          for error, with no title and no explanation — the exact conflation the primitives
+          file exists to prevent, on the first screen every client opens. `Stat` renders a
+          shimmer while loading and, on error, an en dash plus the line "This did not load,
+          so it is not a zero." It is also a real <button>, so Space activates it as well as
+          Enter; the Cards handled Enter only and broke the native button contract.
+
+          Two figures in a four-column grid also left half a row of dead space on a wide
+          monitor, a leftover from the three-card layout this page removed. */}
+      <StatBand cols={2}>
+        <Stat
+          label="Creators unlocked, all time"
+          value={unlockedProfilesCount ?? UNKNOWN}
+          hint="Everyone your team has ever opened"
+          loading={profilesLoading}
+          error={profilesError}
           onClick={() => router.push('/creators')}
-          onKeyDown={(e) => { if (e.key === 'Enter') router.push('/creators') }}
-          className="cursor-pointer transition-colors hover:border-primary/40"
-        >
-          <CardHeader className="gap-1 pb-3">
-            <CardDescription>Creators unlocked, all time</CardDescription>
-            <CardTitle className="text-3xl font-semibold tabular-nums">
-              {profilesLoading ? UNKNOWN : (profilesError ? UNKNOWN : unlockedProfilesCount)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-xs text-muted-foreground">Everyone your team has ever opened</p>
-          </CardContent>
-        </Card>
-        <Card
-          role="button"
-          tabIndex={0}
+        />
+        <Stat
+          label="Your plan"
+          value={tierValue ?? UNKNOWN}
+          hint="Seats, unlocks and credits"
+          loading={userStoreLoading || teamsLoading}
+          error={!userStoreLoading && !teamsLoading && tierValue == null}
           onClick={() => router.push('/billing')}
-          onKeyDown={(e) => { if (e.key === 'Enter') router.push('/billing') }}
-          className="cursor-pointer transition-colors hover:border-primary/40"
-        >
-          <CardHeader className="gap-1 pb-3">
-            <CardDescription>Your plan</CardDescription>
-            <CardTitle className="text-3xl font-semibold">
-              {(userStoreLoading || teamsLoading) ? UNKNOWN : (tierValue ?? UNKNOWN)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-xs text-muted-foreground">Seats, unlocks and credits</p>
-          </CardContent>
-        </Card>
-      </div>
+        />
+      </StatBand>
 
       {/* The "what is waiting" band is gone, by decision: the two analytics cards below are
           what this page opens with. Pending proposals already carry a badge on the sidebar,
@@ -370,11 +358,15 @@ export function BrandDashboardContent() {
             too wide. */}
         {/* Two dials, one row. They are the same measure - what is left of this cycle -
             so they read as a pair rather than as two cards among four. */}
+        {/* These wrappers used to carry `aria-label` on a bare <div> with no role, where
+            assistive tech drops it, so a screen-reader user was told nothing at all about
+            either dial — including the credit balance. Each chart now speaks for itself in
+            real text; see the sr-only line in both chart components. */}
         <div className="grid grid-cols-1 gap-ds-3 sm:grid-cols-2">
-          <div aria-label="Profile unlocks remaining this billing cycle" className="h-[280px]">
+          <div className="h-[280px]">
             <ChartProfileAnalysisV2 />
           </div>
-          <div aria-label="Remaining credits this billing cycle" className="h-[280px]">
+          <div className="h-[280px]">
             <ChartRemainingCreditsV2 />
           </div>
         </div>
@@ -388,6 +380,12 @@ export function BrandDashboardContent() {
         <ShareCenterCard />
         <BrandQuotaWidget />
 
+        {/* Every other companion panel renders nothing when it has nothing to say. This one
+            printed "Nothing yet." in the page's closing position, so a client with a quiet
+            account ended their visit on a small apology — the one place the house rule was
+            broken, at the one place the peak-end rule makes it count most. It now follows
+            the same rule as its neighbours and simply does not render. */}
+        {notifications.length > 0 && (
         <Panel
           title="Recent activity"
           action={
@@ -397,9 +395,7 @@ export function BrandDashboardContent() {
           }
           flush
         >
-          {notifications.length === 0 ? (
-            <p className="px-6 pb-ds-3 text-ds-body-sm text-muted-foreground">Nothing yet.</p>
-          ) : (
+          {(
             <div className="px-4">
               {notifications.slice(0, 5).map((n) => {
                 const iconMap: Record<string, typeof Bell> = {
@@ -436,6 +432,7 @@ export function BrandDashboardContent() {
             </div>
           )}
         </Panel>
+        )}
       </section>
 
       <Balloons ref={balloonsRef} />

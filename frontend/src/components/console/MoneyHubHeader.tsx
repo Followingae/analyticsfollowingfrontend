@@ -28,10 +28,10 @@ export function useMoneyTabs(): HubTab[] {
        invoice money lives on the campaign timeline, against the instalment it settles. The
        tab is named for what is actually there. */
     { label: 'Client credits', href: '/work/billing', module: 'billing' },
-    /* Merchant of Record. Sits under Money because that is all it is: a brand pays us, we pay
+    /* Creator Contracting. Sits under Money because that is all it is: a brand pays us, we pay
        creators, and every action on it moves money. It carries its own invoices, receipts and
        payouts, so it is a destination rather than a view of something else. */
-    { label: 'Merchant of Record', href: '/work/mor', module: 'billing', when: canSeeCost },
+    { label: 'Creator Contracting', href: '/work/mor', module: 'billing', when: canSeeCost },
     // Cost, not just creators — see the note above.
     { href: '/work/payables', module: 'influencers', when: canSeeCost },
     { label: 'Creator app balances', href: '/work/fa/wallets', module: 'fa', when: canSeeCost },

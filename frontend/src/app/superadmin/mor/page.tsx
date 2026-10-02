@@ -91,7 +91,7 @@ function Ops() {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-ds-5 p-ds-3 md:p-ds-4">
       <PageHead
-        title="Merchant of Record"
+        title="Creator Contracting"
         sub="Every order, every client. Raise the invoice, mark the money in, pay the creators."
         action={
           <Button variant="outline" size="sm" onClick={() => { setLoading(true); load() }}>

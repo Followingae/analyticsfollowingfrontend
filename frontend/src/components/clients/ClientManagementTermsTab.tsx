@@ -4,7 +4,7 @@
  * The management deal, on the screen, for the person who signs it.
  *
  * `client_management_terms` was a table nobody outside the code had ever seen, and it decides
- * two things that cost real money: whether Merchant of Record is free for this client, and
+ * two things that cost real money: whether Creator Contracting is free for this client, and
  * what percentage we take when their creators are settled. It was empty for every account,
  * which means both decisions were being made from a blank row.
  *
@@ -188,7 +188,7 @@ export function ClientManagementTermsTab({ teamId, clientName }: {
           <li className="flex gap-ds-3">
             <span className="mt-[7px] h-1.5 w-1.5 flex-none rounded-full bg-[var(--tone-good-dot)]" aria-hidden />
             <div>
-              <p className="text-ds-body font-medium">Merchant of Record is included at no charge.</p>
+              <p className="text-ds-body font-medium">Creator Contracting is included at no charge.</p>
               <p className="text-ds-body text-muted-foreground">
                 While a management deal is running, this client pays neither the Merchant of
                 Record monthly fee nor its percentage of payouts. The service charge below
@@ -275,7 +275,7 @@ export function ClientManagementTermsTab({ teamId, clientName }: {
         ) : (
           <Empty>
             No management deal has ever been set for {clientName}. They are billed as an
-            ordinary client, and Merchant of Record, if they use it, is charged in full.
+            ordinary client, and Creator Contracting, if they use it, is charged in full.
           </Empty>
         )}
       </Panel>
@@ -362,7 +362,7 @@ function TermDialog({ open, onOpenChange, teamId, clientName, current, onDone }:
         `${pct(chargeNum)} at settlement, from ${niceDate(from)}.`,
         { description: closed
           ? `The previous deal was closed on ${niceDate(closed.ended_on)}. Months already billed keep the rate they were billed at.`
-          : 'Merchant of Record is now included at no charge for this client.' },
+          : 'Creator Contracting is now included at no charge for this client.' },
       )
       onOpenChange(false)
     } catch (e) {
@@ -380,7 +380,7 @@ function TermDialog({ open, onOpenChange, teamId, clientName, current, onDone }:
           <DialogDescription>
             {current
               ? `${clientName} is on a deal already. A new rate does not edit it: the old deal closes and this one starts, so months already billed keep the rate they were billed at.`
-              : `What ${clientName} pays us for running their creators. Setting this also makes Merchant of Record free for them.`}
+              : `What ${clientName} pays us for running their creators. Setting this also makes Creator Contracting free for them.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -493,7 +493,7 @@ function EndDialog({ term, clientName, onOpenChange, onDone }: {
           : `${clientName}: the deal ends on ${niceDate(when)}.`,
         { description: clear
           ? 'It runs until somebody ends it.'
-          : 'From the day after, they are no longer a management client and Merchant of Record is charged in full.' },
+          : 'From the day after, they are no longer a management client and Creator Contracting is charged in full.' },
       )
       onOpenChange(false)
     } catch (e) {

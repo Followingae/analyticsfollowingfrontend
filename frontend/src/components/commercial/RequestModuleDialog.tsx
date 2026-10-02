@@ -60,7 +60,7 @@ export function RequestModuleDialog({
 }: RequestModuleDialogProps) {
   const def = MODULES[module]
   // Only an add-on with an AGREED price carries a figure. Find is included,
-  // Manage is quoted, and Merchant of Record is an add-on whose price is
+  // Manage is quoted, and Creator Contracting is an add-on whose price is
   // quoted: both its monthly fee and its settlement percentage are provisional
   // in the backend (app/services/run_money/mor.py fee_structure), so this
   // dialog must not tell someone what it costs.
@@ -116,7 +116,7 @@ export function RequestModuleDialog({
               </>
             ) : module === 'mor' ? (
               <>
-                Merchant of Record is quoted. There is a monthly fee while it is on, and a
+                Creator Contracting is quoted. There is a monthly fee while it is on, and a
                 percentage of every payout we settle for you, and the percentage is fixed onto a
                 campaign when it is awarded so a later change never reprices work already
                 running. Sending this asks us for both numbers in writing. Nothing is charged

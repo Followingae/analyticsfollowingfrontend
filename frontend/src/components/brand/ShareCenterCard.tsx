@@ -62,14 +62,23 @@ export function ShareCenterCard({ className }: { className?: string }) {
   const [all, setAll] = useState(false)
   const [downloading, setDownloading] = useState(false)
 
+  // A failure is not an empty inbox.
+  //
+  // Both branches used to `setItems([])`, so a 500 rendered exactly like "nothing has been
+  // shared with you": the card returned null and vanished. That is the same conflation
+  // CampaignBars was fixed to avoid, and it is worse here because the thing being hidden is
+  // work somebody sent this client and is waiting on.
+  const [failed, setFailed] = useState(false)
+
   const load = useCallback(async () => {
+    setFailed(false)
     try {
       const res = await fetchWithAuth(BASE)
-      if (!res.ok) { setItems([]); return }
+      if (!res.ok) { setItems(null); setFailed(true); return }
       const j = await res.json()
       setItems(j.data.items)
       setUnread(j.data.unread)
-    } catch { setItems([]) }
+    } catch { setItems(null); setFailed(true) }
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -101,6 +110,17 @@ export function ShareCenterCard({ className }: { className?: string }) {
     }
   }
 
+  if (failed) return (
+    <Card className={cn('flex h-full flex-col', className)}>
+      <CardContent className="p-6">
+        <p className="text-sm font-medium">We could not load what has been shared with you</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          This is a display problem. It does not mean nothing was shared.
+        </p>
+        <Button variant="outline" size="sm" className="mt-3" onClick={load}>Try again</Button>
+      </CardContent>
+    </Card>
+  )
   if (items === null) return <Skeleton className={cn('h-[320px] w-full rounded-2xl', className)} />
   /* Nothing shared yet is not an empty state to design — it is a card that should not exist. */
   if (items.length === 0) return null

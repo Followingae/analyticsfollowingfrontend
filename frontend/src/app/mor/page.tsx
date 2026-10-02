@@ -151,7 +151,7 @@ function Live({ data, onGo, onGoMany }: {
       <header className="flex flex-wrap items-start justify-between gap-6">
         <div className="min-w-0">
           <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">
-            Merchant of Record
+            Creator Contracting
           </h1>
           <p className="mt-3 max-w-[52ch] text-[14.5px] leading-relaxed text-muted-foreground">
             You tell us who you have agreed with. We contract them, you pay us once, and we

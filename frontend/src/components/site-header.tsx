@@ -6,18 +6,12 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Balloons } from "@/components/ui/balloons"
+import { planTierLabel } from "@/lib/plan-tier"
 import { HelpLifebuoy } from "@/components/help/HelpLifebuoy"
 import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
-import React, { useMemo, useState, useEffect, useRef } from "react"
-import { Crown, Coins, PartyPopper, LogOut, Search, MoreHorizontal } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import React, { useState, useEffect } from "react"
+import { Crown, Coins, LogOut, Search } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,7 +49,7 @@ export function SiteHeader() {
   const pathname = usePathname()
   const router = useRouter()
   const isDashboard = pathname === '/' || pathname === '/dashboard'
-  const { user, isLoading, isBrandUser, logout } = useEnhancedAuth()
+  const { user, isBrandUser, logout } = useEnhancedAuth()
   const { notifications, unreadCounts, markAsRead, markAllAsRead } = useNotifications()
 
   // Registry-driven breadcrumb trail (covers brand + operator routes)
@@ -64,26 +58,6 @@ export function SiteHeader() {
   const [teamContext, setTeamContext] = useState<TeamContext | null>(null)
   const [contextLoading, setContextLoading] = useState(true)
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
-  const balloonsRef = useRef<{ launchAnimation: () => void }>(null)
-
-  const userDisplayData = useMemo(() => {
-    if (!user || isLoading) return null
-
-    const getDisplayName = () => {
-      if (user.first_name && user.last_name) {
-        return `${user.first_name} ${user.last_name}`
-      }
-      if (user.full_name) return user.full_name
-      if (user.first_name) return user.first_name
-      if (user.email) return user.email.split('@')[0]
-      return null
-    }
-
-    return {
-      displayName: getDisplayName(),
-      companyName: user.company || null,
-    }
-  }, [user, isLoading])
 
   useEffect(() => {
     const loadTeamContext = async () => {
@@ -166,14 +140,17 @@ export function SiteHeader() {
     }
   }, [user, isBrandUser])
 
-  // Derive the tier label for display
+  // Derive the tier label for display.
+  //
+  // This used to fall back to `user.role` when the team context was missing, so a brand
+  // whose role is "brand_premium" but whose team is on Standard saw "Premium" up here and
+  // "Standard" on the page underneath, at the same moment. A role is not a purchase, and two
+  // answers to "what am I paying for" is worse than none. When we do not know, the badge
+  // does not render.
   const tierLabel = (() => {
     if (!isBrandUser) return null
     if (contextLoading) return null
-    if (teamContext) {
-      return teamContext.subscription_tier.charAt(0).toUpperCase() + teamContext.subscription_tier.slice(1)
-    }
-    return user?.role?.replace('brand_', '').replace(/^\w/, (c: string) => c.toUpperCase()) || 'Free'
+    return planTierLabel(teamContext?.subscription_tier)
   })()
 
   return (
@@ -185,19 +162,10 @@ export function SiteHeader() {
           className="mx-1 data-[orientation=vertical]:h-4"
         />
 
-        {/* Page context: welcome greeting or page title */}
-        {isDashboard && userDisplayData?.displayName && (
-          <div className="hidden sm:flex items-center gap-1.5">
-            <span className="text-sm text-muted-foreground">Welcome,</span>
-            <span className="text-sm font-medium text-foreground">{userDisplayData.displayName}</span>
-            {userDisplayData.companyName && (
-              <>
-                <span className="text-muted-foreground/50 text-xs">/</span>
-                <span className="text-sm text-muted-foreground hidden md:inline">{userDisplayData.companyName}</span>
-              </>
-            )}
-          </div>
-        )}
+        {/* The dashboard greets the client in its own head, at 44px, with their avatar
+            beside it. This bar used to greet them again 60px above that, in 14px grey, so
+            the one warm moment on the page was immediately undercut by a smaller copy of
+            itself. The page keeps the greeting; the bar does not repeat it. */}
         {!isDashboard && trail.length > 0 && (
           <Breadcrumb className="min-w-0">
             <BreadcrumbList className="flex-nowrap text-sm">
@@ -250,11 +218,22 @@ export function SiteHeader() {
             <TooltipProvider delayDuration={300}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="outline" className="text-xs cursor-default transition-colors duration-150 hover:bg-muted/50">
-                    <Coins className="w-3 h-3 mr-1 text-muted-foreground" />
-                    {creditBalance >= 10000
-                      ? `${(creditBalance / 1000).toFixed(1)}K`
-                      : creditBalance.toLocaleString()}
+                  {/* The abbreviated figure ("8.8K") is a display convenience; the exact
+                      balance used to live only in a hover tooltip on an element with no
+                      tabIndex, so it was unreachable by keyboard and by touch. It is now
+                      focusable, and the exact number is in the accessible name either way. */}
+                  <Badge
+                    variant="outline"
+                    tabIndex={0}
+                    aria-label={`${creditBalance.toLocaleString()} credits available`}
+                    className="text-xs cursor-default transition-colors duration-150 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <Coins className="w-3 h-3 mr-1 text-muted-foreground" aria-hidden />
+                    <span aria-hidden>
+                      {creditBalance >= 10000
+                        ? `${(creditBalance / 1000).toFixed(1)}K`
+                        : creditBalance.toLocaleString()}
+                    </span>
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
@@ -332,38 +311,15 @@ export function SiteHeader() {
                 </AlertDialogContent>
               </AlertDialog>
 
-              {/* Overflow — houses the non-essential balloons toy, out of the primary toolbar */}
-              <DropdownMenu>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="hidden sm:inline-flex transition-colors duration-150 text-muted-foreground"
-                        aria-label="More"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>More</p>
-                  </TooltipContent>
-                </Tooltip>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => balloonsRef.current?.launchAnimation()}>
-                    <PartyPopper className="h-4 w-4" />
-                    Launch balloons
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* An overflow menu, a trigger and a tooltip used to be built here to house
+                  exactly one item: "Launch balloons". A "More" affordance promises density
+                  and delivered a toy, while adding an eighth control to a bar that already
+                  had seven. The celebration still fires on the dashboard when a credit
+                  purchase lands, which is where it means something. */}
             </div>
           </TooltipProvider>
         </div>
       </div>
-
-      <Balloons ref={balloonsRef} />
     </header>
   )
 }

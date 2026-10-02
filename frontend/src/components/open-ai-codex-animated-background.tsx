@@ -71,10 +71,63 @@ const Scene = memo(function Scene({
   );
 });
 
+/**
+ * Can this browser actually give us WebGL?
+ *
+ * Asked once, before the scene is mounted. Without this the scene library tries to create a
+ * context, fails, throws `Cannot read properties of undefined (reading 'gl')`, and tries
+ * again — on a loop, filling the console with TextureLoader and Curtains errors for as long
+ * as the page is open. Machines with no GPU, a blocked or crashed GPU process, a headless
+ * browser, or `prefers-reduced-motion` handled upstream all land here, and none of them
+ * should pay for a retry loop behind a decorative background.
+ *
+ * `null` means "not asked yet", which renders the same quiet ground as "no".
+ */
+const useWebGLSupported = () => {
+  const [supported, setSupported] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    try {
+      const canvas = document.createElement("canvas");
+      const gl =
+        canvas.getContext("webgl2") ||
+        canvas.getContext("webgl") ||
+        canvas.getContext("experimental-webgl");
+      setSupported(Boolean(gl));
+      // Release it immediately; this was a probe, not a renderer.
+      const lose = (gl as WebGLRenderingContext | null)?.getExtension?.("WEBGL_lose_context");
+      lose?.loseContext?.();
+    } catch {
+      setSupported(false);
+    }
+  }, []);
+
+  return supported;
+};
+
 export const OpenAICodexAnimatedBackground = memo(
   function OpenAICodexAnimatedBackground() {
     const { containerSize, containerRef } = useContainerSize();
-    const ready = containerSize.width > 0 && containerSize.height > 0;
+    const webgl = useWebGLSupported();
+    // A probe can say yes and the scene can still fail — a software renderer satisfies
+    // `getContext` and then falls over inside the library, which paints its own message
+    // ("Error loading scene. Cannot read properties of undefined (reading 'gl')") straight
+    // into the page. A raw library error is not something a client should ever read, least
+    // of all across a tile on their home screen, so if no <canvas> has appeared shortly
+    // after mounting we take the scene down and keep the quiet ground instead.
+    const [sceneFailed, setSceneFailed] = useState(false);
+    const shouldMount =
+      containerSize.width > 0 && containerSize.height > 0 && webgl === true && !sceneFailed;
+
+    useEffect(() => {
+      if (!shouldMount) return;
+      const el = containerRef.current;
+      if (!el) return;
+      const t = setTimeout(() => {
+        if (!el.querySelector("canvas")) setSceneFailed(true);
+      }, 4000);
+      return () => clearTimeout(t);
+    }, [shouldMount, containerRef]);
 
     return (
       <div
@@ -82,7 +135,7 @@ export const OpenAICodexAnimatedBackground = memo(
         className="absolute inset-0 h-full w-full"
         style={{ minHeight: "320px", minWidth: "100px" }}
       >
-        {ready ? (
+        {shouldMount ? (
           <Scene
             projectId="1grEuiVDSVmyvEMAYhA6"
             width={containerSize.width}
@@ -90,8 +143,10 @@ export const OpenAICodexAnimatedBackground = memo(
           />
         ) : (
           // A flat ground rather than the word "Loading": this sits behind a card the
-          // client can already read and click.
-          <div className="h-full w-full bg-black" />
+          // client can already read and click. It was `bg-black`, which put a black slab
+          // behind a light-theme card whenever the scene was not up; `bg-muted` belongs to
+          // whichever theme is running.
+          <div className="h-full w-full bg-muted" />
         )}
       </div>
     );

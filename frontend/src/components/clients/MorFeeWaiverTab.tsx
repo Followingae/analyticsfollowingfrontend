@@ -81,7 +81,7 @@ export function MorFeeWaiverTab({ teamId, clientName }: { teamId: string; client
     <section>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-ds-subheading">Merchant of Record fees</h2>
+          <h2 className="text-ds-subheading">Creator Contracting fees</h2>
           <p className="mt-1.5 max-w-[62ch] text-sm leading-relaxed text-muted-foreground">
             Creators we take no fee on. {clientName || 'This client'} still pays the creator in
             full and still pays VAT: this waives our percentage, not their bill.

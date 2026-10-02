@@ -20,7 +20,7 @@
  *   Billing method is per module. A managed client can hold one module on a card while
  *   everything else is invoiced, which is the entire reason the entitlement table exists.
  *
- *   Merchant of Record is included in Manage. A Manage client is never offered it at a
+ *   Creator Contracting is included in Manage. A Manage client is never offered it at a
  *   price, because the management service charge already pays for the same work.
  *
  * `usable` and `read_only` come from the server and are never recomputed here: the list of
@@ -551,11 +551,11 @@ function AddModuleDialog({
   // Manage is quoted per client and invoiced. It can never sit on a card, and it has no list
   // price, so the amount from the signed quote has to be typed in or it goes on at zero.
   const isManage = target.module === 'manage'
-  // Merchant of Record for a Manage client is granted at zero: Manage already charges the
+  // Creator Contracting for a Manage client is granted at zero: Manage already charges the
   // management service fee for the same work. There is nothing to decide, so nothing is asked.
   const includedInManage = target.module === 'mor' && manageHeld
 
-  /* Merchant of Record carries NO recurring fee. It earns per payout, and the client picks
+  /* Creator Contracting carries NO recurring fee. It earns per payout, and the client picks
      card or bank transfer for each payment on their own screen, so there is no "how is it
      billed" decision to take here and asking one invents a choice that does not exist.
      Everything about cycles, prices and card-versus-invoice is hidden for it. */
@@ -614,9 +614,9 @@ function AddModuleDialog({
         <div className="space-y-4">
           <p className="rounded-ds-lg bg-muted px-3 py-2.5 text-[13px] leading-relaxed">
             {includedInManage
-              ? 'This client is on Manage, which already includes Merchant of Record. It goes on at no charge: the management service charge covers us paying their creators, and charging for it again would bill the same work twice.'
+              ? 'This client is on Manage, which already includes Creator Contracting. It goes on at no charge: the management service charge covers us paying their creators, and charging for it again would bill the same work twice.'
               : isMor
-                ? 'It works the moment you confirm, and there is nothing recurring to bill. Merchant of Record earns per creator paid through it, as a percentage of each payout, and the client chooses card or bank transfer for every payment themselves.'
+                ? 'It works the moment you confirm, and there is nothing recurring to bill. Creator Contracting earns per creator paid through it, as a percentage of each payout, and the client chooses card or bank transfer for every payment themselves.'
                 : 'It works the moment you confirm. The client is charged for the rest of this cycle only, so it renews on the same day as everything else on the account.'}
           </p>
 
@@ -700,7 +700,7 @@ function AddModuleDialog({
             <p className="text-[12.5px] leading-relaxed text-muted-foreground">
               The percentage is stamped onto each payment when it is made, so a later change to
               our rate never reprices anything already settled. To let this client have their
-              first creators without our fee, use Merchant of Record fees further down this tab.
+              first creators without our fee, use Creator Contracting fees further down this tab.
             </p>
           )}
 

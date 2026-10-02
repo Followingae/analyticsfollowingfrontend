@@ -15,6 +15,7 @@
  * type means one colour and no legend, which is right rather than degraded.
  */
 import { useEffect, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
 
 import { Card } from '@/components/ui/card'
@@ -29,6 +30,17 @@ const TYPE_ORDER = ['influencer', 'barter', 'ugc', 'cashback', 'paid_deal'] as c
 const LIGHT = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4']
 const DARK = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181']
 
+/** Human names for the campaign types, so the type can be said rather than only shown. */
+const TYPE_LABELS: Record<string, string> = {
+  influencer: 'Influencer',
+  barter: 'Barter',
+  ugc: 'UGC',
+  cashback: 'Cashback',
+  paid_deal: 'Paid deal',
+}
+const typeLabel = (t: string) =>
+  TYPE_LABELS[t] ?? (t ? t.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()) : 'Campaign')
+
 const ROWS = 5
 
 type Row = { id: string; name: string; type: string; creators: number }
@@ -37,17 +49,13 @@ export function CampaignBars({ className }: { className?: string }) {
   const router = useRouter()
   const [rows, setRows] = useState<Row[] | null>(null)
   const [total, setTotal] = useState(0)
-  const [dark, setDark] = useState(false)
   const [failed, setFailed] = useState(false)
 
-  useEffect(() => {
-    const el = document.documentElement
-    const read = () => setDark(el.classList.contains('dark'))
-    read()
-    const mo = new MutationObserver(read)
-    mo.observe(el, { attributes: true, attributeFilter: ['class'] })
-    return () => mo.disconnect()
-  }, [])
+  // The theme comes from next-themes, like everywhere else in the app.
+  // This used to run its own MutationObserver on documentElement.class to answer a question
+  // the theme provider already answers, so one fact had two mechanisms and they could drift.
+  const { resolvedTheme } = useTheme()
+  const dark = resolvedTheme === 'dark'
 
   useEffect(() => {
     let alive = true
@@ -83,8 +91,8 @@ export function CampaignBars({ className }: { className?: string }) {
   if (failed) {
     return (
       <Card className={cn('flex flex-col justify-center gap-1 p-5', className)}>
-        <p className="text-[13px] font-medium">Campaigns did not load</p>
-        <p className="text-[12px] text-muted-foreground">
+        <p className="text-sm font-medium">Campaigns did not load</p>
+        <p className="text-xs text-muted-foreground">
           This is a display problem, not a count of zero.
         </p>
       </Card>
@@ -116,22 +124,31 @@ export function CampaignBars({ className }: { className?: string }) {
             key={r.id}
             type="button"
             onClick={() => router.push(`/campaigns/${r.id}`)}
-            title={`${r.name}: ${r.creators} creator${r.creators === 1 ? '' : 's'}`}
+            title={`${r.name} (${typeLabel(r.type)}): ${r.creators} creator${r.creators === 1 ? '' : 's'}`}
             className="group block w-full text-left"
           >
+            {/* The campaign TYPE is carried by hue, and hue alone is not a carrier: a reader
+                who cannot separate these colours, or who is listening rather than looking,
+                got five bars and no way to tell influencer work from barter from cashback.
+                The visual stays exactly as designed (one type, one colour, no legend) and the
+                type joins the accessible name instead. */}
+            <span className="sr-only">{typeLabel(r.type)} campaign. </span>
             <div className="flex items-baseline justify-between gap-2">
-              <span className="truncate text-[11.5px] leading-tight text-muted-foreground transition-colors group-hover:text-foreground">
+              <span className="truncate text-xs leading-tight text-muted-foreground transition-colors group-hover:text-foreground">
                 {r.name}
               </span>
-              <span className="shrink-0 text-[11.5px] font-semibold tabular-nums">
+              <span className="shrink-0 text-xs font-semibold tabular-nums">
                 {r.creators}
               </span>
             </div>
             <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              {/* Animating `width` makes the browser lay out and paint every frame; a
+                  scaleX transform is composited instead. Same motion, no layout thrash. */}
               <div
-                className="h-full rounded-full transition-[width] duration-500"
+                className="h-full origin-left rounded-full transition-transform duration-500"
                 style={{
-                  width: `${Math.max((r.creators / max) * 100, r.creators > 0 ? 6 : 0)}%`,
+                  width: '100%',
+                  transform: `scaleX(${Math.max((r.creators / max), r.creators > 0 ? 0.06 : 0)})`,
                   background: colourFor(r.type),
                 }}
               />
@@ -141,7 +158,7 @@ export function CampaignBars({ className }: { className?: string }) {
       </div>
 
       {total > rows.length && (
-        <div className="border-t px-4 py-2 text-[10.5px] text-muted-foreground">
+        <div className="border-t px-4 py-2 text-xs text-muted-foreground">
           +{total - rows.length} more
         </div>
       )}

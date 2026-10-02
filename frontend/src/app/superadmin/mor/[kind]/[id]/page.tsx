@@ -99,7 +99,7 @@ function Order() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-ds-5 p-ds-3 md:p-ds-4">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
-        <Link href="/work/mor"><ArrowLeft className="mr-1.5 size-4" />Merchant of Record</Link>
+        <Link href="/work/mor"><ArrowLeft className="mr-1.5 size-4" />Creator Contracting</Link>
       </Button>
 
       <PageHead

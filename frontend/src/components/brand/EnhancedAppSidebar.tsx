@@ -25,6 +25,7 @@ import {
   Crown,
   LayoutDashboard as IconDashboard,
   HelpCircle as IconHelp,
+  BookOpen as IconGuide,
   Settings as IconSettings,
   Users as IconUsers,
   Target as IconTarget,
@@ -51,6 +52,7 @@ function ThemeLogo() {
         alt="Following Logo"
         width={120}
         height={32}
+        priority
         className="object-contain w-30 h-8"
       />
     )
@@ -65,6 +67,7 @@ function ThemeLogo() {
       alt="Following Logo"
       width={120}
       height={32}
+      priority
       className="object-contain w-30 h-8"
     />
   )
@@ -160,14 +163,14 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
       // routes are untouched and an operator can still reach them; what is gone is the
       // standing invitation in every brand's menu to start a deal in a way we are not
       // running today. Put the entry back here to turn it on again.
-      // Merchant of Record, and ONLY for an account that holds it. It is bought, never
+      // Creator Contracting, and ONLY for an account that holds it. It is bought, never
       // granted by a tier, so there is nothing to tease here: an account without it has no
       // route to buy it from this menu and a dead link would be worse than an absent one.
       // `owns.mor` is answered by the billing status, which reports the account's real
       // entitlements. It used to report none, which is why switching the module on for a
       // client changed nothing they could see.
       ...(owns.mor ? [{
-        title: "Merchant of Record",
+        title: "Creator Contracting",
         url: "/mor",
         icon: IconWallet,
       }] : []),
@@ -196,7 +199,9 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         // an unread guide is the same as no guide.
         title: "How this works",
         url: "/guide",
-        icon: IconHelp,
+        // A different icon from Help & Support: two items in one list sharing one glyph
+        // makes the glyph decoration rather than a way to tell them apart.
+        icon: IconGuide,
       },
       {
         // Clients get support, not our internal walkthroughs.
@@ -235,7 +240,10 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
       <SidebarContent>
         {/* Search & Analytics Section */}
         <SidebarGroup>
-          <SidebarGroupLabel>Search & Analytics</SidebarGroupLabel>
+          {/* Was "Search & Analytics", which promised a search this group does not contain:
+              search lives in the top bar. These items are the creators you have and the
+              numbers about them. */}
+          <SidebarGroupLabel>Creators & Analytics</SidebarGroupLabel>
           <SidebarGroupContent>
             <NavMain items={data.searchAnalytics} />
           </SidebarGroupContent>

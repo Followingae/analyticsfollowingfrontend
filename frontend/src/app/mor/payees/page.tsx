@@ -135,7 +135,7 @@ function PayeesContent() {
       <div className="space-y-2">
         <Button variant="ghost" size="sm" asChild className="-ml-2">
           <Link href="/mor">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Merchant of Record
+            <ArrowLeft className="mr-2 h-4 w-4" /> Creator Contracting
           </Link>
         </Button>
         <h1 className="text-2xl font-semibold tracking-tight">Payee bank details</h1>

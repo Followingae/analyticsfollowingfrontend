@@ -20,6 +20,8 @@ interface QuotaData {
 export function BrandQuotaWidget() {
   const [data, setData] = useState<QuotaData | null>(null)
   const [loading, setLoading] = useState(true)
+  // A failed read is its own state. It is NOT "no contract configured".
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -31,7 +33,16 @@ export function BrandQuotaWidget() {
         if (res.ok) {
           const body = await res.json()
           setData(body?.data ?? null)
+        } else {
+          // There was no `else` here and no `catch` before `finally`, so a 500 left `data`
+          // as null and the panel returned null a few lines down — silently identical to
+          // "this brand has no contract". The one panel that answers "am I getting what I
+          // paid for" disappeared without a word, on a page where CampaignBars handles the
+          // same failure correctly and says so.
+          setFailed(true)
         }
+      } catch {
+        setFailed(true)
       } finally {
         setLoading(false)
       }
@@ -43,6 +54,20 @@ export function BrandQuotaWidget() {
       <Card>
         <CardContent className="p-6 flex items-center justify-center min-h-[100px]">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // A failed read says so, quietly, so it can never be read as "you have no contract".
+  if (failed) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-sm font-medium">We could not load your delivery quota</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            This is a display problem. It does not mean you have no contract.
+          </p>
         </CardContent>
       </Card>
     )

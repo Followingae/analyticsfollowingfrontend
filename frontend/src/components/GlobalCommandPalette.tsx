@@ -33,8 +33,11 @@ const BRAND_NAV: CmdEntry[] = [
   { title: "Proposals", href: "/proposals", icon: FileText },
   { title: "Billing", href: "/billing", icon: CreditCard, keywords: "subscription invoices credits" },
   { title: "Cashback Pool", href: "/billing?tab=cashback-pool", icon: Banknote, keywords: "pool topup" },
+  { title: "Creator Contracting", href: "/mor", icon: Banknote, keywords: "mor merchant of record payouts invoicing creators contracting pay" },
   { title: "Notifications", href: "/notifications", icon: Bell },
   { title: "Settings", href: "/settings", icon: Settings },
+  { title: "How this works", href: "/guide", icon: FileText, keywords: "guide help walkthrough docs" },
+  { title: "Plans & Pricing", href: "/pricing", icon: CreditCard, keywords: "upgrade plan tiers compare" },
 ]
 
 const OPERATOR_NAV: (CmdEntry & { module?: string })[] = [

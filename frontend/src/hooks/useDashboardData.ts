@@ -249,13 +249,23 @@ export const useDashboardData = () => {
     teamsError: teamsQuery.error,
     
     // Unlocked profiles data
-    unlockedProfilesCount: unlockedProfilesQuery.data?.count || 0,
+    //
+    // `?? null`, not `|| 0`. A malformed success body — a 200 whose shape changed, or a
+    // `count` that arrived as undefined — used to collapse into a confident 0, which is the
+    // one path the error handling never covered and produces exactly the fabricated zero the
+    // rest of this file exists to prevent. `null` is the value callers already treat as
+    // UNKNOWN. Note `?? 0` would be wrong too: a real 0 must survive, and only a missing
+    // value becomes null.
+    unlockedProfilesCount: unlockedProfilesQuery.data?.count ?? null,
     unlockedProfiles: unlockedProfilesQuery.data?.profiles || [],
     profilesLoading: unlockedProfilesQuery.isLoading,
-    profilesError: unlockedProfilesQuery.error,
-    
+    // A count we could not read is an error state for display purposes, even when the
+    // request itself resolved.
+    profilesError: Boolean(unlockedProfilesQuery.error)
+      || (!unlockedProfilesQuery.isLoading && unlockedProfilesQuery.data?.count == null),
+
     // Active campaigns data
-    activeCampaignsCount: activeCampaignsQuery.data?.activeCount || 0,
+    activeCampaignsCount: activeCampaignsQuery.data?.activeCount ?? null,
     campaigns: activeCampaignsQuery.data?.campaigns || [],
     campaignsLoading: activeCampaignsQuery.isLoading,
     campaignsError: activeCampaignsQuery.error,

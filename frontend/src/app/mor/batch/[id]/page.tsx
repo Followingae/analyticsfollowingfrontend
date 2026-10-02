@@ -103,7 +103,7 @@ function Detail() {
 
       <Button variant="ghost" size="sm" className="-ml-2.5 gap-1.5 text-muted-foreground"
               onClick={() => router.push('/mor')}>
-        <ArrowLeft className="size-4" />Merchant of Record
+        <ArrowLeft className="size-4" />Creator Contracting
       </Button>
 
       {loading ? (
@@ -218,7 +218,7 @@ function Money({ batch, paying, onPay }: {
           <div className="mt-4 space-y-1 text-[13px] text-muted-foreground">
             <Split label="Creators' fees" value={aed(batch.creator_fee_aed)} />
             <Split
-              label="Our Merchant of Record fee"
+              label="Our service fee"
               value={batch.our_fee_aed === 0 ? 'Waived' : aed(batch.our_fee_aed)}
               lime={batch.our_fee_aed === 0}
             />

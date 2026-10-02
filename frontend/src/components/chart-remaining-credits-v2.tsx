@@ -15,9 +15,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { ChartConfig, ChartContainer } from "@/components/ui/chart"
 import { useIsAuthenticated } from "@/stores/userStore"
+import { UNKNOWN } from "@/components/brand/primitives"
 
 const chartConfig = {
   visitors: {
@@ -25,13 +25,13 @@ const chartConfig = {
   },
   safari: {
     label: "Remaining Credits",
-    color: "hsl(var(--chart-1))",
+    color: "var(--chart-1)",
   },
 } satisfies ChartConfig
 
 export function ChartRemainingCreditsV2() {
   const isAuthenticated = useIsAuthenticated()
-  const [creditsData, setCreditsData] = useState<{balance: number, maxCredits: number} | null>(null)
+  const [creditsData, setCreditsData] = useState<{balance: number, maxCredits: number | null} | null>(null)
   const [loading, setLoading] = useState(true)
   // A failed read is its own state. It is NOT a zero balance.
   const [failed, setFailed] = useState(false)
@@ -77,12 +77,17 @@ export function ChartRemainingCreditsV2() {
         const currentBalance = walletInfo?.current_balance || 0
         const monthlyAllowance = walletInfo?.monthly_allowance || walletInfo?.total_plan_credits || 0
 
-        // Use monthly_allowance as the max for accurate percentage calculation
-        const maxCredits = monthlyAllowance > 0 ? monthlyAllowance : Math.max(currentBalance, 1000)
-
+        // The denominator is the server's allowance or it is nothing.
+        //
+        // This used to fall back to `Math.max(currentBalance, 1000)`, so when the allowance
+        // was missing the ring was drawn against an invented 1000 and the arc length — the
+        // thing a user reads at a glance — was a guess. The comment below already condemns
+        // inventing `maxCredits: 1000` on failure; half of that invention was living on the
+        // success path. `null` means we know the balance but not the ceiling, and the dial
+        // renders the figure inside a plain complete ring rather than a false fraction.
         setCreditsData({
           balance: currentBalance,
-          maxCredits: maxCredits
+          maxCredits: monthlyAllowance > 0 ? monthlyAllowance : null
         })
 
       } catch {
@@ -102,34 +107,37 @@ export function ChartRemainingCreditsV2() {
   }, [isAuthenticated])
 
   const chartData = useMemo(() => [
-    { browser: "safari", visitors: creditsData?.balance || 0, fill: "oklch(0.4718 0.2853 280.0726)" }
+    { browser: "safari", visitors: creditsData?.balance || 0, fill: "var(--chart-1)" }
   ], [creditsData?.balance])
 
-  // Calculate percentage for the radial chart
+  // How much of the ring to draw.
+  //
+  // A known allowance gives a real fraction. No allowance gives a COMPLETE ring: we know the
+  // balance but not the ceiling, and a partial arc would be a fraction of a number nobody
+  // sent us. A genuine zero balance on a capped plan still draws an empty ring, because that
+  // one is true.
   const getEndAngle = () => {
-    if (!creditsData || creditsData.maxCredits === 0) return 0
-    return (creditsData.balance / creditsData.maxCredits) * 360
+    if (!creditsData) return 0
+    if (creditsData.maxCredits == null || creditsData.maxCredits <= 0) return 360
+    return Math.min(creditsData.balance / creditsData.maxCredits, 1) * 360
   }
 
-  // Calculate days until first of next month (billing reset)
-  const getDaysUntilReset = () => {
-    const now = new Date()
-    const firstOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-    const days = Math.ceil((firstOfNextMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    return Math.max(days, 0)
-  }
+  /** What a screen reader is told, since the figure itself lives in an SVG <tspan>. */
+  const spokenValue = loading
+    ? 'Loading your credit balance'
+    : failed
+      ? 'Your credit balance did not load. This is a display problem, not a balance of zero.'
+      : creditsData?.maxCredits
+        ? `${creditsData.balance.toLocaleString()} credits remaining of ${creditsData.maxCredits.toLocaleString()}`
+        : `${(creditsData?.balance ?? 0).toLocaleString()} credits remaining`
+
 
   return (
     <Card className="flex flex-col relative">
-      {/* Credits Badge */}
-      {!loading && creditsData && (
-        <Badge 
-          variant="outline" 
-          className="absolute top-3 right-3 z-20 text-xs text-muted-foreground border-border bg-muted/30"
-        >
-          {getDaysUntilReset() === 0 ? 'resets today' : `resets in ${getDaysUntilReset()}d`}
-        </Badge>
-      )}
+      {/* The "resets in Nd" badge is gone; see the note in chart-profile-analysis-v2.
+          It counted to the first of the calendar month while billing runs from each
+          customer's subscription anniversary, so it printed a limit the server never
+          named. It returns when the API sends a real `next_reset_at`, as an absolute date. */}
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium">Remaining Credits</CardTitle>
         <div className="text-xs text-muted-foreground">
@@ -137,7 +145,12 @@ export function ChartRemainingCreditsV2() {
         </div>
       </CardHeader>
       <CardContent className="p-1">
+        {/* The figure lives in an SVG <tspan>, which assistive tech does not announce, and
+            the aria-label that used to cover this sat on a plain <div> with no role, where
+            it is dropped. So the number is said here, in text, and the drawing is hidden. */}
+        <p className="sr-only">{spokenValue}</p>
         <ChartContainer
+          aria-hidden
           config={chartConfig}
           className="mx-auto h-[180px] w-[180px]"
         >
@@ -157,9 +170,9 @@ export function ChartRemainingCreditsV2() {
             />
             <RadialBar 
               dataKey="visitors" 
-              background={{ fill: "hsl(var(--muted))" }} 
+              background={{ fill: "var(--muted)" }} 
               cornerRadius={10} 
-              fill="oklch(0.4718 0.2853 280.0726)" 
+              fill="var(--chart-1)" 
             />
             <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
               <Label
@@ -177,7 +190,7 @@ export function ChartRemainingCreditsV2() {
                           y={viewBox.cy}
                           className="fill-foreground text-4xl font-bold"
                         >
-                          {loading ? "..." : failed ? "—" : (creditsData?.balance ?? 0).toLocaleString()}
+                          {loading ? "..." : failed ? UNKNOWN : (creditsData?.balance ?? 0).toLocaleString()}
                         </tspan>
                         <tspan
                           x={viewBox.cx}
