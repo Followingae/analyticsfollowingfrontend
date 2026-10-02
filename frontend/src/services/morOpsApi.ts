@@ -154,6 +154,30 @@ export interface MorOrderCreator {
   usage_terms: string | null
   posting_dates: string | null
   brand_notes: string | null
+  /* Everything the creator typed into their enrolment link. The full IBAN is never here:
+     the payout file remains the only place it appears. */
+  verified_mobile: string | null
+  verified_handle: string | null
+  date_of_birth: string | null
+  email_verified_at: string | null
+  details_at: string | null
+  completed_at: string | null
+  /** The full IBAN. Leadership only, and the screen it lands on is already gated. */
+  bank_iban: string | null
+  bank_swift: string | null
+  bank_country: string | null
+  bank_rejected_reason: string | null
+  address_line: string | null
+  address_city: string | null
+  address_country: string | null
+  address_phone: string | null
+  address_maps_url: string | null
+  agreed_terms: boolean | null
+  agreed_electronic: boolean | null
+  agreed_age: boolean | null
+  signature_name: string | null
+  sign_ip: string | null
+  agreement_sha256: string | null
 }
 
 /** Who to invoice, from the client's own billing record. */

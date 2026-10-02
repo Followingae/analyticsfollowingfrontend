@@ -33,13 +33,14 @@ import {
 import { PageHead, Panel } from '@/components/console/primitives'
 import { toast } from 'sonner'
 import {
-  AlertTriangle, ArrowLeft, Check, CheckCircle2, Copy, Download, FileText, Loader2,
-  Mail, MessageCircle, RefreshCw, Send,
+  AlertTriangle, ArrowLeft, Check, CheckCircle2, Copy, Download, FileSignature, FileText,
+  Loader2, Mail, MessageCircle, Receipt, RefreshCw, Send,
 } from 'lucide-react'
 import {
   morOpsApi, aedFromCents,
   type MorBilling, type MorOrderCreator, type MorOrderDetail, type MorPayable, type OrderKind,
 } from '@/services/morOpsApi'
+import { enrolmentApi } from '@/services/enrolmentApi'
 import { cn } from '@/lib/utils'
 
 const when = (iso?: string | null) => {
@@ -426,7 +427,39 @@ function Actions({ detail, onChange }: { detail: MorOrderDetail; onChange: () =>
       )}
 
       {o.receipt_attached_at && <PayoutRun kind={kind} id={o.id} reference={o.reference} onChange={onChange} />}
+
+      {/* The order's own files. Once attached they vanished from this screen: the upload
+          section is replaced by the next step, so nobody could re-read the invoice they
+          raised or the receipt they filed. */}
+      {(o.invoice_file_url || o.receipt_file_url || o.advance_proof_url) && (
+        <section className="rounded-ds-lg border border-black/[0.08] p-4 dark:border-white/[0.1]">
+          <p className="text-ds-label">On file</p>
+          <div className="mt-ds-2 flex flex-wrap gap-2">
+            {o.invoice_file_url && (
+              <DocLink href={o.invoice_file_url} icon={FileText}
+                       label={o.invoice_number ? `Invoice ${o.invoice_number}` : 'Invoice'} />
+            )}
+            {o.receipt_file_url && (
+              <DocLink href={o.receipt_file_url} icon={Receipt} label="Bank receipt" />
+            )}
+            {o.advance_proof_url && (
+              <DocLink href={o.advance_proof_url} icon={FileText} label="What the brand sent" />
+            )}
+          </div>
+        </section>
+      )}
     </div>
+  )
+}
+
+function DocLink({ href, icon: Icon, label }: {
+  href: string; icon: typeof FileText; label: string
+}) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer"
+       className="inline-flex items-center gap-1.5 rounded-ds-lg border border-black/[0.08] px-3 py-1.5 text-[12.5px] hover:bg-black/[0.03] dark:border-white/[0.1] dark:hover:bg-white/[0.04]">
+      <Icon className="size-3.5" />{label}
+    </a>
   )
 }
 
@@ -675,6 +708,80 @@ function CreatorCard({ c, onChange }: { c: MorOrderCreator; onChange: () => void
         ))}
       </div>
 
+      {/* What they typed in. All of it was captured and none of it was on this screen, so
+          answering "what did they actually give us" meant opening a second one. */}
+      {(c.details_at || c.bank_at || c.signed_at) && (
+        <dl className="grid gap-x-8 gap-y-2 rounded-ds-lg bg-black/[0.02] p-3 dark:bg-white/[0.03] sm:grid-cols-2">
+          <Entered k="Name they gave" v={c.signed_name} />
+          <Entered k="Instagram" v={c.verified_handle ? `@${c.verified_handle}` : null} />
+          <Entered k="Email (verified)" v={c.verified_email} />
+          <Entered k="Mobile" v={c.verified_mobile} />
+          <Entered k="Date of birth" v={c.date_of_birth} />
+          <Entered k="Signed as" v={c.signature_name} />
+          <Entered k="Account holder" v={c.bank_holder} />
+          {/* The number you actually type into the bank, with a copy button, because
+              retyping an IBAN by hand is how a transfer goes to the wrong account. */}
+          {c.bank_iban && (
+            <div className="sm:col-span-2">
+              <dt className="text-[11px] text-muted-foreground">IBAN</dt>
+              <dd className="flex items-center gap-2">
+                <span className="font-mono text-[13px] tracking-[0.02em]">{c.bank_iban}</span>
+                <CopyIban value={c.bank_iban} />
+              </dd>
+            </div>
+          )}
+          <Entered k="SWIFT" v={c.bank_swift} />
+          <Entered k="Bank country" v={c.bank_country} />
+          {(c.address_line || c.address_city) && (
+            <div className="sm:col-span-2">
+              <dt className="text-[11px] text-muted-foreground">Delivery address</dt>
+              <dd className="text-[13px]">
+                {[c.address_line, c.address_city, c.address_country].filter(Boolean).join(', ')}
+                {c.address_phone && <span className="text-muted-foreground"> · {c.address_phone}</span>}
+                {c.address_maps_url && (
+                  <a href={c.address_maps_url} target="_blank" rel="noreferrer"
+                     className="ml-1.5 underline underline-offset-2">map</a>
+                )}
+              </dd>
+            </div>
+          )}
+          {c.bank_rejected_reason && (
+            <div className="sm:col-span-2">
+              <dt className="text-[11px] text-muted-foreground">Bank details rejected</dt>
+              <dd className="text-[13px] text-[var(--tone-bad-ink)]">{c.bank_rejected_reason}</dd>
+            </div>
+          )}
+          {c.signed_at && (
+            <div className="sm:col-span-2 text-[11.5px] text-muted-foreground">
+              Confirmed they read it{c.agreed_electronic ? ', agreed to sign electronically' : ''}
+              {c.agreed_age ? ', and that they are 18 or older' : ''}
+              {c.sign_ip ? ` · from ${c.sign_ip}` : ''}
+              {c.agreement_sha256 ? ` · ${c.agreement_sha256.slice(0, 12)}` : ''}
+            </div>
+          )}
+        </dl>
+      )}
+
+      {/* Their paperwork. The agreement is the document the whole order hangs on and it was
+          downloadable from the enrolments screen only. */}
+      {c.link_id && c.signed_at && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" className="h-8"
+                  onClick={() => enrolmentApi.agreementPdf(c.link_id as string)
+                    .catch(e => toast.error((e as Error).message))}>
+            <FileSignature className="mr-1.5 size-3.5" />Signed agreement
+          </Button>
+          <Button size="sm" variant="outline" className="h-8"
+                  onClick={() => enrolmentApi.recordPdf(c.link_id as string)
+                    .catch(e => toast.error((e as Error).message))}>
+            <FileText className="mr-1.5 size-3.5" />Record pack
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8" asChild>
+            <Link href={`/work/enrolments/${c.link_id}`}>Open the enrolment</Link>
+          </Button>
+        </div>
+      )}
+
       {c.name_check === 'mismatch' && (
         <div className="flex items-start gap-2 rounded-ds-lg border border-[var(--tone-warn-line)] bg-[var(--tone-warn-bg)] p-3 text-[12.5px]">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
@@ -684,6 +791,33 @@ function CreatorCard({ c, onChange }: { c: MorOrderCreator; onChange: () => void
           </span>
         </div>
       )}
+    </div>
+  )
+}
+
+function CopyIban({ value }: { value: string }) {
+  const [done, setDone] = useState(false)
+  return (
+    <Button size="sm" variant="ghost" className="h-6 px-1.5"
+            aria-label="Copy the IBAN"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(value.replace(/\s+/g, ''))
+                setDone(true); setTimeout(() => setDone(false), 2000)
+              } catch { toast.error('Could not copy it.') }
+            }}>
+      {done ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+    </Button>
+  )
+}
+
+/** One thing the creator typed, skipped entirely when they have not given it. */
+function Entered({ k, v }: { k: string; v?: string | null }) {
+  if (!v) return null
+  return (
+    <div>
+      <dt className="text-[11px] text-muted-foreground">{k}</dt>
+      <dd className="text-[13px]">{v}</dd>
     </div>
   )
 }
