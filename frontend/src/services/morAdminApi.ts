@@ -47,6 +47,27 @@ export interface MorWaiverState {
   expired: boolean
 }
 
+/**
+ * The client's billing record, as the operator sees it.
+ *
+ * `vat_applies` is a TAX decision, not a preference: it decides whether this client's
+ * Creator Payouts invoices carry VAT at all. Turning it off needs a written reason, because
+ * a zero-rated invoice has to be justifiable to the FTA long after whoever switched it has
+ * forgotten why.
+ */
+export interface MorBillingRecord {
+  trn?: string | null
+  legal_name?: string | null
+  invoice_address?: string | null
+  complete?: boolean
+  missing?: string[]
+  on_hold?: boolean
+  hold_reason?: string | null
+  vat_applies: boolean
+  vat_zero_reason: string | null
+  vat_set_at: string | null
+}
+
 export interface MorAdminPayment {
   id: string
   reference: string | null
@@ -82,6 +103,20 @@ export const morAdminApi = {
   markPaid: (id: string, payment_reference?: string) =>
     jfetch(`${BASE}/payments/${id}/paid`, {
       method: 'POST', body: JSON.stringify({ payment_reference }),
+    }),
+
+  billing: (teamId: string): Promise<{ data: MorBillingRecord }> =>
+    jfetch(`${BASE}/billing/${teamId}`),
+
+  /**
+   * Turn VAT on or off for this client's Creator Payouts invoices.
+   *
+   * ⚠️ Only the next order moves. Every order already placed carries the rate it was
+   * confirmed at, so this never reprices an invoice that has gone out.
+   */
+  setVat: (teamId: string, vat_applies: boolean, reason?: string): Promise<{ data: MorBillingRecord }> =>
+    jfetch(`${BASE}/billing/${teamId}/vat`, {
+      method: 'POST', body: JSON.stringify({ vat_applies, reason }),
     }),
 
   waivers: (teamId: string): Promise<{ data: { waivers: MorWaiver[]; state: MorWaiverState } }> =>

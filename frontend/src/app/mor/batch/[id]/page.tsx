@@ -222,7 +222,9 @@ function Money({ batch, paying, onPay }: {
               value={batch.our_fee_aed === 0 ? 'Waived' : aed(batch.our_fee_aed, batch.currency)}
               lime={batch.our_fee_aed === 0}
             />
-            <Split label={batch.vat_label} value={aed(batch.vat_aed, batch.currency)} />
+            {batch.vat_aed > 0 && (
+              <Split label={batch.vat_label} value={aed(batch.vat_aed, batch.currency)} />
+            )}
           </div>
         </div>
 

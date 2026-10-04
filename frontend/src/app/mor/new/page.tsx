@@ -389,7 +389,10 @@ function Cost({ quote }: { quote: MorQuote }) {
           )
         }
       />
-      <Line label={quote.vat_label} value={aed(quote.vat_aed, quote.currency)} />
+      {/* A zero-rated client gets no VAT line at all, rather than a line reading zero. */}
+      {quote.vat_aed > 0 && (
+        <Line label={quote.vat_label} value={aed(quote.vat_aed, quote.currency)} />
+      )}
       <div className="mt-4 flex items-baseline justify-between border-t border-[var(--mor-rule)] pt-4">
         <span className="text-[14px] font-medium">Total</span>
         <span className="text-[22px] font-semibold tabular-nums tracking-[-0.02em]">

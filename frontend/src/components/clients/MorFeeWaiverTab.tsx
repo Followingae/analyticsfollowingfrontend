@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { Plus, ShieldCheck } from 'lucide-react'
 import { morAdminApi, type MorWaiver, type MorWaiverState } from '@/services/morAdminApi'
+import { MorVatToggle } from '@/components/clients/MorVatToggle'
 import { cn } from '@/lib/utils'
 
 export function MorFeeWaiverTab({ teamId, clientName }: { teamId: string; clientName?: string }) {
@@ -78,6 +79,9 @@ export function MorFeeWaiverTab({ teamId, clientName }: { teamId: string; client
   }
 
   return (
+    <div className="space-y-10">
+      <MorVatToggle teamId={teamId} clientName={clientName} />
+
     <section>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -186,5 +190,6 @@ export function MorFeeWaiverTab({ teamId, clientName }: { teamId: string; client
         )}
       </div>
     </section>
+    </div>
   )
 }
