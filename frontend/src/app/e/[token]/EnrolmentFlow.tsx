@@ -28,6 +28,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { API_CONFIG } from '@/config/api'
 import { InlineMapPicker, mapsAvailable, type PickedPlace } from './LocationPicker'
+import { PhoneFieldDark, phoneFieldProblem } from '@/components/phone/PhoneField'
 
 const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/enrolment`
 
@@ -70,6 +71,8 @@ interface Payload {
   creator_name?: string | null
   deliverables_summary?: string | null
   fee_aed_cents?: number | null
+  /** What the fee is in. The column is named *_aed_cents; this says whether that is true. */
+  currency?: string | null
   submit_by?: string | null
   usage_terms?: string | null
   payment_terms?: PaymentTerm[]
@@ -158,8 +161,17 @@ function useChrome(colour: string) {
   }, [colour])
 }
 
-const money = (cents?: number | null) =>
-  cents == null ? null : `AED ${(cents / 100).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
+/**
+ * The fee, in the currency the agreement is actually written in.
+ *
+ * This printed "AED" whatever the order was priced in, so a creator contracted in dollars
+ * read their fee as dirhams on the screen where they agree to it. The code leads rather than
+ * a symbol, matching the agreement PDF and the invoice: "$" is ambiguous across the
+ * currencies we handle.
+ */
+const money = (cents?: number | null, ccy?: string | null) =>
+  cents == null ? null
+    : `${(ccy || 'AED').toUpperCase()} ${(cents / 100).toLocaleString('en-AE', { maximumFractionDigits: 0 })}`
 
 const niceDate = (iso?: string | null) => {
   if (!iso) return null
@@ -370,9 +382,13 @@ const vEmail = (v: string) =>
   !v.trim() ? 'We need an email to send your agreement to.'
     : !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(v.trim()) ? 'That does not look like an email address.' : null
 
-const vMobile = (v: string) =>
-  !v.trim() ? null
-    : v.replace(/[^\d]/g, '').length < 7 ? 'That does not look like a phone number.' : null
+/**
+ * A phone number is now stored with its country, so this can say what is actually wrong
+ * instead of counting digits. It used to accept any seven digits, which is how a number with
+ * no country code, and one starting `+0`, both got through.
+ */
+const vMobile = (v: string) => phoneFieldProblem(v, false)
+const vMobileRequired = (v: string) => phoneFieldProblem(v, true)
 
 const vDob = (v: string) => {
   if (!v) return 'We need your date of birth to sign an agreement with you.'
@@ -653,7 +669,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
   if (d.view === 'receipt' && screen !== 'done' && screen !== 'app') {
     const pending = sub.bank_status === 'pending'
     const rows = [
-      { t: 'Campaign', v: `${d.deliverables_summary || ''}${d.fee_aed_cents != null ? `, ${money(d.fee_aed_cents)}` : ''}`, grad: GRAD.sign },
+      { t: 'Campaign', v: `${d.deliverables_summary || ''}${d.fee_aed_cents != null ? `, ${money(d.fee_aed_cents, d.currency)}` : ''}`, grad: GRAD.sign },
       { t: 'Email', v: sub.email || '—', grad: GRAD.email },
       { t: 'Agreement', v: sub.signed_at ? `Signed ${niceDate(sub.signed_at)}, version ${d.agreement_version ?? 1}` : '—', grad: GRAD.sign },
       ...(sub.bank_last4 ? [{ t: 'Bank details', v: `${sub.bank_country || ''} ending ${sub.bank_last4}, ${pending ? 'being checked' : 'confirmed'}`, grad: GRAD.bank }] : []),
@@ -787,7 +803,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
                   borderBottom: i < d.payment_terms!.length - 1 ? '1px solid #1E1E22' : 'none',
                 }}>
                   <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', background: i === 0 ? GRAD.email : GRAD.bank, borderRadius: 7, padding: '4px 7px', flex: 'none' }}>{t.pct}%</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', flex: 'none' }}>{money(t.amount_aed_cents)}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', flex: 'none' }}>{money(t.amount_aed_cents, d.currency)}</span>
                   <span style={{ flex: 1, textAlign: 'right', fontSize: 11.5, fontWeight: 500, color: '#8A8A93' }}>{t.label}</span>
                 </div>
               ))}
@@ -902,7 +918,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
           {d.fee_aed_cents != null && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 14 }}>
               <div style={{ width: 30, height: 30, borderRadius: 10, background: '#131316', display: 'grid', placeItems: 'center', flex: 'none' }}>{I.wallet}</div>
-              <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-.02em' }}>{money(d.fee_aed_cents)}</div>
+              <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '-.02em' }}>{money(d.fee_aed_cents, d.currency)}</div>
             </div>
           )}
         </div>
@@ -1141,7 +1157,7 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
     // Required here even though the mobile above is not: a courier cannot deliver without
     // a number to call on the day.
     phone: !wantsAddress ? null
-      : !addr.phone.trim() ? 'The courier needs a number to call on the day.' : vMobile(addr.phone),
+      : !addr.phone.trim() ? 'The courier needs a number to call on the day.' : vMobileRequired(addr.phone),
   }
   const errs = {
     name: vName(name),
@@ -1162,7 +1178,7 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
               <input style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" inputMode="email" autoCapitalize="off" autoCorrect="off" />
             </Row>
             <Row icon={I.phone} label="Mobile" error={show ? errs.mobile : null}>
-              <input style={inputStyle} value={mobile} onChange={(e) => setMobile(e.target.value)} placeholder="+971 50 000 0000" inputMode="tel" />
+              <PhoneFieldDark value={mobile} onChange={setMobile} aria-label="Your mobile number" />
             </Row>
             <Row icon={I.at} label="Instagram" last>
               <input style={inputStyle} value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="yourhandle" autoCapitalize="off" autoCorrect="off" />
@@ -1253,7 +1269,7 @@ function StepSign({ d, sub, post, busy, err, openAgreement, onDone }: {
 
   const facts = [
     { icon: I.box, label: 'Deliver', v: d.deliverables_summary || '—' },
-    { icon: I.wallet, label: 'Fee', v: money(d.fee_aed_cents) || '—' },
+    { icon: I.wallet, label: 'Fee', v: money(d.fee_aed_cents, d.currency) || '—' },
     { icon: I.chev, label: 'Submit by', v: niceDate(d.submit_by) || '—' },
     { icon: I.shield, label: 'Usage', v: d.usage_terms || '—' },
   ]
@@ -1595,7 +1611,12 @@ function DeliveryBlock({ brand, value, onChange, show, errs }: {
           <input style={inputStyle} value={value.city} onChange={(e) => edit({ city: e.target.value })} placeholder="Dubai" />
         </Row>
         <Row icon={I.phone} label="Phone" last error={show ? errs.phone : null}>
-          <input style={inputStyle} value={value.phone} onChange={(e) => edit({ phone: e.target.value })} placeholder="+971 50 000 0000" inputMode="tel" />
+          <PhoneFieldDark
+            value={value.phone}
+            onChange={(phone) => edit({ phone })}
+            required
+            aria-label="Number for the courier"
+          />
         </Row>
       </div>
 

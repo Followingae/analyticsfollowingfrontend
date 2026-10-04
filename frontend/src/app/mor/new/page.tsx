@@ -31,6 +31,7 @@ import {
   morPaymentsApi, aed, type MorCurrency, type MorQuote,
 } from '@/services/morPaymentsApi'
 import { BillingDetailsDialog, needsBillingDetails } from '@/components/mor/BillingDetailsDialog'
+import { PhoneField, phoneFieldProblem } from '@/components/phone/PhoneField'
 import { cn } from '@/lib/utils'
 
 const TOKENS = `
@@ -98,7 +99,9 @@ function NewPaymentForm() {
   const feeValid = Number.isFinite(feeNumber) && feeNumber > 0
   // The email is required now, because WE send the agreement rather than the brand pasting
   // a link into a DM. No email means no way to contract or pay this creator.
-  const ready = name.trim().length > 0 && feeValid && !!method && email.trim().length > 0
+  const whatsappProblem = phoneFieldProblem(whatsapp, false)
+  const ready = name.trim().length > 0 && feeValid && !!method
+    && email.trim().length > 0 && !whatsappProblem
 
   /* Quote on a pause in typing, not on every keystroke: a total that flickers while somebody
      is still typing the thousands reads as the price changing on them. */
@@ -188,9 +191,12 @@ function NewPaymentForm() {
               <Input value={handle} onChange={(e) => setHandle(e.target.value)}
                      placeholder="@esraawalyofficial" autoComplete="off" />
             </Field>
-            <Field label="WhatsApp">
-              <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)}
-                     placeholder="+971 50 000 0000" inputMode="tel" autoComplete="off" />
+            <Field
+              label="WhatsApp"
+              hint="Pick their country. This is where their signing link goes."
+              error={whatsapp ? whatsappProblem : null}
+            >
+              <PhoneField value={whatsapp} onChange={setWhatsapp} aria-label="Creator WhatsApp number" />
             </Field>
           </div>
           <Field label="Email" hint="Where we send the agreement.">
@@ -337,8 +343,8 @@ function NewPaymentForm() {
   )
 }
 
-function Field({ label, hint, children }: {
-  label: string; hint?: string; children: React.ReactNode
+function Field({ label, hint, error, children }: {
+  label: string; hint?: string; error?: string | null; children: React.ReactNode
 }) {
   return (
     <div>
@@ -349,6 +355,12 @@ function Field({ label, hint, children }: {
         </p>
       )}
       <div className="mt-2.5">{children}</div>
+      {/* Shown as soon as it is true, not on blur. The number is only ever a few digits and
+          the message says exactly how many are missing, so it reads as guidance while they
+          type rather than a telling-off afterwards. */}
+      {error && (
+        <p className="mt-2 text-[12.5px] font-medium leading-relaxed text-destructive">{error}</p>
+      )}
     </div>
   )
 }
