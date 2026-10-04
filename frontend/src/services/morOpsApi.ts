@@ -125,6 +125,20 @@ export interface MorOrderCreator {
   creator_fee_cents: number
   /** This creator's own currency. On a batch it matches the order's. */
   currency: string | null
+  /** Bank transfer, or collected in person at a licensed exchange house. */
+  payout_method: 'bank_transfer' | 'exchange_house'
+  payout_provider: string | null
+  /** Where an exchange house creator collects. Null on a bank transfer. */
+  payout_collect_city: string | null
+  /** The creator's own TRN, UAE only and optional. */
+  tax_number: string | null
+  has_passport: boolean
+  passport_status: 'pending' | 'accepted' | 'rejected' | 'not_required' | null
+  passport_rejected_reason: string | null
+  passport_uploaded_at: string | null
+  address_line2: string | null
+  address_state: string | null
+  address_postcode: string | null
   status: string
   name_check: 'pending' | 'matched' | 'mismatch' | 'accepted' | 'rejected'
   name_check_note: string | null
@@ -292,6 +306,44 @@ export const morOpsApi = {
     jfetch(`${BASE}/orders/${kind}/${id}/received`, {
       method: 'POST',
       body: JSON.stringify({ receipt_file_url }),
+    }),
+
+  /**
+   * How this creator is paid. Set before the invite, because it decides what their screen
+   * asks for: an exchange house payout has no account, so they are never asked for an IBAN.
+   */
+  setPayoutMethod: (paymentId: string, payout_method: 'bank_transfer' | 'exchange_house') =>
+    jfetch(`${BASE}/payments/${paymentId}/payout-method`, {
+      method: 'POST', body: JSON.stringify({ payout_method }),
+    }) as Promise<{ data: { payout_method: string; changed: boolean } }>,
+
+  /**
+   * Send named things back to be replaced, with a reason.
+   *
+   * Named, never "there is a problem with your details": a creator who cannot tell which of
+   * four things is wrong will guess or reply asking, and both are days.
+   */
+  requestChanges: (paymentId: string, items: string[], note: string) =>
+    jfetch(`${BASE}/payments/${paymentId}/request-changes`, {
+      method: 'POST', body: JSON.stringify({ items, note }),
+    }) as Promise<{ data: { items: string[]; note: string; creator_told: boolean } }>,
+
+  /**
+   * A link to the creator's passport that works for ten minutes.
+   *
+   * Minted on request and never stored. The document lives in a private bucket and the
+   * brand can never reach it.
+   */
+  passport: (paymentId: string) =>
+    jfetch(`${BASE}/payments/${paymentId}/passport`) as Promise<{
+      data: { url: string; expires_in: number; filename: string | null; status: string | null
+              uploaded_at: string | null; rejected_reason: string | null }
+    }>,
+
+  /** Accept the passport, or send it back with a reason. */
+  passportVerdict: (paymentId: string, accept: boolean, note?: string) =>
+    jfetch(`${BASE}/payments/${paymentId}/passport-verdict`, {
+      method: 'POST', body: JSON.stringify({ accept, note }),
     }),
 
   /** Settle a name mismatch. Ours to decide, never the brand's. */

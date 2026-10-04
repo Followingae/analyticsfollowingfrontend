@@ -37,7 +37,8 @@ import { PageHead, Panel } from '@/components/console/primitives'
 import { toast } from 'sonner'
 import {
   AlertTriangle, ArrowLeft, Check, CheckCircle2, Copy, Download, FileSignature, FileText,
-  Loader2, Lock, Mail, MessageCircle, Receipt, RefreshCw, Send,
+  Banknote, Landmark, Loader2, Lock, Mail, MessageCircle, Receipt, RefreshCw, Send,
+  ShieldCheck, Undo2,
 } from 'lucide-react'
 import {
   morOpsApi, aedFromCents,
@@ -714,6 +715,203 @@ function PayoutRun({ kind, id, reference, currency, onChange }: {
  * one that was ignored looked identical. Sent, failed with the reason, opened, and a resend
  * that takes a corrected address.
  */
+/**
+ * How this creator is paid, the passport we hold, and sending either back.
+ *
+ * All three sit together because from the operator's side they are one question: can this
+ * person be paid, and if not, what do I ask them for. Spreading them across the screen is
+ * what sent somebody to the database to find out why a creator had stalled.
+ */
+function PayoutAndPassport({ c, onChange }: { c: MorOrderCreator; onChange: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const [asking, setAsking] = useState(false)
+  const [items, setItems] = useState<string[]>([])
+  const [note, setNote] = useState('')
+
+  const byHand = c.payout_method === 'exchange_house'
+  // The method decides what the creator's screen asks for, so it locks once they have
+  // answered. Replacing the question after somebody has answered it is not a correction.
+  const locked = !!c.bank_at || !!c.payout_collect_city || c.status === 'paid'
+
+  const setMethod = async (m: 'bank_transfer' | 'exchange_house') => {
+    setBusy(true)
+    try {
+      await morOpsApi.setPayoutMethod(c.id, m)
+      toast.success(m === 'exchange_house' ? 'Collected in person' : 'Paid to a bank account')
+      onChange()
+    } catch (e) { toast.error((e as Error).message) }
+    finally { setBusy(false) }
+  }
+
+  const openPassport = async () => {
+    setBusy(true)
+    try {
+      const r = await morOpsApi.passport(c.id)
+      window.open(r.data.url, '_blank', 'noopener,noreferrer')
+    } catch (e) { toast.error((e as Error).message) }
+    finally { setBusy(false) }
+  }
+
+  const accept = async () => {
+    setBusy(true)
+    try {
+      await morOpsApi.passportVerdict(c.id, true)
+      toast.success('Passport accepted')
+      onChange()
+    } catch (e) { toast.error((e as Error).message) }
+    finally { setBusy(false) }
+  }
+
+  const send = async () => {
+    setBusy(true)
+    try {
+      const r = await morOpsApi.requestChanges(c.id, items, note.trim())
+      toast.success('Asked them to replace it', {
+        description: r.data.creator_told
+          ? 'They have been emailed.'
+          : 'We could not email them, so tell them yourself.',
+      })
+      setAsking(false); setItems([]); setNote(''); onChange()
+    } catch (e) { toast.error((e as Error).message) }
+    finally { setBusy(false) }
+  }
+
+  const REASK: Array<[string, string]> = byHand
+    ? [['passport', 'Passport'], ['collect', 'Collection city'],
+       ['address', 'Address'], ['details', 'Contact details']]
+    : [['passport', 'Passport'], ['bank', 'Bank details'],
+       ['address', 'Address'], ['details', 'Contact details']]
+
+  return (
+    <div className="rounded-ds-lg border border-black/[0.06] p-3 dark:border-white/[0.08]">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex items-center gap-2">
+          {byHand
+            ? <Banknote className="size-3.5 text-muted-foreground" />
+            : <Landmark className="size-3.5 text-muted-foreground" />}
+          {locked ? (
+            <span className="text-[12.5px] font-medium">
+              {byHand ? 'Exchange house' : 'Bank transfer'}
+              {byHand && c.payout_collect_city && (
+                <span className="text-muted-foreground"> · {c.payout_collect_city}</span>
+              )}
+            </span>
+          ) : (
+            <Select
+              value={c.payout_method}
+              disabled={busy}
+              onValueChange={(v: string) => setMethod(v as 'bank_transfer' | 'exchange_house')}
+            >
+              <SelectTrigger className="h-7 w-[168px] text-[12px]"
+                             aria-label="How this creator is paid">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bank_transfer" className="text-[12.5px]">Bank transfer</SelectItem>
+                <SelectItem value="exchange_house" className="text-[12.5px]">Exchange house</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <ShieldCheck className={cn('size-3.5',
+            c.passport_status === 'accepted' ? 'text-[var(--tone-good-ink)]'
+              : c.passport_status === 'rejected' ? 'text-[var(--tone-bad-ink)]'
+                : 'text-muted-foreground')} />
+          {c.has_passport ? (
+            <>
+              <button type="button" onClick={openPassport} disabled={busy}
+                      className="text-[12.5px] font-medium underline underline-offset-2">
+                Passport
+              </button>
+              <span className="text-[11.5px] text-muted-foreground">
+                {c.passport_status === 'accepted' ? 'checked'
+                  : c.passport_status === 'rejected' ? 'sent back'
+                    : 'not checked yet'}
+              </span>
+              {c.passport_status !== 'accepted' && (
+                <Button size="sm" variant="outline" className="h-6 px-2 text-[11.5px]"
+                        disabled={busy} onClick={accept}>
+                  Accept
+                </Button>
+              )}
+            </>
+          ) : (
+            <span className="text-[12.5px] text-muted-foreground">No passport yet</span>
+          )}
+        </div>
+
+        {c.tax_number && (
+          <span className="text-[11.5px] text-muted-foreground">TRN {c.tax_number}</span>
+        )}
+
+        <Button size="sm" variant="ghost" className="ml-auto h-7 px-2 text-[12px]"
+                onClick={() => setAsking(true)}>
+          <Undo2 className="mr-1.5 size-3.5" />Ask again
+        </Button>
+      </div>
+
+      {c.passport_status === 'rejected' && c.passport_rejected_reason && (
+        <p className="mt-2 text-[12px] text-[var(--tone-bad-ink)]">
+          Sent back: {c.passport_rejected_reason}
+        </p>
+      )}
+
+      <Dialog open={asking} onOpenChange={(open: boolean) => { if (!open) setAsking(false) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ask {c.creator_name} to replace something</DialogTitle>
+            <DialogDescription>
+              Pick exactly what is wrong. Everything else they sent is kept and their
+              signature stands. They get an email naming the items and your reason.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-ds-3">
+            <div className="flex flex-wrap gap-2">
+              {REASK.map(([key, label]) => (
+                <Button
+                  key={key}
+                  type="button"
+                  size="sm"
+                  variant={items.includes(key) ? 'default' : 'outline'}
+                  className="h-7 text-[12px]"
+                  onClick={() => setItems((prev) => prev.includes(key)
+                    ? prev.filter((x) => x !== key)
+                    : [...prev, key])}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+            <div>
+              <Label htmlFor={`reask-${c.id}`} className="text-[12.5px]">
+                What is wrong with it
+              </Label>
+              <Input id={`reask-${c.id}`} value={note} onChange={(e) => setNote(e.target.value)}
+                     placeholder="The photo is cut off at the bottom." className="mt-1.5" />
+              <p className="mt-1.5 text-[11.5px] text-muted-foreground">
+                They read this. A bare &ldquo;please resend&rdquo; is the message that comes
+                back wrong a second time.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAsking(false)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button onClick={send} disabled={busy || !items.length || !note.trim()}>
+              {busy ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
+              Send it back
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+
 function CreatorCard({ c, onChange }: { c: MorOrderCreator; onChange: () => void }) {
   const [email, setEmail] = useState('')
   const [busy, setBusy] = useState(false)
@@ -742,11 +940,18 @@ function CreatorCard({ c, onChange }: { c: MorOrderCreator; onChange: () => void
     } catch { toast.error('Could not copy it.') }
   }
 
+  const byHand = c.payout_method === 'exchange_house'
   const steps: { label: string; at?: string | null; bad?: boolean }[] = [
     { label: 'Invited', at: c.invite_sent_at },
     { label: 'Opened', at: c.first_opened_at },
     { label: 'Signed', at: c.signed_at },
-    { label: 'Bank details in', at: c.bank_at },
+    { label: 'Passport in', at: c.passport_uploaded_at,
+      bad: c.passport_status === 'rejected' },
+    // An exchange house creator never gives us bank details and is not waiting on them.
+    // Showing them a step they can never finish is how the old screen made it look as
+    // though they had stalled.
+    { label: byHand ? 'Collection city in' : 'Bank details in',
+      at: byHand ? (c.payout_collect_city ? c.signed_at : null) : c.bank_at },
     { label: 'Paid', at: c.creator_paid_at },
   ]
 
@@ -770,6 +975,8 @@ function CreatorCard({ c, onChange }: { c: MorOrderCreator; onChange: () => void
           {stage.label}
         </Badge>
       </div>
+
+      <PayoutAndPassport c={c} onChange={onChange} />
 
       {/* How we have tried to reach them. Both channels, because an address that bounces and
           a number that delivers are different facts and only one of them is a problem. */}

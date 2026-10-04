@@ -29,13 +29,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { API_CONFIG } from '@/config/api'
 import { InlineMapPicker, mapsAvailable, type PickedPlace } from './LocationPicker'
 import { PhoneFieldDark, phoneFieldProblem } from '@/components/phone/PhoneField'
+import { CountrySelectDark, addressShape } from '@/components/phone/CountrySelect'
 
 const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/enrolment`
 
 // ---------------------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------------------
-type StepKey = 'email' | 'sign' | 'bank'
+type StepKey = 'email' | 'sign' | 'passport' | 'bank'
 
 interface PaymentTerm { pct?: number; label?: string; amount_aed_cents?: number }
 
@@ -51,6 +52,14 @@ interface Submitted {
   bank_last4?: string | null
   bank_country?: string | null
   bank_status?: string | null
+  payout_collect_city?: string | null
+  tax_number?: string | null
+  has_passport?: boolean | null
+  passport_status?: string | null
+  passport_rejected_reason?: string | null
+  address_line2?: string | null
+  address_state?: string | null
+  address_postcode?: string | null
   address_line?: string | null
   address_city?: string | null
   address_country?: string | null
@@ -73,6 +82,12 @@ interface Payload {
   fee_aed_cents?: number | null
   /** What the fee is in. The column is named *_aed_cents; this says whether that is true. */
   currency?: string | null
+  /**
+   * Whether this creator is paid into an account or collects in person. It decides what the
+   * last step asks for: an exchange house payout has no account to pay into, so asking for
+   * an IBAN would leave them unable to finish and unable to be paid.
+   */
+  payout_method?: 'bank_transfer' | 'exchange_house' | null
   submit_by?: string | null
   usage_terms?: string | null
   payment_terms?: PaymentTerm[]
@@ -96,6 +111,7 @@ interface Payload {
 const GRAD: Record<StepKey | 'addr', string> = {
   email: 'linear-gradient(160deg,#0A6BFF,#5FE0FF)',
   sign: 'linear-gradient(160deg,#FF3D00,#FF9500)',
+  passport: 'linear-gradient(160deg,#6A4BFF,#B38BFF)',
   bank: 'linear-gradient(160deg,#0E7A3A,#1FD16B)',
   // Kept although there is no `addr` card any more: the celebration and receipt screens
   // still use this gradient as the delivery colour, and it is the design's own value.
@@ -105,7 +121,8 @@ const GRAD: Record<StepKey | 'addr', string> = {
 const DEFS: Record<StepKey, { kick: string; title: string; meta: string; big: string; sub: string }> = {
   email: { kick: 'STEP 01', title: 'Your\ndetails', meta: 'Name, email, address', big: 'Your details', sub: 'So we can reach you' },
   sign: { kick: 'STEP 02', title: 'Sign the\nagreement', meta: '2 minutes', big: 'Sign the deal', sub: 'The terms in short' },
-  bank: { kick: 'STEP 03', title: 'Where money\nlands', meta: 'IBAN and name', big: 'Where money lands', sub: 'Your bank account' },
+  passport: { kick: 'STEP 03', title: 'Your\npassport', meta: 'A photo is fine', big: 'Your passport', sub: 'So we can pay the right person' },
+  bank: { kick: 'STEP 04', title: 'Where money\nlands', meta: 'IBAN and name', big: 'Where money lands', sub: 'Your bank account' },
 }
 
 const CONF_COLS = ['#0A6BFF', '#FF9500', '#1FD16B', '#FF7AD9']
@@ -120,6 +137,7 @@ const CONF_COLS = ['#0A6BFF', '#FF9500', '#1FD16B', '#FF7AD9']
 const TOP: Record<StepKey, string> = {
   email: '#0A6BFF',
   sign: '#FF3D00',
+  passport: '#6A4BFF',
   bank: '#0E7A3A',
 }
 const PAGE = '#050506'
@@ -482,7 +500,7 @@ export default function EnrolmentFlow({ token }: { token: string }) {
 
   useEffect(() => { load() }, [load])
 
-  const steps = useMemo<StepKey[]>(() => (data?.steps?.length ? data.steps : ['email', 'sign', 'bank']), [data])
+  const steps = useMemo<StepKey[]>(() => (data?.steps?.length ? data.steps : ['email', 'sign', 'passport', 'bank']), [data])
   const done = data?.done ?? ({} as Record<StepKey, boolean>)
   const count = steps.filter((s) => done[s]).length
   // Every step saved but nothing submitted yet. The server is the authority; the
@@ -526,6 +544,37 @@ export default function EnrolmentFlow({ token }: { token: string }) {
       setBusy(false)
     }
   }, [token])
+
+  /**
+   * The same thing for a file.
+   *
+   * Separate from `post` rather than a flag on it, because the two differ in the one way
+   * that matters: a multipart body must NOT carry a Content-Type header we set ourselves.
+   * The browser has to write it, because only the browser knows the boundary string it is
+   * about to use, and setting `multipart/form-data` by hand produces a request the server
+   * cannot parse at all.
+   */
+  const upload = useCallback(async (path: string, file: File) => {
+    setBusy(true); setErr(null)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const r = await fetch(`${PUBLIC}/${token}/${path}`, { method: 'POST', body: form })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        setErr(saysWhat(j?.detail))
+        if (r.status === 410 || j?.detail === 'email_not_verified') await load()
+        return { ok: false as const }
+      }
+      if (j?.data) setData(j.data)
+      return { ok: true as const, data: j?.data as Payload | undefined }
+    } catch {
+      setErr('That did not upload. Check your signal and try again.')
+      return { ok: false as const }
+    } finally {
+      setBusy(false)
+    }
+  }, [token, load])
 
   /**
    * Which steps cannot be opened yet, and why.
@@ -1104,7 +1153,10 @@ export default function EnrolmentFlow({ token }: { token: string }) {
         )}
         {key === 'email' && <StepEmail d={d} sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('email', f)} />}
         {key === 'sign' && <StepSign d={d} sub={sub} post={post} busy={busy} err={err} openAgreement={() => setScreen('agreement')} onDone={(f) => advance('sign', f)} />}
-        {key === 'bank' && <StepBank sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('bank', f)} />}
+        {key === 'passport' && <StepPassport sub={sub} upload={upload} busy={busy} err={err} onDone={(f) => advance('passport', f)} />}
+        {key === 'bank' && (d.payout_method === 'exchange_house'
+          ? <StepCollect d={d} sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('bank', f)} />
+          : <StepBank sub={sub} post={post} busy={busy} err={err} onDone={(f) => advance('bank', f)} />)}
       </div>
 
       {/* Inline at the end of the step, NOT a fixed strip.
@@ -1135,11 +1187,17 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
   // The delivery half of this step. Only collected when the link ships something.
   const wantsAddress = d.wants_address !== false
   const [addr, setAddr] = useState({
-    line: sub.address_line || '', city: sub.address_city || '',
+    line: sub.address_line || '', line2: sub.address_line2 || '',
+    city: sub.address_city || '', state: sub.address_state || '',
+    postcode: sub.address_postcode || '',
+    // No default. It used to be written as "United Arab Emirates" on submit whatever the
+    // creator did, which is why every address on file says UAE.
+    country: (sub.address_country || '').toUpperCase(),
     phone: sub.address_phone || sub.mobile || '',
     lat: sub.address_lat ?? null, lng: sub.address_lng ?? null,
     maps: sub.address_maps_url || '', source: null as string | null,
   })
+  const [trn, setTrn] = useState(sub.tax_number || '')
   const [stage, setStage] = useState<'form' | 'code'>('form')
   const [code, setCode] = useState('')
   const [sentTo, setSentTo] = useState<string | null>(null)
@@ -1158,6 +1216,9 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
     // a number to call on the day.
     phone: !wantsAddress ? null
       : !addr.phone.trim() ? 'The courier needs a number to call on the day.' : vMobileRequired(addr.phone),
+    // No silent default any more. The old code wrote "United Arab Emirates" on submit
+    // whatever was on screen, so an address in Cairo was filed as Emirati.
+    country: !wantsAddress ? null : !addr.country ? 'Which country do you live in?' : null,
   }
   const errs = {
     name: vName(name),
@@ -1195,6 +1256,8 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
               onChange={(patch) => setAddr((p) => ({ ...p, ...patch }))}
               show={show}
               errs={addrErrs}
+              trn={trn}
+              onTrn={setTrn}
             />
           )}
 
@@ -1207,9 +1270,14 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
               mobile: mobile.trim() || null, instagram_handle: handle.trim() || null,
               ...(wantsAddress ? {
                 address_line: addr.line.trim() || null,
+                address_line2: addr.line2.trim() || null,
                 address_city: addr.city.trim() || null,
+                address_state: addr.state.trim() || null,
+                address_postcode: addr.postcode.trim() || null,
                 address_phone: addr.phone.trim() || null,
-                address_country: 'United Arab Emirates',
+                // What they chose, as ISO alpha-2. Never a hardcoded country.
+                address_country: addr.country || null,
+                tax_number: addr.country === 'AE' ? (trn.trim() || null) : null,
                 address_lat: addr.lat, address_lng: addr.lng,
                 address_maps_url: addr.maps.trim() || null,
                 address_pin_source: addr.lat != null ? 'browser' : (addr.maps.trim() ? 'link' : null),
@@ -1475,8 +1543,145 @@ function SignaturePad({ onChange, invalid }: {
 }
 
 // ---------------------------------------------------------------------------------------
-// Step 3 — bank
+// Step 3 — the passport
 // ---------------------------------------------------------------------------------------
+/**
+ * One document, from everybody, in every country we contract in.
+ *
+ * It is here rather than bolted onto the signature because it is what the name on the
+ * agreement gets checked against: collecting it afterwards would mean the check was never
+ * really made. And for a creator collecting cash at an exchange house it is the thing they
+ * will physically be asked for at the counter, so the one they send us has to be the one
+ * they carry.
+ *
+ * The file goes straight to a private store. Nothing on this screen ever shows it back as a
+ * link, and the brand never sees it at all.
+ */
+function StepPassport({ sub, upload, busy, err, onDone }: {
+  sub: Submitted
+  upload: (p: string, f: File) => Promise<{ ok: boolean; data?: Payload }>
+  busy: boolean; err: string | null; onDone: (f?: Payload) => void
+}) {
+  const [picked, setPicked] = useState<File | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const sentBack = sub.passport_status === 'rejected'
+  const held = !!sub.has_passport && !sentBack
+
+  return (
+    <>
+      {sentBack && (
+        <div style={{
+          background: 'rgba(255,61,0,.10)', border: '1px solid rgba(255,61,0,.35)',
+          borderRadius: 14, padding: '13px 15px', marginBottom: 12,
+        }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: '#FF8A5C' }}>
+            We need this one again
+          </div>
+          <div style={{ marginTop: 5, fontSize: 13, lineHeight: 1.5, color: '#C9C9D2' }}>
+            {sub.passport_rejected_reason || 'The copy we have is not readable.'}
+          </div>
+        </div>
+      )}
+
+      <div style={{ background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
+        <Row icon={I.doc} label="Passport" last>
+          <span style={{ fontSize: 14.5, fontWeight: 700, color: held ? '#1FD16B' : '#8A8A93' }}>
+            {picked ? picked.name.slice(0, 28) : held ? 'On file' : 'Not yet'}
+          </span>
+        </Row>
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+        style={{ display: 'none' }}
+        onChange={(e) => setPicked(e.target.files?.[0] || null)}
+      />
+
+      <div style={{ marginTop: 12 }}>
+        <CTA tone="dark" onClick={() => inputRef.current?.click()}>
+          {picked ? 'Choose a different file' : held ? 'Replace it' : 'Choose a file'}
+        </CTA>
+      </div>
+
+      <p style={{ margin: '14px 2px 0', fontSize: 12.5, lineHeight: 1.55, color: '#6E6E77' }}>
+        A photo taken on your phone is fine, as long as the whole page is in frame and the
+        numbers at the bottom are readable. We use it to check we are paying the right
+        person. It is never shown to the brand.
+      </p>
+
+      <ErrLine>{err}</ErrLine>
+
+      <CTA
+        busy={busy}
+        disabled={!picked && !held}
+        onClick={async () => {
+          if (!picked) { if (held) onDone(); return }
+          const r = await upload('passport', picked)
+          if (r.ok) onDone(r.data)
+        }}
+      >
+        {picked ? 'Send it' : 'Continue'}
+      </CTA>
+    </>
+  )
+}
+
+
+// ---------------------------------------------------------------------------------------
+// Step 4 — where the money goes
+// ---------------------------------------------------------------------------------------
+/**
+ * Collecting in person, where there is no account to pay into.
+ *
+ * The counterpart of the bank card. An exchange house payout is handed over at a counter
+ * against the passport, so what we need is which city, not an IBAN. Asking this creator for
+ * an account is what used to make them finish the form and then be impossible to pay.
+ */
+function StepCollect({ d, sub, post, busy, err, onDone }: {
+  d: Payload; sub: Submitted
+  post: (p: string, b?: unknown) => Promise<{ ok: boolean; data?: Payload }>
+  busy: boolean; err: string | null; onDone: (f?: Payload) => void
+}) {
+  const [city, setCity] = useState(sub.payout_collect_city || '')
+  const [show, setShow] = useState(false)
+  const problem = !city.trim() ? 'We need to know where you are collecting.'
+    : city.trim().length < 2 ? 'That looks too short.' : null
+
+  return (
+    <>
+      <div style={{ background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
+        <Row icon={I.pin} label="Collect in" last error={show ? problem : null}>
+          <input style={inputStyle} value={city} onChange={(e) => setCity(e.target.value)}
+                 placeholder="Baghdad" />
+        </Row>
+      </div>
+
+      <p style={{ margin: '14px 2px 0', fontSize: 12.5, lineHeight: 1.55, color: '#6E6E77' }}>
+        {d.brand || 'The brand'} is paying you through a licensed exchange house,
+        so there is no bank account to give us. Pick the city you want to collect in and bring
+        the passport you just sent.
+      </p>
+
+      <ErrLine>{err}</ErrLine>
+
+      <CTA
+        busy={busy}
+        onClick={async () => {
+          setShow(true)
+          if (problem) return
+          const r = await post('collect', { payout_collect_city: city.trim() })
+          if (r.ok) onDone(r.data)
+        }}
+      >
+        Save
+      </CTA>
+    </>
+  )
+}
+
+
 function StepBank({ sub, post, busy, err, onDone }: {
   sub: Submitted; post: (p: string, b?: unknown) => Promise<{ ok: boolean; data?: Payload }>
   busy: boolean; err: string | null; onDone: (f?: Payload) => void
@@ -1562,12 +1767,18 @@ function StepBank({ sub, post, busy, err, onDone }: {
  * which made the accurate route the effortful one and left typing as the path of least
  * resistance. Where the map cannot load at all, the typed fields stand on their own.
  */
-function DeliveryBlock({ brand, value, onChange, show, errs }: {
+function DeliveryBlock({ brand, value, onChange, show, errs, trn, onTrn }: {
   brand?: string | null
-  value: { line: string; city: string; phone: string; lat: number | null; lng: number | null; maps: string; source: string | null }
+  value: {
+    line: string; line2: string; city: string; state: string; postcode: string
+    country: string; phone: string
+    lat: number | null; lng: number | null; maps: string; source: string | null
+  }
   onChange: (patch: Partial<typeof value>) => void
   show: boolean
-  errs: { line: string | null; city: string | null; phone: string | null }
+  errs: { line: string | null; city: string | null; phone: string | null; country: string | null }
+  trn: string
+  onTrn: (v: string) => void
 }) {
   const [noMap, setNoMap] = useState(!mapsAvailable())
   // The typed fields are prefilled from the pin only until the creator edits them. After
@@ -1587,11 +1798,19 @@ function DeliveryBlock({ brand, value, onChange, show, errs }: {
     onChange(patch)
   }
 
+  // Which fields this country actually uses. A state box under a UAE address is a question
+  // with no answer, and its absence under a US one makes the address invalid.
+  const shape = addressShape(value.country)
+
   return (
     <>
       <div style={{ marginTop: 22, fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: '#5E5E66' }}>
-        WHERE PRODUCT GOES
+        YOUR ADDRESS
       </div>
+      <p style={{ margin: '7px 2px 0', fontSize: 12.5, lineHeight: 1.5, color: '#6E6E77' }}>
+        The bank asks for this before it will send money across a border, and it is where
+        anything physical goes. Nobody else sees it.
+      </p>
 
       {!noMap && (
         <div style={{ marginTop: 10, background: '#121215', borderRadius: 20, padding: 14 }}>
@@ -1599,17 +1818,48 @@ function DeliveryBlock({ brand, value, onChange, show, errs }: {
             initial={{ lat: value.lat, lng: value.lng }}
             onPick={took}
             onUnavailable={() => setNoMap(true)}
+            country={value.country}
           />
         </div>
       )}
 
       <div style={{ marginTop: 10, background: '#121215', borderRadius: 20, overflow: 'hidden' }}>
+        {/* Country leads, because it decides whether the fields under it are the right
+            ones to ask for at all. */}
+        <Row icon={I.city} label="Country" error={show ? errs.country : null}>
+          <CountrySelectDark
+            value={value.country}
+            onChange={(iso) => edit({ country: iso })}
+            aria-label="Country you live in"
+          />
+        </Row>
         <Row icon={I.pin} label="Address" error={show ? errs.line : null}>
-          <input style={inputStyle} value={value.line} onChange={(e) => edit({ line: e.target.value })} placeholder="Building, apartment" />
+          <input style={inputStyle} value={value.line} onChange={(e) => edit({ line: e.target.value })} placeholder="Building, street" />
+        </Row>
+        <Row icon={I.pin} label="Apartment">
+          <input style={inputStyle} value={value.line2} onChange={(e) => edit({ line2: e.target.value })} placeholder="Flat, floor, optional" />
         </Row>
         <Row icon={I.city} label="City" error={show ? errs.city : null}>
           <input style={inputStyle} value={value.city} onChange={(e) => edit({ city: e.target.value })} placeholder="Dubai" />
         </Row>
+        {shape.state && (
+          <Row icon={I.city} label={shape.state === 'province' ? 'Province' : 'State'}>
+            <input style={inputStyle} value={value.state} onChange={(e) => edit({ state: e.target.value })} placeholder="" />
+          </Row>
+        )}
+        {shape.postcode && (
+          <Row icon={I.city} label="Postcode">
+            <input style={inputStyle} value={value.postcode}
+                   onChange={(e) => edit({ postcode: e.target.value.toUpperCase() })}
+                   placeholder="" autoCapitalize="characters" autoCorrect="off" />
+          </Row>
+        )}
+        {value.country === 'AE' && (
+          <Row icon={I.doc} label="TRN">
+            <input style={inputStyle} value={trn} onChange={(e) => onTrn(e.target.value)}
+                   placeholder="If you have one" inputMode="numeric" />
+          </Row>
+        )}
         <Row icon={I.phone} label="Phone" last error={show ? errs.phone : null}>
           <PhoneFieldDark
             value={value.phone}

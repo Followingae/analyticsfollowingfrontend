@@ -33,8 +33,22 @@ import { createPortal } from 'react-dom'
 const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
 export const mapsAvailable = () => !!KEY
 
-// Dubai. Only ever the opening view before we locate them.
+// Dubai. Only ever the opening view before we locate them, and only when we have nothing
+// better: once a country is chosen the map opens there instead, because a creator in
+// Baghdad being shown Dubai Marina has to pan across a continent before they can start.
 const FALLBACK = { lat: 25.0805, lng: 55.1403 }
+
+/** Roughly the middle of each country we contract in, for the opening view. */
+const COUNTRY_CENTRE: Record<string, LatLngLiteral> = {
+  AE: { lat: 25.0805, lng: 55.1403 },
+  SA: { lat: 24.7136, lng: 46.6753 },
+  KW: { lat: 29.3759, lng: 47.9774 },
+  QA: { lat: 25.2854, lng: 51.5310 },
+  BH: { lat: 26.2285, lng: 50.5860 },
+  OM: { lat: 23.5880, lng: 58.3829 },
+  IQ: { lat: 33.3152, lng: 44.3661 },
+}
+type LatLngLiteral = { lat: number; lng: number }
 
 type LatLng = { lat: number; lng: number }
 
@@ -63,7 +77,9 @@ function loadMaps(): Promise<void> {
       reject(new Error('maps_auth_failed'))
     const s = document.createElement('script')
     s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(KEY)}`
-      + `&libraries=places&loading=async&callback=${cb}&v=weekly&region=AE&language=en`
+      // No `region`. It biases every result towards one country, which is the right
+      // default for a UAE-only product and wrong the moment a creator is not in it.
+      + `&libraries=places&loading=async&callback=${cb}&v=weekly&language=en`
     s.async = true
     s.onerror = () => reject(new Error('maps_script_failed'))
     document.head.appendChild(s)
@@ -87,17 +103,25 @@ function split(address: string) {
   return { line: line || cleaned, city }
 }
 
-export function InlineMapPicker({ initial, onPick, onUnavailable }: {
+export function InlineMapPicker({ initial, onPick, onUnavailable, country }: {
   initial?: { lat?: number | null; lng?: number | null }
   onPick: (p: PickedPlace) => void
   onUnavailable?: () => void
+  /**
+   * ISO alpha-2 of the country the creator said they live in. It narrows the address search
+   * and decides where the map opens. Empty means search the whole world, which is a worse
+   * experience than a narrowed one and a far better one than searching the wrong country.
+   */
+  country?: string
 }) {
   const inlineHost = useRef<HTMLDivElement | null>(null)
   const fullHost = useRef<HTMLDivElement | null>(null)
   const mapDiv = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<any>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
-  const centre = useRef<LatLng>(FALLBACK)
+  // Opens on their country when we know it, on Dubai when we do not, and on their actual
+  // position the moment the browser gives it to us.
+  const centre = useRef<LatLng>(COUNTRY_CENTRE[(country || '').toUpperCase()] || FALLBACK)
   const located = useRef(false)
   const press = useRef<{ x: number; y: number } | null>(null)
 
@@ -198,9 +222,14 @@ export function InlineMapPicker({ initial, onPick, onUnavailable }: {
     if (state !== 'ready' || !searchRef.current) return
     const g = (window as any).google
     if (!g?.maps?.places) return
+    // ⚠️ RESTRICTED TO THE CHOSEN COUNTRY, NOT TO THE UAE. This was hard-coded to ['ae'],
+    // which meant the search physically could not return an address anywhere else: a
+    // creator in Baghdad typing their street got no results at all and no explanation. It
+    // is still restricted, because narrowing to the country they told us they live in makes
+    // the results better; it is just no longer restricted to somebody else's country.
     const ac = new g.maps.places.Autocomplete(searchRef.current, {
       fields: ['geometry'],
-      componentRestrictions: { country: ['ae'] },
+      ...(country ? { componentRestrictions: { country: [country.toLowerCase()] } } : {}),
     })
     const l = ac.addListener('place_changed', () => {
       const p = ac.getPlace()
@@ -219,7 +248,7 @@ export function InlineMapPicker({ initial, onPick, onUnavailable }: {
       // around after the expanded view closes.
       document.querySelectorAll('.pac-container').forEach((n) => n.remove())
     }
-  }, [state, big, goTo])
+  }, [state, big, goTo, country])
 
   // ---- move the map between the two hosts --------------------------------------------
   useEffect(() => {
