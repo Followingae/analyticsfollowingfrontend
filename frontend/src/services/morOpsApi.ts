@@ -346,6 +346,31 @@ export const morOpsApi = {
       method: 'POST', body: JSON.stringify({ accept, note }),
     }),
 
+  /**
+   * Tell a client Creator Payouts is switched on, and attach the guide.
+   *
+   * Sent by hand, never off the entitlement: a module is granted in a sales conversation
+   * and sometimes a week before anybody means to announce it.
+   *
+   * The percentage quoted is resolved for THIS client and is zero for a Manage client, so
+   * `fee_pct` is only for a rate agreed in conversation rather than set in config.
+   */
+  sendActivationEmail: (teamId: string, opts: {
+    to?: string[]; fee_pct?: string; dry_run?: boolean
+  } = {}) =>
+    jfetch(`${BASE}/clients/${teamId}/activation-email`, {
+      method: 'POST', body: JSON.stringify(opts),
+    }) as Promise<{
+      data: {
+        sent?: number; recipients?: string[]; would_send_to?: string[]
+        failed?: Array<{ to: string; why: string }>
+        subject: string; client: string
+        fee_pct?: string; resolved_fee_pct?: string
+        included_in_manage?: boolean; overridden?: boolean
+        guide_bytes?: number
+      }
+    }>,
+
   /** Settle a name mismatch. Ours to decide, never the brand's. */
   settleName: (paymentId: string, accept: boolean, note?: string) =>
     jfetch(`${BASE}/payments/${paymentId}/name-check`, {
