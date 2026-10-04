@@ -46,6 +46,8 @@ import { clientApi, type ScopeCampaign, type FinanceSummary } from '@/services/c
 import { QuotaProgressCard } from '@/components/clients/QuotaProgressCard';
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab';
 import { ClientModulesTab } from '@/components/clients/ClientModulesTab';
+import { TellThemPayoutsDialog } from '@/components/clients/TellThemPayoutsDialog';
+import { accountModulesApi } from '@/services/accountModulesApi';
 import { MorFeeWaiverTab } from '@/components/clients/MorFeeWaiverTab';
 import { ClientManagementTermsTab } from '@/components/clients/ClientManagementTermsTab';
 import {
@@ -201,6 +203,11 @@ function ClientDetailPage() {
   const [accessOpen, setAccessOpen] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
+  const [payoutsOpen, setPayoutsOpen] = useState(false);
+  // Whether this client actually has Creator Payouts. Telling somebody a module is
+  // switched on when it is not is the one thing this email must never do, so the menu
+  // item is not offered until it is.
+  const [hasPayouts, setHasPayouts] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
 
   const handleAssignAM = async (value: string) => {
@@ -433,6 +440,11 @@ function ClientDetailPage() {
               <DropdownMenuItem onClick={() => setUpdateOpen(true)}>
                 Send an update
               </DropdownMenuItem>
+              {hasPayouts && (
+                <DropdownMenuItem onClick={() => setPayoutsOpen(true)}>
+                  Creator Payouts is on
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -463,6 +475,13 @@ function ClientDetailPage() {
       ]} />
 
       <ClientAccessDialog teamId={teamId} open={accessOpen} onOpenChange={setAccessOpen} />
+      {payoutsOpen && (
+        <TellThemPayoutsDialog
+          teamId={teamId}
+          clientName={client.company_name || client.name || 'this client'}
+          onClose={() => setPayoutsOpen(false)}
+        />
+      )}
       <CampaignBriefingDialog
         teamId={teamId}
         open={briefingOpen}
