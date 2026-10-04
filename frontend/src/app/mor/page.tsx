@@ -435,7 +435,11 @@ function Offer({ offer }: { offer: MorOffer | null }) {
 
       <div className="mt-12 border-t border-[var(--mor-rule)] pt-8">
         <div className="text-[28px] font-semibold tabular-nums tracking-[-0.02em]">
-          {fees.included_in_manage ? 'Included' : `${fees.settlement_fee_pct}%`}
+          {/* Always the percentage. It used to read "Included" for a Manage client, which
+              stopped being true when Manage went back to including the module and not the
+              rate — and a client reading "Included" above an invoice charging 7% is the
+              worst version of this screen being wrong. */}
+          {`${fees.settlement_fee_pct}%`}
         </div>
         <p className="mt-2 max-w-[54ch] text-[13.5px] leading-relaxed text-muted-foreground">
           {fees.summary}

@@ -102,9 +102,9 @@ export function TellThemPayoutsDialog({ teamId, clientName, onClose }: {
                       (who.length
                         ? `To ${who.join(', ')}`
                         : 'Nobody on this client has an email address')
-                      + (preview.included_in_manage
-                        ? '  ·  Included in Manage, so no percentage is quoted'
-                        : `  ·  Quotes ${preview.fee_pct}%`)
+                      /* Manage includes the module, not the percentage, so every client
+                         is quoted a rate. Typing one here also puts them on it. */
+                      + `  ·  Quotes ${preview.fee_pct}%`
                       + (preview.guide_bytes
                         ? `  ·  Guide ${Math.round(preview.guide_bytes / 1024)} KB`
                         : '')
@@ -126,7 +126,8 @@ export function TellThemPayoutsDialog({ teamId, clientName, onClose }: {
                          placeholder={preview?.resolved_fee_pct ?? 'Their rate'}
                          className="mt-1.5" onBlur={load} inputMode="decimal" />
                   <p className="mt-1.5 text-[11.5px] text-muted-foreground">
-                    Blank uses the rate on their account.
+                    Blank uses the rate on their account. Typing one puts them on it, so the
+                    email and their invoices cannot disagree.
                   </p>
                 </div>
               </div>

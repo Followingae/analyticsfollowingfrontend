@@ -21,6 +21,7 @@ import { toast } from 'sonner'
 import { Plus, ShieldCheck } from 'lucide-react'
 import { morAdminApi, type MorWaiver, type MorWaiverState } from '@/services/morAdminApi'
 import { MorVatToggle } from '@/components/clients/MorVatToggle'
+import { MorFeeRate } from '@/components/clients/MorFeeRate'
 import { cn } from '@/lib/utils'
 
 export function MorFeeWaiverTab({ teamId, clientName }: { teamId: string; clientName?: string }) {
@@ -80,6 +81,8 @@ export function MorFeeWaiverTab({ teamId, clientName }: { teamId: string; client
 
   return (
     <div className="space-y-10">
+      <MorFeeRate teamId={teamId} clientName={clientName} />
+
       <MorVatToggle teamId={teamId} clientName={clientName} />
 
     <section>

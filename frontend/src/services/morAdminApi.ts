@@ -68,6 +68,16 @@ export interface MorBillingRecord {
   vat_set_at: string | null
 }
 
+/** What this client is charged per payout, and the house rate behind it. */
+export interface MorFeeRate {
+  /** Their own rate, or null when they simply follow the house rate. */
+  fee_pct: string | null
+  house_fee_pct: string
+  /** What an order would actually be charged today. */
+  effective_fee_pct: string
+  on_house_rate: boolean
+}
+
 export interface MorAdminPayment {
   id: string
   reference: string | null
@@ -104,6 +114,19 @@ export const morAdminApi = {
     jfetch(`${BASE}/payments/${id}/paid`, {
       method: 'POST', body: JSON.stringify({ payment_reference }),
     }),
+
+  feeRate: (teamId: string): Promise<{ data: MorFeeRate }> =>
+    jfetch(`${BASE}/clients/${teamId}/fee-pct`),
+
+  /**
+   * Put a client on their own rate, or back on the house rate by passing nothing.
+   *
+   * ⚠️ Only the next order moves: every order stamps the rate it was confirmed at.
+   */
+  setFeeRate: (teamId: string, fee_pct: string | null) =>
+    jfetch(`${BASE}/clients/${teamId}/fee-pct`, {
+      method: 'POST', body: JSON.stringify({ fee_pct }),
+    }) as Promise<{ data: { fee_pct: string | null; effective_fee_pct: string; on_house_rate: boolean } }>,
 
   billing: (teamId: string): Promise<{ data: MorBillingRecord }> =>
     jfetch(`${BASE}/billing/${teamId}`),
