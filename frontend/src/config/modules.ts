@@ -80,23 +80,27 @@ export const MODULES: Record<ModuleKey, ModuleDefinition> = {
   run: {
     key: 'run',
     name: 'Run',
-    summary: 'Turn a shortlist into a campaign and run it to delivery.',
+    summary: 'Turn a shortlist into a campaign, and post requests creators quote on.',
     contains: [
       'Campaigns built from a shortlist you already have',
-      'Briefs sent to creators, with their replies in one place',
+      'Inflink: post a request, creators come back with their own price, you award one',
+      'Every quote on one screen: their price, their reach, their delivery record',
       'Deliverable tracking: submitted, approved, live',
       'Content collection and per-post performance',
       'Campaign insights, costed against what you actually paid',
     ],
     availability: 'addon',
-    // The module owns its whole cycle now, so this points at the module. It used to point at
-    // /campaigns, which sent a client who had just bought Creator Contracting off to find a
-    // campaign before they could see any of it.
-    href: '/mor',
-    gatedRoutes: ['/campaigns'],
+    // Inflink is the first thing in this module a brand can do on their own, so it is
+    // where the module opens. /campaigns needs a campaign to exist first; /inflink is
+    // the screen that creates one.
+    href: '/inflink',
+    // Both surfaces this entitlement locks. /campaigns renders LockedModuleCard in
+    // place; /inflink is simply absent from the sidebar without it, and its writes are
+    // refused by require_product_module(MODULE_RUN) on the server either way.
+    gatedRoutes: ['/campaigns', '/inflink'],
     wallHeadline: 'Run turns this shortlist into a campaign',
     wallBody:
-      'Campaigns, briefs, deliverables and content live in Run. Your shortlists stay exactly where they are - Run is what takes one of them and gets the posts made.',
+      'Campaigns, deliverables and content live in Run, and so does Inflink - where you post what you want made and creators come back with their own price. Your shortlists stay exactly where they are; Run is what takes one of them and gets the posts made.',
   },
   mor: {
     key: 'mor',

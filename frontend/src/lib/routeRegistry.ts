@@ -10,9 +10,9 @@ const ROUTE_TITLES: Record<string, string> = {
   "/campaigns/new": "New Campaign",
   "/campaigns/fa": "FA Campaigns",
   "/proposals": "Proposals",
-  // Run — briefs out, offers back, award creates the campaign.
-  "/run": "Briefs",
-  "/run/new": "Write a brief",
+  // Inflink — requests out, quotes back, award creates the campaign.
+  "/inflink": "Inflink",
+  "/inflink/new": "Post a request",
   "/creators": "Creators",
   "/discover": "Discover",
   "/my-lists": "My Lists",

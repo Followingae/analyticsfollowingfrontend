@@ -12,7 +12,7 @@
  * zero. To print "0%" for a failed scrape you would have to stop using them.
  *
  * A genuine measured zero still renders as 0, which is the point of the distinction:
- * `runApi.readNumber` is the only way a number gets in, and it never invents one.
+ * `inflinkApi.readNumber` is the only way a number gets in, and it never invents one.
  */
 import * as React from "react"
 import { cn } from "@/lib/utils"
@@ -88,7 +88,7 @@ export function Pct({
 }
 
 /**
- * Money. Always AED, always a SELL price — Run has no other kind of number, because
+ * Money. Always AED, always a SELL price — Inflink has no other kind of number, because
  * the price on an offer is the creator's own asking price.
  *
  * Takes fils (integer cents) to match `sell_post_aed_cents` and the rest of the app,

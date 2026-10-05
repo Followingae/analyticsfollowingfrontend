@@ -35,6 +35,7 @@ import {
   FileText as IconFileText,
   Wallet as IconWallet,
   Bell as IconBell,
+  Radar as IconRadar,
 } from "lucide-react"
 
 function ThemeLogo() {
@@ -159,10 +160,19 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         icon: IconFileText,
         badge: pendingProposals,
       },
-      // Briefs (/run) is OFF for brands, by decision on 2026-09-18. The screens and the
-      // routes are untouched and an operator can still reach them; what is gone is the
-      // standing invitation in every brand's menu to start a deal in a way we are not
-      // running today. Put the entry back here to turn it on again.
+      // Inflink, and ONLY for an account that holds the module it is sold in.
+      //
+      // It was pulled from this menu on 2026-09-18 because it stood in every brand's
+      // sidebar as an invitation, whether or not they had bought it, to start a deal
+      // in a way we were not running. It is back on the entitlement instead: `owns.run`
+      // is the same module the backend gates POST /api/v1/briefs on, so a brand sees
+      // the entry exactly when the writes behind it will be allowed. An account
+      // without it has no dead link to find.
+      ...(owns.run ? [{
+        title: "Inflink",
+        url: "/inflink",
+        icon: IconRadar,
+      }] : []),
       // Creator Contracting, and ONLY for an account that holds it. It is bought, never
       // granted by a tier, so there is nothing to tease here: an account without it has no
       // route to buy it from this menu and a dead link would be worse than an absent one.

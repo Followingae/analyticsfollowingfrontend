@@ -87,9 +87,14 @@ const SCREENS: Entry[] = [
     also: ['approve', 'review', 'revisions', 'video', 'frame.io', 'delivered'],
   },
   {
-    title: 'Briefs', href: '/run', icon: Sparkles,
-    what: 'Post a brief and let creators come to you, with how many it reached and how many replied.',
-    also: ['post a brief', 'inbound', 'applications'],
+    title: 'Inflink', href: '/inflink', icon: Sparkles,
+    what: 'Post a request for what you want made and let creators come to you with their own '
+        + 'price. You see how many creators it reached, every quote that comes back side by '
+        + 'side, and you award the ones you want - which opens the campaign.',
+    why: 'You are not guessing at a rate card. The creator names their price for your brief, '
+       + 'so you compare real numbers against real reach and reliability. Nothing is '
+       + 'committed until you award, and awarding locks each price at what they asked for.',
+    also: ['post a request', 'rfp', 'quotes', 'inbound', 'applications', 'brief', 'award'],
   },
   {
     title: 'Creator Contracting', href: '/mor', icon: Wallet,

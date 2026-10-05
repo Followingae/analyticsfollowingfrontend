@@ -1,7 +1,7 @@
 /**
  * Step 1's core control: what you want made, and how many of each.
  *
- * A brief is not a proposal. The brand is describing what they want, not pitching a
+ * A request is not a proposal. The brand is describing what they want, not pitching a
  * roster, so this is seven toggles and a number — not a per-creator pricing grid.
  */
 "use client"
@@ -14,7 +14,7 @@ import {
   DELIVERABLE_LABELS,
   type DeliverableAsk,
   type DeliverableType,
-} from "@/services/runApi"
+} from "@/services/inflinkApi"
 
 const ORDER: DeliverableType[] = [
   "post",

@@ -45,17 +45,17 @@ import {
 } from "@/components/ui2/empty"
 
 import {
-  runApi,
+  inflinkApi,
   DELIVERABLE_LABELS,
   WORK_STEPS,
   type WorkItem,
   type WorkStep,
   type Workspace,
-} from "@/services/runApi"
-import { StateView, FailedState, LoadingState, useAsync } from "@/components/run/async-state"
-import { CreatorPhoto } from "@/components/run/creator-photo"
-import { Money, Num } from "@/components/run/value"
-import { PAGE_SHELL, PAGE_STACK } from "@/components/run/scale"
+} from "@/services/inflinkApi"
+import { StateView, FailedState, LoadingState, useAsync } from "@/components/inflink/async-state"
+import { CreatorPhoto } from "@/components/inflink/creator-photo"
+import { Money, Num } from "@/components/inflink/value"
+import { PAGE_SHELL, PAGE_STACK } from "@/components/inflink/scale"
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -201,20 +201,20 @@ function Column({
   )
 }
 
-function WorkspaceScreen({ briefId, campaignId }: { briefId: string; campaignId: string }) {
+function WorkspaceScreen({ rfpId, campaignId }: { rfpId: string; campaignId: string }) {
   const [changeFor, setChangeFor] = React.useState<WorkItem | null>(null)
   const [reason, setReason] = React.useState("")
   const [busy, setBusy] = React.useState(false)
 
   const { state, reload } = useAsync(
-    () => runApi.getWorkspace(campaignId),
+    () => inflinkApi.getWorkspace(campaignId),
     [campaignId],
     (data) => data.workspace.items.length === 0
   )
 
   const approve = async (item: WorkItem) => {
     try {
-      await runApi.approve(campaignId, item.id)
+      await inflinkApi.approve(campaignId, item.id)
       toast.success(`Approved @${item.username}`)
       reload()
     } catch (error) {
@@ -228,7 +228,7 @@ function WorkspaceScreen({ briefId, campaignId }: { briefId: string; campaignId:
     if (!changeFor || !reason.trim()) return
     setBusy(true)
     try {
-      await runApi.requestChange(campaignId, changeFor.id, reason.trim())
+      await inflinkApi.requestChange(campaignId, changeFor.id, reason.trim())
       toast.success("Sent back", { description: "The creator has your reason." })
       setChangeFor(null)
       setReason("")
@@ -249,8 +249,8 @@ function WorkspaceScreen({ briefId, campaignId }: { briefId: string; campaignId:
     <div className={PAGE_SHELL}>
       <div className={PAGE_STACK}>
         <Button asChild variant="ghost" size="sm" className="rounded-ds-control -ms-2 w-fit">
-          <Link href={`/run/${briefId}`}>
-            <ArrowLeft /> Back to the brief
+          <Link href={`/inflink/${rfpId}`}>
+            <ArrowLeft /> Back to the request
           </Link>
         </Button>
 
@@ -345,7 +345,7 @@ function WorkspaceScreen({ briefId, campaignId }: { briefId: string; campaignId:
 }
 
 function WorkspaceInner() {
-  const params = useParams<{ briefId: string }>()
+  const params = useParams<{ rfpId: string }>()
   const search = useSearchParams()
   const campaignId = search.get("campaign") ?? ""
   if (!campaignId) {
@@ -358,10 +358,10 @@ function WorkspaceInner() {
       </div>
     )
   }
-  return <WorkspaceScreen briefId={params.briefId} campaignId={campaignId} />
+  return <WorkspaceScreen rfpId={params.rfpId} campaignId={campaignId} />
 }
 
-export default function RunWorkspacePage() {
+export default function InflinkWorkspacePage() {
   return (
     <AuthGuard>
       <BrandUserInterface>

@@ -1,31 +1,41 @@
 /**
- * Run — the brief-and-offer engine, brand side.
+ * Inflink — requests out, quotes back, brand side.
  *
- * A brand posts a BRIEF (what they want made). It reaches two populations of creators.
- * Creators reply with OFFERS (their own price, and what they will make for it). The brand
- * compares the offers and AWARDS some of them, which creates a campaign with every price
- * locked at the awarded number.
+ * A brand posts an RFP (a request for proposals: what they want made, by when, for
+ * how much). It goes out to creators. Creators reply with a QUOTE — their own price,
+ * and what they will make for it. The brand compares the quotes on one screen and
+ * AWARDS one or more, which opens a campaign with every price locked at the awarded
+ * number.
  *
- * ── STATUS OF THE BACKEND ──────────────────────────────────────────────────────
- * It exists. `app/api/brief_routes.py` serves briefs, offers and the award, and it
- * landed in parallel with these screens — with its own field names and its own path
- * prefix. The two halves did not meet: this module called /api/v1/run/briefs and the
- * server answers /api/v1/briefs, and three of the calls below had no route at all.
+ * ── WORDS ──────────────────────────────────────────────────────────────────────
+ * RFP, quote, award. Those are the words a brand reads on every screen in this
+ * module. The server, the four tables and the API paths say brief, offer and
+ * fan-out, and they stay that way: renaming a live API surface and four applied
+ * tables to change a noun on a screen would be a migration dressed up as a copy
+ * edit. The two vocabularies meet at THE WIRE, near the bottom of this file, which
+ * is the only place in the module that knows a URL or a server field name.
  *
- * That is reconciled at THE WIRE, near the bottom of this file, which is the only
- * place in the module that knows a URL or a server field name. Every type in between
- * is unchanged, so no screen had to learn the server's vocabulary — and no live API
- * surface had to be renamed to match a client that was written before it.
+ * A path mismatch cannot recur silently: scripts/check_api_contract.py in the
+ * backend repo reads FastAPI's own OpenAPI schema, resolves every path this
+ * frontend builds against it, and fails on one that nobody serves.
  *
- * A mismatch of that kind cannot recur silently: scripts/check_api_contract.py in the
- * backend repo reads FastAPI's own OpenAPI schema, resolves every path this frontend
- * builds against it, and fails on one that nobody serves.
+ * ── THE SECOND POPULATION ──────────────────────────────────────────────────────
+ * An RFP was designed to reach two populations of creators: ours, and Inflink's own.
+ * Inflink never built the endpoints. There is no door, so the second population is
+ * NOT reached, and the screens say exactly that — "Inflink's creators are not
+ * reachable at the moment" — next to the number of creators the RFP really did go to.
+ *
+ * It used to say the fan-out FAILED, which was false twice over: nothing failed, and
+ * the RFP had gone out in full to our own creators before Inflink was asked anything.
+ * The server now distinguishes a population it KNOWS it did not reach (`reachable:
+ * false`) from one it asked and could not count (`reachable: null`), and only the
+ * second withholds a combined total. See `ReachSlice.status` below.
  *
  * Conventions taken from the existing services so the server side is not a surprise:
  *   • envelope `{ success: true, data: {...} }` on every response
  *   • errors as HTTPException with a plain-English `detail`
  *   • money in AED *fils* (integer cents), matching `sell_post_aed_cents` and friends
- *   • the brief's own fields reuse the de-facto brief schema already used by
+ *   • an RFP's own fields reuse the de-facto brief schema already used by
  *     `sourcing_rounds.criteria` and `imd_lists.brief`: categories, market,
  *     followers_min/max, deliverables, budget_per_creator_*
  *
@@ -95,7 +105,7 @@ async function jfetch<T>(url: string, options: RequestInit = {}): Promise<T> {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   BRIEFS
+   REQUESTS (RFPs)
    ══════════════════════════════════════════════════════════════════════════════ */
 
 /** What a creator is being asked to make. Same seven the rest of the app uses. */
@@ -125,16 +135,16 @@ export interface DeliverableAsk {
 }
 
 /**
- * Money on a brief is either a number per creator, or one pot split across however
+ * Money on an RFP is either a number per creator, or one pot split across however
  * many are awarded. The brand picks which, and the two are not interchangeable —
  * a pot with no headcount cannot be turned into a per-creator number.
  */
 export type BudgetMode = "per_creator" | "pot"
 
-export type BriefStatus = "draft" | "live" | "awarded" | "expired"
+export type RfpStatus = "draft" | "live" | "awarded" | "expired"
 
 /**
- * Why a brief stopped. A list of dead briefs with no reasons is a graveyard; this is
+ * Why an RFP stopped. A list of dead RFPs with no reasons is a graveyard; this is
  * the field that makes it a list. The server must always send one when status is
  * 'expired' — there is no honest default, so the UI says so rather than guessing.
  */
@@ -147,10 +157,10 @@ export type ExpiryReason =
 
 export const EXPIRY_REASONS: Record<ExpiryReason, string> = {
   deadline_passed: "The deadline passed before you awarded it",
-  no_offers: "It reached creators but nobody offered before the deadline",
+  no_offers: "It reached creators but nobody quoted before the deadline",
   closed_by_brand: "You closed it",
   budget_withdrawn: "The budget was withdrawn",
-  awarded_elsewhere: "The work was awarded on another brief",
+  awarded_elsewhere: "The work was awarded on another request",
 }
 
 /** The two populations. This split is the whole two-product argument, so it is a type. */
@@ -166,29 +176,50 @@ export const POPULATION_BLURBS: Record<Population, string> = {
   inflink: "Creators on Inflink who match and can reply with their own price.",
 }
 
-/** One population's share of the reach, answered before the brief is posted. */
+/**
+ * What happened when we asked a population how many creators it holds.
+ *
+ *   counted      it answered with a number.
+ *   unreachable  it will not be reached, and we know that: Inflink has not built the
+ *                endpoint. Its count is null and the total is OURS, because ours is
+ *                genuinely the whole of what this request reaches.
+ *   uncounted    we asked and could not tell — a timeout, or their side erroring. The
+ *                count is null, the total is WITHHELD, and the screen says so.
+ *
+ * The middle one is the whole point. Treating "there is no door" as "we could not
+ * count" withheld the total forever and implied there were creators out there we
+ * merely failed to reach. There are not.
+ */
+export type PopulationStatus = "counted" | "unreachable" | "uncounted"
+
+/** One population's share of the reach, answered before the RFP is posted. */
 export interface ReachSlice {
   population: Population
-  /** Creators who match and would be reached. null = we could not count them. */
+  /** Creators who match and would be reached. null = not a number we have. */
   creators: number | null
   /** Summed followers across those creators. null = not answerable. */
   followers: number | null
-  /** Median asking price in AED fils for this brief's deliverables, if known. */
+  /** Median asking price in AED fils for this RFP's deliverables, if known. */
   median_price_fils: number | null
+  status: PopulationStatus
 }
 
 export interface ReachEstimate {
   slices: ReachSlice[]
-  /** Total creators reached. null when either slice failed — a partial total is a lie. */
+  /**
+   * Creators this request reaches. null ONLY while a population is `uncounted` —
+   * a total that might be missing a population it may yet reach is a lie, and a
+   * total that omits a population nobody can reach is simply the total.
+   */
   total_creators: number | null
-  /** True when at least one population could not be counted. */
+  /** True when a population was asked and could not be counted. */
   partial: boolean
 }
 
-export interface BriefSummary {
+export interface RfpSummary {
   id: string
   title: string
-  status: BriefStatus
+  status: RfpStatus
   market: string | null
   deliverables: DeliverableAsk[]
   deadline_at: string | null
@@ -198,8 +229,8 @@ export interface BriefSummary {
   budget_fils: number | null
   /** How many creators it reached when it was posted. */
   reached_count: number | null
-  /** How many replied with an offer. */
-  offers_count: number | null
+  /** How many replied with a quote. */
+  quotes_count: number | null
   /** Set only when status === 'expired'. */
   expiry_reason: ExpiryReason | null
   /** Set only when status === 'awarded'. */
@@ -207,7 +238,7 @@ export interface BriefSummary {
   awarded_count: number | null
 }
 
-export interface BriefDetail extends BriefSummary {
+export interface RfpDetail extends RfpSummary {
   description: string | null
   categories: string[]
   followers_min: number | null
@@ -218,7 +249,7 @@ export interface BriefDetail extends BriefSummary {
 }
 
 /** What step 3 posts. Mirrors the three steps of the composer exactly. */
-export interface BriefDraft {
+export interface RfpDraft {
   title: string
   description?: string | null
   deliverables: DeliverableAsk[]
@@ -233,13 +264,13 @@ export interface BriefDraft {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
-   OFFERS
+   QUOTES
    ══════════════════════════════════════════════════════════════════════════════ */
 
-export type OfferStatus = "open" | "awarded" | "declined" | "withdrawn"
+export type QuoteStatus = "open" | "awarded" | "declined" | "withdrawn"
 
 /**
- * One creator's reply to a brief.
+ * One creator's reply to an RFP: their price, and what they will make for it.
  *
  * Note what is NOT here: no cost, no margin, no internal note. `price_fils` is the
  * creator's own asking price, which is a sell price by construction — there is no
@@ -248,10 +279,10 @@ export type OfferStatus = "open" | "awarded" | "declined" | "withdrawn"
  * Every measurement is `number | null` on purpose. A creator whose scrape failed has
  * `engagement_rate: null`, and the module renders that as "not measured", never 0%.
  */
-export interface Offer {
+export interface Quote {
   id: string
-  brief_id: string
-  status: OfferStatus
+  rfp_id: string
+  status: QuoteStatus
   population: Population
 
   creator_id: string
@@ -262,9 +293,9 @@ export interface Offer {
 
   /** What the creator is asking, in AED fils. Their number, not ours. */
   price_fils: number | null
-  /** What they are offering to make — may differ from what the brief asked for. */
+  /** What they are offering to make — may differ from what the RFP asked for. */
   offering: DeliverableAsk[]
-  /** Free text the creator added with the offer. */
+  /** Free text the creator added with the quote. */
   note: string | null
 
   followers: number | null
@@ -290,10 +321,10 @@ export interface Offer {
    ══════════════════════════════════════════════════════════════════════════════ */
 
 export interface AwardPreview {
-  offers: { offer_id: string; username: string; price_fils: number | null }[]
+  quotes: { quote_id: string; username: string; price_fils: number | null }[]
   /** Sum of the awarded prices in AED fils. null if any awarded price is unknown. */
   total_fils: number | null
-  /** The pot minus the total, when the brief has a pot. */
+  /** The pot minus the total, when the RFP has a pot. */
   budget_remaining_fils: number | null
   count: number
 }
@@ -383,14 +414,15 @@ export interface Workspace {
    the backend repo, which reads FastAPI's own OpenAPI schema and fails a build that
    calls a route nobody answers. That check is the reason this comment can be short.
 
-   PATHS, and why each is what it is:
+   PATHS. The server says brief and offer; this module says RFP and quote. Nothing
+   above this line knows these addresses.
 
-     POST   /briefs                        the prefix was /run/, and nothing served it
+     POST   /briefs                        post an RFP
      GET    /briefs
      GET    /briefs/{id}
      POST   /briefs/reach                  new; runs the fan-out's own matching
-     POST   /briefs/{id}/cancel            this module called it 'close'
-     GET    /briefs/{id}/offers
+     POST   /briefs/{id}/cancel            pull it
+     GET    /briefs/{id}/offers            every quote on it
      POST   /briefs/{id}/award/preview     new; the total comes from the server
      POST   /briefs/{id}/award
      GET    /campaigns/{id}/workspace      new; a brand-shaped read of the ladder
@@ -399,8 +431,8 @@ export interface Workspace {
 
    The last two are the important ones. Approving a deliverable has been a real
    endpoint for a long time — it carries the revision budget, notifies the creator
-   and writes the audit line. A second pair of endpoints under /run/ would have been
-   a second ladder drifting away from the first. So the workspace calls the existing
+   and writes the audit line. A second pair of endpoints owned by this module would
+   have been a second ladder drifting away from the first. So the workspace calls the existing
    ones, which is why approve() and requestChange() take the campaign id: the
    deliverable is addressed within its campaign, as it always has been.
    ══════════════════════════════════════════════════════════════════════════════ */
@@ -422,7 +454,13 @@ interface WireBrief {
   budget_max_aed_cents: number | null
   status: "open" | "awarded" | "expired" | "cancelled"
   expires_at: string | null
-  reach: { following: number | null; inflink: number | null; inflink_status: string | null }
+  reach: {
+    following: number | null
+    inflink: number | null
+    inflink_status: string | null
+    /** true = counted and fanned out, false = no door, null = asked, could not tell. */
+    inflink_reachable: boolean | null
+  }
   awarded_offer_ids: string[]
   awarded_campaign_id: string | null
   closed_reason: string | null
@@ -431,34 +469,34 @@ interface WireBrief {
 }
 
 /**
- * The server has four brief states; this module has four; they are not the same four.
+ * The server has four states; this module has four; they are not the same four.
  *
  * `open` is what this module calls `live`. There is no `draft` on the server at all —
- * a brief is written and posted in one action, so nothing can be in that state, and
+ * an RFP is written and posted in one action, so nothing can be in that state, and
  * the composer's local draft never has an id to be in a state with.
  *
  * `cancelled` and `expired` both land on `expired` here, because from the brand's side
  * both mean "this is over and you did not award it". The difference is not lost: it is
  * exactly what `expiry_reason` carries, which is the field that turns a list of dead
- * briefs into something a person can read.
+ * requests into something a person can read.
  */
-function readStatus(status: WireBrief["status"]): BriefStatus {
+function readStatus(status: WireBrief["status"]): RfpStatus {
   if (status === "open") return "live"
   if (status === "awarded") return "awarded"
   return "expired"
 }
 
-function readExpiryReason(wire: WireBrief, offers: number | null): ExpiryReason | null {
+function readExpiryReason(wire: WireBrief, quotes: number | null): ExpiryReason | null {
   if (wire.status === "cancelled") return "closed_by_brand"
   if (wire.status !== "expired") return null
   // The server's `closed_reason` is free text written for a person, not an enum, so
   // it is not parsed for meaning. The one thing that IS known is whether anybody
   // replied, and that is the difference between the two honest reasons.
-  return offers === 0 ? "no_offers" : "deadline_passed"
+  return quotes === 0 ? "no_offers" : "deadline_passed"
 }
 
-function readBriefSummary(wire: WireBrief): BriefSummary {
-  const offers = readNumber(wire.live_offer_count)
+function readRfpSummary(wire: WireBrief): RfpSummary {
+  const quotes = readNumber(wire.live_offer_count)
   return {
     id: wire.id,
     title: wire.title,
@@ -470,53 +508,74 @@ function readBriefSummary(wire: WireBrief): BriefSummary {
     budget_mode: wire.budget_mode,
     budget_fils: readNumber(wire.budget_max_aed_cents),
     reached_count: readNumber(wire.reach?.following),
-    offers_count: offers,
-    expiry_reason: readExpiryReason(wire, offers),
+    quotes_count: quotes,
+    expiry_reason: readExpiryReason(wire, quotes),
     campaign_id: wire.awarded_campaign_id ?? null,
     awarded_count: wire.awarded_offer_ids?.length ?? null,
   }
 }
 
 /**
- * The reach a brief was posted with, rebuilt from the two counts the brief row keeps.
+ * The reach an RFP went out with, rebuilt from the two counts its row keeps.
  *
- * `inflink_status` is why this is not simply two numbers. 'skipped' means we never
- * asked — there is no Inflink transport configured — and 'failed' means we asked and
- * got nothing. Neither is a zero, so both read null and the total is withheld. A total
- * that quietly omits one population is the single most misleading number this module
- * could print, which is why `partial` exists at all.
+ * `reach.inflink_reachable` is why this is not simply two numbers. The server sends
+ * true (they counted and fanned out), false (there is no door: nothing wired, or
+ * Inflink answered 404) or null (we asked and could not tell). Only the last of the
+ * three withholds the combined total — the middle one IS our own number, because
+ * when the second population cannot be reached, ours is all of it.
  */
 function readReachFromBrief(wire: WireBrief): ReachEstimate | null {
   if (!wire.reach) return null
-  const counted = wire.reach.inflink_status === "acked"
-  const inflink = counted ? readNumber(wire.reach.inflink) : null
+  const reachable = wire.reach.inflink_reachable ?? null
+  const inflink = reachable === true ? readNumber(wire.reach.inflink) : null
   const following = readNumber(wire.reach.following)
+  const status: PopulationStatus =
+    reachable === true ? "counted" : reachable === false ? "unreachable" : "uncounted"
   return {
     slices: [
-      { population: "following", creators: following, followers: null, median_price_fils: null },
-      { population: "inflink", creators: inflink, followers: null, median_price_fils: null },
+      {
+        population: "following",
+        creators: following,
+        followers: null,
+        median_price_fils: null,
+        status: "counted",
+      },
+      {
+        population: "inflink",
+        creators: inflink,
+        followers: null,
+        median_price_fils: null,
+        status,
+      },
     ],
-    total_creators: following !== null && inflink !== null ? following + inflink : null,
-    partial: inflink === null,
+    total_creators:
+      status === "uncounted"
+        ? null
+        : following === null
+          ? null
+          : following + (inflink ?? 0),
+    partial: status === "uncounted",
   }
 }
 
-function readBriefDetail(wire: WireBrief): BriefDetail {
+function readRfpDetail(wire: WireBrief): RfpDetail {
   return {
-    ...readBriefSummary(wire),
+    ...readRfpSummary(wire),
     description: wire.brief_text ?? null,
     categories: wire.niches || [],
     followers_min: readNumber(wire.min_followers),
     followers_max: readNumber(wire.max_followers),
     reach: readReachFromBrief(wire),
-    // Every brief reaches both populations; the server does not take a subset and
-    // there is no honest way to report one it did not act on.
+    // The server reaches whichever populations it can and takes no subset, so this
+    // names both and the reach slices say what happened with each. A chooser here
+    // would be a control with nothing behind it.
     populations: ["following", "inflink"],
   }
 }
 
-/** The composer's draft → what POST /briefs validates. */
-function writeBrief(draft: Partial<BriefDraft>) {
+/** The composer's draft → what POST /briefs validates. `populations` is deliberately
+ *  not sent: the server does not accept a subset, and sending one would imply it did. */
+function writeRfp(draft: Partial<RfpDraft>) {
   return {
     title: draft.title,
     brief_text: draft.description,
@@ -536,7 +595,9 @@ interface WireReachSlice {
   creators: number | null
   followers: number | null
   median_price_aed_cents: number | null
+  /** 'counted' | 'unreachable' | 'uncounted' — see PopulationStatus. */
   status: string
+  reachable: boolean | null
 }
 
 interface WireReach {
@@ -552,6 +613,12 @@ function readReach(wire: WireReach): ReachEstimate {
       creators: readNumber(slice.creators),
       followers: readNumber(slice.followers),
       median_price_fils: readNumber(slice.median_price_aed_cents),
+      // An older server that sends neither field is read as 'uncounted', which is
+      // the cautious one: it withholds the total rather than inventing a fact.
+      status:
+        slice.status === "counted" || slice.status === "unreachable"
+          ? slice.status
+          : "uncounted",
     })),
     total_creators: readNumber(wire.total_creators),
     partial: Boolean(wire.partial),
@@ -585,20 +652,20 @@ interface WireOffer {
  * `withdrawn` are both "this is no longer on the table"; `rejected` is `declined`,
  * which is the word the comparison screen uses because the brand is the one who did it.
  */
-function readOfferStatus(status: WireOffer["status"]): OfferStatus {
+function readQuoteStatus(status: WireOffer["status"]): QuoteStatus {
   if (status === "offered") return "open"
   if (status === "accepted") return "awarded"
   if (status === "rejected") return "declined"
   return "withdrawn"
 }
 
-function readOffer(wire: WireOffer): Offer {
+function readQuote(wire: WireOffer): Quote {
   const creator = wire.creator || ({} as WireOffer["creator"])
   const engagement = readNumber(creator.engagement_rate)
   return {
     id: wire.id,
-    brief_id: wire.brief_id,
-    status: readOfferStatus(wire.status),
+    rfp_id: wire.brief_id,
+    status: readQuoteStatus(wire.status),
     population: wire.origin,
     // Whichever id this creator has. An Inflink creator has no row in our tables at
     // all, so their own id is the only one that exists — falling back to the offer id
@@ -668,9 +735,9 @@ function readWorkItem(wire: WireWorkItem): WorkItem {
 /* ══════════════════════════════════════════════════════════════════════════════
    THE CALLS
    ══════════════════════════════════════════════════════════════════════════════ */
-export const runApi = {
-  /** Screen 1. Every brief, with how many it reached and how many replied. */
-  listBriefs: async (status?: BriefStatus): Promise<{ items: BriefSummary[] }> => {
+export const inflinkApi = {
+  /** Screen 1. Every RFP, with how many creators it reached and how many quoted. */
+  listRfps: async (status?: RfpStatus): Promise<{ items: RfpSummary[] }> => {
     // The UI's `live` is the server's `open`, and its `expired` covers two server
     // states. Rather than ask for one and silently drop the other, an `expired`
     // filter is applied here over the unfiltered list.
@@ -678,67 +745,69 @@ export const runApi = {
     const data = await jfetch<{ briefs: WireBrief[] }>(
       `${BASE}/briefs${wireStatus ? `?status=${wireStatus}` : ""}`
     )
-    let items = (data.briefs || []).map(readBriefSummary)
+    let items = (data.briefs || []).map(readRfpSummary)
     if (status === "expired" || status === "draft") {
-      items = items.filter((brief) => brief.status === status)
+      items = items.filter((rfp) => rfp.status === status)
     }
     return { items }
   },
 
-  getBrief: async (briefId: string): Promise<{ brief: BriefDetail }> => ({
-    brief: readBriefDetail(await jfetch<WireBrief>(`${BASE}/briefs/${briefId}`)),
+  getRfp: async (rfpId: string): Promise<{ rfp: RfpDetail }> => ({
+    rfp: readRfpDetail(await jfetch<WireBrief>(`${BASE}/briefs/${rfpId}`)),
   }),
 
   /**
-   * Screen 2, step 2. Who this brief would reach, split by population, answered
+   * Screen 2, step 2. Who this request would reach, split by population, answered
    * BEFORE it is posted. Takes the draft rather than an id, because at this point
-   * the brief does not exist yet.
+   * the request does not exist yet.
    *
    * The Following slice is not an estimate. The server runs the fan-out's own
    * matching call — same validator, same query, same ceiling — so the number shown
-   * here is the set of creators the brief goes to when it is posted.
+   * here is the set of creators the request goes to when it is posted. The Inflink
+   * slice carries its own `status`, because "none matched" and "nobody can be asked"
+   * are different facts and the composer says which.
    */
-  previewReach: async (draft: Partial<BriefDraft>): Promise<{ reach: ReachEstimate }> => {
+  previewReach: async (draft: Partial<RfpDraft>): Promise<{ reach: ReachEstimate }> => {
     const data = await jfetch<{ reach: WireReach }>(`${BASE}/briefs/reach`, {
       method: "POST",
-      body: JSON.stringify(writeBrief(draft)),
+      body: JSON.stringify(writeRfp(draft)),
     })
     return { reach: readReach(data.reach) }
   },
 
   /** Screen 2, step 3. Posting it is what sends it to creators. */
-  postBrief: async (draft: BriefDraft): Promise<{ brief: BriefDetail }> => ({
-    brief: readBriefDetail(
+  postRfp: async (draft: RfpDraft): Promise<{ rfp: RfpDetail }> => ({
+    rfp: readRfpDetail(
       await jfetch<WireBrief>(`${BASE}/briefs`, {
         method: "POST",
-        body: JSON.stringify(writeBrief(draft)),
+        body: JSON.stringify(writeRfp(draft)),
       })
     ),
   }),
 
   /**
-   * Pulling a brief. The server calls this `cancel`, and the word matters on the
-   * creator's side: their live offers become `withdrawn` rather than `expired`,
+   * Pulling an RFP. The server calls this `cancel`, and the word matters on the
+   * creator's side: their live quotes become `withdrawn` rather than `expired`,
    * which in their own history reads as "the brand pulled it" instead of "nobody
-   * decided". This module keeps `closeBrief` as the name every screen already uses.
+   * decided".
    */
-  closeBrief: async (briefId: string): Promise<{ brief: BriefSummary }> => ({
-    brief: readBriefSummary(
-      await jfetch<WireBrief>(`${BASE}/briefs/${briefId}/cancel`, {
+  closeRfp: async (rfpId: string): Promise<{ rfp: RfpSummary }> => ({
+    rfp: readRfpSummary(
+      await jfetch<WireBrief>(`${BASE}/briefs/${rfpId}/cancel`, {
         method: "POST",
         body: JSON.stringify({}),
       })
     ),
   }),
 
-  /** Screen 3. Every offer against a brief. */
-  listOffers: async (briefId: string): Promise<{ offers: Offer[]; brief: BriefSummary }> => {
+  /** Screen 3. Every quote against one RFP. */
+  listQuotes: async (rfpId: string): Promise<{ quotes: Quote[]; rfp: RfpSummary }> => {
     const data = await jfetch<{ brief: WireBrief; offers: WireOffer[] }>(
-      `${BASE}/briefs/${briefId}/offers`
+      `${BASE}/briefs/${rfpId}/offers`
     )
     return {
-      brief: readBriefSummary(data.brief),
-      offers: (data.offers || []).map(readOffer),
+      rfp: readRfpSummary(data.brief),
+      quotes: (data.offers || []).map(readQuote),
     }
   },
 
@@ -750,7 +819,7 @@ export const runApi = {
    * same budget rule the award applies a second later — and a reason the award would
    * be refused surfaces here, as an error on this call, rather than on the click.
    */
-  previewAward: async (briefId: string, offerIds: string[]): Promise<{ preview: AwardPreview }> => {
+  previewAward: async (rfpId: string, quoteIds: string[]): Promise<{ preview: AwardPreview }> => {
     const data = await jfetch<{
       preview: {
         offers: { offer_id: string; username: string | null; price_aed_cents: number }[]
@@ -758,14 +827,14 @@ export const runApi = {
         total_aed_cents: number
         budget_remaining_aed_cents: number | null
       }
-    }>(`${BASE}/briefs/${briefId}/award/preview`, {
+    }>(`${BASE}/briefs/${rfpId}/award/preview`, {
       method: "POST",
-      body: JSON.stringify({ offer_ids: offerIds }),
+      body: JSON.stringify({ offer_ids: quoteIds }),
     })
     return {
       preview: {
-        offers: (data.preview.offers || []).map((offer) => ({
-          offer_id: offer.offer_id,
+        quotes: (data.preview.offers || []).map((offer) => ({
+          quote_id: offer.offer_id,
           username: offer.username || "",
           price_fils: readNumber(offer.price_aed_cents),
         })),
@@ -777,10 +846,10 @@ export const runApi = {
   },
 
   /** Screen 4. Creates the campaign and locks every awarded price. Not undoable. */
-  award: async (briefId: string, offerIds: string[]): Promise<AwardResult> => {
+  award: async (rfpId: string, quoteIds: string[]): Promise<AwardResult> => {
     const data = await jfetch<{ campaign_id: string; awarded_offer_ids: string[] }>(
-      `${BASE}/briefs/${briefId}/award`,
-      { method: "POST", body: JSON.stringify({ offer_ids: offerIds }) }
+      `${BASE}/briefs/${rfpId}/award`,
+      { method: "POST", body: JSON.stringify({ offer_ids: quoteIds }) }
     )
     return {
       campaign_id: data.campaign_id,

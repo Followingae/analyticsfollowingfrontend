@@ -1,5 +1,5 @@
 /**
- * The page shell for the Run module.
+ * The page shell for the Inflink module.
  *
  * This file used to define a second six-step spacing scale, in numbers that did not
  * match the first one, under a docstring claiming to be the only one. So did
@@ -29,7 +29,7 @@
  * Tailwind inside anything that takes a `className`.
  */
 
-/** The page shell every Run screen sits in. One place, so all five agree. */
+/** The page shell every Inflink screen sits in. One place, so all five agree. */
 export const PAGE_SHELL =
   "mx-auto w-full max-w-[1400px] px-ds-3 py-ds-4 md:px-ds-4 md:py-ds-5"
 

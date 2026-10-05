@@ -1,17 +1,24 @@
 /**
- * Screen 2 — Write a brief. Three steps.
+ * Screen 2 — Post a request. Three steps.
  *
  *   1. What you want made, where, by when, and for how much.
  *   2. Who it reaches, split by population, BEFORE it is posted.
  *   3. Read it back, then post.
  *
  * Deliberately shorter than a proposal. A proposal is us pitching a named roster with
- * per-creator pricing; a brief is the brand describing what they want. So there is no
- * creator picking here, no tier bands, no snapshots — one screen of intent, one screen
- * of reach, one screen of review.
+ * per-creator pricing; a request is the brand describing what they want. So there is
+ * no creator picking here, no tier bands, no snapshots — one screen of intent, one
+ * screen of reach, one screen of review.
  *
  * Step 2 is the argument for the whole module, so it is not a summary line at the
  * bottom of step 1. It is its own step, and you walk through it on the way to posting.
+ *
+ * WHAT WAS REMOVED HERE. Step 2 used to offer two checkboxes, one per population, as
+ * though a brand could choose to skip one. The server has never accepted a subset —
+ * `writeRfp` does not send the field and `POST /briefs` would ignore it — so the
+ * control changed a preview and nothing else. It is gone. The two populations are now
+ * stated as what they are, and the Inflink one says plainly that it cannot be reached
+ * at the moment rather than being offered as a choice.
  */
 "use client"
 
@@ -19,14 +26,13 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "motion/react"
 import { toast } from "sonner"
-import { ArrowLeft, ArrowRight, Check, Send } from "lucide-react"
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, Send } from "lucide-react"
 
 import { AuthGuard } from "@/components/AuthGuard"
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Field,
   FieldDescription,
@@ -36,23 +42,26 @@ import {
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui2/input-group"
 import { ButtonGroup } from "@/components/ui2/button-group"
 import { Combobox } from "@/components/ui2/combobox"
+// The real category values the master database stores, not a list invented here: a
+// niche the brand can pick but no creator is tagged with would match nobody and read
+// as us having no creators in it.
+import { CATEGORY_OPTIONS } from "@/types/influencerDatabase"
 
 import {
-  runApi,
+  inflinkApi,
   DELIVERABLE_LABELS,
-  POPULATION_BLURBS,
   POPULATION_LABELS,
-  type BriefDraft,
+  type RfpDraft,
   type BudgetMode,
   type DeliverableAsk,
   type Population,
   type ReachEstimate,
-} from "@/services/runApi"
-import { DeliverablePicker } from "@/components/run/deliverable-picker"
-import { ReachPanel } from "@/components/run/reach-panel"
-import { FailedState, LoadingState } from "@/components/run/async-state"
-import { Money } from "@/components/run/value"
-import { PAGE_SHELL, PAGE_STACK } from "@/components/run/scale"
+} from "@/services/inflinkApi"
+import { DeliverablePicker } from "@/components/inflink/deliverable-picker"
+import { ReachPanel } from "@/components/inflink/reach-panel"
+import { FailedState, LoadingState } from "@/components/inflink/async-state"
+import { Money } from "@/components/inflink/value"
+import { PAGE_SHELL, PAGE_STACK } from "@/components/inflink/scale"
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -74,6 +83,9 @@ const STEPS = [
   { n: 2, title: "Who it reaches" },
   { n: 3, title: "Review and post" },
 ] as const
+
+/** Both populations, always. The server takes no subset, so neither does the composer. */
+const POPULATIONS: Population[] = ["following", "inflink"]
 
 function Stepper({ current }: { current: number }) {
   return (
@@ -132,9 +144,11 @@ function ComposerScreen() {
   const [deadline, setDeadline] = React.useState("")
   const [budgetMode, setBudgetMode] = React.useState<BudgetMode>("per_creator")
   const [budgetAed, setBudgetAed] = React.useState("")
+  const [categories, setCategories] = React.useState<string[]>([])
+  const [followersMin, setFollowersMin] = React.useState("")
+  const [followersMax, setFollowersMax] = React.useState("")
 
   // Step 2
-  const [populations, setPopulations] = React.useState<Population[]>(["following", "inflink"])
   const [reachState, setReachState] = React.useState<ReachState>({ status: "loading" })
 
   const budgetFils = React.useMemo(() => {
@@ -143,31 +157,92 @@ function ComposerScreen() {
     return budgetAed.trim() !== "" && Number.isFinite(parsed) ? Math.round(parsed * 100) : null
   }, [budgetAed])
 
-  const draft: BriefDraft = React.useMemo(
+  /** An empty box is "no limit", never 0 — see the module's rule 1. */
+  const readBound = (raw: string) => {
+    const parsed = Number(raw)
+    return raw.trim() !== "" && Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : null
+  }
+  const followersMinValue = readBound(followersMin)
+  const followersMaxValue = readBound(followersMax)
+  const followersBackwards =
+    followersMinValue !== null &&
+    followersMaxValue !== null &&
+    followersMinValue > followersMaxValue
+
+  const draft: RfpDraft = React.useMemo(
     () => ({
       title: title.trim(),
       description: description.trim() || null,
       deliverables,
       market: market || null,
-      categories: [],
-      followers_min: null,
-      followers_max: null,
+      categories,
+      followers_min: followersMinValue,
+      followers_max: followersMaxValue,
       deadline_at: deadline || null,
       budget_mode: budgetMode,
       budget_fils: budgetFils,
-      populations,
+      populations: POPULATIONS,
     }),
-    [title, description, deliverables, market, deadline, budgetMode, budgetFils, populations]
+    [
+      title,
+      description,
+      deliverables,
+      market,
+      categories,
+      followersMinValue,
+      followersMaxValue,
+      deadline,
+      budgetMode,
+      budgetFils,
+    ]
   )
 
+  /**
+   * A request that reaches nobody, said BEFORE it is posted.
+   *
+   * The server takes it happily: it is a valid request that nothing matched, and it
+   * would sit open for a week collecting nothing while the brand waited. Only a
+   * COUNTED zero stops them — an uncounted population is not evidence of nobody, and
+   * blocking on it would be refusing to post over our own failure to count.
+   */
+  const reachesNobody =
+    reachState.status === "ready" &&
+    reachState.reach.total_creators === 0 &&
+    !reachState.reach.partial
+
+  /**
+   * Which populations this request will actually reach, named on the review screen.
+   *
+   * Read off the counted reach rather than from a list of intentions: a population
+   * the server has told us it cannot reach is not something to promise on the last
+   * screen before someone commits. Until step 2 has answered, the honest answer is
+   * that we are still counting.
+   */
+  const reachesLine = React.useMemo(() => {
+    if (reachState.status !== "ready") return "Counting…"
+    const reached = reachState.reach.slices.filter((slice) => slice.status !== "unreachable")
+    const missing = reachState.reach.slices.filter((slice) => slice.status === "unreachable")
+    const named = reached.map((slice) => POPULATION_LABELS[slice.population]).join(" and ")
+    if (!named) return "Nobody — widen the request and count again"
+    if (missing.length === 0) return named
+    return `${named} (${missing
+      .map((slice) => POPULATION_LABELS[slice.population])
+      .join(" and ")} cannot be reached at the moment)`
+  }, [reachState])
+
   const step1Ready =
-    title.trim().length > 0 && deliverables.length > 0 && budgetFils !== null
+    title.trim().length > 0 &&
+    deliverables.length > 0 &&
+    budgetFils !== null &&
+    !followersBackwards
 
   // Reach is recounted whenever the terms that decide it change, but only on step 2.
   const reachKey = JSON.stringify({
     deliverables,
     market,
-    populations,
+    categories,
+    followers_min: followersMinValue,
+    followers_max: followersMaxValue,
     budget_fils: budgetFils,
     budget_mode: budgetMode,
   })
@@ -176,7 +251,7 @@ function ComposerScreen() {
     if (step !== 2) return
     let live = true
     setReachState({ status: "loading" })
-    runApi
+    inflinkApi
       .previewReach(draft)
       .then(({ reach }) => live && setReachState({ status: "ready", reach }))
       .catch((error: unknown) =>
@@ -195,29 +270,34 @@ function ComposerScreen() {
   const post = async () => {
     setPosting(true)
     try {
-      const { brief } = await runApi.postBrief(draft)
-      toast.success("Brief posted", { description: "Creators can reply from now." })
-      router.push(`/run/${brief.id}`)
+      const { rfp } = await inflinkApi.postRfp(draft)
+      // What it actually reached, from the server's own count. It used to say only
+      // "Creators can reply from now", and when Inflink answered 404 the screen
+      // behind it said the fan-out had FAILED — while the request had in fact gone
+      // out to every matching creator we have.
+      const reached = rfp.reached_count
+      toast.success("Request posted", {
+        description:
+          reached === null
+            ? "Creators can send you their price from now."
+            : `It went out to ${reached.toLocaleString()} ${
+                reached === 1 ? "creator" : "creators"
+              }. Their quotes arrive here.`,
+      })
+      router.push(`/inflink/${rfp.id}`)
     } catch (error) {
-      toast.error("We could not post the brief", {
+      toast.error("We could not post the request", {
         description: error instanceof Error ? error.message : "Please try again.",
       })
       setPosting(false)
     }
   }
 
-  const togglePopulation = (population: Population) =>
-    setPopulations((current) =>
-      current.includes(population)
-        ? current.filter((p) => p !== population)
-        : [...current, population]
-    )
-
   return (
     <div className={PAGE_SHELL}>
       <div className={PAGE_STACK}>
         <header className="flex flex-col gap-4">
-          <h1 className="text-ds-title">Write a brief</h1>
+          <h1 className="text-ds-title">Post a request</h1>
           <Stepper current={step} />
         </header>
 
@@ -226,9 +306,9 @@ function ComposerScreen() {
           {step === 1 && (
             <FieldGroup className="max-w-3xl">
               <Field>
-                <FieldLabel htmlFor="brief-title">What is this for?</FieldLabel>
+                <FieldLabel htmlFor="rfp-title">What is this for?</FieldLabel>
                 <Input
-                  id="brief-title"
+                  id="rfp-title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Ramadan launch, three reels"
@@ -237,9 +317,9 @@ function ComposerScreen() {
               </Field>
 
               <Field>
-                <FieldLabel htmlFor="brief-description">Anything they should know</FieldLabel>
+                <FieldLabel htmlFor="rfp-description">Anything they should know</FieldLabel>
                 <Textarea
-                  id="brief-description"
+                  id="rfp-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
@@ -270,9 +350,9 @@ function ComposerScreen() {
                 </Field>
 
                 <Field>
-                  <FieldLabel htmlFor="brief-deadline">Deadline</FieldLabel>
+                  <FieldLabel htmlFor="rfp-deadline">Deadline</FieldLabel>
                   <Input
-                    id="brief-deadline"
+                    id="rfp-deadline"
                     type="date"
                     value={deadline}
                     onChange={(e) => setDeadline(e.target.value)}
@@ -281,6 +361,70 @@ function ComposerScreen() {
                   <FieldDescription>The last day a creator can reply.</FieldDescription>
                 </Field>
               </div>
+
+              <Field>
+                <FieldLabel>Niches</FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORY_OPTIONS.map((option) => {
+                    const on = categories.includes(option.value)
+                    return (
+                      <Button
+                        key={option.value}
+                        type="button"
+                        size="sm"
+                        variant={on ? "default" : "outline"}
+                        className="rounded-ds-control"
+                        aria-pressed={on}
+                        onClick={() =>
+                          setCategories((current) =>
+                            current.includes(option.value)
+                              ? current.filter((c) => c !== option.value)
+                              : [...current, option.value]
+                          )
+                        }
+                      >
+                        {option.label}
+                      </Button>
+                    )
+                  })}
+                </div>
+                <FieldDescription>
+                  {categories.length === 0
+                    ? "Pick none and it reaches every niche. Pick a few and it reaches creators in any of them."
+                    : "It reaches creators in any of the niches you picked, not only those in all of them."}
+                </FieldDescription>
+              </Field>
+
+              <Field>
+                <FieldLabel>Followers</FieldLabel>
+                <div className="flex items-center gap-3">
+                  <InputGroup className="rounded-ds-field max-w-[11rem]">
+                    <InputGroupAddon>Min</InputGroupAddon>
+                    <InputGroupInput
+                      inputMode="numeric"
+                      value={followersMin}
+                      onChange={(e) => setFollowersMin(e.target.value)}
+                      placeholder="Any"
+                      aria-label="Minimum followers"
+                    />
+                  </InputGroup>
+                  <InputGroup className="rounded-ds-field max-w-[11rem]">
+                    <InputGroupAddon>Max</InputGroupAddon>
+                    <InputGroupInput
+                      inputMode="numeric"
+                      value={followersMax}
+                      onChange={(e) => setFollowersMax(e.target.value)}
+                      placeholder="Any"
+                      aria-label="Maximum followers"
+                    />
+                  </InputGroup>
+                </div>
+                <FieldDescription>
+                  {followersBackwards
+                    ? "The minimum is above the maximum, so nobody could match. Swap them."
+                    : "Leave either box empty for no limit."}
+                </FieldDescription>
+              </Field>
 
               <Field>
                 <FieldLabel>Budget</FieldLabel>
@@ -335,35 +479,9 @@ function ComposerScreen() {
               <div className="flex flex-col gap-2">
                 <h2 className="text-ds-heading">Who this reaches</h2>
                 <p className="text-ds-body text-muted-foreground max-w-prose">
-                  Two populations, counted separately, before you post. Turn one off and
-                  the count changes.
+                  Two populations, counted separately, before you post. This is a count of
+                  real creators who match what you asked for, not an estimate.
                 </p>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                {(["following", "inflink"] as Population[]).map((population) => (
-                  <label
-                    key={population}
-                    className={cn(
-                      "rounded-ds-surface flex flex-1 cursor-pointer items-start gap-3 border p-4 transition-colors",
-                      populations.includes(population)
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:bg-accent/40"
-                    )}
-                  >
-                    <Checkbox
-                      checked={populations.includes(population)}
-                      onCheckedChange={() => togglePopulation(population)}
-                      className="mt-0.5"
-                    />
-                    <span className="flex flex-col gap-1">
-                      <span className="text-ds-label">{POPULATION_LABELS[population]}</span>
-                      <span className="text-ds-body-sm text-muted-foreground">
-                        {POPULATION_BLURBS[population]}
-                      </span>
-                    </span>
-                  </label>
-                ))}
               </div>
 
               {reachState.status === "loading" && <LoadingState label="Counting who this reaches" />}
@@ -376,13 +494,24 @@ function ComposerScreen() {
               )}
               {reachState.status === "ready" && <ReachPanel reach={reachState.reach} />}
 
+              {reachesNobody && (
+                <div className="rounded-ds-surface text-ds-body-sm flex items-start gap-3 border border-amber-500/25 bg-amber-500/5 p-4">
+                  <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" aria-hidden />
+                  <p className="text-muted-foreground">
+                    Nothing matches this yet, so posting it would reach nobody. Widen the
+                    niches or the follower range, or raise the budget — creators only match
+                    when their listed price for what you asked for fits inside it.
+                  </p>
+                </div>
+              )}
+
               <div className="flex justify-between gap-3">
                 <Button variant="ghost" onClick={() => setStep(1)} className="rounded-ds-control">
                   <ArrowLeft /> Back
                 </Button>
                 <Button
                   onClick={() => setStep(3)}
-                  disabled={populations.length === 0}
+                  disabled={reachesNobody}
                   className="rounded-ds-control"
                 >
                   Review <ArrowRight />
@@ -398,7 +527,7 @@ function ComposerScreen() {
 
               <dl className="bg-card rounded-ds-surface divide-y border">
                 {[
-                  { term: "Brief", value: title },
+                  { term: "Request", value: title },
                   {
                     term: "What gets made",
                     value: deliverables
@@ -406,6 +535,24 @@ function ComposerScreen() {
                       .join(", "),
                   },
                   { term: "Market", value: market || "Anywhere" },
+                  {
+                    term: "Niches",
+                    value:
+                      categories.length === 0
+                        ? "Any"
+                        : CATEGORY_OPTIONS.filter((o) => categories.includes(o.value))
+                            .map((o) => o.label)
+                            .join(", "),
+                  },
+                  {
+                    term: "Followers",
+                    value:
+                      followersMinValue === null && followersMaxValue === null
+                        ? "Any size"
+                        : `${followersMinValue?.toLocaleString() ?? "Any"} to ${
+                            followersMaxValue?.toLocaleString() ?? "any"
+                          }`,
+                  },
                   {
                     term: "Deadline",
                     value: deadline
@@ -420,10 +567,7 @@ function ComposerScreen() {
                     term: budgetMode === "pot" ? "Pot" : "Most per creator",
                     value: <Money fils={budgetFils} />,
                   },
-                  {
-                    term: "Reaches",
-                    value: populations.map((p) => POPULATION_LABELS[p]).join(" and "),
-                  },
+                  { term: "Reaches", value: reachesLine },
                 ].map((row) => (
                   <div
                     key={row.term}
@@ -446,15 +590,19 @@ function ComposerScreen() {
 
               <p className="text-ds-body-sm text-muted-foreground">
                 Posting sends this to the creators counted in the previous step. You will
-                see their offers as they come in, and nothing is committed until you award.
+                see their quotes as they come in, and nothing is committed until you award.
               </p>
 
               <div className="flex justify-between gap-3">
                 <Button variant="ghost" onClick={() => setStep(2)} className="rounded-ds-control">
                   <ArrowLeft /> Back
                 </Button>
-                <Button onClick={post} disabled={posting} className="rounded-ds-control">
-                  <Send /> {posting ? "Posting…" : "Post the brief"}
+                <Button
+                  onClick={post}
+                  disabled={posting || reachesNobody}
+                  className="rounded-ds-control"
+                >
+                  <Send /> {posting ? "Posting…" : "Post the request"}
                 </Button>
               </div>
             </div>
