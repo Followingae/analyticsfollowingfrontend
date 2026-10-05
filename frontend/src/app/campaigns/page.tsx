@@ -1151,7 +1151,7 @@ function ArchiveTabContent({ searchQuery }: { searchQuery: string }) {
 // ============================================================================
 export default function UnifiedCampaignsDashboard() {
   const router = useRouter();
-  // Campaigns is the Run module. An account without Run gets a real page at
+  // Campaigns is part of the Inflink module (key `run`). An account without it gets a real page at
   // this address instead - see the early return below.
   const account = useCommercialAccount();
   const [activeTab, setActiveTab] = useState("all");

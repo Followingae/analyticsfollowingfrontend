@@ -298,7 +298,7 @@ export function ModuleCards() {
           <div className="mt-12 border-t pt-8">
             <p className="text-sm font-medium">When you need more than the database</p>
             <div className="mt-4 space-y-3.5">
-              <Extra icon={Rocket} name="Run"
+              <Extra icon={Rocket} name="Inflink"
                      price={runMonthly !== null ? `${money(runMonthly)} a month` : 'On any plan'}
                      line="Brief creators, take priced offers back, run the campaign to delivery." />
               <Extra icon={Wallet} name="Creator Contracting" price="7% of payouts"

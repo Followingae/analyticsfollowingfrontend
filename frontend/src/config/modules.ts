@@ -10,6 +10,7 @@
  *   find    Included in every plan, at every tier. Never sold separately, so
  *           it is never shown with a price and never has a buy button.
  *   run     An add-on with an agreed list price, sold on its own, monthly.
+ *           Shown to brands as INFLINK since 2026-10-05; the key never changes.
  *   mor     An add-on with ONE agreed price: 7% of every influencer payout we
  *           settle, and no monthly fee (7% agreed 2026-09-16; the fee was AED 1,000
  *           a month and was dropped, because the module earns when a creator is
@@ -79,11 +80,13 @@ export const MODULES: Record<ModuleKey, ModuleDefinition> = {
   },
   run: {
     key: 'run',
-    name: 'Run',
-    summary: 'Turn a shortlist into a campaign, and post requests creators quote on.',
+    // ⚠️ The key stays 'run'. Only the name a brand reads changed, 2026-10-05:
+    // they were buying "Run" and using "Inflink", which is one name too many.
+    name: 'Inflink',
+    summary: 'Post what you want made. Creators come back with their own price.',
     contains: [
+      'Post a request and creators quote their own price',
       'Campaigns built from a shortlist you already have',
-      'Inflink: post a request, creators come back with their own price, you award one',
       'Every quote on one screen: their price, their reach, their delivery record',
       'Deliverable tracking: submitted, approved, live',
       'Content collection and per-post performance',
@@ -98,9 +101,9 @@ export const MODULES: Record<ModuleKey, ModuleDefinition> = {
     // place; /inflink is simply absent from the sidebar without it, and its writes are
     // refused by require_product_module(MODULE_RUN) on the server either way.
     gatedRoutes: ['/campaigns', '/inflink'],
-    wallHeadline: 'Run turns this shortlist into a campaign',
+    wallHeadline: 'Inflink turns this shortlist into a campaign',
     wallBody:
-      'Campaigns, deliverables and content live in Run, and so does Inflink - where you post what you want made and creators come back with their own price. Your shortlists stay exactly where they are; Run is what takes one of them and gets the posts made.',
+      'Post what you want made and creators come back with their own price, or build a campaign from a shortlist you already have. Either way the deliverables, the content and the settlement run from here. Your shortlists stay exactly where they are; Inflink is what takes one of them and gets the posts made.',
   },
   mor: {
     key: 'mor',
