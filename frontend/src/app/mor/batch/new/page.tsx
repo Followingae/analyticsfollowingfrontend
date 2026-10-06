@@ -64,10 +64,38 @@ const TOKENS = `
   .mor-cell input:focus-visible {
     background: var(--background); border-color: var(--ring);
   }
+  /* ⚠️ Borderless CELLS were the intent; a borderless TABLE was not. With no rule
+     anywhere the screen read as a blank page with words floating on it, and you
+     could not tell which fee belonged to which creator. The cells stay clean and
+     the STRUCTURE comes back: a header that is clearly a header, a line under
+     every row, and a hairline between columns so the eye can track across. */
+  .mor-grid thead th {
+    background: color-mix(in oklch, var(--muted) 55%, transparent);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+  }
+  .mor-grid tbody tr { border-bottom: 1px solid var(--mor-rule); }
+  .mor-grid tbody tr:last-child { border-bottom: 0; }
+  .mor-grid tbody tr:hover { background: color-mix(in oklch, var(--muted) 24%, transparent); }
+  .mor-grid th + th, .mor-grid td + td { border-left: 1px solid var(--mor-rule); }
+  .mor-grid tfoot td { border-top: 1px solid var(--border); }
   .mor-total-in { animation: morTotal 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
   @keyframes morTotal { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) { .mor-total-in { animation: none; } }
 `
+
+/* If the currency list cannot be fetched the picker still has to offer the real
+   choice. It used to fall back to AED alone, so one failed request quietly turned
+   a five-currency product into a one-currency one and a client who needed to pay
+   in dollars simply could not. Mirrors app/core/currency.py; the server still has
+   the final say on save. */
+const FALLBACK_CURRENCIES = [
+  { code: 'AED', label: 'AED · UAE dirham', name: 'UAE dirham' },
+  { code: 'USD', label: 'USD · US dollar', name: 'US dollar' },
+  { code: 'EUR', label: 'EUR · Euro', name: 'Euro' },
+  { code: 'GBP', label: 'GBP · Pound sterling', name: 'Pound sterling' },
+  { code: 'SAR', label: 'SAR · Saudi riyal', name: 'Saudi riyal' },
+]
 
 type Row = {
   key: string
@@ -137,11 +165,75 @@ export default function BatchPage() {
   )
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   The draft.
+
+   This screen is somebody retyping a list out of a spreadsheet: six creators,
+   their handles, their emails, what each is posting and what each is owed. It
+   is several minutes of typing with no save button anywhere, and a reload, a
+   dead battery or a mis-swiped back gesture threw every keystroke away. The
+   total was live and the work was not.
+
+   Kept in localStorage, not on the server: these are rows nobody has agreed to
+   yet, and a half-typed list of names and fees is not something to put in the
+   database on the client's behalf. It is per-browser and that is the right
+   scope — it is the typing that was lost, not a record.
+
+   Cleared the moment the batch is created, so the next new batch opens empty
+   rather than haunted by the one just sent.
+   ───────────────────────────────────────────────────────────────────────── */
+const DRAFT_KEY = 'mor.batch.new.draft.v1'
+/* Old enough and it is not a recovery any more, it is a surprise. */
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+
+type Draft = { rows: Row[]; label: string; at: number }
+
+function restoreDraft(): Draft | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY)
+    if (!raw) return null
+    const d = JSON.parse(raw) as Draft
+    if (!d?.rows?.length || typeof d.at !== 'number') return null
+    if (Date.now() - d.at > DRAFT_MAX_AGE_MS) {
+      window.localStorage.removeItem(DRAFT_KEY)
+      return null
+    }
+    // Only worth restoring if somebody actually typed something.
+    if (!d.rows.some((r) => r?.name?.trim() || r?.fee?.trim() || r?.contact?.trim())) return null
+    return d
+  } catch {
+    // Private mode, blocked storage, or a draft from an older shape. Not an error:
+    // the screen simply opens empty, which is what it did before this existed.
+    return null
+  }
+}
+
+function saveDraft(rows: Row[], label: string) {
+  if (typeof window === 'undefined') return
+  try {
+    const worth = rows.some((r) => r.name.trim() || r.fee.trim() || r.contact.trim() || r.handle.trim() || r.work.trim())
+    if (!worth && !label.trim()) {
+      window.localStorage.removeItem(DRAFT_KEY)
+      return
+    }
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify({ rows, label, at: Date.now() }))
+  } catch { /* storage unavailable; the form still works, it just will not survive a reload */ }
+}
+
+function clearDraft() {
+  if (typeof window === 'undefined') return
+  try { window.localStorage.removeItem(DRAFT_KEY) } catch { /* nothing to clear */ }
+}
+
 function BatchForm() {
   const router = useRouter()
 
-  const [rows, setRows] = useState<Row[]>(() => [blank(), blank(), blank()])
-  const [label, setLabel] = useState('')
+  const [rows, setRows] = useState<Row[]>(() => restoreDraft()?.rows ?? [blank(), blank(), blank()])
+  const [label, setLabel] = useState(() => restoreDraft()?.label ?? '')
+  /* Whether anything was actually recovered, so the screen can say so once rather
+     than leaving somebody wondering why their half-filled list reappeared. */
+  const [restored, setRestored] = useState(() => !!restoreDraft())
   /* One currency for the whole list, because a batch is one invoice and one transfer in.
      Letting the rows disagree would mean a total that cannot be written down. */
   const [ccy, setCcy] = useState('AED')
@@ -190,15 +282,26 @@ function BatchForm() {
     [rows],
   )
 
+  /* What can be PRICED: a name and a fee. Deliberately not the same as `filled`.
+     The quote used to be built from `filled`, which also demands an email — so a
+     brand who had typed six names and six fees saw every "Costs you" cell empty
+     and no total at all, because not one row counted yet. The price of paying
+     somebody does not depend on knowing their email; being able to SEND it does,
+     and `ready` below still insists on that. */
+  const priced = useMemo(
+    () => rows.filter((r) => r.name.trim() && feeOf(r.fee) > 0),
+    [rows],
+  )
+
   const payload: MorBatchCreatorInput[] = useMemo(
-    () => filled.map((r) => ({
+    () => priced.map((r) => ({
       creator_name: r.name.trim(),
       creator_handle: r.handle.trim() || undefined,
       creator_email: r.contact.trim() || undefined,
       deliverables: r.work.trim() ? [r.work.trim()] : undefined,
       creator_fee_aed: feeOf(r.fee),
     })),
-    [filled],
+    [priced],
   )
 
   /* Quote on a pause, not per keystroke: a total that flickers mid-number reads as the price
@@ -224,6 +327,13 @@ function BatchForm() {
     return () => { if (timer.current) clearTimeout(timer.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature, ccy])
+
+  /* Save on a pause, like the quote. Writing on every keystroke would mean a
+     JSON.stringify of the whole table per character typed. */
+  useEffect(() => {
+    const t = setTimeout(() => saveDraft(rows, label), 500)
+    return () => clearTimeout(t)
+  }, [rows, label])
 
   const patch = useCallback((key: string, p: Partial<Row>) => {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...p } : r)))
@@ -289,6 +399,7 @@ function BatchForm() {
     try {
       const created = await morPaymentsApi.batches.create(payload, label.trim() || undefined, ccy)
       await morPaymentsApi.batches.submit(created.data.id, method)
+      clearDraft()
       router.push(`/mor/batch/${created.data.id}`)
     } catch (e) {
       toast.error((e as Error).message)
@@ -355,8 +466,31 @@ function BatchForm() {
           </div>
         </div>
 
-        <div className="mt-5 overflow-x-auto rounded-[14px] border border-[var(--mor-rule)]">
-          <Table>
+        {/* Say it once. A list that reappears without explanation reads as a bug,
+            and somebody who meant to start fresh needs a way out that is not
+            deleting six rows by hand. */}
+        {restored && (
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-[12px] border border-[var(--mor-rule)] bg-muted/40 px-3.5 py-2.5">
+            <p className="text-[12.5px] text-muted-foreground">
+              We kept what you had typed here.
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[12.5px]"
+              onClick={() => {
+                clearDraft()
+                setRows([blank(), blank(), blank()])
+                setLabel('')
+                setRestored(false)
+              }}>
+              Start a new list
+            </Button>
+          </div>
+        )}
+
+        <div className="mt-5 overflow-x-auto rounded-[14px] border border-[var(--border)]">
+          <Table className="mor-grid">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-[26%] min-w-[180px] pl-4">Creator</TableHead>
@@ -565,7 +699,7 @@ function BatchForm() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(currencies.length ? currencies : [{ code: 'AED', label: 'AED · UAE dirham', name: 'UAE dirham' }]).map(c => (
+                  {(currencies.length ? currencies : FALLBACK_CURRENCIES).map(c => (
                     <SelectItem key={c.code} value={c.code} className="text-[13px]">{c.label}</SelectItem>
                   ))}
                 </SelectContent>

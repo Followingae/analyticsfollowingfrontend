@@ -207,6 +207,10 @@ function ClientDetailPage() {
   // Whether this client actually has Creator Payouts. Telling somebody a module is
   // switched on when it is not is the one thing this email must never do, so the menu
   // item is not offered until it is.
+  //
+  // ⚠️ This was declared and never set, so it was false for every client forever and
+  // the menu item had never once appeared — the email and its attached guide were
+  // unreachable in the product. The gate was right; nothing ever opened it.
   const [hasPayouts, setHasPayouts] = useState(false);
   const [staff, setStaff] = useState<any[]>([]);
 
@@ -260,6 +264,28 @@ function ClientDetailPage() {
     if (!loading && activeTab !== 'scope') loadTabData(activeTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
+
+  // Does this account hold Creator Contracting and Payouts, right now?
+  //
+  // `usable` comes from the server and is deliberately not recomputed from `status`
+  // here: a module can be active and unusable (payment locked), and offering to tell
+  // a client it is switched on while they cannot use it is exactly the mail we must
+  // never send. A failed read leaves the item hidden, which is the safe direction.
+  useEffect(() => {
+    if (!teamId) return;
+    let alive = true;
+    accountModulesApi
+      .list(teamId)
+      .then((res) => {
+        if (alive) setHasPayouts(!!res?.modules?.some((m) => m.module === 'mor' && m.usable));
+      })
+      .catch(() => {
+        if (alive) setHasPayouts(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [teamId]);
 
   useEffect(() => {
     if (!teamId) return;
