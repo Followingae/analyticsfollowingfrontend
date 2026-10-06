@@ -489,7 +489,27 @@ function BatchForm() {
           </div>
         )}
 
-        <div className="mt-5 overflow-x-auto rounded-[14px] border border-[var(--border)]">
+        {/* Above the table, because it is a decision you make BEFORE typing fees,
+            not a detail you confirm after. It sat under the payment method at the
+            bottom, so every number in the table had already been typed in a
+            currency nobody had been asked about yet. */}
+        <div className="mt-5 flex items-center gap-2.5">
+          <Label htmlFor="mor-batch-ccy" className="text-[13px] font-medium text-muted-foreground">
+            Select currency
+          </Label>
+          <Select value={ccy} onValueChange={setCcy}>
+            <SelectTrigger id="mor-batch-ccy" className="h-9 w-[190px]" aria-label="Select currency">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(currencies.length ? currencies : FALLBACK_CURRENCIES).map(c => (
+                <SelectItem key={c.code} value={c.code} className="text-[13px]">{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="mt-3 overflow-x-auto rounded-[14px] border border-[var(--border)]">
           <Table className="mor-grid">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -688,23 +708,6 @@ function BatchForm() {
               />
             </div>
 
-            <div className="mt-10 max-w-[420px]">
-              <Label className="text-[13.5px] font-medium">What the fees are in</Label>
-              <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
-                One currency for the whole list. It is on the invoice and on every agreement
-                these creators sign.
-              </p>
-              <Select value={ccy} onValueChange={setCcy}>
-                <SelectTrigger className="mt-2.5 w-[180px]" aria-label="Currency for this list">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(currencies.length ? currencies : FALLBACK_CURRENCIES).map(c => (
-                    <SelectItem key={c.code} value={c.code} className="text-[13px]">{c.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           <Summary quote={quote} />
