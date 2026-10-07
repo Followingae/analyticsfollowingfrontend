@@ -300,10 +300,13 @@ function AllCampaignsTab({
   searchQuery,
   typeFilter,
   setTypeFilter,
+  locked,
 }: {
   searchQuery: string;
   typeFilter: string;
   setTypeFilter: (v: string) => void;
+  /** The account does not hold Inflink. They can still READ what is theirs. */
+  locked: boolean;
 }) {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<CampaignCardData[]>([]);
@@ -517,6 +520,18 @@ function AllCampaignsTab({
         </CardContent>
       </Card>
     );
+  }
+
+  /**
+   * The module pitch, and ONLY when there is nothing of theirs to show.
+   *
+   * Below the loading check on purpose, so a brand who DOES have campaigns
+   * never sees a flash of "buy this" in the place their own work is about to
+   * appear. If we have run something for them, that is what belongs on this
+   * page; the sell belongs on the empty one.
+   */
+  if (locked && campaigns.length === 0) {
+    return <LockedModuleCard module="run" />;
   }
 
   // Nothing at all (not merely filtered out)
@@ -1175,31 +1190,26 @@ export default function UnifiedCampaignsDashboard() {
     fetchPendingCount();
   }, []);
 
-  // Run is off: show what they were about to do and what it costs, at the
-  // address they clicked. Only when we positively know the answer - if the
-  // billing call failed we let them through, because losing access to a page
-  // you pay for is worse than showing a page you might not.
-  if (account.state === 'loaded' && !account.owns.run) {
-    return (
-      <AuthGuard>
-        <BrandUserInterface>
-          <div className="flex flex-col min-h-screen bg-background">
-            <div className="border-b bg-background/95">
-              <div className="p-4 md:p-6">
-                <h1 className="text-2xl font-bold tracking-tight">Campaigns</h1>
-                <p className="text-sm text-muted-foreground">
-                  Run a shortlist as a campaign, from brief to posted content
-                </p>
-              </div>
-            </div>
-            <div className="p-4 md:p-6">
-              <LockedModuleCard module="run" />
-            </div>
-          </div>
-        </BrandUserInterface>
-      </AuthGuard>
-    );
-  }
+  /**
+   * ⚠️ NOT HOLDING INFLINK NEVER HIDES A CAMPAIGN THAT IS ALREADY THEIRS.
+   *
+   * This used to return the locked-module card INSTEAD of the page, so a brand
+   * without the module saw a sales pitch where their campaigns should be. That
+   * is wrong whenever we have run something for them ourselves: Jollibee had a
+   * live barter campaign, the API was returning it correctly on their own
+   * session, and the page threw it away before drawing anything. From their
+   * side the campaign simply did not exist.
+   *
+   * The module gates what you can START, not what you can SEE. It is the same
+   * rule the backend already states for a locked account — you can still read
+   * everything you have, you just cannot spend — and `ALWAYS_READABLE_MODULES`
+   * exists in app/core/modules.py for exactly this reason.
+   *
+   * So the page always renders. `locked` goes down to the list, which shows the
+   * card only when there is genuinely nothing to show, and never in place of a
+   * campaign the brand already has.
+   */
+  const locked = account.state === 'loaded' && !account.owns.run;
 
   return (
     <AuthGuard>
@@ -1286,6 +1296,7 @@ export default function UnifiedCampaignsDashboard() {
                     searchQuery={searchQuery}
                     typeFilter={typeFilter}
                     setTypeFilter={setTypeFilter}
+                    locked={locked}
                   />
                 </TabsContent>
 
