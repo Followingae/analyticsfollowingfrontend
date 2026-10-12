@@ -7,6 +7,13 @@
  * finishes the handshake on the server, and cleans the URL — so the whole round trip begins
  * and ends inside the campaigns module and there is no integrations page anywhere.
  *
+ * ⚠️ THE CODE CAN ARRIVE SECOND-HAND. The Adobe app is registered against
+ * `/api/v1/integrations/frameio/callback` on our API, and Adobe posts the code there
+ * whatever redirect we ask for, so that route bounces the browser here. When it does, it
+ * adds `frameio_redirect` — the URL the code was ISSUED against — because Adobe checks the
+ * redirect URI a second time at the token exchange. Quoting this page instead would fail
+ * every sign-in that came the long way round with `invalid_grant`.
+ *
  * WHY THE URL IS CLEANED IMMEDIATELY. An authorisation code is single-use and short-lived,
  * but it is also sitting in the address bar, in history, and in anything that logs a URL. It
  * is replaced before the exchange is even attempted.
@@ -37,11 +44,15 @@ export function FrameioCallback({ onConnected }: { onConnected?: () => void }) {
     if (!code && !error) return
     spent.current = true
 
+    // Whichever URL Adobe issued the code against is the one the exchange must quote.
+    const issuedFor = params.get("frameio_redirect") || frameioRedirectUri()
+
     const clean = new URL(window.location.href)
     clean.searchParams.delete("code")
     clean.searchParams.delete("error")
     clean.searchParams.delete("error_description")
     clean.searchParams.delete("state")
+    clean.searchParams.delete("frameio_redirect")
     window.history.replaceState({}, "", clean.toString())
 
     if (error) {
@@ -50,7 +61,7 @@ export function FrameioCallback({ onConnected }: { onConnected?: () => void }) {
     }
 
     setWorking(true)
-    contentAdminApi.connect(code as string, frameioRedirectUri())
+    contentAdminApi.connect(code as string, issuedFor)
       .then((c) => {
         toast.success(`Frame.io connected${c.account_email ? ` as ${c.account_email}` : ""}`)
         onConnected?.()

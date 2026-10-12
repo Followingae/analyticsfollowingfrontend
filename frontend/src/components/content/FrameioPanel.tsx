@@ -40,11 +40,22 @@ import {
   type ContentSource, type FrameioConnection, type UnmatchedFolder, type MatchCandidate,
 } from "@/services/contentDeliveryApi"
 
-/** Where Adobe sends the superadmin back to. Inside the campaigns module, so the whole
- *  round trip begins and ends where the work is. Must match the Adobe console exactly. */
+/** Where Adobe sends the superadmin back to.
+ *
+ *  ⚠️ THIS IS THE ADOBE CONSOLE'S VALUE, NOT A CHOICE OF OURS. It used to be
+ *  `/work/campaigns` on the platform, which reads better and was wrong: the app is
+ *  registered against this callback on the API, Adobe sends the code there regardless, and
+ *  so every sign-in since 12 September landed on a route that did not exist. The connection
+ *  stayed signed out and the only visible symptom was `sync` answering 409 "Frame.io is not
+ *  connected". That callback now bounces the browser to the campaigns module, so the round
+ *  trip still begins and ends where the work is — it just goes via the door Adobe knocks on.
+ *
+ *  Asking for the registered URI rather than relying on Adobe to substitute its default
+ *  also keeps the authorise request and the token exchange quoting the same string, which
+ *  is what Adobe checks. */
 export function frameioRedirectUri(): string {
-  if (typeof window === "undefined") return ""
-  return `${window.location.origin}/work/campaigns`
+  const api = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.following.ae"
+  return `${api.replace(/\/$/, "")}/api/v1/integrations/frameio/callback`
 }
 
 // ── Health, said in a sentence ─────────────────────────────────────────────────────────────
