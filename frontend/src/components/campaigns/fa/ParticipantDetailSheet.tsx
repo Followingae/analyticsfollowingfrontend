@@ -1291,10 +1291,13 @@ function SubmissionCard({
                       The creator resubmits their content. {editsLeft} edit{editsLeft !== 1 ? "s" : ""} remaining.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <Textarea value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="What needs changing? (optional)" />
+                  {/* The note IS the edit request. Sent empty, the creator's app can only say
+                      "an edit was requested" and nothing about what, so Send stays closed
+                      until something has actually been written (the server refuses it too). */}
+                  <Textarea value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="What needs changing? The creator reads this word for word." />
                   <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setEditNote("")}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => { onRequestEdit(editNote); setEditNote("") }}>Send</AlertDialogAction>
+                    <AlertDialogAction disabled={editNote.trim().length < 5} onClick={() => { onRequestEdit(editNote); setEditNote("") }}>Send</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
