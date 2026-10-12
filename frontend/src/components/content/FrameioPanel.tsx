@@ -54,8 +54,12 @@ import {
  *  also keeps the authorise request and the token exchange quoting the same string, which
  *  is what Adobe checks. */
 export function frameioRedirectUri(): string {
-  const api = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.following.ae"
-  return `${api.replace(/\/$/, "")}/api/v1/integrations/frameio/callback`
+  // ⚠️ TRIM BEFORE ANYTHING ELSE. NEXT_PUBLIC_API_BASE_URL carries a trailing newline on
+  // Vercel, which every `fetch` in the app gets away with because browsers normalise URLs.
+  // A redirect_uri is not a URL being fetched, it is a form value Adobe compares character
+  // for character, so the newline would arrive as %0A and match nothing.
+  const api = (process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.following.ae").trim()
+  return `${api.replace(/\/+$/, "")}/api/v1/integrations/frameio/callback`
 }
 
 // ── Health, said in a sentence ─────────────────────────────────────────────────────────────
