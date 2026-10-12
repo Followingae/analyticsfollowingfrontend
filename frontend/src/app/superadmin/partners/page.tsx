@@ -95,6 +95,21 @@ function Leads() {
 
   useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t) }, [load])
 
+  /* A lead arrives while somebody is looking at this screen, and until now the screen had
+     no way of knowing. It reloads itself every half minute, and again the moment the tab is
+     brought back to the front, so an application that came in two minutes ago is on the
+     list without anybody thinking to press Refresh.
+
+     Silently: no spinner and no skeleton, because the table is already full and a reload
+     that blanks it is worse than a reload nobody noticed. Paused while the tab is hidden,
+     so a window left open overnight is not polling until morning. */
+  useEffect(() => {
+    const tick = () => { if (document.visibilityState === 'visible') load() }
+    const id = setInterval(tick, 30_000)
+    document.addEventListener('visibilitychange', tick)
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick) }
+  }, [load])
+
   /* Patch the row in place rather than refetching the list. Marking eight leads contacted
      should not mean eight full-table reloads, and a table that jumps back to the top after
      every change loses your place in the list you were working down. */
