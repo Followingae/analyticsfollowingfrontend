@@ -461,7 +461,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     setSaving(true)
     try {
       const res = await brandProposalViewApi.approveProposal(proposalId, { selected_influencer_ids: [...chosen] })
-      toast.success("Confirmed", { description: "We are briefing your creators now." })
+      toast.success("Confirmed", {
+        description: chosen.size === 0 && lockedList.length > 0
+          ? "Your line-up stays as it is."
+          : "We are briefing your creators now.",
+      })
       setConfirmOpen(false)
       if (res.campaign_id) setTimeout(() => router.push(`/campaigns/${res.campaign_id}`), 1200)
       else await onReload()
@@ -966,7 +970,12 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                   ? !tiersComplete || monthLocked
                   : byTier
                     ? !tiersComplete
-                    : !picked.length || over
+                    /* A CONFIRMED LINE-UP IS STILL A LINE-UP. This asked for a fresh tick,
+                       so a client whose creators were all confirmed in an earlier round
+                       could never press Confirm - and on a campaign whose slots are full
+                       there is no tick left to give. Their answer, "I will stick with what
+                       I have", had no button. */
+                    : !(picked.length + lockedList.length) || over
               }
               title={byTier && !tiersComplete ? tierRows.filter(r => r.picked < r.allowed).map(r => `${r.label} ${r.picked} of ${r.allowed}`).join(" · ") : undefined}
               onClick={() => setConfirmOpen(true)}
@@ -1047,11 +1056,16 @@ export function PlanBuilder({ proposalId, data, onReload }: {
             <DialogDescription>
               {months.length
                 ? `${openMonth?.label ?? "This month"}: ${picked.length} creator${picked.length === 1 ? "" : "s"}. The next month opens on time.`
-                : `${picked.length} creator${picked.length === 1 ? "" : "s"}${showPricing ? ` for ${aed(spend)}` : ""}. We brief them once you confirm.`}
+                : picked.length === 0 && lockedList.length > 0
+                  /* Nothing new was taken. Saying "0 creators. We brief them once you
+                     confirm" over a line-up that is already booked and briefed would be
+                     wrong twice. */
+                  ? `Keeping the ${lockedList.length} creator${lockedList.length === 1 ? "" : "s"} you have already confirmed. Nothing new is added, and we will stop sending options for this campaign.`
+                  : `${picked.length} creator${picked.length === 1 ? "" : "s"}${showPricing ? ` for ${aed(spend)}` : ""}${lockedList.length ? `, on top of the ${lockedList.length} already confirmed` : ""}. We brief them once you confirm.`}
             </DialogDescription>
           </DialogHeader>
           <div className="flex">
-            {picked.slice(0, 8).map(c => (
+            {[...lockedList, ...picked].slice(0, 8).map(c => (
               <img key={c.id} src={cdnAvatar(c.profile_image_url || undefined)} alt=""
                    className="-ml-2.5 size-9 rounded-full object-cover ring-2 ring-background first:ml-0" />
             ))}
