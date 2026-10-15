@@ -129,6 +129,21 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const live = useMemo(() => creators.filter(c => !c.declined_at && !c.locked), [creators])
   const lockedList = useMemo(() => creators.filter(c => c.locked), [creators])
   const picked = useMemo(() => creators.filter(c => chosen.has(c.id)), [creators, chosen])
+  /* HOW MANY OF THE SLOTS ARE GONE, on a deal bought by the head.
+     A confirmed creator occupies a slot. `chosen` deliberately excludes them - they are a
+     booking, not a choice still on the table - so counting it alone told a client whose
+     two picks were both confirmed that they had chosen 0 of 2 and invited them to choose
+     2 more. The wall said "Already confirmed - 2" further down the same page.
+     Worse than the wrong number: the add guard used the same count, so those two extra
+     ticks were accepted, and the server protects a locked row from being deselected - so
+     a 2-creator campaign would have come back with 4. */
+  const slotsTaken = byCount ? lockedList.length + chosen.size : chosen.size
+  const slotsLeft = byCount && slots != null ? Math.max(0, slots - slotsTaken) : null
+  /* What Smart pick may still add. Asking it for `slots` when some are already confirmed
+     is asking it to fill the campaign twice. */
+  const openSlots = byCount && slots != null
+    ? Math.max(0, slots - lockedList.length)
+    : (slots ?? 0)
   const extras = useMemo(
     () => picked.reduce((s, c) => s + (withMod.has(c.id) ? modifierExtra(c, modifier) : 0), 0),
     [picked, withMod, modifier])
@@ -221,11 +236,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     /* Bought by the head: the allowance is a number of creators, so the line-up is simply
        the strongest that many. Without this the button had nothing to call on a barter
        proposal and silently did nothing. */
-    if (byCount) { setRecommended(optimiseByCount(live, slots ?? 0, strategy)); return }
+    if (byCount) { setRecommended(optimiseByCount(live, openSlots, strategy)); return }
     if (!showPricing) { setRecommended([]); return }
     optimise(live, spendable, strategy, undefined, 0).then(r => { if (alive) setRecommended(r.picks) })
     return () => { alive = false }
-  }, [live, spendable, strategy, showPricing, byTier, byCount, slots, selection.allowances, costOf])
+  }, [live, spendable, strategy, showPricing, byTier, byCount, slots, openSlots, selection.allowances, costOf])
   const recIds = useMemo(() => new Set(recommended.map(c => c.id)), [recommended])
 
   const sig = (ids: Set<string>, s: Strategy) => `${s}:${[...ids].sort().join(",")}`
@@ -325,7 +340,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     /* Same rule, one currency simpler: a barter deal includes a number of creators, and the
        number is the whole allowance. Refused here with the reason rather than accepted and
        rejected on save, which is where a client finds out they wasted ten minutes. */
-    if (adding && byCount && slots && chosen.size >= slots) {
+    if (adding && byCount && slots && slotsTaken >= slots) {
       toast.error(`This campaign includes ${slots} creator${slots === 1 ? "" : "s"}`, {
         description: "Take one off to swap somebody in.",
       })
@@ -338,7 +353,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
       return next
     })
     setBuiltSig(null)
-  }, [save, chosen, byTier, tierRows, byCount, slots])
+  }, [save, chosen, byTier, tierRows, byCount, slots, slotsTaken])
 
   const markOpened = useCallback((c: BrandInfluencer) => {
     if (c.client_opened_at || shownRef.current.has(c.id)) return
@@ -394,9 +409,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     let picks: BrandInfluencer[]
     let closing: string
     if (byCount) {
-      picks = optimiseByCount(live, slots ?? 0, strategy)
+      picks = optimiseByCount(live, openSlots, strategy)
       closing = slots
-        ? `Line-up of ${picks.length} of your ${slots} creators, strongest first`
+        ? (lockedList.length
+            ? `${picks.length} to add to the ${lockedList.length} you have confirmed, strongest first`
+            : `Line-up of ${picks.length} of your ${slots} creators, strongest first`)
         : `Line-up of ${picks.length} creators, strongest first`
     } else {
       const r = await optimise(live, spendable, strategy, p => setTested({ n: p.tested, total: p.total, best: p.best, spend: p.spend }))
@@ -732,15 +749,20 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                 <Gift className="size-3.5" />What this campaign includes
               </p>
               <div className="mt-3 text-[32px] font-extrabold leading-none tracking-[-0.04em]">
-                {chosen.size}
+                {slotsTaken}
                 <span className="text-muted-foreground"> / {slots ?? "—"}</span>
               </div>
               <p className="mt-1.5 text-[13px] text-muted-foreground">
                 {slots == null
                   ? "Creators chosen"
-                  : chosen.size >= slots
-                    ? "That is everybody. Swap one out to change your line-up."
-                    : `${slots - chosen.size} more to choose`}
+                  : slotsTaken < slots
+                    ? `${slots - slotsTaken} more to choose`
+                    : chosen.size === 0
+                      /* Every slot is a confirmed booking. "Swap one out" would be an
+                         instruction they cannot follow: a confirmed creator has no tick
+                         to untick. */
+                      ? "That is everybody, and all of them are confirmed."
+                      : "That is everybody. Swap one out to change your line-up."}
               </p>
               {selection.product && (
                 <ProductBarter
