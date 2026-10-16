@@ -480,7 +480,12 @@ export default function Today() {
             screen anybody acts on, so it gets the width and the eye. The target, what is
             running without you, and the shortcuts are all things you glance at, and a glance
             does not need a full column. */}
-        <div className="grid gap-ds-3 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+        {/* The rail only exists when there is something in it. Leadership has not set a
+            target for every role, and a talent manager without one was being shown a 20rem
+            column of nothing beside a queue squeezed into two thirds of a wide screen. An
+            empty column is the same mistake as an empty state, drawn sideways. */}
+        <div className={cn('grid gap-ds-3 lg:items-start',
+                           target && 'lg:grid-cols-[minmax(0,1fr)_20rem]')}>
 
         <section data-tour="today-queue"
                  className="space-y-ds-3 rounded-[var(--radius-card)] border bg-card p-ds-3
@@ -510,6 +515,7 @@ export default function Today() {
         </section>
 
         {/* ── the rail ─────────────────────────────────────────────────────────────── */}
+        {target && (
         <aside className="space-y-ds-3">
 
           {/* The target, given its own surface. It used to sit in the queue heading, where a
@@ -546,6 +552,7 @@ export default function Today() {
               did — with every stage and a number on each — so the summary goes and the full
               table stays exactly as it was. */}
         </aside>
+        )}
         </div>
 
         {/* The full table. The rail above answers "is anything moving"; this answers "show me

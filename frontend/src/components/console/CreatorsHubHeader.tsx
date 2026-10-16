@@ -30,7 +30,14 @@ import { useAdminAccess } from '@/hooks/useAdminAccess'
 import { creatorIntakeApi } from '@/services/creatorIntakeApi'
 import { cn } from '@/lib/utils'
 
-export function CreatorsHubHeader({ className, bare }: { className?: string; bare?: boolean }) {
+export function CreatorsHubHeader({ className, bare, hideAction }: {
+  className?: string
+  bare?: boolean
+  /** The screen below carries its own Add button, next to the thing it adds to. Two
+      primaries for one job is how "Add or import creators", "Import a spreadsheet" and
+      "Add a creator" came to sit on the same screen, all of them black. */
+  hideAction?: boolean
+}) {
   const router = useRouter()
   const { can, loading } = useAdminAccess()
   // How many creators are sitting unpriced. Superadmin-only endpoint: for everyone else it
@@ -66,7 +73,7 @@ export function CreatorsHubHeader({ className, bare }: { className?: string; bar
   // The `bare` screens print their own title and their own buttons, so there is no title bar
   // here to hang this on; they keep the tab row only, and the button lives on every screen
   // that uses the full header.
-  const action = !loading && !bare && can('influencers') ? (
+  const action = !loading && !bare && !hideAction && can('influencers') ? (
     <Button className="gap-2" onClick={() => router.push('/work/influencers/add')}>
       <Plus className="h-4 w-4" />
       Add or import creators

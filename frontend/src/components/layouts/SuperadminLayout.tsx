@@ -12,6 +12,7 @@ import {
 import { useAdminAccess, type AdminModule, ADMIN_MODULES } from "@/hooks/useAdminAccess"
 import { MODULE_HOME, modulesForPath } from "@/lib/routeModules"
 import { GlobalCommandPalette } from "@/components/GlobalCommandPalette"
+import { KeyboardShortcuts } from "@/components/console/KeyboardShortcuts"
 
 interface SuperadminLayoutProps {
   children: React.ReactNode
@@ -68,6 +69,8 @@ export function SuperadminLayout({
       >
         <SuperAdminSidebar variant="inset" />
         <GlobalCommandPalette />
+        {/* One handler for the whole console. Press ? to see what it does. */}
+        <KeyboardShortcuts />
         <SidebarInset>
           <SiteHeader />
           {/* The ground the cards sit on. Soft rather than white: the panels are white, and

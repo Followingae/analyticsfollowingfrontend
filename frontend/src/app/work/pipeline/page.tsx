@@ -45,6 +45,7 @@ import {
 import { ArrowUpRight, Search, UserPlus, X } from 'lucide-react'
 import { cdnAvatar } from '@/lib/avatar'
 import { cn } from '@/lib/utils'
+import { isTypingTarget } from '@/components/console/KeyboardShortcuts'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 
@@ -126,6 +127,10 @@ export default function PipelinePage() {
      a keystroke does not become a request: at 37 rows it would not matter, at 400 it would. */
   const [typed, setTyped] = useState('')
   const [picked, setPicked] = useState<Set<string>>(new Set())
+  /* The row the keyboard is on. -1 is "nowhere yet", which is the honest starting state:
+     highlighting the first row before anybody has pressed anything would claim a selection
+     that has not been made. */
+  const [cursor, setCursor] = useState(-1)
 
   useEffect(() => {
     const t = setTimeout(() => setQuery(typed), 250)
@@ -172,6 +177,43 @@ export default function PipelinePage() {
       return kept.size === prev.size ? prev : kept
     })
   }, [rows])
+
+  /* j, k, x and Enter. The same four keys this kind of list has had since mail clients,
+     and the reason they are worth having here is that confirming nine late creators is nine
+     journeys to a checkbox otherwise. The typing guard is shared with the global handler so
+     the two can never disagree about what counts as typing. */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || isTypingTarget(e.target)) return
+      const n = rows.length
+      if (!n) return
+      const k = e.key.toLowerCase()
+      if (k === 'j' || k === 'k') {
+        e.preventDefault()
+        setCursor(c => {
+          const next = k === 'j' ? Math.min(n - 1, c + 1) : Math.max(0, c < 0 ? 0 : c - 1)
+          document.getElementById('pipe-row-' + rows[next].id)
+            ?.scrollIntoView({ block: 'nearest' })
+          return next
+        })
+        return
+      }
+      if (cursor < 0 || cursor >= n) return
+      if (k === 'x') {
+        e.preventDefault()
+        toggle(rows[cursor].id)
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        router.push(`/work/campaigns/${rows[cursor].campaign_id}`)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [rows, cursor, router])
+
+  /* A cursor pointing at a row that is no longer on screen is worse than no cursor: x would
+     tick whatever happens to be in that position now. */
+  useEffect(() => { setCursor(-1) }, [lane, stage, owner, query])
 
   const toggle = (id: string) => setPicked(p => {
     const n = new Set(p)
@@ -408,7 +450,18 @@ export default function PipelinePage() {
                   : (aed(r.total_cost) ?? aed(r.total_sell))
                 const done = r.stage === 'paid' || r.stage === 'dropped'
                 return (
-                  <li key={r.id} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-black/[0.02] dark:hover:bg-white/[0.04]">
+                  <li
+                    key={r.id}
+                    id={'pipe-row-' + r.id}
+                    className={cn(
+                      'flex items-center gap-3 px-4 py-3 transition-colors',
+                      'hover:bg-black/[0.02] dark:hover:bg-white/[0.04]',
+                      /* Where the keyboard is. An inset ring rather than a background, so it
+                         reads as a cursor and not as a selection - x is what selects. */
+                      cursor >= 0 && rows[cursor]?.id === r.id
+                        && 'bg-black/[0.03] ring-1 ring-inset ring-black/15 dark:bg-white/[0.06] dark:ring-white/25',
+                    )}
+                  >
                     <Checkbox
                       checked={picked.has(r.id)}
                       onCheckedChange={() => toggle(r.id)}

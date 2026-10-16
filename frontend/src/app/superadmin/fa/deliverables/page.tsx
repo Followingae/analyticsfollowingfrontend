@@ -12,6 +12,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Check, X, ExternalLink, Camera, ImageIcon, Loader2, Pencil, ChevronLeft, ChevronRight } from "lucide-react"
 import { PageHead } from "@/components/console/primitives"
@@ -117,6 +118,12 @@ function FADeliverables() {
   const [filter, setFilter] = useState(
     FILTERS.some(f => f.value === askedStage) ? askedStage : "active")
   const [busy, setBusy] = useState<string | null>(null)
+  /* Verifying is the same decision taken many times: the creator says the post is live and
+     somebody confirms it. Twenty-five of them, one at a time, is why twenty-five of them
+     were still sitting there. Only proof_submitted rows can be ticked, because verify is
+     the only action that means the same thing for every row. */
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [bulkRunning, setBulkRunning] = useState(false)
   const [editNote, setEditNote] = useState("")
   // In-page content viewer: which deliverable's files are open + current index
   const [viewer, setViewer] = useState<{ d: Deliverable; urls: string[]; index: number } | null>(null)
@@ -179,8 +186,37 @@ function FADeliverables() {
   // is intentionally disabled (403) for everyone, so always use the admin verify route.
   const confirm = (d: Deliverable) =>
     act(d.id + "cf", () => faDeliverableApi.verify(d.id), "Verified, payout released")
+  useEffect(() => { setPicked(new Set()) }, [filter, campaignId])
+
   const reject = (d: Deliverable) =>
     act(d.id + "rj", () => faDeliverableApi.reject(d.id), "Deliverable rejected")
+
+  /* One at a time, deliberately. Each verify releases a payout, so a single failure must
+     cost that one row and not the rest, and the count at the end has to be what actually
+     happened rather than what was attempted. */
+  const verifiable = deliverables.filter((d) => d.stage === "proof_submitted")
+
+  const verifyPicked = async () => {
+    const ids = [...picked]
+    if (!ids.length) return
+    setBulkRunning(true)
+    let done = 0
+    const failed: string[] = []
+    for (const id of ids) {
+      try {
+        const r = await faDeliverableApi.verify(id)
+        if (r && r.success === false) throw new Error(r.detail || "refused")
+        done += 1
+      } catch {
+        failed.push(id)
+      }
+    }
+    setBulkRunning(false)
+    setPicked(new Set())
+    if (done) toast.success(`${done} verified, payout released`)
+    if (failed.length) toast.error(`${failed.length} could not be verified, left as they were`)
+    await load(filter, campaignId)
+  }
 
   return (
     <AuthGuard requireAdmin={true}>
@@ -222,6 +258,33 @@ function FADeliverables() {
             /* Was a Card per deliverable: forty rows, forty borders, forty shadows, and two
                edges to cross to get from one creator's name to the next. It is a queue, so
                it is drawn as a list. Every control the card carried is still on the row. */
+            <>
+            {deliverables.some((d) => d.stage === "proof_submitted") && (
+              <div className="flex items-center gap-3 rounded-ds-lg border bg-card px-ds-3 py-ds-2">
+                <Checkbox
+                  checked={verifiable.length > 0 && picked.size === verifiable.length}
+                  disabled={verifiable.length === 0 || bulkRunning}
+                  aria-label="Select every deliverable waiting to be verified"
+                  onCheckedChange={(on: boolean | "indeterminate") =>
+                    setPicked(on === true ? new Set(verifiable.map((d) => d.id)) : new Set())}
+                />
+                <span className={picked.size ? "text-sm font-medium" : "text-sm text-muted-foreground"}>
+                  {picked.size
+                    ? `${picked.size} selected`
+                    : `${verifiable.length} waiting to be verified`}
+                </span>
+                <Button
+                  size="sm"
+                  className="ml-auto"
+                  disabled={picked.size === 0 || bulkRunning}
+                  onClick={verifyPicked}
+                >
+                  {bulkRunning
+                    ? <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" />Verifying</>
+                    : <><Check className="mr-1.5 h-4 w-4" />Verify {picked.size || ""}</>}
+                </Button>
+              </div>
+            )}
             <div className="divide-y divide-black/[0.06] dark:divide-white/[0.07]">
               {deliverables.map((d) => {
                 const meta = STAGE_META[d.stage] ?? STAGE_META.pending
@@ -232,6 +295,19 @@ function FADeliverables() {
                   <div key={d.id} className="py-ds-3">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-4 min-w-0">
+                          {isProofSubmitted && (
+                            <Checkbox
+                              className="mt-3"
+                              checked={picked.has(d.id)}
+                              disabled={bulkRunning}
+                              aria-label={`Select ${d.member_handle || d.member_name || "this deliverable"}`}
+                              onCheckedChange={() => setPicked((p) => {
+                                const n = new Set(p)
+                                if (n.has(d.id)) n.delete(d.id); else n.add(d.id)
+                                return n
+                              })}
+                            />
+                          )}
                           <div className="h-10 w-10 rounded-ds-md bg-black/[0.04] flex items-center justify-center shrink-0 dark:bg-white/[0.07]">
                             <Camera className="h-4.5 w-4.5 text-muted-foreground" />
                           </div>
@@ -339,6 +415,7 @@ function FADeliverables() {
                 )
               })}
             </div>
+            </>
           )}
 
           {/* In-page content viewer — images and videos render right here instead of a
