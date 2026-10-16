@@ -172,6 +172,12 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   // The order is the order the work happens in: who we sell to, what we sell them, who
   // delivers it, what it costs and who signs it off.
   const WORK: Entry[] = [
+    // The daily screen, and the first row for that reason. Every booked creator across
+    // every brand, on the rung they are on, with the sentence naming what happens next.
+    // It does not replace Chasing, Enrolments or Payables - those are where the decisions
+    // are actually made - it is the one place you can see all of them at once.
+    { url: "/work/pipeline", icon: ClipboardCheck, badge: "pipeline",
+      modules: ["campaigns", "influencers"] },
     { url: "/work/clients", icon: Building2,
       modules: ["clients", "proposals"], scopes: ["leadership", "account"] },
     { url: "/work/brands", icon: Building2, badge: "brands",

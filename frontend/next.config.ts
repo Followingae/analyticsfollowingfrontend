@@ -138,7 +138,7 @@ const nextConfig: NextConfig = {
           // it was matched AFTER, swallowed here, and sent to /superadmin/enrolments/[id],
           // which does not exist: opening any single enrolment record 404'd in production
           // while the list it was opened from worked perfectly.
-          source: '/work/:path((?!areas|brands|chasing|coverage|creators|enrolments|goals|guide|inbox|manual|money|payables|sourcing|team|today).*)',
+          source: '/work/:path((?!areas|brands|chasing|coverage|creators|enrolments|goals|guide|inbox|manual|money|payables|pipeline|sourcing|team|today).*)',
           destination: '/superadmin/:path*',
         },
       ],

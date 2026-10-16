@@ -66,6 +66,13 @@ export const DESTINATIONS: Record<string, Destination> = {
   },
 
   // ── Work ────────────────────────────────────────────────────────────────────────────
+  '/work/pipeline': {
+    short: 'Pipeline',
+    full: 'Pipeline',
+    // The ladder across every campaign at once. Named for the thing, not for the question
+    // it answers: "Who is waiting on me" is a filter on this screen, not a second screen.
+    hint: 'Every creator we owe something, and what happens next',
+  },
   '/work/clients': {
     short: 'Clients',
     full: 'Clients',
