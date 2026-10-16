@@ -80,7 +80,7 @@ export default function CampaignContentPage() {
                     onClick={() => router.push(`/work/campaigns/${campaignId}/timeline`)}>
               <ArrowLeft className="h-3.5 w-3.5" /> Campaign
             </Button>
-            <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">
+            <h1 className="text-ds-title">
               Content
             </h1>
             <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">

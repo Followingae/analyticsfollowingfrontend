@@ -131,7 +131,7 @@ export default function ReportCampaignDetail() {
             <Button asChild variant="ghost" size="sm" className="-ml-2 mb-1 gap-1.5 text-muted-foreground">
               <Link href="/superadmin/report-campaigns"><ArrowLeft className="h-3.5 w-3.5" /> Report campaigns</Link>
             </Button>
-            <h1 className="truncate text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">{campaign.name}</h1>
+            <h1 className="truncate text-ds-title">{campaign.name}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{campaign.brand_name}</p>
           </div>
 

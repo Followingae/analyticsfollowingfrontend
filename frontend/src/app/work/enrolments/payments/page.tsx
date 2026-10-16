@@ -126,8 +126,8 @@ function PaymentsPage() {
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Payments</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          <h1 className="text-ds-title">Payments</h1>
+          <p className="mt-1 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
             Everyone who has signed an agreement, and whether their money has gone out. Only
             creators who have signed appear here.
           </p>

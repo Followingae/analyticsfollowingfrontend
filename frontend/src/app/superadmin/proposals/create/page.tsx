@@ -803,7 +803,7 @@ function CreateProposalContent() {
             Back
           </Button>
           <div>
-            <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">{pageTitle}</h1>
+            <h1 className="text-ds-title">{pageTitle}</h1>
             <p className="text-sm text-muted-foreground mt-1">{pageDescription}</p>
           </div>
         </motion.div>

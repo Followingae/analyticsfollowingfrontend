@@ -167,7 +167,7 @@ export default function ProposalApprovalPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{ws.proposal?.campaign_name || ws.proposal?.title || 'Proposal'}</h1>
+            <h1 className="text-ds-title">{ws.proposal?.campaign_name || ws.proposal?.title || 'Proposal'}</h1>
             <div className="mt-1 flex items-center gap-2">
               <Badge className={sb.cls}>{sb.label}</Badge>
               {status === 'pending_internal_review' && chain?.current_approval_step && (

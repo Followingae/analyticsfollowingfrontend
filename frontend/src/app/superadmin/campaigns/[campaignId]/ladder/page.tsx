@@ -174,7 +174,7 @@ export default function LadderPage() {
                     className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-3.5 w-3.5" />Back to the campaign
               </Link>
-              <h1 className="mt-2 text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">Delivery</h1>
+              <h1 className="mt-2 text-ds-title">Delivery</h1>
               {/* Four numbers in four outlined pills, two of which the board below already
                   shows: the product count is the Products panel and the paid count is the
                   height of the last column. The two that are NOT on the board, how many are

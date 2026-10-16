@@ -260,7 +260,7 @@ export default function ConfirmForClientPage() {
                   className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-3.5 w-3.5" />Back to the proposal
             </Link>
-            <h1 className="mt-2 text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">
+            <h1 className="mt-2 text-ds-title">
               Confirm for the client
             </h1>
             <p className="mt-1.5 max-w-2xl text-muted-foreground">

@@ -227,7 +227,7 @@ export default function ReviewQueuePage() {
       <div className="space-y-ds-5">
         <div className="flex flex-wrap items-start gap-4">
           <div>
-            <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">Creators needing a price</h1>
+            <h1 className="text-ds-title">Creators needing a price</h1>
             <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
               We cannot quote these creators yet. First someone adds what the creator charges
               us, then a founder sets our price and adds them to the database. Analytics only

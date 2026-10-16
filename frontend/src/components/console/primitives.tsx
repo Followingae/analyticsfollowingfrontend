@@ -117,9 +117,11 @@ export function PageHead({
     <div data-tour="page-head"
          className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="space-y-2">
-        <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">
-          {title}
-        </h1>
+        {/* The token, not a literal. This was text-[30px]/lg:text-[34px] while the design
+            system's own title step is 2.074rem, so the shared header and every screen that
+            hand-rolled a title using the token were two different sizes - and the drift had
+            nowhere to be fixed, because neither was wrong on its own. */}
+        <h1 className="text-ds-title">{title}</h1>
         {sub && <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">{sub}</p>}
       </div>
       {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}

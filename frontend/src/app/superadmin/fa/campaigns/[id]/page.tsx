@@ -113,7 +113,7 @@ export default function FACampaignFunnelPage() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="min-w-0">
-                <h1 className="truncate text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">
+                <h1 className="truncate text-ds-title">
                   {campaign?.name || "Campaign"}
                 </h1>
                 <div className="mt-ds-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">

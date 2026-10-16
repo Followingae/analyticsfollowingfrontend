@@ -148,7 +148,7 @@ export default function MechanicsPage() {
               <ArrowLeft className="mr-1.5 h-4 w-4" />
               {proposal?.name || "Proposal"}
             </Button>
-            <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em]">
+            <h1 className="text-ds-title">
               How this happens
             </h1>
             <p className="mt-1 max-w-2xl text-[15px] text-muted-foreground">

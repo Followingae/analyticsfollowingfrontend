@@ -234,7 +234,7 @@ export default function CampaignTimelinePage() {
                       <Badge variant="outline" className="rounded-full capitalize">{c.campaign_type}</Badge>
                     )}
                   </div>
-                  <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em]">{c.name}</h1>
+                  <h1 className="text-ds-title">{c.name}</h1>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {/* Content sits beside the delivery board because that is the pair a

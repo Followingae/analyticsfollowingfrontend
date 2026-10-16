@@ -154,8 +154,8 @@ function Detail() {
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{s(L.creator_handle)}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-ds-title">{s(L.creator_handle)}</h1>
+          <p className="mt-1 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
             {s(L.campaign_display_name)} for {s(L.brand_display_name)} · {s(L.deliverables_summary)} · {money(L.fee_aed_cents as number)}
           </p>
         </div>
