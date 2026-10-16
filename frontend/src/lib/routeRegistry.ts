@@ -3,6 +3,8 @@
  * Replaces the hand-rolled getPageTitle if-chain that covered ~10 routes.
  */
 
+import { DESTINATIONS } from "@/lib/destinations"
+
 const ROUTE_TITLES: Record<string, string> = {
   // Brand
   "/dashboard": "Dashboard",
@@ -94,7 +96,12 @@ export function getRouteTrail(pathname: string): Crumb[] {
   segments.forEach((seg, i) => {
     acc += `/${seg}`
     crumbs.push({
-      title: ROUTE_TITLES[acc] ?? prettify(seg),
+      // destinations.ts first, because it is where a console screen's ONE name lives. The
+      // breadcrumb was prettifying the URL segment instead, so the trail above a page read
+      // "Inbox" while the sidebar and the page itself both said "My queue", and
+      // "Influencers" above a page titled "Creators". Three names for two screens, all on
+      // screen at the same time.
+      title: DESTINATIONS[acc]?.short ?? ROUTE_TITLES[acc] ?? prettify(seg),
       href: acc,
       isLast: i === segments.length - 1,
     })
