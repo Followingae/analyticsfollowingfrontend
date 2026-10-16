@@ -426,7 +426,7 @@ export default function PipelinePage() {
                         </AvatarFallback>
                       </Avatar>
 
-                      <span className="min-w-0 flex-[1.3]">
+                      <span className="min-w-0 flex-[1.1]">
                         <span className={cn('block truncate text-sm leading-snug',
                           done ? 'text-muted-foreground' : 'font-medium')}>
                           {r.full_name || (r.username ? '@' + r.username : 'Unnamed creator')}
@@ -437,7 +437,7 @@ export default function PipelinePage() {
                         </span>
                       </span>
 
-                      <span className="hidden min-w-0 flex-1 md:block">
+                      <span className="hidden min-w-0 flex-[1.25] md:block">
                         <span className="block truncate text-sm leading-snug">{r.campaign_name}</span>
                         <span className="block truncate text-xs text-muted-foreground">
                           {r.client_name}
@@ -484,7 +484,11 @@ export default function PipelinePage() {
                         {initials(r.owner_name)}
                       </span>
                     ) : (
-                      <Badge variant="outline" className="shrink-0 text-[10px] font-normal text-muted-foreground">
+                      // A dashed outline reads as a slot waiting to be filled, which is
+                      // what it is. Ten solid chips down the page shout; ten dashed ones
+                      // ask.
+                      <Badge variant="outline"
+                             className="shrink-0 border-dashed text-[10px] font-normal text-muted-foreground/70">
                         nobody
                       </Badge>
                     )}
