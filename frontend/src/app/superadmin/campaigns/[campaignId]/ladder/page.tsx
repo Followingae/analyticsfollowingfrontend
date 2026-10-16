@@ -678,7 +678,13 @@ export default function LadderPage() {
                     </p>
                   )}
 
-                  {open.stage !== "paid" && open.stage !== "dropped" && (
+                  {/* Ending a booking is leadership's call, the same as confirming a rate
+                      or marking a payment. It was open to anybody with the campaigns
+                      module, which is every talent and account manager, and the creator on
+                      the other side of it may already have a signed agreement and a parcel
+                      on the way. `canDestroy` is exactly the scope the endpoint now asks
+                      for, so the button is not shown to somebody who would be refused. */}
+                  {canDestroy && open.stage !== "paid" && open.stage !== "dropped" && (
                     <>
                       <Separator />
                       <details className="group">
