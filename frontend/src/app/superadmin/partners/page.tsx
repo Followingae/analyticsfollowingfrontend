@@ -33,7 +33,8 @@ import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet'
 import { DataTable, DataTableColumnHeader } from '@/components/ui2/data-table'
-import { PageHead, Panel } from '@/components/console/primitives'
+import { Panel } from '@/components/console/primitives'
+import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
 import { toast } from 'sonner'
 import {
   Download, Mail, Paperclip, Phone, RefreshCw, Globe, ExternalLink,
@@ -239,9 +240,8 @@ function Leads() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-ds-5 p-ds-3 md:p-ds-4">
-      <PageHead
-        title="Partner leads"
-        sub="Merchants who applied through a landing page. Everything that came in, who has it, and where it got to."
+      <ClientsHubHeader
+        note="Merchants who applied through a landing page. Everything that came in, who has it, and where it got to."
         action={
           <div className="flex items-center gap-ds-2">
             <Button variant="outline" size="sm" onClick={() => { setLoading(true); load() }}>

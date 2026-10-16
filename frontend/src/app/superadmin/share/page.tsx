@@ -31,7 +31,8 @@ import {
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { cn } from '@/lib/utils'
-import { Empty, PageHead, Panel, Row } from '@/components/console/primitives'
+import { Empty, Panel, Row } from '@/components/console/primitives'
+import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
 import { ShareComposer, type Kind, type Targets } from '@/components/share/ShareComposer'
 
 export const dynamic = 'force-dynamic'
@@ -109,9 +110,8 @@ export default function ShareCenterPage() {
             />
           ) : (
             <>
-              <PageHead
-                title="Share Center"
-                sub="Anything a client needs that is not a proposal, an invoice or a campaign. The list leads on whether they have opened it, because sending is the half we already know about."
+              <ClientsHubHeader
+                note="Anything a client needs that is not a proposal, an invoice or a campaign. The list leads on whether they have opened it, because sending is the half we already know about."
                 action={
                   <Button onClick={() => setComposing(true)}>
                     <Plus className="mr-1.5 size-4" />Share something

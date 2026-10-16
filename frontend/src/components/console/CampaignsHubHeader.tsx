@@ -32,6 +32,9 @@ const TABS: HubTab[] = [
   { label: 'App campaigns', href: '/work/fa/campaigns', module: 'fa' },
   { label: 'Production', href: '/ops/campaigns', module: 'operations' },
   { label: 'Reports', href: '/work/report-campaigns', module: 'campaigns' },
+  /* Who is late, grouped by the campaign they are late on. The pipeline answers the same
+     question across every brand at once; this is the view from inside one. */
+  { href: '/work/chasing', module: 'campaigns' },
 ]
 
 type Counts = {
@@ -179,7 +182,12 @@ function StageStrip() {
  * Drop this at the top of a campaigns screen. `action` is that screen's own main button,
  * which moves up beside the title so the page keeps one heading instead of two.
  */
-export function CampaignsHubHeader({ action }: { action?: React.ReactNode }) {
+export function CampaignsHubHeader({ action, note }: {
+  action?: React.ReactNode
+  /** The sentence explaining THIS tab. The hub's own sub explains the destination, so a
+      screen joining the hub keeps what it used to say rather than losing it. */
+  note?: React.ReactNode
+}) {
   const pathname = usePathname() || ''
   // The list of everything is the only place the pipeline belongs; the other tabs are
   // already inside one stage.
@@ -193,6 +201,7 @@ export function CampaignsHubHeader({ action }: { action?: React.ReactNode }) {
       tabs={TABS}
       action={action}
     >
+      {note && <p className="max-w-3xl text-sm text-muted-foreground">{note}</p>}
       {onAllCampaigns ? <StageStrip /> : null}
     </Hub>
   )

@@ -25,7 +25,8 @@ import { Check, X, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { API_CONFIG } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
-import { Empty, PageHead, Panel, Row, type Tone } from "@/components/console/primitives"
+import { Empty, Panel, Row, type Tone } from "@/components/console/primitives"
+import { MoneyHubHeader } from "@/components/console/MoneyHubHeader"
 
 interface ApprovalRow {
   id: string
@@ -98,7 +99,7 @@ export default function ApprovalsPage() {
     <AuthGuard>
       <SuperAdminInterface>
         <div className="mx-auto max-w-4xl space-y-ds-5 p-4 md:p-7">
-          <PageHead
+          <MoneyHubHeader
             title="Approvals"
             sub="Decisions we have asked a founder for. Each one goes out as a link they can answer from their phone without logging in, so this is where you see whether they have."
           />

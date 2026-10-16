@@ -14,7 +14,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cdnAvatar } from '@/lib/avatar'
-import { PageHead, ScoreDot, RoundButton, GroupLabel } from '@/components/console/primitives'
+import { ScoreDot, RoundButton, GroupLabel } from '@/components/console/primitives'
+import { CampaignsHubHeader } from '@/components/console/CampaignsHubHeader'
 import { ArrowUpRight, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
@@ -143,9 +144,8 @@ export default function ChasingPage() {
       <div className="space-y-ds-5">
         {/* The title was hand-set here at a size no other console screen uses. PageHead is
             the same decision made once, and it carries the tour's page anchor with it. */}
-        <PageHead
-          title="Creators to chase"
-          sub={'Booked creators waiting on a rate, a guide or the content. ' + (late > 0
+        <CampaignsHubHeader
+          note={'Booked creators waiting on a rate, a guide or the content. ' + (late > 0
             ? `${late} past their date.`
             : 'Nobody is late.')}
           action={late > 0 ? (

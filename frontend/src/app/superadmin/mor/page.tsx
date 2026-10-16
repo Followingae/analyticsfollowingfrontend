@@ -33,7 +33,8 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
-import { PageHead, Panel, Stat } from '@/components/console/primitives'
+import { Panel, Stat } from '@/components/console/primitives'
+import { MoneyHubHeader } from '@/components/console/MoneyHubHeader'
 import { toast } from 'sonner'
 import {
   AlertTriangle, Banknote, CheckCircle2, FileText, Loader2, Receipt, RefreshCw, Users, Wallet,
@@ -89,7 +90,7 @@ function Ops() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-ds-5 p-ds-3 md:p-ds-4">
-      <PageHead
+      <MoneyHubHeader
         title="Creator Contracting"
         sub="Every order, every client. Raise the invoice, mark the money in, pay the creators."
         action={

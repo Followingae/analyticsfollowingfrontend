@@ -27,18 +27,13 @@ import {
   ShieldCheck,
   BarChart3,
   Users,
-  Coins,
-  Database,
   Briefcase,
-  FileText,
   LayoutDashboard,
   Store,
   Megaphone,
   ClipboardCheck,
-  Banknote,
   Building2,
   Wrench,
-  Receipt,
   ListChecks,
   Users2,
   Inbox,
@@ -49,9 +44,6 @@ import {
   Wallet,
   Image as ImageIcon,
   Activity,
-  Send,
-  Map,
-  FileSignature,
   BookOpen,
 } from "lucide-react"
 
@@ -169,45 +161,44 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     scopes?: string[]
   }
 
-  // The order is the order the work happens in: who we sell to, what we sell them, who
-  // delivers it, what it costs and who signs it off.
+  // ── FIVE. Not fifteen. ───────────────────────────────────────────────────────────────
+  //
+  // The comment above this list used to say "the nav is now the six things" while the list
+  // underneath it had fifteen entries, and it had fifteen because every hub's TABS were also
+  // being listed here as rows. Brands, Quotes and Share links are the Clients hub. Rosters,
+  // Pending rates and Coverage are the Creators hub. Chasing is the Campaigns hub. Payables,
+  // Enrolments, Contracting and Sign-offs are the Money hub. Listing a hub and its tabs is
+  // not two ways to get somewhere, it is two names for the same place, and it is why nobody
+  // could be told where anything was.
+  //
+  // So the sidebar is the five things the work is done TO, in the order it happens: who we
+  // owe something to, who we sell to, who we sell, what we are delivering, and the money.
+  // Every screen that used to be a row is now a tab on the destination it belongs to, at the
+  // same URL it always had, and still one keystroke away in Command-K.
+  //
+  // Nothing was deleted. Nothing moved house. The menu stopped repeating itself.
   const WORK: Entry[] = [
-    // The daily screen, and the first row for that reason. Every booked creator across
-    // every brand, on the rung they are on, with the sentence naming what happens next.
-    // It does not replace Chasing, Enrolments or Payables - those are where the decisions
-    // are actually made - it is the one place you can see all of them at once.
+    // The day's work, across every brand at once. First because it is the one screen a
+    // talent manager should be able to live in.
     { url: "/work/pipeline", icon: ClipboardCheck, badge: "pipeline",
       modules: ["campaigns", "influencers"] },
-    { url: "/work/clients", icon: Building2,
-      modules: ["clients", "proposals"], scopes: ["leadership", "account"] },
-    { url: "/work/brands", icon: Building2, badge: "brands",
-      modules: ["clients"], scopes: ["leadership", "account", "business_development"] },
-    { url: "/work/proposals", icon: FileText, badge: "proposals", modules: ["proposals"] },
-    { url: "/work/share", icon: Send,
-      modules: ["clients"], scopes: ["leadership", "account", "business_development"] },
-    { url: "/work/areas", icon: Database, badge: "areas", modules: ["influencers"] },
-    { url: "/work/influencers", icon: Users2, modules: ["influencers"] },
-    { url: "/work/influencers/review", icon: Coins, badge: "needs-price",
-      modules: ["influencers"], scopes: ["leadership", "talent"] },
-    { url: "/work/coverage", icon: Map,
-      modules: ["influencers"], scopes: ["leadership", "talent"] },
-    { url: "/work/campaigns", icon: Megaphone,
+    // Hub: clients, brands, quotes, share links, partner leads.
+    //
+    // No scope gate. It carried one, which meant a talent manager could be granted the
+    // clients module and still not be shown the row - two gates disagreeing about the same
+    // question, and the module grant silently losing. Who may open this is decided in one
+    // place now: the module grant. What they may READ about a client is a different question
+    // and is still answered by field_policy on the server.
+    { url: "/work/clients", icon: Building2, badge: "proposals",
+      modules: ["clients", "proposals"] },
+    // Hub: creators and rates, pending rates, analysed, rosters, coverage, app creators.
+    { url: "/work/influencers", icon: Users2, badge: "needs-price", modules: ["influencers"] },
+    // Hub: all campaigns, app campaigns, production, reports, chasing.
+    { url: "/work/campaigns", icon: Megaphone, badge: "chasing",
       modules: ["campaigns", "operations", "fa"] },
-    { url: "/work/chasing", icon: ClipboardCheck, badge: "chasing",
-      modules: ["campaigns", "influencers"],
-      scopes: ["leadership", "talent", "account"] },
-    { url: "/work/enrolments", icon: FileSignature, badge: "enrolments",
-      modules: ["influencers", "proposals"], scopes: ["leadership", "talent"] },
-    { url: "/work/payables", icon: Banknote, badge: "payables",
-      modules: ["influencers"], scopes: ["leadership", "talent"] },
-    // Creator contracting. It was reachable only as a tab inside the money hub, so the first
-    // real order sat for a day: nobody opens a screen they cannot see. Leadership only,
-    // because every action on it moves money.
-    { url: "/work/mor", icon: Receipt, modules: ["billing"], scopes: ["leadership"] },
-    { url: "/work/money", icon: Wallet,
-      modules: ["billing", "influencers"], scopes: ["leadership"] },
-    { url: "/work/approvals", icon: ClipboardCheck, badge: "signoffs",
-      scopes: ["leadership"] },
+    // Hub: client credits, contracting, creator payments, app balances, enrolments, sign-offs.
+    { url: "/work/money", icon: Wallet, badge: "enrolments",
+      modules: ["billing", "influencers"], scopes: ["leadership", "talent"] },
   ]
 
   const managementItems = accessLoading ? [] : WORK.filter(allowed).map(e => ({

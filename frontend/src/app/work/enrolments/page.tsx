@@ -17,6 +17,7 @@ import Link from "next/link"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Button } from "@/components/ui/button"
+import { MoneyHubHeader } from "@/components/console/MoneyHubHeader"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -258,14 +259,14 @@ function EnrolmentsPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Enrolments</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Once a brand confirms a creator, this is the paperwork: the agreement they sign, the
-            details they give us, and where their money and their product go.
-          </p>
-        </div>
+      {/* Was a hand-rolled title block at a size no other console screen uses, on a screen
+          the sidebar listed on its own. It is one of the money jobs, so it wears the money
+          hub's header and its tabs: "we cannot pay her yet" and the reason why are no longer
+          two screens apart. */}
+      <MoneyHubHeader
+        title="Enrolments"
+        sub="Once a brand confirms a creator, this is the paperwork: the agreement they sign, the details they give us, and where their money and their product go."
+        action={
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -290,7 +291,8 @@ function EnrolmentsPage() {
             </Button>
           )}
         </div>
-      </div>
+        }
+      />
 
       <DirectEnrolmentDialog open={direct} onOpenChange={setDirect} onCreated={() => { void load() }} />
 

@@ -25,6 +25,10 @@ const TABS: HubTab[] = [
   { href: '/work/clients', module: 'clients' },
   { href: '/work/brands', module: 'clients' },
   { href: '/work/proposals', module: 'proposals' },
+  // What a client has actually been sent, and whether they opened it. It was a sidebar row
+  // of its own, which is how a quote and the link that carries the quote ended up being
+  // described as two different parts of the business.
+  { href: '/work/share', module: 'clients' },
   // Merchants who applied through a landing page. Sits with Clients because that is what a
   // lead becomes, and because it was invisible for two months living only in an inbox.
   { label: 'Partner leads', href: '/work/partners', module: 'clients' },

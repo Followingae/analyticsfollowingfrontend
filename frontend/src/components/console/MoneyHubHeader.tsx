@@ -21,7 +21,7 @@ import { useAdminAccess } from '@/hooks/useAdminAccess'
 
 /** The tabs of the money hub, filtered for one viewer. Shared with /work/money's router. */
 export function useMoneyTabs(): HubTab[] {
-  const { can, canSeeCost, loading } = useAdminAccess()
+  const { can, canSeeCost, canSeeMargin, loading } = useAdminAccess()
   const all: HubTab[] = [
     /* "Client invoices" is what this tab promised and what the screen behind it cannot
        deliver: the billing endpoints serve the credit wallet ledger, not invoices. Client
@@ -35,6 +35,14 @@ export function useMoneyTabs(): HubTab[] {
     // Cost, not just creators — see the note above.
     { href: '/work/payables', module: 'influencers', when: canSeeCost },
     { label: 'Creator app balances', href: '/work/fa/wallets', module: 'fa', when: canSeeCost },
+    /* The paperwork a payment depends on: what a creator signed and the bank details they
+       gave us. It sat in the nav as its own thing, so "we cannot pay her yet" and the reason
+       why were two screens apart. */
+    { href: '/work/enrolments', module: 'influencers', when: canSeeCost },
+    /* The founders' desk: prices to set, creators to release, payments to approve. Every
+       action on it moves money, which is why it is here and not a destination of its own.
+       Leadership only, by the same test that gates margin. */
+    { href: '/work/approvals', when: canSeeMargin },
   ]
   if (loading) return []
   return all.filter(t => (t.module ? can(t.module) : true) && t.when !== false)
