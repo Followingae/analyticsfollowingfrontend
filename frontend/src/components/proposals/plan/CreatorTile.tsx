@@ -121,6 +121,15 @@ export const CreatorTile = memo(function CreatorTile({
             {c.full_name || c.username}
             {c.is_verified && <BadgeCheck className="size-4 shrink-0 opacity-85" />}
           </h3>
+          {/* The handle, which is the only name a brand actually has for a creator. The
+              tile printed the display name alone, and a display name is whatever the
+              creator writes in their bio, so a client checking that one specific creator
+              was on a 211-strong proposal could not find them and reported them missing. */}
+          {c.username && c.full_name && c.full_name !== c.username && (
+            <p className="-mt-1 truncate text-[12.5px] font-semibold leading-tight text-white/70 [text-shadow:0_2px_10px_rgba(0,0,0,.6)]">
+              @{c.username}
+            </p>
+          )}
           {ours && c.recommended_note && (
             <p className="line-clamp-2 text-[12.5px] font-semibold leading-snug text-lime-300 [text-shadow:0_2px_10px_rgba(0,0,0,.6)]">
               {c.recommended_note}

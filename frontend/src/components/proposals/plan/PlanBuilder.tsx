@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
   Sparkles, Check, Users, Heart, Wallet, MoreHorizontal, Download, Plus, AlertTriangle, Calendar, Gift,
+  Search, X,
 } from "lucide-react"
 import { ProductBarter } from "@/components/proposals/ProductBarter"
 import { Button } from "@/components/ui/button"
@@ -33,6 +34,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
 import { LiquidMetalButton } from "@/components/ui/liquid-metal-button"
@@ -99,6 +101,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
      is "what's new since I last looked", and that answer should be the first row, not
      somewhere down the wall. */
   const [sort, setSort] = useState<"new" | "rec" | "f" | "er" | "p">("new")
+  /* Find one creator by name or handle. A roster can run past two hundred, and a client
+     who wants to check that a particular creator is on it had no way to look: the tile
+     prints the display name, which is whatever the creator writes in their bio, so
+     searching the page for their handle found nothing and they read as not included. */
+  const [query, setQuery] = useState("")
   const [builtSig, setBuiltSig] = useState<string | null>(null)
   const [building, setBuilding] = useState(false)
   const [buildLog, setBuildLog] = useState<string[]>([])
@@ -264,6 +271,18 @@ export function PlanBuilder({ proposalId, data, onReload }: {
       (Number(!!b.recommended) - Number(!!a.recommended)) ||
       (Number(!!a.declined_at) - Number(!!b.declined_at)))
   }, [creators, sort, chosen])
+
+  /* What the wall draws. Narrowing is a VIEW: nothing here touches the plan, the counts or
+     the optimiser, so a client searching for one creator cannot accidentally change what
+     they have chosen. Handle and display name both match, because they have one or the
+     other and rarely both. */
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return sorted
+    return sorted.filter(c =>
+      (c.username ?? "").toLowerCase().includes(q)
+      || (c.full_name ?? "").toLowerCase().includes(q))
+  }, [sorted, query])
 
   /* ---------- actions ---------- */
   const save = useCallback(async (ids: Set<string>, mods?: Set<string>) => {
@@ -596,8 +615,30 @@ export function PlanBuilder({ proposalId, data, onReload }: {
         {/* the wall */}
         <div>
           <div className="mb-4 flex items-center gap-3">
-            <h2 className="text-[17px] font-bold tracking-[-0.022em]">{creators.length} creators</h2>
-            <div className="ml-auto">
+            <h2 className="text-[17px] font-bold tracking-[-0.022em]">
+              {query.trim() ? `${shown.length} of ${creators.length} creators` : `${creators.length} creators`}
+            </h2>
+            <div className="relative ml-auto w-[220px]">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Find a name or @handle"
+                aria-label="Find a creator by name or handle"
+                className="h-9 pl-9 pr-8"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  aria-label="Clear the search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+            <div>
               <Select value={sort} onValueChange={(v: string) => setSort(v as typeof sort)}>
                 <SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -619,7 +660,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
             </div>
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(232px,1fr))] gap-4">
-              {sorted.map(c => (
+              {shown.map(c => (
                 <CreatorTile
                   key={c.id}
                   creator={c}
@@ -635,6 +676,14 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                 />
               ))}
             </div>
+          )}
+
+          {/* A search that matches nobody. One line, because the answer to "is she on this
+              proposal" is worth saying out loud rather than leaving a blank grid. */}
+          {!building && query.trim() && shown.length === 0 && (
+            <p className="py-10 text-center text-[13.5px] text-muted-foreground">
+              Nobody on this proposal matches &ldquo;{query.trim()}&rdquo;.
+            </p>
           )}
         </div>
 
