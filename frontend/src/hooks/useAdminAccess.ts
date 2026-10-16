@@ -56,6 +56,18 @@ const STAFF_ROLE_DEFAULTS: Record<string, AdminModule[] | null> = {
 
 // Full-access operator roles never see destructive/money actions hidden.
 export function useAdminAccess() {
+  /* Has the AUTHORITATIVE answer landed yet?
+   *
+   * This hook deliberately answers twice: a provisional list from /auth/me so the nav draws
+   * immediately, then the real one from /staff/me, which is the only place per-member
+   * overrides exist. That is right for RENDERING and wrong for REDIRECTING. The route guard
+   * was bouncing people off screens they are allowed to open, because it ran in the gap:
+   * a talent manager granted the clients module at view was thrown to /work/campaigns every
+   * single time, and the grant looked broken when it was simply not back yet.
+   *
+   * It goes true whether /staff/me succeeds, fails or times out, so a silent endpoint can
+   * never disable the guard permanently - which is the opposite failure and worse. */
+  const [refined, setRefined] = useState(false)
   const [role, setRole] = useState<string | null>(null)
   const [staffRole, setStaffRole] = useState<string | null>(null)
   // NOT null: null means unrestricted, and using it as the initial value handed every staff
@@ -125,13 +137,16 @@ export function useAdminAccess() {
             else if (acc && typeof acc === "object") setAccess(acc)
           } catch {
             /* keep the fallback — it is already correct for this role */
+          } finally {
+            if (active) setRefined(true)
           }
         } else {
           setModules(null)
           setAccess(null)
+          setRefined(true)
         }
       })
-      .catch(() => {})
+      .catch(() => { if (active) setRefined(true) })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [])
@@ -164,7 +179,7 @@ export function useAdminAccess() {
   const canSeeCost = canExport || staffRole === "talent_manager"
   const canSeeMargin = canExport
 
-  return { role, staffRole, modules, access, isSuperAdmin, isStaff, isFullAccessStaff,
+  return { role, staffRole, modules, access, isSuperAdmin, isStaff, isFullAccessStaff, refined,
            canDestroy, canExport, canSeeSell, canSeeCost, canSeeMargin,
            can, canDo, levelOf, loading }
 }

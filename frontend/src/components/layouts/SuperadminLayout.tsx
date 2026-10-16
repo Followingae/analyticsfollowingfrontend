@@ -23,19 +23,22 @@ interface SuperadminLayoutProps {
 function ModuleRouteGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || ""
   const router = useRouter()
-  const { isSuperAdmin, can, loading, modules } = useAdminAccess()
+  const { isSuperAdmin, can, loading, refined } = useAdminAccess()
 
   const required = modulesForPath(pathname)
   const allowed = isSuperAdmin || required.length === 0 || required.some(m => can(m))
 
   React.useEffect(() => {
-    if (loading || allowed) return
+    // Never bounce somebody on a provisional answer. `can()` is usable the moment the hook
+    // settles, but until /staff/me has replied it does not know about per-member grants, and
+    // redirecting on that half-answer sends people away from screens they may open.
+    if (loading || !refined || allowed) return
     // Send the admin to their first allowed module (or the dashboard).
     const first = ADMIN_MODULES.find(m => MODULE_HOME[m.key] && can(m.key as AdminModule))
     router.replace(first ? MODULE_HOME[first.key] : "/work/today")
-  }, [loading, allowed, can, router])
+  }, [loading, refined, allowed, can, router])
 
-  if (!loading && !allowed) {
+  if (!loading && refined && !allowed) {
     return (
       <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
         Redirecting…
