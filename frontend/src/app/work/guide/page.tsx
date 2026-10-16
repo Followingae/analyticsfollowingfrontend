@@ -65,7 +65,7 @@ type Section = {
 const SECTIONS: Section[] = [
   {
     role: 'Everyone',
-    blurb: 'Two screens that mean the same thing whoever you are.',
+    blurb: 'Three screens that mean the same thing whoever you are.',
     entries: [
       {
         title: 'Today', href: '/work/today', icon: ListChecks,
@@ -78,6 +78,19 @@ const SECTIONS: Section[] = [
         what: 'Everything anywhere in the platform that needs a decision from you.',
         why: 'It pulls from every queue at once, so you do not have to remember which screen a thing was waiting on. It only lists queues your role can act on.',
         also: ['queue', 'approvals', 'to do'],
+      },
+      {
+        title: 'Pipeline', href: '/work/pipeline', icon: ClipboardCheck,
+        what: 'Every creator we owe something, across every brand, and the one thing that happens to them next.',
+        why: 'The same creator used to be described by six screens at different moments, so answering '
+           + '“where is she up to” meant knowing which screen she was in today. This is all of them at once. '
+           + 'The column down the left is the process itself, in order, with how many creators are sitting on '
+           + 'each step, so you can read the whole job without opening anything. Each row leads with what to do '
+           + 'rather than the step it is on, because a step tells you where something is and you need a verb. '
+           + 'Red means late and nothing else. Tick creators and use Give to so a row has somebody’s name on it: '
+           + 'a list nobody owns is everybody’s, which means nobody’s. Nothing is decided here. A row opens '
+           + 'the campaign board where the step is actually moved.',
+        also: ['ladder', 'stages', 'chasing', 'who is waiting', 'my creators', 'mine', 'late'],
       },
     ],
   },
