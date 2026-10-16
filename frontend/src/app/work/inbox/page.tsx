@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowRight, ArrowUpDown, CheckCircle2, Clock, Layers, TimerOff } from 'lucide-react'
 import { Hub, type HubTab } from '@/components/console/Hub'
+import { fullName } from '@/lib/destinations'
 import { Empty, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
@@ -214,8 +215,11 @@ export default function InboxPage() {
       href: '/work/fa/deliverables?stage=proof_submitted',
       items: deliverables.map((x: any) => ({
         id: String(x.id),
-        title: x.member_name || x.instagram_username || 'Creator',
-        waitingFor: `${String(x.type || 'content').replace(/_/g, ' ')}${x.quantity > 1 ? ` ×${x.quantity}` : ''}: confirm it went live`,
+        /* Every one of these read "Creator" because the endpoint sent no name: twenty-five
+           identical rows, with no way to tell whose post you were confirming without
+           opening each one. */
+        title: x.member_name || (x.instagram_username ? '@' + x.instagram_username : 'Creator'),
+        waitingFor: `${x.campaign_name ? x.campaign_name + ' · ' : ''}${String(x.type || 'content').replace(/_/g, ' ')}${x.quantity > 1 ? ` ×${x.quantity}` : ''}: confirm it went live`,
         since: x.submitted_at || x.created_at,
         href: '/work/fa/deliverables?stage=proof_submitted',
       })),
@@ -365,7 +369,10 @@ export default function InboxPage() {
 
   const head = (
     <Hub
-      title="Waiting on me"
+      /* The sidebar calls this "My queue" and the page called itself "Waiting on me": two
+         names for one place, which is the thing destinations.ts exists to prevent. The name
+         is read from there now, like every other screen's. */
+      title={fullName('/work/inbox')}
       sub="Everything waiting on a decision from you. Longest wait first."
       tabs={tabs}
       action={
@@ -442,7 +449,7 @@ export default function InboxPage() {
               kept. "0" over "all 8 of your lists are clear" was the screen saying the same
               nothing twice, which is the note the founder left on the sibling screen. */}
           <Stat
-            label="Waiting on me"
+            label={fullName('/work/inbox')}
             value={total}
             icon={Layers}
             tone={total ? 'warn' : 'good'}
