@@ -15,6 +15,7 @@
  * operator opening this mid-morning reads the top third and knows whether to act.
  */
 
+import * as React from 'react'
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -56,6 +57,21 @@ const when = (iso?: string | null) => {
   })
 }
 
+/**
+ * Whether this viewer may change anything, answered by the SERVER and not by the screen.
+ *
+ * Creator Contracting was leadership-only on every route while the Money hub offered the
+ * tab to anybody who can see cost, so a talent manager was shown a tab that answered 403.
+ * The three reads are now open to talent, scrubbed of our fee and the client's invoice, and
+ * the write routes are untouched — which is the point: this flag hides controls that would
+ * be refused anyway. It is never the thing that enforces anything.
+ *
+ * A context rather than a prop because the write controls sit five components down, and
+ * threading a boolean through five layers is how one of them ends up not getting it.
+ */
+const ReadOnlyCtx = React.createContext(false)
+const useReadOnly = () => React.useContext(ReadOnlyCtx)
+
 export default function MorOrderPage() {
   return <SuperadminLayout><Order /></SuperadminLayout>
 }
@@ -66,12 +82,17 @@ function Order() {
   const id = String(params?.id || '')
 
   const [data, setData] = useState<MorOrderDetail | null>(null)
+  const [readOnly, setReadOnly] = useState(false)
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setFailure(null)
-    try { setData((await morOpsApi.detail(kind, id)).data) }
+    try {
+      const res = await morOpsApi.detail(kind, id)
+      setData(res.data)
+      setReadOnly(!!res.read_only)
+    }
     catch (e) { setFailure((e as Error).message) }
     finally { setLoading(false) }
   }, [kind, id])
@@ -102,14 +123,31 @@ function Order() {
   const o = data.order
 
   return (
+    <ReadOnlyCtx.Provider value={readOnly}>
     <div className="mx-auto w-full max-w-5xl space-y-ds-5 p-ds-3 md:p-ds-4">
       <Button variant="ghost" size="sm" asChild className="-ml-2">
         <Link href="/work/mor"><ArrowLeft className="mr-1.5 size-4" />Creator Contracting</Link>
       </Button>
 
+      {/* Said once, at the top, rather than leaving somebody to discover it by finding no
+          buttons. It names what they CAN do, because chasing signatures and bank details is
+          the job this screen exists for and it is entirely theirs. */}
+      {readOnly && (
+        <div className="rounded-ds-lg border bg-muted/40 px-4 py-3">
+          <p className="text-sm font-semibold">You can read this order, not change it</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+            Who has signed, who still owes us bank details and whose name does not match are
+            all here, and chasing them is yours. Raising the invoice, recording the transfer
+            and releasing money are a founder&rsquo;s. What the client is charged is not shown.
+          </p>
+        </div>
+      )}
+
       <PageHead
         title={o.label || o.reference || 'Order'}
-        sub={`${o.client || 'Unknown client'} · ${data.creators.length} ${data.creators.length === 1 ? 'creator' : 'creators'} · ${aedFromCents(data.money.total_cents, o.currency)}`}
+        /* The order total is what the CLIENT pays, so it is null for talent. Their
+           headline is what the creators are owed, which is the figure they work to. */
+        sub={`${o.client || 'Unknown client'} · ${data.creators.length} ${data.creators.length === 1 ? 'creator' : 'creators'} · ${aedFromCents(readOnly ? data.money.creator_fees_cents : data.money.total_cents, o.currency)}`}
         action={
           <Button variant="outline" size="sm" onClick={() => { setLoading(true); void load() }}>
             <RefreshCw className="mr-2 size-4" />Refresh
@@ -130,6 +168,7 @@ function Order() {
         </div>
       </Panel>
     </div>
+    </ReadOnlyCtx.Provider>
   )
 }
 
@@ -185,7 +224,10 @@ function Progress({ detail }: { detail: MorOrderDetail }) {
 
 /* ── who we invoice ───────────────────────────────────────────────────────────────── */
 
+/** The client's legal entity and TRN. Null for anyone who does not raise the invoice, and
+ *  a section with no data is not rendered — see the house rule. */
 function InvoiceTo({ billing }: { billing: MorBilling }) {
+  if (!billing) return null
   const incomplete = billing.missing.length > 0
   const label: Record<string, string> = {
     trn: 'their TRN', legal_name: 'their legal name', invoice_address: 'their invoice address',
@@ -232,7 +274,11 @@ function Field({ k, v, mono, span }: { k: string; v?: string | null; mono?: bool
 
 /* ── the money ────────────────────────────────────────────────────────────────────── */
 
+/** What each creator is owed, which is cost and is talent's to read. Our percentage, the
+ *  VAT on it and the order total are scrubbed to null by the server for them, so those cells
+ *  render as a dash rather than being removed — one shape for every role. */
 function MoneySplit({ detail, onChange }: { detail: MorOrderDetail; onChange: () => void }) {
+  const readOnly = useReadOnly()
   const { creators, money } = detail
   const many = creators.length > 1
   // One currency for the whole order. A creator row carries its own copy, which on a batch
@@ -248,7 +294,8 @@ function MoneySplit({ detail, onChange }: { detail: MorOrderDetail; onChange: ()
               VAT {Math.round(Number(detail.order.vat_rate) * 100)}%
             </p>
           ) : null}
-          <CurrencyPicker detail={detail} onChange={onChange} />
+          {/* The split is theirs to read; re-pricing the order is not. */}
+          {!readOnly && <CurrencyPicker detail={detail} onChange={onChange} />}
         </div>
       </div>
       <div className="mt-ds-3 overflow-x-auto">
@@ -438,7 +485,11 @@ function CurrencyPicker({ detail, onChange }: { detail: MorOrderDetail; onChange
 }
 
 
+/** Every control in here moves money or tells a client something, so none of it is
+ *  talent's. The whole panel goes rather than being drawn disabled: a column of dead
+ *  buttons reads as a broken screen, and the banner at the top already said why. */
 function Actions({ detail, onChange }: { detail: MorOrderDetail; onChange: () => void }) {
+  if (useReadOnly()) return null
   const o = detail.order
   const kind = o.kind as OrderKind
   const [invNo, setInvNo] = useState(o.invoice_number || '')
@@ -616,6 +667,9 @@ function FilePick({ id, label, name, busy, onPick }: {
 
 /* ── the payout run ───────────────────────────────────────────────────────────────── */
 
+/** The bank file and Mark all paid. Rendered from inside `Actions`, which is already gone
+ *  in read-only, so it needs no gate of its own — and the file is a bulk export besides,
+ *  which `field_policy.can_export` reserves to leadership whatever else is true. */
 function PayoutRun({ kind, id, reference, currency, onChange }: {
   kind: OrderKind; id: string; reference: string | null
   /** The order's currency, so the run reads in the money it will actually be paid in. */
@@ -722,7 +776,12 @@ function PayoutRun({ kind, id, reference, currency, onChange }: {
  * person be paid, and if not, what do I ask them for. Spreading them across the screen is
  * what sent somebody to the database to find out why a creator had stalled.
  */
+/** Setting the payout method, accepting a passport and asking a creator for changes are
+ *  all decisions about whether somebody gets paid, so they stay with leadership. What a
+ *  talent manager needs from this creator — has she signed, has she given us bank details,
+ *  does the name match — is on the card above and stays visible. */
 function PayoutAndPassport({ c, onChange }: { c: MorOrderCreator; onChange: () => void }) {
+  if (useReadOnly()) return null
   const [busy, setBusy] = useState(false)
   const [asking, setAsking] = useState(false)
   const [items, setItems] = useState<string[]>([])

@@ -30,7 +30,12 @@ export function useMoneyTabs(): HubTab[] {
     { label: 'Client credits', href: '/work/billing', module: 'billing' },
     /* Creator Contracting. Sits under Money because that is all it is: a brand pays us, we pay
        creators, and every action on it moves money. It carries its own invoices, receipts and
-       payouts, so it is a destination rather than a view of something else. */
+       payouts, so it is a destination rather than a view of something else.
+       `canSeeCost` includes talent, and for a long time that was wrong: every route was
+       leadership-only, so a talent manager was offered a tab that answered 403. The three
+       reads are now open to them, scrubbed of our fee and the client's invoice, because
+       chasing a creator to sign is their job and they were being asked to do it from a screen
+       they could not open. */
     { label: 'Creator Contracting', href: '/work/mor', module: 'billing', when: canSeeCost },
     // Cost, not just creators — see the note above.
     { href: '/work/payables', module: 'influencers', when: canSeeCost },

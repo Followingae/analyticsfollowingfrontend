@@ -247,7 +247,10 @@ export const morOpsApi = {
     jfetch(`${BASE}/orders/${kind}/${id}/creators`),
 
   /** One order with everything the invoice has to be typed out of. */
-  detail: (kind: OrderKind, id: string): Promise<{ data: MorOrderDetail }> =>
+  /** `read_only` is the SERVER's answer about this viewer: talent may read an order,
+   *  scrubbed of our fee and the client's invoice, and may change nothing. The screen hides
+   *  its write controls off this flag rather than off its own idea of the viewer's role. */
+  detail: (kind: OrderKind, id: string): Promise<{ data: MorOrderDetail; read_only?: boolean }> =>
     jfetch(`${BASE}/orders/${kind}/${id}`),
 
   /**
