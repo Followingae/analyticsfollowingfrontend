@@ -3,13 +3,28 @@
 /**
  * Enrolments — every link we have sent a creator, and what came back.
  *
- * The screen is organised by what somebody has to DO, not by what the rows are. Three tabs:
- * what is waiting on you, what is out with creators, and what is finished. A flat list
- * sorted by date buries the two links that need approving under forty that do not.
+ * The screen is organised by what somebody has to DO, not by what the rows are. Four views:
+ * what is waiting on us, what is out with creators, what is signed, and what was cancelled.
+ * A flat list sorted by date buries the two links that need approving under forty that do not.
  *
  * The approval queue is first because it blocks everybody else: a talent manager cannot
  * send a link until somebody approves it, so a link sitting here unapproved is a creator
  * not being signed.
+ *
+ * It speaks the console's vocabulary now rather than its own dialect of it:
+ *
+ *   - the views are `FilterBar` chips, named after who is blocking, with counts that stay
+ *     on screen at zero. They were tabs whose badges disappeared at nought, so "nothing is
+ *     waiting on us" and "we have never looked" drew the same thing.
+ *   - how long a link has sat is `Age`, which keeps the two clocks apart: days since it was
+ *     raised, and days past the link's own expiry. The column was the date it was made,
+ *     which is the one fact nobody chasing a link needs.
+ *   - who holds it is `Owner`, so an unassigned link reads "Nobody yet" rather than a dash
+ *     that looked exactly like a missing field.
+ *   - a missing figure is `Dash` with a reason, or `NotAgreed` where no fee was ever
+ *     proposed. Four different nothings were all drawn as one em dash.
+ *   - a failed read says so and offers a retry. It used to print the error AND the empty
+ *     list underneath it, which read as an all clear with a warning above it.
  */
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
@@ -18,9 +33,7 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Button } from "@/components/ui/button"
 import { MoneyHubHeader } from "@/components/console/MoneyHubHeader"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
@@ -30,20 +43,41 @@ import {
 } from "@/components/ui/alert-dialog"
 import {
   Loader2, Copy, Check, Download, ShieldCheck, X, ExternalLink, Search,
-  FileSignature, Clock, CircleAlert, CircleCheck, Banknote, Plus,
+  FileSignature, CircleAlert, CircleCheck, Banknote, Plus,
 } from "lucide-react"
 import { toast } from "sonner"
+import {
+  Age, Dash, FilterBar, NoMatches, NotAgreed, Owner, SectionHead, type FilterChip,
+} from "@/components/console/surfaces"
 import { enrolmentApi, type EnrolmentRow } from "@/services/enrolmentApi"
 import { DirectEnrolmentDialog } from "@/components/enrolment/DirectEnrolmentDialog"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 
-const money = (c?: number | null) =>
-  c == null ? "—" : `AED ${(c / 100).toLocaleString("en-AE", { maximumFractionDigits: 0 })}`
+/** AED and a thousands-separated integer. Never a dash: a figure that is not there has a
+ *  reason, and the reason is the caller's to say with `Dash` or `NotAgreed`. */
+const money = (c: number) => `AED ${(c / 100).toLocaleString("en-AE", { maximumFractionDigits: 0 })}`
 
-const when = (iso?: string | null) => {
-  if (!iso) return "—"
-  const d = new Date(iso)
-  return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+const DAY = 86_400_000
+
+/** Whole days since something happened. `Age` owns what that earns in colour. */
+const daysSince = (iso?: string | null) => {
+  if (!iso) return 0
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / DAY)
+  return Number.isFinite(d) ? Math.max(0, d) : 0
+}
+
+/** How far past a date we promised, or nothing when it has not passed. The second clock. */
+const lateBy = (iso?: string | null) => {
+  if (!iso) return undefined
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / DAY)
+  return Number.isFinite(d) && d > 0 ? d : undefined
+}
+
+const initialsOf = (name?: string | null) => {
+  if (!name) return undefined
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return undefined
+  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase()
 }
 
 /** Where a link actually is, in one phrase. The raw status does not say whether a live
@@ -64,12 +98,19 @@ function progressOf(r: EnrolmentRow): { label: string; tone: "wait" | "go" | "do
   return { label: "Sent, not opened", tone: "wait" }
 }
 
+/* These were hand-picked amber, sky and emerald steps: a fourth amber beside the three the
+   console decides once, on a screen that sits beside Payables. They name the tone tokens
+   now, so "waiting" is the same colour here as it is everywhere else. Colour never travels
+   without the word, and the word is the phrase above. */
 const toneClass: Record<string, string> = {
-  wait: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
-  go: "bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-500/20",
-  done: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
-  dead: "bg-muted text-muted-foreground border-transparent",
+  wait: "bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]",
+  go: "bg-[var(--tone-info-wash)] text-foreground",
+  done: "bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]",
+  dead: "bg-muted text-muted-foreground",
 }
+
+/** The four views, keyed on who is blocking. */
+type View = "waiting" | "out" | "done" | "dead"
 
 export default function EnrolmentsPageWrapper() {
   return (
@@ -95,6 +136,9 @@ function EnrolmentsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [retracting, setRetracting] = useState<EnrolmentRow | null>(null)
   const [retractReason, setRetractReason] = useState("")
+  /* Null until somebody picks one, so the opening view can still follow the data the way
+     the tabs' `defaultValue` did: straight to the approval queue when there is one. */
+  const [picked, setPicked] = useState<View | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true); setErr(null)
@@ -129,6 +173,19 @@ function EnrolmentsPage() {
   // as waiting on us even though the link itself is finished.
   const payeeWaiting = filtered.filter((r) => r.completed_at && r.bank_status === "pending")
 
+  const view: View = picked ?? (pending.length || payeeWaiting.length ? "waiting" : "out")
+
+  /* Named after who is blocking rather than after a status, and a count is a fact so it
+     renders at zero. Nothing is pruned by role: a scoped talent manager cannot approve a
+     link, but she still has to see that one of hers is sitting in the queue, so none of
+     these chips is a tautology for anybody. */
+  const chips: FilterChip[] = [
+    { key: "waiting", label: "Waiting on us", n: pending.length + payeeWaiting.length },
+    { key: "out", label: "With the creator", n: out.length },
+    { key: "done", label: "Signed", n: done.length },
+    { key: "dead", label: "Cancelled", n: dead.length },
+  ]
+
   const copy = (r: EnrolmentRow) => {
     navigator.clipboard.writeText(r.url)
     setCopiedId(r.id); toast.success("Link copied")
@@ -161,16 +218,25 @@ function EnrolmentsPage() {
 
   const Row = ({ r, actions }: { r: EnrolmentRow; actions?: boolean }) => {
     const p = progressOf(r)
+    /* The expiry is a date we promised, so a live or unapproved link past it is late. Once
+       somebody has signed, the expiry stopped mattering and the row is not late at all. */
+    const overdue = !r.completed_at && ["live", "pending_approval"].includes(r.status)
+      ? lateBy(r.expires_at)
+      : undefined
     return (
       <TableRow>
         <TableCell>
           <Link href={`/work/enrolments/${r.id}`} className="block min-w-0">
-            <div className="truncate font-medium">{r.creator_handle || r.creator_name || "—"}</div>
+            <div className="truncate font-medium">
+              {r.creator_handle || r.creator_name || <Dash reason="unset" what="a creator handle" />}
+            </div>
             <div className="truncate text-xs text-muted-foreground">{r.creator_name}</div>
           </Link>
         </TableCell>
         <TableCell className="hidden md:table-cell">
-          <div className="truncate text-sm">{r.campaign_display_name || "—"}</div>
+          <div className="truncate text-sm">
+            {r.campaign_display_name || <Dash reason="unset" what="a campaign" />}
+          </div>
           <div className="truncate text-xs text-muted-foreground">
             {r.brand_display_name}
             {/* A direct link has no booking behind it, and until it is tagged its payments
@@ -182,10 +248,18 @@ function EnrolmentsPage() {
             )}
           </div>
         </TableCell>
-        <TableCell className="hidden lg:table-cell text-sm">{r.deliverables_summary || "—"}</TableCell>
-        <TableCell className="text-sm tabular-nums">{money(r.fee_aed_cents)}</TableCell>
+        <TableCell className="hidden lg:table-cell text-sm">
+          {r.deliverables_summary || <Dash reason="unset" what="deliverables" />}
+        </TableCell>
+        <TableCell className="text-sm tabular-nums">
+          {/* A link with no fee is not a blank field, it is a rate nobody has proposed, and
+              that is a job somebody has to do before this creator can be paid. */}
+          {r.fee_aed_cents == null ? <NotAgreed /> : money(r.fee_aed_cents)}
+        </TableCell>
         <TableCell className="hidden sm:table-cell text-sm">
-          {r.talent_name || "—"}
+          {/* An unowned link used to read as a dash, which looked like a field we had failed
+              to fill rather than a creator nobody is looking after. */}
+          <Owner name={r.talent_name} initials={initialsOf(r.talent_name)} />
           {/* Who raised a link and who owns it are different facts. Showing only the
               assignee made links raised by somebody else read as theirs, which is how
               sixteen links raised during the build looked like a talent manager had sent
@@ -197,16 +271,20 @@ function EnrolmentsPage() {
           )}
         </TableCell>
         <TableCell>
-          <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${toneClass[p.tone]}`}>
+          <span className={`inline-flex rounded-full border border-transparent px-2 py-0.5 text-[11px] font-medium ${toneClass[p.tone]}`}>
             {p.label}
           </span>
         </TableCell>
-        <TableCell className="hidden xl:table-cell text-xs text-muted-foreground">{when(r.created_at)}</TableCell>
+        <TableCell>
+          {r.created_at
+            ? <Age days={daysSince(r.created_at)} lateDays={overdue} />
+            : <Dash reason="unset" what="the date it was raised" />}
+        </TableCell>
         <TableCell className="text-right">
           <div className="flex items-center justify-end gap-1">
             {r.status === "live" && (
               <Button size="icon" variant="ghost" title="Copy the link" onClick={() => copy(r)}>
-                {copiedId === r.id ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                {copiedId === r.id ? <Check className="h-4 w-4 text-[color:var(--tone-good-ink)]" /> : <Copy className="h-4 w-4" />}
               </Button>
             )}
             {actions && r.status === "pending_approval" && can("proposals") && (
@@ -228,34 +306,36 @@ function EnrolmentsPage() {
     )
   }
 
-  const Grid = ({ list, actions }: { list: EnrolmentRow[]; actions?: boolean }) => {
-    if (!list.length) {
-      return (
-        <div className="rounded-xl border border-dashed py-16 text-center text-sm text-muted-foreground">
-          Nothing here.
-        </div>
-      )
-    }
-    return (
-      <div className="overflow-x-auto rounded-xl border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Creator</TableHead>
-              <TableHead className="hidden md:table-cell">Campaign</TableHead>
-              <TableHead className="hidden lg:table-cell">Deliverables</TableHead>
-              <TableHead>Fee</TableHead>
-              <TableHead className="hidden sm:table-cell">Owner</TableHead>
-              <TableHead>Where it is</TableHead>
-              <TableHead className="hidden xl:table-cell">Made</TableHead>
-              <TableHead className="text-right">—</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>{list.map((r) => <Row key={r.id} r={r} actions={actions} />)}</TableBody>
-        </Table>
-      </div>
-    )
-  }
+  const Grid = ({ list, actions }: { list: EnrolmentRow[]; actions?: boolean }) => (
+    <div className="overflow-x-auto rounded-xl border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Creator</TableHead>
+            <TableHead className="hidden md:table-cell">Campaign</TableHead>
+            <TableHead className="hidden lg:table-cell">Deliverables</TableHead>
+            <TableHead>Fee</TableHead>
+            <TableHead className="hidden sm:table-cell">Owner</TableHead>
+            <TableHead>Where it is</TableHead>
+            <TableHead>Waiting</TableHead>
+            <TableHead className="text-right"><span className="sr-only">Actions</span></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>{list.map((r) => <Row key={r.id} r={r} actions={actions} />)}</TableBody>
+      </Table>
+    </div>
+  )
+
+  /**
+   * A view that came up empty.
+   *
+   * A section with no rows is not rendered at all, header included, which is the house rule.
+   * The one exception is a view the USER narrowed to nothing: they caused it, so they need
+   * to know it was the chip or the search box rather than the data. That is the only thing
+   * `NoMatches` is for, and it never stands in for an empty screen.
+   */
+  const Nothing = () =>
+    rows.length ? <NoMatches onClear={q ? () => setQ("") : undefined} /> : null
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8">
@@ -296,69 +376,98 @@ function EnrolmentsPage() {
 
       <DirectEnrolmentDialog open={direct} onOpenChange={setDirect} onCreated={() => { void load() }} />
 
-      {err && (
-        <div className="mt-6 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
-          <CircleAlert className="mt-0.5 h-4 w-4 text-destructive" /><span>{err}</span>
+      {/* A refused read is not "no enrolments". The error used to print above the list and
+          the list still drew its empty state underneath, so a 500 read as an all clear with
+          a warning over it. Nothing else renders until the read comes back. */}
+      {err ? (
+        <div className="mt-6 space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+          <div className="flex items-start gap-2">
+            <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" /><span>{err}</span>
+          </div>
+          <p className="text-muted-foreground">
+            This is not an all clear: links may still be waiting on somebody.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => { void load() }}>Try again</Button>
         </div>
-      )}
-
-      {loading ? (
+      ) : loading ? (
         <div className="flex items-center justify-center py-24 text-sm text-muted-foreground">
           <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
         </div>
       ) : (
-        <Tabs defaultValue={pending.length || payeeWaiting.length ? "waiting" : "out"} className="mt-6">
-          <TabsList>
-            <TabsTrigger value="waiting" className="gap-1.5">
-              <Clock className="h-3.5 w-3.5" /> Waiting on us
-              {(pending.length + payeeWaiting.length) > 0 && (
-                <Badge variant="secondary" className="ml-1">{pending.length + payeeWaiting.length}</Badge>
+        <div className="mt-6 space-y-6">
+          <FilterBar chips={chips} value={view} onChange={(k: string) => setPicked(k as View)} />
+
+          {view === "waiting" && (
+            <div className="space-y-8">
+              {pending.length > 0 && (
+                <section>
+                  <SectionHead
+                    icon={ShieldCheck}
+                    title="Links to approve"
+                    count={pending.length}
+                    note="A talent manager made these. They do not work until somebody approves them, so a link sitting here is a creator not being signed."
+                  />
+                  <Grid list={pending} actions />
+                </section>
               )}
-            </TabsTrigger>
-            <TabsTrigger value="out" className="gap-1.5">
-              <FileSignature className="h-3.5 w-3.5" /> With the creator
-              {out.length > 0 && <Badge variant="secondary" className="ml-1">{out.length}</Badge>}
-            </TabsTrigger>
-            <TabsTrigger value="done" className="gap-1.5">
-              <CircleCheck className="h-3.5 w-3.5" /> Signed
-              {done.length > 0 && <Badge variant="secondary" className="ml-1">{done.length}</Badge>}
-            </TabsTrigger>
-            <TabsTrigger value="dead">Cancelled</TabsTrigger>
-          </TabsList>
+              {payeeWaiting.length > 0 && (
+                <section>
+                  <SectionHead
+                    icon={Banknote}
+                    title="Payees to confirm"
+                    count={payeeWaiting.length}
+                    note="These creators are signed and their bank details are in. Somebody has to check the holder name and last four digits with them directly before anything pays out."
+                  />
+                  <Grid list={payeeWaiting} />
+                </section>
+              )}
+              {!pending.length && !payeeWaiting.length && <Nothing />}
+            </div>
+          )}
 
-          <TabsContent value="waiting" className="mt-4 space-y-8">
+          {view === "out" && (
             <section>
-              <h2 className="mb-2 text-sm font-semibold">Links to approve</h2>
-              <p className="mb-3 text-xs text-muted-foreground">
-                A talent manager made these. They do not work until somebody approves them, so a link sitting
-                here is a creator not being signed.
-              </p>
-              <Grid list={pending} actions />
+              {out.length > 0 ? (
+                <>
+                  <SectionHead icon={FileSignature} title="With the creator" count={out.length} />
+                  <Grid list={out} />
+                </>
+              ) : <Nothing />}
             </section>
-            <section>
-              <h2 className="mb-2 text-sm font-semibold">Payees to confirm</h2>
-              <p className="mb-3 text-xs text-muted-foreground">
-                These creators are signed and their bank details are in. Somebody has to check the holder name
-                and last four digits with them directly before anything pays out.
-              </p>
-              <Grid list={payeeWaiting} />
-            </section>
-          </TabsContent>
+          )}
 
-          <TabsContent value="out" className="mt-4"><Grid list={out} /></TabsContent>
-          <TabsContent value="done" className="mt-4">
-            <p className="mb-3 text-xs text-muted-foreground">
-              These creators signed the agreement and gave us their details.
-            </p>
-            <Grid list={done} />
-          </TabsContent>
-          <TabsContent value="dead" className="mt-4">
-            <p className="mb-3 text-xs text-muted-foreground">
-              Retracted, rejected or expired. Nothing was signed through any of these.
-            </p>
-            <Grid list={dead} />
-          </TabsContent>
-        </Tabs>
+          {view === "done" && (
+            <section>
+              {done.length > 0 ? (
+                <>
+                  <SectionHead
+                    icon={CircleCheck}
+                    title="Signed"
+                    count={done.length}
+                    note="These creators signed the agreement and gave us their details."
+                  />
+                  <Grid list={done} />
+                </>
+              ) : <Nothing />}
+            </section>
+          )}
+
+          {view === "dead" && (
+            <section>
+              {dead.length > 0 ? (
+                <>
+                  <SectionHead
+                    icon={X}
+                    title="Cancelled"
+                    count={dead.length}
+                    note="Retracted, rejected or expired. Nothing was signed through any of these."
+                  />
+                  <Grid list={dead} />
+                </>
+              ) : <Nothing />}
+            </section>
+          )}
+        </div>
       )}
 
       <AlertDialog open={!!retracting} onOpenChange={(v: boolean) => { if (!v) { setRetracting(null); setRetractReason("") } }}>

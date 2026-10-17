@@ -52,7 +52,10 @@
  * nobody triages more than that in a sitting, and the first version of the chart counted the
  * arrays: at sixty rows waiting it drew a plausible distribution of fourteen with nothing
  * about it saying so. Every total and every bar now reads `waiting_total`, `moving_total`,
- * `waiting_counts` and `stage_counts`, which the server computes before it slices. The arrays
+ * `waiting_stage_counts` and `stage_counts`, which the server computes before it slices. The
+ * two stage maps are keyed the same way on purpose, which is the only reason the chart can put
+ * both series on one axis; `waiting_counts`, keyed by job, is the right unit for a list of
+ * piles and the wrong one for this chart, so it is deliberately not read here. The arrays
  * are read only for what a count cannot carry - a key's English name, whether anything in a
  * pile is late, where a column leads - and never for a quantity.
  *
@@ -267,9 +270,26 @@ const BAR: Record<'mine' | 'others' | 'late', string> = {
   others: 'bg-black/[0.10] dark:bg-white/[0.16]',
 }
 
+/**
+ * What a whole sequence is called, for the column of rows that carry no stage within it.
+ *
+ * The server keys both stage maps on `stage_label` and falls back to `flow` where a row has
+ * no stage yet, so a key is either a stage's own English name - "Rate agreed", already
+ * readable - or one of these four machine names. Only the second case needs translating.
+ */
+const FLOW_LABEL: Record<string, string> = {
+  areas: 'Rosters',
+  brands: 'Brands',
+  proposals: 'Quotes',
+  ladder: 'Campaign creators',
+}
+
 /** A key the server did not give an English name, written out as one. */
 const humanise = (k: string) =>
   /[A-Z\s]/.test(k) ? k : (s => s.charAt(0).toUpperCase() + s.slice(1))(k.replace(/_/g, ' '))
+
+/** The axis key a row sits at, in exactly the words the server counts it under. */
+const stageKey = (r: Waiting | Flight) => r.stage_label || r.flow || null
 
 /**
  * The columns, counted from the UNCAPPED totals.
@@ -285,19 +305,26 @@ const humanise = (k: string) =>
  * carry: the English name of a key, whether anything in that pile is late, and where a column
  * leads. Never for a quantity.
  *
- * ONE KEY SPACE. `waiting_counts` is keyed by `kind` and `stage_counts` by a flight's stage
- * falling back to its `kind`, which is the server's own decision and the reason these two can
- * share an axis at all. `mine` and `others` are read from the two objects by the same key, and
- * a key present in only one of them simply has a zero in the other - a counted zero, not a
- * guess.
+ * ONE KEY SPACE, and it is the server that guarantees it. The waiting rows are counted twice
+ * on purpose: `waiting_counts` by `kind`, which is the job and the right unit for a list of
+ * piles, and `waiting_stage_counts` by `stage_label`, which is the same unit `stage_counts`
+ * uses. The lime series reads the second one. It used to read the first, which only lined up
+ * while `stage_counts` was falling back to `kind` as well; counting one series in jobs and the
+ * other in stages would put two different units on one axis and be meaningless without
+ * looking wrong, which is the failure this whole file is organised against.
+ *
+ * A row carrying no stage at all is in neither stage map - the server declines to invent a
+ * label for it - so the two series need not sum to `waiting_total`. The caller says so in the
+ * caption. It does not get padded.
  */
 function useStageColumns(
   waiting: Waiting[],
-  waitingCounts: Record<string, number> | null | undefined,
+  waitingStageCounts: Record<string, number> | null | undefined,
   stageCounts: Record<string, number> | null | undefined,
 ) {
   return useMemo(() => {
-    const mineBy = waitingCounts && typeof waitingCounts === 'object' ? waitingCounts : {}
+    const mineBy = waitingStageCounts && typeof waitingStageCounts === 'object'
+      ? waitingStageCounts : {}
     const othersBy = stageCounts && typeof stageCounts === 'object' ? stageCounts : {}
 
     // The gate. With no in-flight distribution there is nothing to draw the grey half of
@@ -305,23 +332,18 @@ function useStageColumns(
     // omits a whole series. The slot goes to the process drawing instead.
     if (Object.keys(othersBy).length === 0) return null
 
-    /* What each key is called, and what is late in it, learned from the rows we do have.
-       A late flag read from a capped list can only under-report, never over-report: the
-       server sorts `waiting` by urgency and then by longest wait, so anything chased or old
-       is at the top of the list and inside the cap by construction. */
-    const label = new Map<string, string>()
+    /* What is late in each pile, and where each column leads, learned from the rows we do
+       have. A late flag read from a capped list can only under-report, never over-report:
+       the server sorts `waiting` by urgency and then by longest wait, so anything chased or
+       old is at the top of the list and inside the cap by construction.
+
+       The LABEL needs none of this. A key is either a stage's own English name or one of the
+       four sequence names, so it reads itself. */
     const late = new Map<string, number>()
     const hrefs = new Map<string, Set<string>>()
     for (const r of waiting) {
-      const k = r.kind
+      const k = stageKey(r)
       if (!k) continue
-      if (!label.has(k)) {
-        const seq = r.flow && FLOWS[r.flow] ? FLOWS[r.flow] : null
-        const at = seq && typeof r.at === 'number'
-          ? Math.max(0, Math.min(r.at, seq.length - 1))
-          : null
-        label.set(k, r.stage_label || (seq && at !== null ? seq[at].label : humanise(k)))
-      }
       if (r.urgency === 'high' || (r.age_days ?? 0) >= 7) late.set(k, (late.get(k) ?? 0) + 1)
       if (r.href) {
         const set = hrefs.get(k) ?? new Set<string>()
@@ -335,7 +357,7 @@ function useStageColumns(
       const set = hrefs.get(k)
       return {
         key: k,
-        label: label.get(k) || humanise(k),
+        label: FLOWS[k] ? (FLOW_LABEL[k] ?? humanise(k)) : k,
         mine: Number(mineBy[k] ?? 0) || 0,
         others: Number(othersBy[k] ?? 0) || 0,
         late: late.get(k) ?? 0,
@@ -352,8 +374,11 @@ function useStageColumns(
 
     // One column is a fact, not a distribution.
     if (cols.length < 2) return null
-    return { cols }
-  }, [waiting, waitingCounts, stageCounts])
+    // How much of this person's own work the lime series actually accounts for, so the
+    // caption can name what is missing instead of the chart implying it has everything.
+    const charted = cols.reduce((a, c) => a + c.mine, 0)
+    return { cols, charted }
+  }, [waiting, waitingStageCounts, stageCounts])
 }
 
 function StageColumns({ cols }: { cols: Col[] }) {
@@ -538,7 +563,7 @@ export default function Today() {
   const figures = headline.slice(0, 4)
 
   /* Slot 3. The picture, drawn from the uncapped counts and never from the capped lists. */
-  const chart = useStageColumns(waiting, data?.waiting_counts, data?.stage_counts)
+  const chart = useStageColumns(waiting, data?.waiting_stage_counts, data?.stage_counts)
 
   const shownWaiting = allWaiting ? waiting : waiting.slice(0, 7)
   const shownFlight = allFlight ? moving : moving.slice(0, 7)
@@ -649,7 +674,19 @@ export default function Today() {
             {chart ? (
               <Panel
                 title="Where your work stands"
-                description="Every piece, not just the ones listed below. Lime is yours to move, grey is sitting with somebody else, amber is late."
+                /* The caption names what the chart does not hold. A piece of work with no
+                   stage on it yet is in neither count, and the honest answer to that is a
+                   sentence saying how many, not a column invented to absorb them. */
+                description={
+                  <>
+                    Every piece, not just the ones listed below. Lime is yours to move, grey is
+                    sitting with somebody else, amber is late.
+                    {waitingTotal > chart.charted && (
+                      <> {waitingTotal - chart.charted} of your {waitingTotal} carry no stage
+                        yet and are not on this chart.</>
+                    )}
+                  </>
+                }
               >
                 <StageColumns cols={chart.cols} />
               </Panel>

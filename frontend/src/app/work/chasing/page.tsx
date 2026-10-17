@@ -6,17 +6,36 @@
  * The count spans campaigns, so sending someone to the campaigns list left them looking for
  * a number that appears nowhere on it. This is the same set of people, grouped by the
  * campaign they were booked for, each row opening the board where the next rung is moved.
+ *
+ * It speaks the console's vocabulary now rather than its own dialect of it:
+ *
+ *   - the wait is `Age`, so amber at four days and red once a date has passed are decided
+ *     in one place. The row carries two clocks and they are different facts: how long
+ *     somebody has sat on this step, and how far past their content date they are.
+ *   - the rung is `StageChip`, keyed on the stage the database stores and labelled from
+ *     `STAGES`, so a rung can never pick up a second name on this screen.
+ *   - the rate is `NotAgreed` where nobody has proposed one, and a `Dash` where there is a
+ *     figure the server deliberately does not send us. Those were the same blank before.
+ *   - the filters are `FilterBar` chips named after WHO is blocking, which is the question
+ *     the screen exists to answer. A count renders at zero because a nought is a fact.
+ *   - a refused read says so and offers a retry. It used to toast and leave the list empty,
+ *     which drew "Nobody to chase": an all clear, on a failure, on the chasing screen.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cdnAvatar } from '@/lib/avatar'
-import { ScoreDot, RoundButton, GroupLabel } from '@/components/console/primitives'
+import { RoundButton, GroupLabel } from '@/components/console/primitives'
+import {
+  Age, Dash, FilterBar, NoMatches, NotAgreed, SectionHead, type FilterChip,
+} from '@/components/console/surfaces'
+import { StageChip } from '@/components/console/Glyph'
+import { STAGE_ORDER, type StageRung } from '@/lib/consoleIcons'
 import { CampaignsHubHeader } from '@/components/console/CampaignsHubHeader'
-import { ArrowUpRight, CheckCircle2 } from 'lucide-react'
+import { AlarmClock, ArrowUpRight, CheckCircle2, Megaphone } from 'lucide-react'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
@@ -45,6 +64,26 @@ const dueLabel = (r: Row) => {
     : 'moved today'
 }
 
+/** The rung, or nothing when the stage is not one. A dropped creator exists in production
+ *  and has its own chip, so it must not fall through a lookup and come out blank. */
+const RUNGS = new Set<string>(STAGE_ORDER)
+const rungOf = (stage: string): StageRung | 'dropped' | null =>
+  stage === 'dropped' ? 'dropped' : RUNGS.has(stage) ? (stage as StageRung) : null
+
+/**
+ * Who this row is waiting on.
+ *
+ * The feed names the thing that is missing ("No rate agreed yet", "Guide not sent"); the
+ * ladder already pairs each rung with the role that owns it, and that is the fact worth
+ * filtering on. Nobody comes to this screen asking which status a row is in, they come
+ * asking who to ring.
+ */
+type Blocker = 'founder' | 'us' | 'creator'
+const blockerOf = (r: Row): Blocker =>
+  r.waiting_for === 'No rate agreed yet' ? 'founder'
+    : r.waiting_for === 'Guide not sent' ? 'us'
+      : 'creator'
+
 /**
  * One creator waiting on something.
  *
@@ -58,6 +97,7 @@ function ChaseRow({ r, onOpen, showCampaign }: {
   /** In the cross-campaign band a handle alone does not say which board to open. */
   showCampaign?: boolean
 }) {
+  const rung = rungOf(r.stage)
   return (
     <div className="flex items-center gap-ds-2 rounded-ds-lg pr-2.5
                     transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.05]">
@@ -81,13 +121,30 @@ function ChaseRow({ r, onOpen, showCampaign }: {
             {showCampaign ? `${r.campaign} · ` : ''}{r.waiting_for} · {dueLabel(r)}
           </span>
         </span>
-        <ScoreDot
-          value={r.late ? '!' : String(Math.max(0, Math.abs(r.since_days)))}
-          suffix={r.late ? undefined : 'd'}
-          tone={r.late ? 'bad' : r.since_days >= 3 ? 'warn' : 'good'}
-          title={dueLabel(r)}
-        />
       </button>
+      {/* Outside the button on purpose. `Age` is a Badge, which is a div, and flow content
+          inside a button is invalid markup, which is the same reason the console's own Row keeps its
+          trim as a sibling of the clickable area rather than a child of it. */}
+      <div className="flex shrink-0 items-center gap-ds-2">
+        {/* The rate. Two different nothings that used to be the same nothing: nobody has
+            proposed a figure, or there is one and this screen is never sent it, because the
+            money on a booked creator is cost and the endpoint strips it. */}
+        <span className="hidden md:inline-flex">
+          {blockerOf(r) === 'founder'
+            ? <NotAgreed />
+            : <Dash reason="unseen" what="the agreed rate" />}
+        </span>
+        {rung && (
+          <span className="hidden sm:inline-flex">
+            <StageChip rung={rung} state={r.late ? 'late' : 'current'} />
+          </span>
+        )}
+        {/* Two clocks, kept apart: days on this step, and days past a promised date. */}
+        <Age
+          days={Math.max(0, r.since_days)}
+          lateDays={r.late ? r.since_days : undefined}
+        />
+      </div>
     </div>
   )
 }
@@ -96,24 +153,46 @@ export default function ChasingPage() {
   const router = useRouter()
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
+  /** A refused read is not "nobody to chase". Held so the page can say the list did not
+   *  come back, rather than drawing the all clear over a failure. */
+  const [failure, setFailure] = useState<string | null>(null)
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/today/chasing`)
-        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Could not load')
-        setRows((await res.json()).data?.items || [])
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Could not load the list')
-      } finally { setLoading(false) }
-    })()
+  const load = useCallback(async () => {
+    setFailure(null)
+    try {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/today/chasing`)
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Could not load')
+      setRows((await res.json()).data?.items || [])
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Could not load the list'
+      setFailure(msg)
+      toast.error(msg)
+    } finally { setLoading(false) }
   }, [])
+
+  useEffect(() => { void load() }, [load])
 
   const late = rows.filter(r => r.late).length
 
-  /** What the toggle is showing: everyone waiting, or only the ones past their date. */
-  const [only, setOnly] = useState<'late' | 'all'>('all')
-  const shown = useMemo(() => (only === 'late' ? rows.filter(r => r.late) : rows), [rows, only])
+  /** What the bar is showing: everyone waiting, the ones past their date, or the set one
+   *  particular person is holding up. */
+  const [only, setOnly] = useState<'all' | 'late' | Blocker>('all')
+  const shown = useMemo(() => {
+    if (only === 'all') return rows
+    if (only === 'late') return rows.filter(r => r.late)
+    return rows.filter(r => blockerOf(r) === only)
+  }, [rows, only])
+
+  /* Counts are facts and render at zero. No chip is hidden: unlike "Needs me" on Today,
+     none of these is a tautology for any one role, so pruning one would only take a way
+     back out of a filtered view. */
+  const chips: FilterChip[] = [
+    { key: 'all', label: 'Everyone waiting', n: rows.length },
+    { key: 'late', label: 'Past their date', n: late },
+    { key: 'founder', label: 'Waiting on a founder', n: rows.filter(r => blockerOf(r) === 'founder').length },
+    { key: 'us', label: 'Waiting on us', n: rows.filter(r => blockerOf(r) === 'us').length },
+    { key: 'creator', label: 'Waiting on the creator', n: rows.filter(r => blockerOf(r) === 'creator').length },
+  ]
 
   /**
    * Campaigns, worst first.
@@ -148,20 +227,19 @@ export default function ChasingPage() {
           note={'Booked creators waiting on a rate, a guide or the content. ' + (late > 0
             ? `${late} past their date.`
             : 'Nobody is late.')}
-          action={late > 0 ? (
-            <ToggleGroup type="single" size="sm" variant="outline" value={only}
-                         onValueChange={(v: string) => { if (v) setOnly(v as 'late' | 'all') }}>
-              <ToggleGroupItem value="late" aria-label="Only the late ones">
-                Late ({late})
-              </ToggleGroupItem>
-              <ToggleGroupItem value="all" aria-label="Everyone waiting">
-                Everyone ({rows.length})
-              </ToggleGroupItem>
-            </ToggleGroup>
-          ) : undefined}
         />
 
-        {loading ? (
+        {failure ? (
+          <div className="space-y-3">
+            <p className="text-sm font-medium">Could not load the list.</p>
+            <p className="text-sm text-muted-foreground">
+              {failure}. This is not an all clear: somebody may still be waiting on us.
+            </p>
+            <Button variant="outline" size="sm" onClick={() => { setLoading(true); void load() }}>
+              Try again
+            </Button>
+          </div>
+        ) : loading ? (
           <div className="space-y-ds-5">
             {[0, 1, 2].map(i => (
               <div key={i} className="space-y-ds-3">
@@ -186,18 +264,24 @@ export default function ChasingPage() {
              and nothing else, and the gap between campaigns goes up to ds-5 to carry the
              separation the border was drawing. */
           <div className="space-y-ds-5">
+            <FilterBar chips={chips} value={only} onChange={(k: string) => setOnly(k as typeof only)} />
+
+            {/* They filtered it down to nothing themselves, so the list says so instead of
+                vanishing and looking like the data went. */}
+            {shown.length === 0 && <NoMatches onClear={() => setOnly('all')} />}
+
             {/* Worst first, whoever they were booked for. The campaign groups below are how
                 you work a board; this is how you answer "who do I ring now". Only drawn when
                 somebody is late, and not while the list is already filtered to the same
                 people. */}
             {only === 'all' && lateRows.length > 0 && (
               <section>
-                <header className="pb-ds-2">
-                  <h2 className="text-ds-subheading">Late</h2>
-                  <p className="text-ds-caption text-muted-foreground">
-                    Past their content date, longest first
-                  </p>
-                </header>
+                <SectionHead
+                  icon={AlarmClock}
+                  title="Late"
+                  count={lateRows.length}
+                  note="Past their content date, longest first"
+                />
                 <div className="-mx-ds-2 space-y-ds-1">
                   {lateRows.map(r => (
                     <div key={`late-${r.id}`}>
@@ -211,22 +295,21 @@ export default function ChasingPage() {
 
             {byCampaign.map(g => (
               <section key={g.id} className="border-t pt-ds-4 first:border-t-0 first:pt-0">
-                <header className="flex items-center justify-between gap-ds-3 pb-ds-2">
-                  <div>
-                    <h2 className="text-ds-subheading">{g.name}</h2>
-                    <p className="text-ds-caption text-muted-foreground">
-                      {g.rows.length} waiting
-                      {g.rows.filter(r => r.late).length
-                        ? ` · ${g.rows.filter(r => r.late).length} late`
-                        : ''}
-                    </p>
-                  </div>
-                  <RoundButton
-                    icon={ArrowUpRight}
-                    label={`Open the ${g.name} board`}
-                    onClick={() => router.push(`/work/campaigns/${g.id}/ladder`)}
-                  />
-                </header>
+                <SectionHead
+                  icon={Megaphone}
+                  title={g.name}
+                  count={g.rows.length}
+                  note={g.rows.filter(r => r.late).length
+                    ? `${g.rows.length} waiting · ${g.rows.filter(r => r.late).length} late`
+                    : `${g.rows.length} waiting`}
+                  action={
+                    <RoundButton
+                      icon={ArrowUpRight}
+                      label={`Open the ${g.name} board`}
+                      onClick={() => router.push(`/work/campaigns/${g.id}/ladder`)}
+                    />
+                  }
+                />
 
                 <div className="-mx-ds-2 space-y-ds-1">
                   {g.rows.map((r, i) => {
