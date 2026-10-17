@@ -27,7 +27,9 @@ export function HelpLifebuoy() {
   const [running, setRunning] = useState<Walkthrough | null>(null)
   const [leg, setLeg] = useState(0)
 
-  // A tour that crossed a page boundary — or was armed from /how — picks itself up on arrival.
+  // A tour armed from /how — or from a link, or a button on a screen — starts on arrival.
+  // Every console page renders the shell itself, so this host is rebuilt on each navigation;
+  // the leg it hands back is how a tour carries on across the pages it visits.
   useTourResume(WALKTHROUGHS, (t, l) => { setRunning(t); setLeg(l) })
 
   const internal = isSuperAdmin || isStaff || role === 'admin'
@@ -46,8 +48,11 @@ export function HelpLifebuoy() {
         <span className="hidden lg:inline">Show me how</span>
       </button>
 
+      {/* `key` matters: starting a second tour must give it a fresh runner rather than
+          reuse the first one's leg position. */}
       {running && (
-        <WalkthroughRunner tour={running} startLeg={leg} onClose={() => { setRunning(null); setLeg(0) }} />
+        <WalkthroughRunner key={running.id} tour={running} startLeg={leg}
+                           onClose={() => { setRunning(null); setLeg(0) }} />
       )}
     </>
   )

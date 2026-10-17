@@ -20,6 +20,33 @@ const CELEBRATORY = (n: ServerNotification): boolean =>
 // subsequent page load. They remain fully reachable via the bell / mark-read.
 const DISMISS_KEY = "whatsnew_dismissed_ids";
 
+// Dismissing by id is not enough on its own for anyone who receives a lot of these.
+// Internal staff get dozens a day, so there was almost always one unread id nobody had
+// seen yet, and the modal opened on practically every reload — which reads as a popup
+// that will not stay closed. A closed modal now stays closed for the rest of the day
+// whatever else arrives. The bell still carries everything, unread and counted.
+const QUIET_KEY = "whatsnew_quiet_until";
+const QUIET_HOURS = 12;
+
+function inQuietPeriod(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const until = Number(window.localStorage.getItem(QUIET_KEY) || 0);
+    return Number.isFinite(until) && Date.now() < until;
+  } catch {
+    return false;
+  }
+}
+
+function startQuietPeriod() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(QUIET_KEY, String(Date.now() + QUIET_HOURS * 3600_000));
+  } catch {
+    /* localStorage unavailable — non-fatal */
+  }
+}
+
 function getDismissed(): Set<string> {
   if (typeof window === "undefined") return new Set();
   try {
@@ -77,6 +104,8 @@ export function WhatsNewModal() {
       const dismissed = getDismissed();
       const fresh = unread.filter((n) => !dismissed.has(n.id));
       if (fresh.length === 0) return;
+      // Closed earlier today means closed. Do not reopen on the next thing that arrives.
+      if (inQuietPeriod()) return;
       setShownThisLoad(true);
       setItems(unread);
       setOpen(true);
@@ -99,6 +128,7 @@ export function WhatsNewModal() {
 
   const openItem = async (n: ServerNotification) => {
     await markRead(n.id);
+    startQuietPeriod();
     setOpen(false);
     if (n.action_url) router.push(n.action_url);
   };
@@ -124,7 +154,7 @@ export function WhatsNewModal() {
         open={open}
         onOpenChange={(next: boolean) => {
           // Any close (X / escape / outside-click) also counts as dismissal → no re-nag.
-          if (!next) addDismissed(items.map((n) => n.id));
+          if (!next) { addDismissed(items.map((n) => n.id)); startQuietPeriod(); }
           setOpen(next);
         }}
       >
@@ -185,6 +215,7 @@ export function WhatsNewModal() {
               onClick={() => {
                 // Persist dismissal so these don't re-open the modal on the next load.
                 addDismissed(items.map((n) => n.id));
+                startQuietPeriod();
                 setOpen(false);
               }}
             >

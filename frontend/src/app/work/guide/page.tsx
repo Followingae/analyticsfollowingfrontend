@@ -26,6 +26,9 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
+import { useAdminAccess } from '@/hooks/useAdminAccess'
+import { PLAYBOOKS, playbookFor, type Playbook } from '@/components/console/rolePlaybooks'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { PageHead, CARD } from '@/components/console/primitives'
 import { shortName } from '@/lib/destinations'
 import { Dash, NotAgreed, Age, Owner, SectionHead } from '@/components/console/surfaces'
@@ -34,6 +37,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
   Wallet,
+  Download, CircleCheck, Ban, Sunrise,
   Search, ArrowUpRight, Users2, Coins, Database, Map, Megaphone, ClipboardCheck,
   FileSignature, Banknote, BarChart3, Building2, FileText, Send, Inbox, ListChecks,
   ShieldCheck, Store, Activity, Bell, Wrench, MailCheck, MessageCircle, Users,
@@ -360,8 +364,103 @@ function namedTitle(e: Entry): string {
   return resolved === e.href ? e.title : resolved
 }
 
+/**
+ * One role's job, in business steps.
+ *
+ * Deliberately above the screen manual rather than beside it. The manual answers "what is
+ * this screen for", which is the question you have while looking at a screen; this answers
+ * "what am I supposed to be doing", which is the question you have in week one and again
+ * every time the work changes. That answer used to live in people's heads and in a set of
+ * PDFs that went stale the day they were exported, so it is now written once, next to the
+ * product, and the PDF is generated from the same words.
+ */
+function PlaybookBody({ p }: { p: Playbook }) {
+  return (
+    <div className="space-y-7">
+      <p className="reading-width text-[15px] leading-relaxed">{p.oneLine}</p>
+
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Sunrise className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-[15px] font-medium">First thing each morning, in this order</h3>
+        </div>
+        <ol className="divide-y border-y">
+          {p.morning.map((m, i) => (
+            <li key={m.href} className="flex gap-3 py-3">
+              <span className="w-4 shrink-0 text-[13px] tabular-nums text-muted-foreground">
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <Link href={m.href} className="group inline-flex items-center gap-1.5">
+                  <span className="text-[15px] font-medium">{m.what}</span>
+                  <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </Link>
+                <p className="reading-width text-[14px] leading-relaxed text-muted-foreground">
+                  {m.why}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-[15px] font-medium">Your jobs, step by step</h3>
+        {p.jobs.map((job) => (
+          <div key={job.title} className={`${CARD} space-y-3 bg-card p-5`}>
+            <div className="space-y-1">
+              <h4 className="text-[15px] font-semibold tracking-[-0.01em]">{job.title}</h4>
+              {job.when && (
+                <p className="reading-width text-[13.5px] leading-relaxed text-muted-foreground">
+                  {job.when}
+                </p>
+              )}
+            </div>
+            <ol className="space-y-2">
+              {job.steps.map((step, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="mt-0.5 w-4 shrink-0 text-[13px] tabular-nums text-muted-foreground">
+                    {i + 1}
+                  </span>
+                  <span className="reading-width text-[14px] leading-relaxed">{step}</span>
+                </li>
+              ))}
+            </ol>
+            {job.handover && (
+              <p className="reading-width flex gap-2 border-t pt-3 text-[13.5px] leading-relaxed text-muted-foreground">
+                <CircleCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span><strong className="font-medium text-foreground">Next:</strong> {job.handover}</span>
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-[15px] font-medium">Rules that do not bend</h3>
+        <ul className="space-y-2">
+          {p.never.map((n, i) => (
+            <li key={i} className="flex gap-2.5">
+              <Ban className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="reading-width text-[14px] leading-relaxed">{n}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
 export default function GuidePage() {
   const [q, setQ] = useState('')
+  const { staffRole, isSuperAdmin, loading } = useAdminAccess()
+
+  /* The viewer's own playbook, and everybody else's underneath it. A role nobody recognises
+     gets the list rather than nothing, because covering for somebody is the common case. */
+  const mine = useMemo(
+    () => (loading ? null : playbookFor(staffRole, isSuperAdmin)), [loading, staffRole, isSuperAdmin])
+  const others = useMemo(
+    () => PLAYBOOKS.filter((p) => p.key !== mine?.key), [mine])
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase()
@@ -415,6 +514,59 @@ export default function GuidePage() {
               it. Paperwork does not wait for that: once a creator&rsquo;s cost is saved they can
               be sent their enrolment link, and the links join the campaign when it opens.
             </p>
+          </section>
+        )}
+
+        {/* ── Your job, step by step ──────────────────────────────────────────────────────
+            Hidden while searching: the search box searches the screen manual, and leaving a
+            long playbook above the results made it look as though nothing matched. */}
+        {!q && mine && (
+          <section className="space-y-5">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <SectionHead
+                title={`Your job: ${mine.label}`}
+                note="What the work is, in the order it happens. Read this before any single screen."
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <a href={mine.pdf} target="_blank" rel="noopener noreferrer">
+                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                    Print this guide
+                  </a>
+                </Button>
+                {mine.pdfAlt && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={mine.pdfAlt.href} target="_blank" rel="noopener noreferrer">
+                      <Download className="mr-1.5 h-3.5 w-3.5" />
+                      {mine.pdfAlt.label}
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <PlaybookBody p={mine} />
+
+            {others.length > 0 && (
+              <div className="space-y-2 pt-2">
+                <p className="reading-width text-[14px] leading-relaxed text-muted-foreground">
+                  Everybody else&rsquo;s job, for when you are covering for them or waiting on
+                  them.
+                </p>
+                <Accordion type="single" collapsible className="border-t">
+                  {others.map((p) => (
+                    <AccordionItem key={p.key} value={p.key}>
+                      <AccordionTrigger className="text-[15px]">
+                        {p.label}
+                      </AccordionTrigger>
+                      <AccordionContent className="pt-1">
+                        <PlaybookBody p={p} />
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
+            )}
           </section>
         )}
 
@@ -597,6 +749,9 @@ export default function GuidePage() {
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link href="/work/inbox">Waiting on me</Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/how">Show me how</Link>
             </Button>
           </div>
         </section>
