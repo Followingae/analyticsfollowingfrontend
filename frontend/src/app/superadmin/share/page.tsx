@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils'
 import { Empty, Panel, Row } from '@/components/console/primitives'
 import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
 import { ShareComposer, type Kind, type Targets } from '@/components/share/ShareComposer'
+import { useConfirm } from '@/components/console/confirm'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,6 +53,7 @@ const when = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''
 
 export default function ShareCenterPage() {
+  const confirmAction = useConfirm()
   const [items, setItems] = useState<Share[] | null>(null)
   const [targets, setTargets] = useState<Targets | null>(null)
   const [client, setClient] = useState<string>('all')
@@ -88,7 +90,19 @@ export default function ShareCenterPage() {
     [items, client])
 
   const withdraw = async (s: Share) => {
-    if (!confirm(`Withdraw “${s.title}”? ${s.client} will no longer see it.`)) return
+    const ok = await confirmAction({
+      kind: 'destructive',
+      title: `Withdraw “${s.title}”`,
+      body: `${s.client} will no longer see it, and it disappears from their side without a word from us.`,
+      losses: [
+        { label: 'It comes off the client view straight away', warn: true },
+        { label: 'A file or note they have already opened or downloaded is theirs to keep', warn: true },
+        { label: 'The same thing can be shared with them again', kept: true },
+      ],
+      confirmLabel: 'Withdraw it',
+      cancelLabel: 'Leave it with them',
+    })
+    if (!ok) return
     try {
       const res = await fetchWithAuth(`${BASE}/${s.id}`, { method: 'DELETE' })
       const j = await res.json().catch(() => ({}))

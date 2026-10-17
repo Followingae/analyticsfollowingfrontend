@@ -13,6 +13,7 @@ import { CARD, PageHead } from "@/components/console/primitives"
 import { FaPage, Failed, Loading, Nothing, TONE_BADGE } from "../_ui"
 import { faMerchantApi, faClientApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
+import { useConfirm } from "@/components/console/confirm"
 
 interface BrandOption { id: string; brand_user_id?: string; company_name?: string; name?: string }
 
@@ -128,6 +129,7 @@ function MerchantForm({ merchant, brands, onSave, onCancel }: { merchant?: any; 
 }
 
 export default function FAMerchantsPage() {
+  const confirmAction = useConfirm()
   const [merchants, setMerchants] = useState<any[]>([])
   const [brands, setBrands] = useState<BrandOption[]>([])
   const [loading, setLoading] = useState(true)
@@ -178,7 +180,19 @@ export default function FAMerchantsPage() {
   // it one step, because the reason you rotate is that the code has leaked and
   // you want it dead now.
   const handleRotate = async (m: any) => {
-    if (!confirm(`Issue a new venue code for ${m.name}? The current code stops working immediately.`)) return
+    const ok = await confirmAction({
+      kind: "destructive",
+      title: `Issue a new venue code for ${m.name}`,
+      body: "The current code stops working immediately, so anyone at the venue still using it has to be given the new one.",
+      losses: [
+        { label: "The code the venue staff have now stops being accepted", warn: true },
+        { label: "A visit part-way through confirmation has to be redone on the new code", warn: true },
+        { label: "The merchant, its brand and its redemption history are kept", kept: true },
+      ],
+      confirmLabel: "Issue a new code",
+      cancelLabel: "Keep the current code",
+    })
+    if (!ok) return
     setRotating(m.id)
     try {
       const res = await faMerchantApi.rotateVenueCode(m.id)
@@ -189,10 +203,22 @@ export default function FAMerchantsPage() {
     finally { setRotating(null) }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this merchant?")) return
+  const handleDelete = async (m: any) => {
+    const ok = await confirmAction({
+      kind: "destructive",
+      title: `Delete ${m.name || "this merchant"}`,
+      body: "Creators can no longer redeem cashback or confirm a dine-in visit at this venue.",
+      losses: [
+        { label: "The merchant and its venue code" },
+        { label: "The venue stops accepting redemptions and visit confirmations", warn: true },
+        { label: "The brand it sits under is kept", kept: true },
+      ],
+      confirmLabel: "Delete the merchant",
+      cancelLabel: "Keep the merchant",
+    })
+    if (!ok) return
     try {
-      await faMerchantApi.delete(id)
+      await faMerchantApi.delete(m.id)
       toast.success("Merchant deleted")
       load()
     } catch { toast.error("Failed to delete") }
@@ -279,7 +305,7 @@ export default function FAMerchantsPage() {
                     <Button size="sm" variant="outline" onClick={() => { setEditing(m); setDialogOpen(true) }}>
                       <Pencil className="h-3 w-3 mr-1" />Edit
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleDelete(m.id)}>
+                    <Button size="sm" variant="outline" onClick={() => handleDelete(m)}>
                       <Trash2 className="h-3 w-3 mr-1" />Delete
                     </Button>
                   </div>

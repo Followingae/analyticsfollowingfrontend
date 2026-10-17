@@ -45,8 +45,10 @@ import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { ProposalEmailDialog } from "@/components/proposals/ProposalEmailDialog"
 import { ClientsHubHeader } from "@/components/console/ClientsHubHeader"
+import { useConfirm } from "@/components/console/confirm"
 
 export default function SuperadminProposalsPage() {
+  const confirmAction = useConfirm()
   const { isSuperAdmin } = useAdminAccess()
   const [proposals, setProposals] = useState<AdminProposal[]>([])
   const [emailProposalId, setEmailProposalId] = useState<string | null>(null)
@@ -89,7 +91,21 @@ export default function SuperadminProposalsPage() {
   }
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Delete proposal "${title}"? This removes its creators, approvals and share links. Any campaign created from it is kept (just unlinked). This cannot be undone.`)) return
+    const ok = await confirmAction({
+      kind: "destructive",
+      title: `Delete the ${title} proposal`,
+      body: "This cannot be undone. The roster and the prices on it would have to be rebuilt from nothing.",
+      losses: [
+        { label: "The roster of creators and the prices frozen on it", detail: "Including any discount or per-creator override." },
+        { label: "Every approval and verdict recorded against it" },
+        { label: "The client share link stops resolving", warn: true },
+        { label: "A campaign created from it is kept, just unlinked", kept: true },
+      ],
+      typeToConfirm: title,
+      confirmLabel: "Delete the proposal",
+      cancelLabel: "Keep the proposal",
+    })
+    if (!ok) return
     try {
       await adminProposalApi.deleteProposal(id)
       toast.success("Proposal deleted")

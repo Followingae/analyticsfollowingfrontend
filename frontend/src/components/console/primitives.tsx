@@ -336,7 +336,7 @@ export function Ring({
         </svg>
         <div className="absolute inset-0 grid place-items-center">
           <span className="text-[26px] font-semibold leading-none tracking-tight tabular-nums">
-            {pct == null ? '—' : `${Math.round(pct)}%`}
+            {pct == null ? '–' : `${Math.round(pct)}%`}
           </span>
         </div>
       </div>
@@ -449,7 +449,10 @@ export function FieldStrip({
       {fields.map(f => (
         <div key={f.label} className="min-w-[92px]">
           <p className="text-xs font-medium text-muted-foreground">{f.label}</p>
-          <p className="mt-1 text-sm font-medium">{f.value ?? '—'}</p>
+          {/* An EN dash, not an em dash: the house rule bans em dashes in copy and this is
+              copy. Where the caller knows WHY a value is missing it should pass `<Dash>` from
+              `surfaces.tsx` instead, which says whether it is hidden, unset or unmeasured. */}
+          <p className="mt-1 text-sm font-medium">{f.value ?? '–'}</p>
         </div>
       ))}
     </div>

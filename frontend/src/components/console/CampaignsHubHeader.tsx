@@ -165,7 +165,7 @@ function StageStrip() {
                 <p className="text-[12px] font-medium text-muted-foreground">{s.label}</p>
                 <p className="mt-1 text-[22px] font-semibold leading-none tracking-tight tabular-nums">
                   {loading ? <span className="text-muted-foreground/40">·</span>
-                   : n === null ? <span className="text-muted-foreground/40">—</span>
+                   : n === null ? <span className="text-muted-foreground/40">–</span>
                    : n}
                 </p>
                 <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{s.hint}</p>

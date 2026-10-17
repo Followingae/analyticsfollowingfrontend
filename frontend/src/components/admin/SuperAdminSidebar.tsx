@@ -3,7 +3,7 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
-import { NavMain } from "@/components/nav-main"
+import { ConsoleNav } from "@/components/console/ConsoleNav"
 import { NavUser } from "@/components/nav-user"
 import { Skeleton } from "@/components/ui/skeleton"
 import { shortName } from "@/lib/destinations"
@@ -21,6 +21,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
+  SidebarRail,
 } from "@/components/ui/sidebar"
 import {
   Shield,
@@ -288,7 +289,14 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   }, [pathname, overviewItems, managementItems, systemItems])
 
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    /* `icon`, not `offcanvas`.
+     *
+     * Offcanvas slides the entire sidebar off the screen, so collapsing it left the console
+     * with no navigation at all: the owner's report was that the sidebar "kept disappearing".
+     * Icon mode keeps a rail of glyphs with tooltips, which is both robust and the denser
+     * pattern. `SidebarRail` below gives a visible edge to toggle it back, so there is always
+     * a way out of the collapsed state that does not depend on finding the trigger. */
+    <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -297,7 +305,9 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Shield className="h-5 w-5" />
                 </div>
-                <div className="ml-2 flex flex-col gap-0.5 leading-none">
+                {/* At icon width there are 48px to play with, so the wordmark and the role
+                    stand down and the shield carries it alone. */}
+                <div className="ml-2 flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                   <span className="font-semibold">Following</span>
                   {/* A talent manager is not a superadmin, and telling her she is every time
                       she opens the platform is both wrong and slightly alarming. */}
@@ -317,7 +327,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
         {overviewItems.length > 0 && (
           <SidebarGroup>
             <SidebarGroupContent>
-              <NavMain items={overviewNamed} activeUrl={activeUrl} />
+              <ConsoleNav items={overviewNamed} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -343,7 +353,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           <SidebarGroup>
             <SidebarGroupLabel>Work</SidebarGroupLabel>
             <SidebarGroupContent>
-              <NavMain items={managementNamed} activeUrl={activeUrl} />
+              <ConsoleNav items={managementNamed} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -354,7 +364,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           <SidebarGroup>
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>
-              <NavMain items={systemItems} activeUrl={activeUrl} />
+              <ConsoleNav items={systemItems} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}
@@ -368,6 +378,11 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           />
         )}
       </SidebarFooter>
+
+      {/* A visible edge to click or drag the rail back open. Without it the only way out of
+          the collapsed state is the header trigger, and a collapsed sidebar whose toggle is
+          hard to find is the same complaint wearing a different hat. */}
+      <SidebarRail />
     </Sidebar>
   )
 }

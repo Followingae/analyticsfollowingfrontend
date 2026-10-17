@@ -14,6 +14,7 @@ import { CARD, PageHead } from "@/components/console/primitives"
 import { FaPage, Failed, Loading, Nothing, TONE_BADGE } from "../_ui"
 import { faAdBannerApi, type AdBanner } from "@/services/faAdminApi"
 import { toast } from "sonner"
+import { useConfirm } from "@/components/console/confirm"
 
 function BannerForm({ banner, onSave, onCancel }: { banner?: AdBanner | null; onSave: (data: Partial<AdBanner>) => void; onCancel: () => void }) {
   const [form, setForm] = useState({
@@ -114,6 +115,7 @@ function BannerForm({ banner, onSave, onCancel }: { banner?: AdBanner | null; on
 }
 
 export default function FAAdBannersPage() {
+  const confirmAction = useConfirm()
   const [banners, setBanners] = useState<AdBanner[]>([])
   const [loading, setLoading] = useState(true)
   /* Whether the list actually answered. Without it a failed request emptied the grid and
@@ -154,10 +156,23 @@ export default function FAAdBannersPage() {
     } catch { toast.error("Failed to save banner") }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this banner?")) return
+  const handleDelete = async (b: AdBanner) => {
+    const ok = await confirmAction({
+      kind: "destructive",
+      title: `Delete ${b.title || "this banner"}`,
+      body: b.is_active
+        ? "The banner is live in the app, so it leaves the carousel straight away."
+        : "The banner is hidden, so creators do not see it either way.",
+      losses: [
+        { label: "The banner and its artwork, link and schedule" },
+        { label: b.is_active ? "It comes out of the app carousel now" : "Nothing changes for creators", warn: b.is_active },
+      ],
+      confirmLabel: "Delete the banner",
+      cancelLabel: "Keep the banner",
+    })
+    if (!ok) return
     try {
-      await faAdBannerApi.delete(id)
+      await faAdBannerApi.delete(b.id)
       toast.success("Banner deleted")
       load()
     } catch { toast.error("Failed to delete") }
@@ -223,7 +238,7 @@ export default function FAAdBannersPage() {
                     <Button size="sm" variant="outline" onClick={() => { setEditing(b); setDialogOpen(true) }}>
                       <Pencil className="h-3 w-3 mr-1" />Edit
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleDelete(b.id)}>
+                    <Button size="sm" variant="outline" onClick={() => handleDelete(b)}>
                       <Trash2 className="h-3 w-3 mr-1" />Delete
                     </Button>
                     <div className="ml-auto flex items-center gap-2">

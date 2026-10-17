@@ -26,7 +26,10 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { PageHead } from '@/components/console/primitives'
+import { PageHead, CARD } from '@/components/console/primitives'
+import { shortName } from '@/lib/destinations'
+import { Dash, NotAgreed, Age, Owner, SectionHead } from '@/components/console/surfaces'
+import { StageChip, ChannelChip } from '@/components/console/Glyph'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -345,6 +348,18 @@ const SECTIONS: Section[] = [
 
 // ─────────────────────────────────────────────────────────────────────────────────────────
 
+/**
+ * The screen's name, resolved from the one file that owns names.
+ *
+ * `shortName` falls back to the URL it was given when it has no entry, which is deliberate
+ * there (a missing name should be loud). Here that would print a path at somebody, so an
+ * unresolved href falls back to the title written in the entry instead.
+ */
+function namedTitle(e: Entry): string {
+  const resolved = shortName(e.href)
+  return resolved === e.href ? e.title : resolved
+}
+
 export default function GuidePage() {
   const [q, setQ] = useState('')
 
@@ -403,6 +418,121 @@ export default function GuidePage() {
           </section>
         )}
 
+        {/* ── How to read a screen ────────────────────────────────────────────────────────
+            The marks below mean the same thing on every screen in the console, so learning
+            them once is the whole training. They are rendered here as the real components
+            rather than described, because a picture of a badge and the badge itself drift
+            apart the moment somebody retunes the badge. */}
+        {!q && (
+          <section className="space-y-4">
+            <SectionHead
+              title="How to read a screen"
+              note="These marks mean the same thing everywhere. Learn them once."
+            />
+
+            <div className={`${CARD} divide-y divide-border/60 bg-card`}>
+              <div className="grid gap-4 p-4 sm:grid-cols-[180px_1fr] sm:items-center">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Dash reason="unseen" what="sell price" />
+                  <Dash reason="unset" what="rate" />
+                  <NotAgreed />
+                  <span className="text-ds-label font-semibold tabular-nums">0</span>
+                </div>
+                <p className="text-ds-caption">
+                  <strong className="text-foreground">Three kinds of nothing, and they are not
+                  the same.</strong> A faint dash is a figure your role may not see, and the
+                  column stays so you know it exists. A normal dash is a figure nobody has set
+                  yet, or one we tried to measure and could not. &ldquo;Not agreed&rdquo; means
+                  no rate has been proposed. A real <strong className="text-foreground">0</strong>{' '}
+                  is a measurement that genuinely came back as nothing. Hover any dash and it
+                  tells you which it is.
+                </p>
+              </div>
+
+              <div className="grid gap-4 p-4 sm:grid-cols-[180px_1fr] sm:items-center">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <StageChip rung="contracted" state="done" />
+                  <StageChip rung="briefed" state="current" />
+                  <StageChip rung="content_in" state="late" />
+                </div>
+                <p className="text-ds-caption">
+                  <strong className="text-foreground">Where a creator stands.</strong> Eight
+                  rungs, in order: enrolled, rate agreed, agreement on file, guide sent, content
+                  in, content approved, posted, paid. Done is dark, the rung she is on now is
+                  lime, and late carries its own clock. A dropped creator is marked separately
+                  because she has left the ladder rather than reached a step on it.
+                </p>
+              </div>
+
+              <div className="grid gap-4 p-4 sm:grid-cols-[180px_1fr] sm:items-center">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Age days={1} />
+                  <Age days={6} />
+                  <Age days={0} lateDays={4} />
+                </div>
+                <p className="text-ds-caption">
+                  <strong className="text-foreground">Two different clocks.</strong> The plain
+                  count is how long a row has sat with whoever holds it. It turns amber at four
+                  days. &ldquo;Late&rdquo; is a separate fact: how far past a date we promised
+                  somebody, and it is always red. A row can be two days old and four days late,
+                  and late sorts above everything.
+                </p>
+              </div>
+
+              <div className="grid gap-4 p-4 sm:grid-cols-[180px_1fr] sm:items-center">
+                <div className="flex flex-col items-start gap-2">
+                  <Owner name="Aqsa" initials="AB" />
+                  <Owner name="Hajar" initials="HY" waiting />
+                  <Owner name={null} />
+                </div>
+                <p className="text-ds-caption">
+                  <strong className="text-foreground">Who is holding it.</strong> Written as a
+                  sentence so you can tell whether the ball is in your court without decoding a
+                  label. &ldquo;Nobody yet&rdquo; is a real value and you can filter on it:
+                  until this year no row in here had a person&rsquo;s name on it, and work
+                  addressed to a role was work addressed to nobody.
+                </p>
+              </div>
+
+              <div className="grid gap-4 p-4 sm:grid-cols-[180px_1fr] sm:items-center">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <ChannelChip channel="email" />
+                  <ChannelChip channel="whatsapp" />
+                  <ChannelChip channel="platform" />
+                </div>
+                <p className="text-ds-caption">
+                  <strong className="text-foreground">Where something came from.</strong> Email
+                  and WhatsApp are first class here, not a separate inbox feature, because most
+                  of this business still arrives that way.
+                </p>
+              </div>
+
+              <div className="grid gap-4 p-4 sm:grid-cols-[180px_1fr] sm:items-start">
+                <div className="text-ds-label font-semibold">Counts and badges</div>
+                <p className="text-ds-caption">
+                  <strong className="text-foreground">A badge is a demand, a count is a
+                  fact.</strong> The number beside a sidebar entry is a pile with your name on
+                  it, and it disappears when there is nothing waiting. The number on a filter is
+                  the size of that set and shows even when it is zero, so an empty filter is not
+                  mistaken for a broken screen.
+                </p>
+              </div>
+
+              <div className="grid gap-4 p-4 sm:grid-cols-[180px_1fr] sm:items-start">
+                <div className="text-ds-label font-semibold">Before anything leaves</div>
+                <p className="text-ds-caption">
+                  <strong className="text-foreground">Money and messages always show you what
+                  they are about to do.</strong> Releasing a payment restates the amount and
+                  names every creator in it. Sending a brief shows the actual message, every
+                  recipient, and which number it goes from. A small pill at the bottom of the
+                  screen is only ever a receipt for something that already happened, and it
+                  tells you what else it set off.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
         {shown.length === 0 ? (
           <p className="py-12 text-[15px] text-muted-foreground">
             Nothing in the manual matches that. Try the name of the screen, or what you are
@@ -429,7 +559,12 @@ export default function GuidePage() {
                       <e.icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[15px] font-medium">{e.title}</span>
+                          {/* The name comes from `destinations.ts`, not from the entry above.
+                              The entries carried their own titles, so renaming a screen in the
+                              one place that is supposed to own names left the guide teaching
+                              the old one. The hardcoded title is now only a fallback for a
+                              href the naming file does not know about. */}
+                          <span className="text-[15px] font-medium">{namedTitle(e)}</span>
                           <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                         </div>
                         <p className="reading-width text-[14px] leading-relaxed text-muted-foreground">

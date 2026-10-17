@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { usePathname, useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminSidebar } from "@/components/admin/SuperAdminSidebar"
 import { SiteHeader } from "@/components/site-header"
@@ -9,10 +8,10 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { useAdminAccess, type AdminModule, ADMIN_MODULES } from "@/hooks/useAdminAccess"
-import { MODULE_HOME, modulesForPath } from "@/lib/routeModules"
 import { GlobalCommandPalette } from "@/components/GlobalCommandPalette"
 import { KeyboardShortcuts } from "@/components/console/KeyboardShortcuts"
+import { ConfirmProvider } from "@/components/console/confirm"
+import { ModuleRouteGuard } from "@/components/console/ModuleRouteGuard"
 
 interface SuperadminLayoutProps {
   children: React.ReactNode
@@ -20,34 +19,8 @@ interface SuperadminLayoutProps {
   requireAuth?: boolean
 }
 
-/** Redirects a module-scoped admin away from a page they can't access. */
-function ModuleRouteGuard({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname() || ""
-  const router = useRouter()
-  const { isSuperAdmin, can, loading, refined } = useAdminAccess()
-
-  const required = modulesForPath(pathname)
-  const allowed = isSuperAdmin || required.length === 0 || required.some(m => can(m))
-
-  React.useEffect(() => {
-    // Never bounce somebody on a provisional answer. `can()` is usable the moment the hook
-    // settles, but until /staff/me has replied it does not know about per-member grants, and
-    // redirecting on that half-answer sends people away from screens they may open.
-    if (loading || !refined || allowed) return
-    // Send the admin to their first allowed module (or the dashboard).
-    const first = ADMIN_MODULES.find(m => MODULE_HOME[m.key] && can(m.key as AdminModule))
-    router.replace(first ? MODULE_HOME[first.key] : "/work/today")
-  }, [loading, refined, allowed, can, router])
-
-  if (!loading && refined && !allowed) {
-    return (
-      <div className="flex flex-1 items-center justify-center py-24 text-sm text-muted-foreground">
-        Redirecting…
-      </div>
-    )
-  }
-  return <>{children}</>
-}
+/* `ModuleRouteGuard` moved to `@/components/console/ModuleRouteGuard` so the console's other
+   shell can use the same one. It used to live here, which is why 29 screens had no guard. */
 
 export function SuperadminLayout({
   children,
@@ -58,6 +31,11 @@ export function SuperadminLayout({
   // ModuleRouteGuard below and by the backend require_module() guards.
   return (
     <AuthGuard requireAuth={requireAuth} requireAdmin={true} requireSuperAdmin={false}>
+      {/* One confirmation host for the whole console, so `useConfirm()` works on every screen
+          without each one mounting its own dialog. Outside this provider the hook fails CLOSED
+          on anything consequential, which is the right way round: a money action that silently
+          proceeds because a provider was missing is the bug you find after the transfer. */}
+      <ConfirmProvider>
       <SidebarProvider
       className="console-shell"
         style={
@@ -83,6 +61,7 @@ export function SuperadminLayout({
           </div>
         </SidebarInset>
       </SidebarProvider>
+      </ConfirmProvider>
     </AuthGuard>
   )
 }

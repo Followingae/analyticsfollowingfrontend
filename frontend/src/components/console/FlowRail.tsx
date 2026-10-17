@@ -161,7 +161,7 @@ export function FlowRail({ scope }: { scope?: string | null }) {
                               </span>
                             )}
                             <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                              {r.count == null ? '—' : r.count.toLocaleString('en-US')}
+                              {r.count == null ? '–' : r.count.toLocaleString('en-US')}
                             </span>
                           </li>
                         ))}

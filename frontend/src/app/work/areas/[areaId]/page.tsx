@@ -36,6 +36,7 @@ import { cdnAvatar } from "@/lib/avatar"
 import { FieldStrip, GroupLabel } from "@/components/console/primitives"
 import { BriefDetail } from "@/components/console/BriefDetail"
 import { BriefFields } from "@/components/console/BriefFields"
+import { useConfirm } from "@/components/console/confirm"
 import type { AreaBrief } from "@/services/imdListsApi"
 
 const ANY_COUNTRY = "__any__"
@@ -58,6 +59,7 @@ function fmt(n?: number | null) {
 
 export default function ImdListDetailPage() {
   const listId = useParams().areaId as string
+  const confirmAction = useConfirm()
   const { canExport, canDestroy, can } = useAdminAccess()
   const canStock = can("influencers")
   const [list, setList] = useState<(ImdListSummary & { items: ImdListCreator[] }) | null>(null)
@@ -213,7 +215,19 @@ export default function ImdListDetailPage() {
   }
 
   const revokeListLink = async () => {
-    if (!window.confirm('Turn off the link? Anyone holding it stops seeing the list.')) return
+    const ok = await confirmAction({
+      kind: 'destructive',
+      title: 'Turn off the share link',
+      body: 'Anyone holding the link stops seeing this list the moment it goes off.',
+      losses: [
+        { label: 'The link stops resolving for everyone who has it', warn: true },
+        { label: 'The list itself and every creator on it are kept', kept: true },
+        { label: 'A new link can be raised again whenever it is needed', kept: true },
+      ],
+      confirmLabel: 'Turn off the link',
+      cancelLabel: 'Keep the link on',
+    })
+    if (!ok) return
     setShareBusy(true)
     try {
       await imdListsApi.revokeShare(listId)
@@ -350,9 +364,19 @@ export default function ImdListDetailPage() {
   }
 
   const lockRound = async () => {
-    if (!window.confirm(
-      "Close this round? Nothing in it changes again, and the client link stops taking answers."
-    )) return
+    const ok = await confirmAction({
+      kind: "destructive",
+      title: `Close round ${list?.round_no ?? 1}`,
+      body: "Nothing in this round changes again once it is closed.",
+      losses: [
+        { label: "The client link stops taking answers", warn: true },
+        { label: "Picks and verdicts already in are frozen as the record of this round", kept: true },
+        { label: "Creators still on the table carry into the next round", kept: true },
+      ],
+      confirmLabel: "Close the round",
+      cancelLabel: "Leave the round open",
+    })
+    if (!ok) return
     setRoundBusy(true)
     try {
       const res = await imdListsApi.lock(listId)

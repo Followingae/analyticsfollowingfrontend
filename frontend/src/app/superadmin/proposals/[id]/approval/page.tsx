@@ -27,6 +27,7 @@ import { SellingMode } from '@/components/superadmin/proposals/SellingMode'
 import { PriceModifierCard } from '@/components/superadmin/proposals/PriceModifierCard'
 import { GateOverrideCard } from '@/components/superadmin/proposals/GateOverrideCard'
 import { Aed } from '@/components/console/primitives'
+import { useConfirm } from '@/components/console/confirm'
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   draft: { label: 'Draft', cls: 'bg-muted text-foreground' },
@@ -47,6 +48,7 @@ export default function ProposalApprovalPage() {
   const params = useParams()
   const router = useRouter()
   const proposalId = params.id as string
+  const confirmAction = useConfirm()
 
   const [ws, setWs] = useState<any>(null)
   /* A barter proposal pays creators in product, which changes two things on this screen:
@@ -234,14 +236,26 @@ export default function ProposalApprovalPage() {
                         destructive action is never the resting state of the header. */}
                     {picked.size > 0 && (
                       <Button size="sm" variant="destructive" disabled={busy}
-                              onClick={() => {
+                              onClick={async () => {
                                 const ids = Array.from(picked)
                                 const names = (ws.influencers || [])
                                   .filter((i: any) => picked.has(i.id))
                                   .map((i: any) => '@' + (i.username || '?'))
                                   .join(', ')
-                                if (window.confirm(`Remove ${ids.length} creator${ids.length === 1 ? '' : 's'} from the proposal?\n\n${names}`))
-                                  run(() => proposalApprovalApi.bulkRemoveInfluencers(proposalId, ids))
+                                const ok = await confirmAction({
+                                  kind: 'destructive',
+                                  title: `Remove ${ids.length} creator${ids.length === 1 ? '' : 's'} from the proposal`,
+                                  body: names,
+                                  losses: [
+                                    { label: 'Their frozen prices and any discount on them', detail: 'Re-adding a creator quotes them at the current standard rate.' },
+                                    { label: 'Anything the client already picked on them is dropped', warn: true },
+                                    { label: 'Their record in the master database is kept', kept: true },
+                                  ],
+                                  confirmLabel: `Remove ${ids.length} creator${ids.length === 1 ? '' : 's'}`,
+                                  cancelLabel: 'Leave them on',
+                                })
+                                if (!ok) return
+                                run(() => proposalApprovalApi.bulkRemoveInfluencers(proposalId, ids))
                               }}>
                         <Trash2 className="mr-1.5 h-4 w-4" />Remove {picked.size}
                       </Button>
@@ -257,7 +271,7 @@ export default function ProposalApprovalPage() {
                       />
                       <span className="text-sm text-muted-foreground">% off</span>
                       <Button size="sm" variant="outline" disabled={busy || !discountPct}
-                              onClick={() => {
+                              onClick={async () => {
                                 const pct = Number(discountPct)
                                 if (!Number.isFinite(pct) || pct <= 0 || pct >= 100) {
                                   window.alert('Enter a percentage between 1 and 99'); return
@@ -271,19 +285,47 @@ export default function ProposalApprovalPage() {
                                 const scope = ids.length
                                   ? `the ${ids.length} creator${ids.length === 1 ? '' : 's'} you ticked`
                                   : `ALL ${(ws.influencers || []).length} creators on this proposal`
-                                if (window.confirm(`Take ${pct}% off ${scope}?
-
-Cost prices and the master database are untouched.`))
-                                  run(() => proposalApprovalApi.applyDiscount(proposalId, pct, ids.length ? ids : undefined))
+                                /* destructive rather than money: the discount changes what
+                                   the client is quoted, but this screen holds per-creator
+                                   reel prices and the client's budget, not the roster sell
+                                   total the discount lands on. Restating a figure we have
+                                   not computed is worse than naming the scope plainly. */
+                                const ok = await confirmAction({
+                                  kind: 'destructive',
+                                  title: `Take ${pct}% off ${scope}`,
+                                  body: 'Every sell price in that scope is rewritten to the discounted figure, which is what the client sees and buys at.',
+                                  losses: [
+                                    { label: 'Any per-creator price already negotiated in that scope is overwritten', warn: true },
+                                    { label: 'Cost prices are untouched, so margin absorbs the whole discount', warn: true },
+                                    { label: 'The master database and every other client quote are untouched', kept: true },
+                                    { label: 'Standard rates can be put back from this header', kept: true },
+                                  ],
+                                  confirmLabel: `Take ${pct}% off`,
+                                  cancelLabel: 'Leave the prices as they are',
+                                })
+                                if (!ok) return
+                                run(() => proposalApprovalApi.applyDiscount(proposalId, pct, ids.length ? ids : undefined))
                               }}>
                         {picked.size > 0 ? `Apply to ${picked.size}` : 'Apply to all'}
                       </Button>
                     </div>
                     {anyDiscounted && (
                       <Button size="sm" variant="ghost" disabled={busy}
-                              onClick={() => {
-                                if (window.confirm('Put every creator back to their standard rate?'))
-                                  run(() => proposalApprovalApi.applyDiscount(proposalId, 0))
+                              onClick={async () => {
+                                const ok = await confirmAction({
+                                  kind: 'destructive',
+                                  title: 'Put every creator back to their standard rate',
+                                  body: `${discountedList.length} creator${discountedList.length === 1 ? '' : 's'} on this proposal ${discountedList.length === 1 ? 'is' : 'are'} off standard rates. Every one of them goes back to the price the master database quotes.`,
+                                  losses: [
+                                    { label: 'Every per-creator price negotiated on this proposal', detail: 'Including rates agreed one creator at a time, not just the roster discount.' },
+                                    { label: 'The prices cannot be recovered, they have to be re-entered', warn: true },
+                                    { label: 'The roster itself and anything the client picked are kept', kept: true },
+                                  ],
+                                  confirmLabel: 'Put back to standard rates',
+                                  cancelLabel: 'Keep the negotiated prices',
+                                })
+                                if (!ok) return
+                                run(() => proposalApprovalApi.applyDiscount(proposalId, 0))
                               }}>
                         <RotateCcw className="mr-1.5 h-4 w-4" />Standard rates
                       </Button>
@@ -397,9 +439,20 @@ Cost prices and the master database are untouched.`))
                                   <Flag className="h-4 w-4 text-orange-600" />
                                 </Button>
                                 <Button size="sm" variant="ghost" disabled={busy} title="Remove from proposal"
-                                  onClick={() => {
-                                    if (window.confirm(`Remove @${inf.username || 'this creator'} from the proposal?`))
-                                      run(() => proposalApprovalApi.removeInfluencer(proposalId, inf.id))
+                                  onClick={async () => {
+                                    const ok = await confirmAction({
+                                      kind: 'destructive',
+                                      title: `Remove @${inf.username || 'this creator'} from the proposal`,
+                                      losses: [
+                                        { label: 'The frozen price on this creator and any discount on it', detail: 'Re-adding quotes the current standard rate.' },
+                                        { label: 'Anything the client already picked on them is dropped', warn: true },
+                                        { label: 'Their record in the master database is kept', kept: true },
+                                      ],
+                                      confirmLabel: 'Remove the creator',
+                                      cancelLabel: 'Leave them on',
+                                    })
+                                    if (!ok) return
+                                    run(() => proposalApprovalApi.removeInfluencer(proposalId, inf.id))
                                   }}>
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>

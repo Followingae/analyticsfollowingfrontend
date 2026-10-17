@@ -283,7 +283,7 @@ export function ProcessFlow({ scope }: { scope?: string | null }) {
                 'text-[26px] font-semibold leading-none tabular-nums tracking-[-0.03em]',
                 s.mine ? 'text-foreground' : 'text-foreground/75',
               )}>
-                {s.total == null ? '—' : s.total}
+                {s.total == null ? '–' : s.total}
               </span>
             </div>
           ))}
@@ -333,7 +333,7 @@ export function ProcessFlow({ scope }: { scope?: string | null }) {
               <>
                 <span className="text-[13px]">{r.title}</span>
                 <span className="text-[13px] font-semibold tabular-nums">
-                  {r.count == null ? '—' : r.count}
+                  {r.count == null ? '–' : r.count}
                 </span>
                 {r.can_open && <ArrowRight className="h-3.5 w-3.5 opacity-50" />}
               </>

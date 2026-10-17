@@ -47,9 +47,11 @@ export const DESTINATIONS: Record<string, Destination> = {
     hint: 'What your day is made of',
   },
   '/work/inbox': {
-    short: 'My queue',
-    full: 'My queue',
-    // Was "Waiting on me". First person, and it described the viewer rather than the place.
+    short: 'Decisions',
+    full: 'Open decisions',
+    // Was "My queue", and before that "Waiting on me". Both are first person and describe the
+    // viewer rather than the place. A queue is also what /work/system/jobs is, so the name
+    // now says what is in it: decisions that are open.
     hint: 'Everything waiting on a decision from you',
   },
   '/work/guide': {
@@ -79,16 +81,51 @@ export const DESTINATIONS: Record<string, Destination> = {
     // Was "My clients" for an account manager and "Clients" for a founder. Same screen.
     hint: 'The brands we run',
   },
+  '/work/clients/[teamId]': {
+    short: 'Client record',
+    full: 'Client record',
+    hint: 'One client: contacts, campaigns, credits and what they owe',
+  },
   '/work/brands': {
     short: 'Brands',
     full: 'Brands',
     // The palette called this "Who has gone quiet", which is a report, not a destination.
     hint: 'Every brand we are talking to',
   },
+  '/work/brands/[teamId]': {
+    short: 'Brand record',
+    full: 'Brand record',
+    hint: 'One brand we are talking to, and where the conversation stands',
+  },
   '/work/proposals': {
     short: 'Quotes',
     full: 'Quotes',
     hint: 'Rosters priced and sent to clients',
+  },
+  '/work/proposals/create': {
+    short: 'Quote builder',
+    full: 'Quote builder',
+    hint: 'Pick creators, set deliverables and price a new quote',
+  },
+  '/work/proposals/[id]': {
+    short: 'Quote',
+    full: 'Quote detail',
+    hint: 'One quote: roster, prices, and what the client has picked',
+  },
+  '/work/proposals/[id]/approval': {
+    short: 'Internal approval',
+    full: 'Internal approval',
+    hint: 'The sign-off a quote needs before it goes to the client',
+  },
+  '/work/proposals/[id]/confirm': {
+    short: 'Client confirmation',
+    full: 'Client confirmation',
+    hint: 'Lock a quote on behalf of the client and settle real costs',
+  },
+  '/work/proposals/[id]/mechanics': {
+    short: 'Product mechanics',
+    full: 'Product mechanics',
+    hint: 'What each creator does with the product, and the dine-in visit terms',
   },
   '/work/share': {
     short: 'Share links',
@@ -96,10 +133,31 @@ export const DESTINATIONS: Record<string, Destination> = {
     // Was "Share Center": Title Case in a sentence-case menu, and American.
     hint: 'What clients have been sent, and whether they opened it',
   },
+  '/work/partners': {
+    short: 'Partner leads',
+    full: 'Partner leads',
+    hint: 'Enquiries from the partner page on the marketing site',
+  },
   '/work/campaigns': {
     short: 'Campaigns',
     full: 'Campaigns',
     hint: 'Live work and where each creator has got to',
+  },
+  '/work/campaigns/create': {
+    short: 'Campaign setup',
+    full: 'Campaign setup',
+    hint: 'Open a campaign and choose its creators and deliverables',
+  },
+  '/work/campaigns/[campaignId]/timeline': {
+    short: 'Campaign timeline',
+    full: 'Campaign timeline',
+    hint: 'Every date in one campaign, from brief to payout',
+  },
+  '/work/campaigns/[campaignId]/ladder': {
+    short: 'Delivery board',
+    full: 'Delivery board',
+    // Matrix proposed "Delivery board"; kept. "Ladder" is the URL and internal jargon, not a name anybody outside the team would search for.
+    hint: 'Each creator in one campaign, rung by rung to delivered',
   },
   // Reached from a campaign rather than the sidebar, but it is a destination: notifications
   // and the command palette both need a name for it, and a name that only exists in a button
@@ -119,6 +177,16 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Creators and rates',
     hint: 'The master database, with cost and sell pricing',
   },
+  '/work/influencers/add': {
+    short: 'Creator intake',
+    full: 'Creator intake',
+    hint: 'Add creators to the master database, singly or in bulk',
+  },
+  '/work/influencers/analyzed': {
+    short: 'Analysed',
+    full: 'Analysed creators',
+    hint: 'Creators whose analytics have run, and how they came out',
+  },
   '/work/influencers/review': {
     short: 'Pending rates',
     full: 'Creators pending a rate',
@@ -137,6 +205,11 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Sample packs',
     hint: 'Pre-built rosters to show a brand before anybody commits',
   },
+  '/work/areas/[areaId]': {
+    short: 'Roster',
+    full: 'Roster detail',
+    hint: 'One roster: the brief, the creators found and what is still open',
+  },
   '/work/chasing': {
     short: 'Chasing',
     full: 'Chasing',
@@ -147,6 +220,11 @@ export const DESTINATIONS: Record<string, Destination> = {
     short: 'Enrolments',
     full: 'Enrolments',
     hint: 'Agreements, details and delivery addresses',
+  },
+  '/work/enrolments/[id]': {
+    short: 'Enrolment record',
+    full: 'Enrolment record',
+    hint: 'One enrolment: agreement, details and instalments',
   },
   '/work/enrolments/payments': {
     short: 'Payments',
@@ -165,6 +243,11 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Creator contracting and payouts',
     hint: 'Brand orders we contract, invoice, collect and pay out',
   },
+  '/work/mor/[kind]/[id]': {
+    short: 'Contracting order',
+    full: 'Contracting order',
+    hint: 'One brand order, from contract to the last creator payout',
+  },
   '/work/money': {
     short: 'Finance',
     full: 'Finance',
@@ -178,6 +261,27 @@ export const DESTINATIONS: Record<string, Destination> = {
     // Was "Sign-offs", which also rendered as "Sign-offs1" to a screen reader because the
     // count span sat against the label with no separator.
     hint: 'Held until a founder says yes',
+  },
+  '/work/billing': {
+    short: 'Client credits',
+    full: 'Client credits',
+    hint: 'Credit balances, top-ups and plans for every client',
+  },
+  '/work/report-campaigns': {
+    short: 'Reports',
+    full: 'Campaign reports',
+    hint: 'Finished campaigns written up for clients',
+  },
+  '/work/report-campaigns/[id]': {
+    short: 'Campaign report',
+    full: 'Campaign report',
+    hint: 'One finished campaign: results, content and spend',
+  },
+  '/superadmin/operations': {
+    short: 'Operations queues',
+    full: 'Operations queues',
+    // The only entry keyed /superadmin/...: this page has no /work/ form, and the rewrite only goes one way.
+    hint: 'Work that has piled up and needs an owner',
   },
 
   // ── Insight ─────────────────────────────────────────────────────────────────────────
@@ -206,6 +310,31 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Creator app campaigns',
     hint: 'Barter, cashback and paid deals creators apply to',
   },
+  '/work/fa/campaigns/new': {
+    short: 'Campaign type',
+    full: 'Campaign type',
+    hint: 'Choose cashback, barter or paid deal before setting one up',
+  },
+  '/work/fa/campaigns/create': {
+    short: 'Cashback setup',
+    full: 'Cashback campaign setup',
+    hint: 'Set up a cashback offer at a merchant',
+  },
+  '/work/fa/campaigns/create-barter': {
+    short: 'Barter setup',
+    full: 'Barter campaign setup',
+    hint: 'Set up a product-for-content deal',
+  },
+  '/work/fa/campaigns/create-paid-deal': {
+    short: 'Paid deal setup',
+    full: 'Paid deal setup',
+    hint: 'Set up a fixed fee deal for creators to apply to',
+  },
+  '/work/fa/campaigns/[id]': {
+    short: 'Campaign funnel',
+    full: 'App campaign funnel',
+    hint: 'One app campaign from applicants to delivered content',
+  },
   '/work/fa/merchants': {
     short: 'Merchants',
     full: 'Merchants',
@@ -216,6 +345,11 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Creator app users',
     // Was "App creators" in the sidebar and "On the app" as a hub tab.
     hint: 'Creators signed up in the app',
+  },
+  '/work/fa': {
+    short: 'App overview',
+    full: 'Creator app overview',
+    hint: 'The creator app at a glance',
   },
   '/work/fa/activity': {
     short: 'App activity',
@@ -232,6 +366,26 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Creator app messages',
     hint: 'Push messages to creators',
   },
+  '/work/fa/deliverables': {
+    short: 'Content review',
+    full: 'Content review',
+    hint: 'Content creators have uploaded, waiting for a yes or an edit',
+  },
+  '/work/fa/wallets': {
+    short: 'App balances',
+    full: 'Creator app balances',
+    hint: 'What each creator holds in the app',
+  },
+  '/work/fa/withdrawals': {
+    short: 'Withdrawals',
+    full: 'Creator withdrawals',
+    hint: 'Cash-out requests from creators',
+  },
+  '/work/fa/receipt-claims': {
+    short: 'Receipt claims',
+    full: 'Receipt claims',
+    hint: 'Receipts creators submitted for cashback',
+  },
 
   // ── Company ─────────────────────────────────────────────────────────────────────────
   '/work/team': {
@@ -246,12 +400,27 @@ export const DESTINATIONS: Record<string, Destination> = {
     // Was "Office screens", which read as a place rather than a setting.
     hint: 'What the wall screens show',
   },
+  '/work/system/jobs': {
+    short: 'Job queue',
+    full: 'Job queue',
+    hint: 'Background work running now, and what has failed',
+  },
 
   // ── Settings ────────────────────────────────────────────────────────────────────────
   '/work/users': {
     short: 'Users',
     full: 'Client accounts',
     hint: 'Brand logins, plans and passwords',
+  },
+  '/work/users/create': {
+    short: 'Account setup',
+    full: 'Account setup',
+    hint: 'Create a client login with a plan and starting credits',
+  },
+  '/work/users/[userId]': {
+    short: 'Client account',
+    full: 'Client account',
+    hint: 'One client login: plan, credits, team and password',
   },
   '/work/staff': {
     short: 'Staff',
@@ -270,11 +439,35 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'WhatsApp',
     hint: 'Broadcasts and templates',
   },
+  '/work/whatsapp/broadcasts/[id]': {
+    short: 'Broadcast delivery',
+    full: 'Broadcast delivery',
+    hint: 'Who a broadcast reached, and who it failed',
+  },
   '/work/system': {
     short: 'System',
     full: 'System',
     hint: 'Pricing rules, plan limits, feature switches',
   },
+}
+
+/** Keys with a [param] segment are patterns: /work/proposals/[id] names every quote. Built
+ *  once, and tried only after an exact match fails, so a literal key like
+ *  /work/proposals/create always beats /work/proposals/[id]. */
+const PATTERNS: Array<[RegExp, Destination]> = Object.entries(DESTINATIONS)
+  .filter(([key]) => key.includes('['))
+  .map(([key, d]): [RegExp, Destination] => [
+    new RegExp('^' + key.replace(/\[[^\]]+\]/g, '[^/]+') + '$'),
+    d,
+  ])
+
+function lookup(url: string): Destination | undefined {
+  const path = url.split('?')[0].replace(/\/+$/, '')
+  return (
+    DESTINATIONS[url] ??
+    DESTINATIONS[path] ??
+    PATTERNS.find(([re]) => re.test(path))?.[1]
+  )
 }
 
 /** The sidebar name for a URL. Falls back to the URL so a missing entry is visible, loudly,
@@ -283,15 +476,15 @@ export function shortName(url: string): string {
   // Try the whole URL first: a query string can make a genuinely different destination,
   // and /work/areas?kind=sample is a different thing from /work/areas. Then fall back to
   // the path, so an id or a tab does not lose the name of the screen it belongs to.
-  return DESTINATIONS[url]?.short ?? DESTINATIONS[url.split('?')[0]]?.short ?? url
+  return lookup(url)?.short ?? url
 }
 
 /** The page title for a URL. */
 export function fullName(url: string): string {
-  const d = DESTINATIONS[url] ?? DESTINATIONS[url.split('?')[0]]
+  const d = lookup(url)
   return d?.full ?? d?.short ?? url
 }
 
 export function hintFor(url: string): string | undefined {
-  return (DESTINATIONS[url] ?? DESTINATIONS[url.split('?')[0]])?.hint
+  return lookup(url)?.hint
 }
