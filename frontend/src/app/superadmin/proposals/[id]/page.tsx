@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { adminProposalApi, AdminProposalDetail, AdminProposalInfluencer } from "@/services/adminProposalMasterApi"
 import { toast } from "sonner"
+import { PageHead } from "@/components/console/primitives"
+import { fullName } from "@/lib/destinations"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -285,23 +287,22 @@ export default function ProposalDetailPage() {
               </Button>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-              <div className="space-y-1">
-                <CardTitle className="text-2xl">{proposal.title}</CardTitle>
-                <CardDescription className="space-y-0.5">
-                  <span className="block">Campaign: {proposal.campaign_name}</span>
-                  {proposal.user_email && (
-                    <span className="block">Brand: {proposal.user_email}</span>
-                  )}
-                </CardDescription>
+              <div className="min-w-0 flex-1">
+                <PageHead
+                  title={proposal.title || proposal.campaign_name || fullName("/work/proposals/[id]")}
+                  sub={[proposal.campaign_name && `Campaign: ${proposal.campaign_name}`, proposal.user_email && `Brand: ${proposal.user_email}`].filter(Boolean).join(" · ") || undefined}
+                  action={
+                    <Button
+                      size="sm"
+                      onClick={() => router.push(`/superadmin/proposals/${id}/approval`)}
+                    >
+                      Approval workflow
+                    </Button>
+                  }
+                />
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <ProposalStatusBadge status={status} />
-                <Button
-                  size="sm"
-                  onClick={() => router.push(`/superadmin/proposals/${id}/approval`)}
-                >
-                  Approval workflow
-                </Button>
                 {canEdit && (
                   <Button
                     variant="outline"

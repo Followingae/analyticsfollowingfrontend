@@ -31,7 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowRight, ArrowUpDown, CheckCircle2, Clock, Layers, TimerOff } from 'lucide-react'
 import { Hub, type HubTab } from '@/components/console/Hub'
 import { fullName } from '@/lib/destinations'
-import { Empty, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
+import { Empty, PageHead, Panel, Row, Stat, StatGrid, type Tone } from '@/components/console/primitives'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { API_CONFIG } from '@/config/api'
@@ -376,16 +376,15 @@ export default function InboxPage() {
       sub="Everything waiting on a decision from you. Longest wait first."
       tabs={tabs}
       action={
-        <>
-          <Button variant="outline" size="sm" onClick={() => setOrder(o => o === 'oldest' ? 'newest' : 'oldest')}>
-            <ArrowUpDown className="mr-1.5 h-4 w-4" />
-            {order === 'oldest' ? 'Longest waiting first' : 'Newest first'}
-          </Button>
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>Refresh</Button>
-        </>
+        <Button variant="outline" size="sm" onClick={() => setOrder(o => o === 'oldest' ? 'newest' : 'oldest')}>
+          <ArrowUpDown className="mr-1.5 h-4 w-4" />
+          {order === 'oldest' ? 'Longest waiting first' : 'Newest first'}
+        </Button>
       }
     >
-      {null}
+      <div className="flex justify-end">
+        <Button variant="ghost" size="sm" onClick={load} disabled={loading}>Refresh</Button>
+      </div>
     </Hub>
   )
 
@@ -394,7 +393,7 @@ export default function InboxPage() {
       <SuperadminLayout>
         {/* The loaded band draws no box per figure, so the skeleton does not promise one. */}
         <div className="space-y-ds-5">
-          <Skeleton className="h-9 w-40 rounded-ds-lg" />
+          <PageHead title={fullName('/work/inbox')} sub="Everything waiting on a decision from you. Longest wait first." />
           <div className="-mx-ds-2 grid gap-x-ds-5 gap-y-ds-4 sm:grid-cols-2 xl:grid-cols-3">
             {[0, 1, 2].map(i => (
               <div key={i} className="space-y-ds-2 px-ds-2 py-ds-2">

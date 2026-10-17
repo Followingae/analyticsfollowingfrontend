@@ -28,6 +28,8 @@ import {
   CircleAlert, Mail, MapPin, Landmark, User, Clock, Link2 as LinkIcon,
 } from "lucide-react"
 import { toast } from "sonner"
+import { PageHead } from "@/components/console/primitives"
+import { fullName } from "@/lib/destinations"
 import { enrolmentApi, type EnrolmentDetail } from "@/services/enrolmentApi"
 
 const money = (c?: number | null) =>
@@ -152,26 +154,24 @@ function Detail() {
         <Link href="/work/enrolments"><ArrowLeft className="mr-1.5 h-4 w-4" /> All enrolments</Link>
       </Button>
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-ds-title">{s(L.creator_handle)}</h1>
-          <p className="mt-1 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-            {s(L.campaign_display_name)} for {s(L.brand_display_name)} · {s(L.deliverables_summary)} · {money(L.fee_aed_cents as number)}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={String(L.status) === "completed" ? "default" : "secondary"}>
-            {String(L.status).replace("_", " ")}
-          </Badge>
-          {String(L.status) === "live" && (
-            <Button variant="outline" size="sm" onClick={() => {
-              navigator.clipboard.writeText(data.url); setCopied(true)
-              toast.success("Copied"); setTimeout(() => setCopied(false), 1800)
-            }}>
-              {copied ? <Check className="mr-1.5 h-4 w-4 text-emerald-600" /> : <Copy className="mr-1.5 h-4 w-4" />}
-              Copy link
-            </Button>
-          )}
+      <PageHead
+        title={s(L.creator_handle)}
+        sub={`${s(L.campaign_display_name)} for ${s(L.brand_display_name)} · ${s(L.deliverables_summary)} · ${money(L.fee_aed_cents as number)}`}
+        action={String(L.status) === "live" ? (
+          <Button variant="outline" size="sm" onClick={() => {
+            navigator.clipboard.writeText(data.url); setCopied(true)
+            toast.success("Copied"); setTimeout(() => setCopied(false), 1800)
+          }}>
+            {copied ? <Check className="mr-1.5 h-4 w-4 text-emerald-600" /> : <Copy className="mr-1.5 h-4 w-4" />}
+            Copy link
+          </Button>
+        ) : undefined}
+      />
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Badge variant={String(L.status) === "completed" ? "default" : "secondary"}>
+          {String(L.status).replace("_", " ")}
+        </Badge>
           {S.signed_at != null && (
             <>
               <Button variant="outline" size="sm" onClick={() =>
@@ -184,7 +184,6 @@ function Detail() {
               </Button>
             </>
           )}
-        </div>
       </div>
 
       {/* A link raised with no booking behind it. Said here because its payments sit outside

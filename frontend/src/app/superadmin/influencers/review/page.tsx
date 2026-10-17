@@ -33,7 +33,8 @@ import { toast } from 'sonner'
 import { creatorIntakeApi, type PendingCreator } from '@/services/creatorIntakeApi'
 import { AddCreatorsDialog } from '@/components/superadmin/influencer-database/AddCreatorsDialog'
 import { CreatorsHubHeader } from '@/components/console/CreatorsHubHeader'
-import { Aed, CARD } from '@/components/console/primitives'
+import { Aed, CARD, PageHead } from '@/components/console/primitives'
+import { fullName } from '@/lib/destinations'
 import { briefLine } from '@/lib/areaBrief'
 import type { AreaBrief } from '@/services/imdListsApi'
 
@@ -225,16 +226,10 @@ export default function ReviewQueuePage() {
     <SuperadminLayout>
       <CreatorsHubHeader />
       <div className="space-y-ds-5">
-        <div className="flex flex-wrap items-start gap-4">
-          <div>
-            <h1 className="text-ds-title">Creators needing a price</h1>
-            <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
-              We cannot quote these creators yet. First someone adds what the creator charges
-              us, then a founder sets our price and adds them to the database. Analytics only
-              start at that point, so nothing here has cost us anything.
-            </p>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
+        <PageHead
+          title={fullName('/work/influencers/review')}
+          sub="We cannot quote these creators yet: add what they charge us, then a founder sets our price."
+          action={<>
             <div data-tour="waiting-view" className="flex rounded-ds-lg border border-black/[0.06] p-0.5 dark:border-white/[0.07]">
               <Button size="sm" variant={view === 'grid' ? 'secondary' : 'ghost'}
                       className="h-8 gap-1.5 px-2.5" onClick={() => setView('grid')}>
@@ -248,8 +243,8 @@ export default function ReviewQueuePage() {
             <Button size="sm" onClick={() => setAddOpen(true)}>
               <UserPlus className="mr-1.5 h-4 w-4" />Add creators
             </Button>
-          </div>
-        </div>
+          </>}
+        />
 
         <Tabs value={lane} onValueChange={(v: string) => setLane(v as Lane)}>
           <TabsList data-tour="waiting-lanes">

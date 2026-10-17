@@ -43,7 +43,8 @@ import { imdListsApi, type ImdListSummary, type AreaBrief } from "@/services/imd
 import { clientApi } from "@/services/clientManagementApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { CreatorsHubHeader } from "@/components/console/CreatorsHubHeader"
-import { MiniBar, ScoreDot } from "@/components/console/primitives"
+import { MiniBar, PageHead, ScoreDot } from "@/components/console/primitives"
+import { fullName } from "@/lib/destinations"
 import { BriefFields } from "@/components/console/BriefFields"
 // One brief, one sentence, built in one place. There were two copies of this function, one
 // here and one on the area screen, and both wrote a bare U+20C3 for the dirham into a plain
@@ -226,126 +227,87 @@ function AreasPage() {
         <div className="mx-auto max-w-6xl space-y-ds-4 p-ds-4">
           {canStock && <CreatorsHubHeader className="mb-0" bare />}
 
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              {/* One object, one name. This screen said "Areas", its tabs said "Client
-                  areas", the sidebar and the hub above both say "Brand rosters", and the
-                  brand record said "the sourcing area" in one branch and "the brand roster"
-                  in the other. Roster is the word the navigation already uses. */}
-              <h1 className="text-ds-title">Rosters</h1>
-              <p className="mt-1 max-w-2xl text-muted-foreground">
-                One roster per brand, plus the packs anyone can send a prospect.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Dialog open={openPack} onOpenChange={setOpenPack}>
-                {canStock && (
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="gap-2 rounded-full px-5"><Plus className="h-4 w-4" />New pack</Button>
-                  </DialogTrigger>
-                )}
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>New sample pack</DialogTitle>
-                    <DialogDescription>
-                      A standing set anyone can send a prospect — name it for what someone would ask for.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <Label>Name *</Label>
-                      <Input value={packName} onChange={e => setPackName(e.target.value)} placeholder="e.g. Fitness UAE" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Description</Label>
-                      <Textarea value={packDesc} onChange={e => setPackDesc(e.target.value)} rows={2}
-                                placeholder="Optional — who this pack is for" />
-                    </div>
+          {/* One object, one name. This screen said "Areas", its tabs said "Client
+              areas", the sidebar and the hub above both say "Brand rosters", and the
+              brand record said "the sourcing area" in one branch and "the brand roster"
+              in the other. Roster is the word the navigation already uses. */}
+          <PageHead
+            title={fullName('/work/areas')}
+            sub="One roster per brand, plus the packs anyone can send a prospect."
+            action={canDestroy ? (
+        <Dialog open={openStart} onOpenChange={setOpenStart}>
+          <DialogTrigger asChild>
+            <Button data-tour="start-sourcing"
+                    className="gap-2 rounded-full bg-neutral-900 px-5 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200">
+              <Rocket className="h-4 w-4" />Start sourcing</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Start sourcing for a brand</DialogTitle>
+              <DialogDescription>
+                This is what tells the talent team to begin. Write what we are looking for —
+                it goes out with the alert, so they know before they open anything.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex max-h-[62vh] flex-col gap-ds-3 overflow-y-auto pr-1">
+              <div className="space-y-1.5">
+                <Label>Brand *</Label>
+                {fromTeam ? (
+                  /* You came here from this brand's record. Re-picking it from two
+                     hundred is not a choice, it is the question you already answered,
+                     and a dropdown here is a chance to release the wrong brand. */
+                  <div className="flex items-center gap-ds-2 rounded-ds-lg border px-3 py-2">
+                    <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="text-sm font-medium">{fromBrandName || "This brand"}</span>
+                    <button type="button"
+                            className="ml-auto text-xs text-muted-foreground hover:text-foreground hover:underline"
+                            onClick={() => {
+                              setTeamId("")
+                              router.replace("/work/areas", { scroll: false })
+                            }}>
+                      Different brand
+                    </button>
                   </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setOpenPack(false)} disabled={busy}>Cancel</Button>
-                    <Button onClick={createPack} disabled={busy}>
-                      {busy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Create
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                ) : (
+                  <Select value={teamId} onValueChange={setTeamId}>
+                    <SelectTrigger><SelectValue placeholder="Pick the brand" /></SelectTrigger>
+                    <SelectContent>
+                      {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              {/* No owner picker. A release goes to the talent team, and at this
+                  moment there is no individual to name: the list offered every staff
+                  member, account managers and business development included, and
+                  asking for a name invented a decision nobody had made. Who logged
+                  the brand, who released it and who it went to are all recorded
+                  already, and the area shows them. Handing an area to one named
+                  person stays available on the area afterwards. */}
+              <div className="space-y-1.5">
+                <Label>Wanted by</Label>
+                <Input type="date" value={due} onChange={e => setDue(e.target.value)}
+                       className="max-w-[220px]" />
+              </div>
 
-              {canDestroy && (
-                <Dialog open={openStart} onOpenChange={setOpenStart}>
-                  <DialogTrigger asChild>
-                    <Button data-tour="start-sourcing"
-                            className="gap-2 rounded-full bg-neutral-900 px-5 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200">
-                      <Rocket className="h-4 w-4" />Start sourcing</Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Start sourcing for a brand</DialogTitle>
-                      <DialogDescription>
-                        This is what tells the talent team to begin. Write what we are looking for —
-                        it goes out with the alert, so they know before they open anything.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex max-h-[62vh] flex-col gap-ds-3 overflow-y-auto pr-1">
-                      <div className="space-y-1.5">
-                        <Label>Brand *</Label>
-                        {fromTeam ? (
-                          /* You came here from this brand's record. Re-picking it from two
-                             hundred is not a choice, it is the question you already answered,
-                             and a dropdown here is a chance to release the wrong brand. */
-                          <div className="flex items-center gap-ds-2 rounded-ds-lg border px-3 py-2">
-                            <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            <span className="text-sm font-medium">{fromBrandName || "This brand"}</span>
-                            <button type="button"
-                                    className="ml-auto text-xs text-muted-foreground hover:text-foreground hover:underline"
-                                    onClick={() => {
-                                      setTeamId("")
-                                      router.replace("/work/areas", { scroll: false })
-                                    }}>
-                              Different brand
-                            </button>
-                          </div>
-                        ) : (
-                          <Select value={teamId} onValueChange={setTeamId}>
-                            <SelectTrigger><SelectValue placeholder="Pick the brand" /></SelectTrigger>
-                            <SelectContent>
-                              {brands.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      </div>
-                      {/* No owner picker. A release goes to the talent team, and at this
-                          moment there is no individual to name: the list offered every staff
-                          member, account managers and business development included, and
-                          asking for a name invented a decision nobody had made. Who logged
-                          the brand, who released it and who it went to are all recorded
-                          already, and the area shows them. Handing an area to one named
-                          person stays available on the area afterwards. */}
-                      <div className="space-y-1.5">
-                        <Label>Wanted by</Label>
-                        <Input type="date" value={due} onChange={e => setDue(e.target.value)}
-                               className="max-w-[220px]" />
-                      </div>
-
-                      {/* The brief. It was a flat run of eight inputs with the budget sitting
-                          between the follower range and the deliverables, which is three
-                          different subjects in three adjacent rows. It is now three groups in
-                          the order the questions get asked, and the fields that do not apply
-                          are not on screen at all. Same component the area screen edits with,
-                          so a field added there arrives here too. */}
-                      <BriefFields brief={brief} onChange={setBrief} />
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setOpenStart(false)} disabled={busy}>Cancel</Button>
-                      <Button onClick={startSourcing} disabled={busy}>
-                        {busy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Release to the team
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              )}
+              {/* The brief. It was a flat run of eight inputs with the budget sitting
+                  between the follower range and the deliverables, which is three
+                  different subjects in three adjacent rows. It is now three groups in
+                  the order the questions get asked, and the fields that do not apply
+                  are not on screen at all. Same component the area screen edits with,
+                  so a field added there arrives here too. */}
+              <BriefFields brief={brief} onChange={setBrief} />
             </div>
-          </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpenStart(false)} disabled={busy}>Cancel</Button>
+              <Button onClick={startSourcing} disabled={busy}>
+                {busy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Release to the team
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+            ) : undefined}
+          />
 
           <div className="flex flex-wrap items-center gap-ds-3">
             {/* A second tab row under the hub's own was two identical strips doing two
@@ -359,6 +321,38 @@ function AreasPage() {
                 Packs ({counts.sample})
               </ToggleGroupItem>
             </ToggleGroup>
+            <Dialog open={openPack} onOpenChange={setOpenPack}>
+              {canStock && (
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2 rounded-full px-5"><Plus className="h-4 w-4" />New pack</Button>
+                </DialogTrigger>
+              )}
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>New sample pack</DialogTitle>
+                  <DialogDescription>
+                    A standing set anyone can send a prospect — name it for what someone would ask for.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label>Name *</Label>
+                    <Input value={packName} onChange={e => setPackName(e.target.value)} placeholder="e.g. Fitness UAE" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Description</Label>
+                    <Textarea value={packDesc} onChange={e => setPackDesc(e.target.value)} rows={2}
+                              placeholder="Optional — who this pack is for" />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setOpenPack(false)} disabled={busy}>Cancel</Button>
+                  <Button onClick={createPack} disabled={busy}>
+                    {busy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Create
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             {/* You were sent here from one brand, so the screen says so rather than looking
                 like the whole roster is this short. */}
             {fromTeam && kind === "client" && (

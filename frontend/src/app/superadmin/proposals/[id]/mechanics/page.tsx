@@ -36,6 +36,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowLeft, Check, Gift, MapPin, Store, CalendarClock } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { PageHead } from "@/components/console/primitives"
+import { fullName } from "@/lib/destinations"
 import { cdnAvatar } from "@/lib/avatar"
 
 type Creator = {
@@ -141,29 +143,24 @@ export default function MechanicsPage() {
   return (
     <SuperadminLayout>
       <div className="space-y-ds-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <Button variant="ghost" size="sm" className="-ml-2 mb-1 h-8 text-muted-foreground"
-                    onClick={() => router.push(`/work/proposals/${proposalId}`)}>
-              <ArrowLeft className="mr-1.5 h-4 w-4" />
-              {proposal?.name || "Proposal"}
-            </Button>
-            <h1 className="text-ds-title">
-              How this happens
-            </h1>
-            <p className="mt-1 max-w-2xl text-[15px] text-muted-foreground">
-              Where each creator gets their product, or where they go, and when they post.
-              Every answer saves on its own.
-            </p>
-          </div>
-          {!loading && creators.length > 0 && (
-            <div className="rounded-xl border bg-card px-4 py-3 text-right">
-              <p className="text-[26px] font-semibold leading-none tabular-nums">
-                {ready}<span className="text-muted-foreground"> / {creators.length}</span>
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">ready to run</p>
-            </div>
-          )}
+        <div className="space-y-1">
+          <Button variant="ghost" size="sm" className="-ml-2 h-8 text-muted-foreground"
+                  onClick={() => router.push(`/work/proposals/${proposalId}`)}>
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            {proposal?.name || "Proposal"}
+          </Button>
+          <PageHead
+            title={fullName("/work/proposals/[id]/mechanics")}
+            sub="Where each creator gets their product, or where they go, and when they post. Every answer saves on its own."
+            action={!loading && creators.length > 0 ? (
+              <div className="rounded-xl border bg-card px-4 py-3 text-right">
+                <p className="text-[26px] font-semibold leading-none tabular-nums">
+                  {ready}<span className="text-muted-foreground"> / {creators.length}</span>
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">ready to run</p>
+              </div>
+            ) : undefined}
+          />
         </div>
 
         {proposal?.product && (

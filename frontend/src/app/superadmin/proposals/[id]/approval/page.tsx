@@ -26,7 +26,7 @@ import { TmAddCreatorsDialog } from '@/components/proposals/TmAddCreatorsDialog'
 import { SellingMode } from '@/components/superadmin/proposals/SellingMode'
 import { PriceModifierCard } from '@/components/superadmin/proposals/PriceModifierCard'
 import { GateOverrideCard } from '@/components/superadmin/proposals/GateOverrideCard'
-import { Aed } from '@/components/console/primitives'
+import { Aed, PageHead } from '@/components/console/primitives'
 import { useConfirm } from '@/components/console/confirm'
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
@@ -168,9 +168,9 @@ export default function ProposalApprovalPage() {
           <Button variant="ghost" size="icon" onClick={() => router.push('/superadmin/proposals')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-ds-title">{ws.proposal?.campaign_name || ws.proposal?.title || 'Proposal'}</h1>
-            <div className="mt-1 flex items-center gap-2">
+          <div className="space-y-2">
+            <PageHead title={ws.proposal?.campaign_name || ws.proposal?.title || 'Proposal'} />
+            <div className="flex items-center gap-2">
               <Badge className={sb.cls}>{sb.label}</Badge>
               {status === 'pending_internal_review' && chain?.current_approval_step && (
                 <span className="text-sm text-muted-foreground">Awaiting step {chain.current_approval_step}</span>

@@ -46,6 +46,8 @@ import {
   Loader2, Search, ShieldAlert, ShieldCheck, Banknote, Undo2, ExternalLink, Check, Download,
 } from "lucide-react"
 import { toast } from "sonner"
+import { PageHead } from "@/components/console/primitives"
+import { fullName } from "@/lib/destinations"
 import {
   enrolmentApi, type PayableCreator, type Instalment,
 } from "@/services/enrolmentApi"
@@ -124,26 +126,24 @@ function PaymentsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-ds-title">Payments</h1>
-          <p className="mt-1 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-            Everyone who has signed an agreement, and whether their money has gone out. Only
-            creators who have signed appear here.
-          </p>
-        </div>
-        <div className="flex items-center gap-6">
-          <Figure label="Still owed" value={money(totals.owed_aed_cents)} accent />
-          <Figure label="Paid out" value={money(totals.paid_aed_cents)} />
-          {/* The only place the full IBAN appears. A file, pulled deliberately and logged
-              against every creator in it, rather than an account number sitting on a screen
-              all afternoon. */}
+      <PageHead
+        title={fullName('/work/enrolments/payments')}
+        sub="Everyone who has signed an agreement, and whether their money has gone out. Only creators who have signed appear here."
+        action={
+          /* The only place the full IBAN appears. A file, pulled deliberately and logged
+             against every creator in it, rather than an account number sitting on a screen
+             all afternoon. */
           <Button variant="outline" className="gap-2"
                   onClick={() => enrolmentApi.payoutXlsx().catch((e: unknown) =>
                     toast.error(e instanceof Error ? e.message : "Export failed"))}>
             <Download className="h-4 w-4" /> Payout file
           </Button>
-        </div>
+        }
+      />
+
+      <div className="flex items-center gap-6">
+        <Figure label="Still owed" value={money(totals.owed_aed_cents)} accent />
+        <Figure label="Paid out" value={money(totals.paid_aed_cents)} />
       </div>
 
       <div className="flex flex-wrap items-center gap-3">

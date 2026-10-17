@@ -112,7 +112,11 @@ export const CARD =
 /** Page title, one line of what the screen is for, and the screen's single main action. */
 export function PageHead({
   title, sub, action,
-}: { title: string; sub?: string; action?: React.ReactNode }) {
+  /* `sub` is a node rather than a string because a subtitle sometimes carries a number that
+     means something: "24 booked, 3 due or late" wants the 3 in amber. Converting the screens
+     onto this component flattened several of those to plain text and quietly dropped the one
+     piece of colour on the page. Every existing caller passes a string, which is a node. */
+}: { title: string; sub?: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div data-tour="page-head"
          className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

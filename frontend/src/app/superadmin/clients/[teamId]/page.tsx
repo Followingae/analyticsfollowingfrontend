@@ -442,17 +442,21 @@ function ClientDetailPage() {
         {/* The record's own title, at the console's title size rather than a hand-set one,
             and its four or five standing facts underneath. The tier and the industry were
             badges, which is colour spent on something that is not a state. */}
-        <div className="min-w-0 flex-1">
-          <h1 className="text-ds-title truncate">{client.company_name || client.name}</h1>
-        </div>
         {/* One decision reads as one button. Three outline buttons of equal weight, two of
             them both called "Campaign something" and both sending an email, made the reader
-            stop and compare. Access stays out in front because it is the one that changes
-            who can get in. */}
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAccessOpen(true)}>
-            <ShieldCheck className="h-4 w-4" />Access
-          </Button>
+            stop and compare. Access is the main action because it is the one that changes
+            who can get in; the email menu sits beside it. */}
+        <div className="min-w-0 flex-1">
+          <PageHead
+            title={client.company_name || client.name}
+            action={(
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setAccessOpen(true)}>
+                <ShieldCheck className="h-4 w-4" />Access
+              </Button>
+            )}
+          />
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="gap-1.5">

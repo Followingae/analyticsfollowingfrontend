@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Button } from '@/components/ui/button'
-import { Aed, CARD, FieldStrip, Panel, StageBar, Stat, StatGrid } from '@/components/console/primitives'
+import { Aed, CARD, FieldStrip, PageHead, Panel, StageBar, Stat, StatGrid } from '@/components/console/primitives'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 
@@ -233,26 +233,27 @@ export default function CampaignTimelinePage() {
                     {c.campaign_type && (
                       <Badge variant="outline" className="rounded-full capitalize">{c.campaign_type}</Badge>
                     )}
+                    {/* Content sits beside the delivery board because that is the pair a
+                        campaign is actually run from: what is owed, and what has arrived. */}
+                    <Button variant="outline" size="sm" className="rounded-full px-4"
+                            onClick={() => router.push(`/work/campaigns/${campaignId}/content`)}>
+                      Content
+                    </Button>
                   </div>
-                  <h1 className="text-ds-title">{c.name}</h1>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {/* Content sits beside the delivery board because that is the pair a
-                      campaign is actually run from: what is owed, and what has arrived. */}
-                  <Button
-                    variant="outline"
-                    className="rounded-full px-5"
-                    onClick={() => router.push(`/work/campaigns/${campaignId}/content`)}
-                  >
-                    Content
-                  </Button>
-                  <Button
-                    className="rounded-full bg-neutral-900 px-5 text-white hover:bg-neutral-800
-                               dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-                    onClick={() => router.push(`/work/campaigns/${campaignId}/ladder`)}
-                  >
-                    Delivery board
-                  </Button>
+                  <PageHead
+                    title={c.name}
+                    action={(
+                      /* Delivery board is the one main action. Content stays on the screen
+                         as a link-weight button beside the status badges above. */
+                      <Button
+                        className="rounded-full bg-neutral-900 px-5 text-white hover:bg-neutral-800
+                                   dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                        onClick={() => router.push(`/work/campaigns/${campaignId}/ladder`)}
+                      >
+                        Delivery board
+                      </Button>
+                    )}
+                  />
                 </div>
               </div>
             </div>

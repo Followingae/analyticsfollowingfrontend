@@ -23,6 +23,7 @@ import { toast } from "sonner"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { Button } from "@/components/ui/button"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
+import { PageHead } from "@/components/console/primitives"
 import { ContentWall } from "@/components/content/ContentWall"
 import { FrameioPanel } from "@/components/content/FrameioPanel"
 import { contentAdminApi, type ContentWall as Wall, type ContentSource } from "@/services/contentDeliveryApi"
@@ -74,36 +75,33 @@ export default function CampaignContentPage() {
   return (
     <SuperadminLayout>
       <div className="space-y-ds-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-2">
-            <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground"
-                    onClick={() => router.push(`/work/campaigns/${campaignId}/timeline`)}>
-              <ArrowLeft className="h-3.5 w-3.5" /> Campaign
-            </Button>
-            <h1 className="text-ds-title">
-              Content
-            </h1>
-            <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-              What each creator has delivered, and where the client has got to with it.
-            </p>
-          </div>
-
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {source?.linked && canWrite && (
-              <Button variant="outline" size="sm" onClick={sync} disabled={syncing} className="gap-1.5">
-                {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                         : <RefreshCw className="h-3.5 w-3.5" />}
-                Sync
-              </Button>
+        <div className="space-y-2">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground"
+                  onClick={() => router.push(`/work/campaigns/${campaignId}/timeline`)}>
+            <ArrowLeft className="h-3.5 w-3.5" /> Campaign
+          </Button>
+          <PageHead
+            title="Content"
+            sub="What each creator has delivered, and where the client has got to with it."
+            action={(
+              <>
+                {source?.linked && canWrite && (
+                  <Button variant="outline" size="sm" onClick={sync} disabled={syncing} className="gap-1.5">
+                    {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                             : <RefreshCw className="h-3.5 w-3.5" />}
+                    Sync
+                  </Button>
+                )}
+                {/* The only superadmin-only control on the page, and it opens everything else. */}
+                {isSuperAdmin && (
+                  <Button variant="outline" size="sm" onClick={() => setPanel(true)} className="gap-1.5">
+                    <Settings2 className="h-3.5 w-3.5" />
+                    {source?.linked ? "Source" : "Link a folder"}
+                  </Button>
+                )}
+              </>
             )}
-            {/* The only superadmin-only control on the page, and it opens everything else. */}
-            {isSuperAdmin && (
-              <Button variant="outline" size="sm" onClick={() => setPanel(true)} className="gap-1.5">
-                <Settings2 className="h-3.5 w-3.5" />
-                {source?.linked ? "Source" : "Link a folder"}
-              </Button>
-            )}
-          </div>
+          />
         </div>
 
         {/* Health, where the person who can fix it will see it. */}

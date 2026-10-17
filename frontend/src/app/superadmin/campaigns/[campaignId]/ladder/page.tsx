@@ -33,7 +33,7 @@ import { toast } from "sonner"
 import { ladderApi, STAGES, type LadderCreator, type Stage } from "@/services/ladderApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { cdnAvatar } from "@/lib/avatar"
-import { Aed, CARD } from "@/components/console/primitives"
+import { Aed, CARD, PageHead } from "@/components/console/primitives"
 import { SettleCosts } from "@/components/superadmin/proposals/SettleCosts"
 
 /**
@@ -78,7 +78,7 @@ export default function LadderPage() {
   // own numbers before. The hook resolves her as full-access staff.
   const { canDestroy, canSeeCost } = useAdminAccess()
   const [creators, setCreators] = useState<LadderCreator[]>([])
-  const [campaign, setCampaign] = useState<{ ships?: boolean; dine_in?: boolean; fulfilment_mode?: string | null } | null>(null)
+  const [campaign, setCampaign] = useState<{ name?: string | null; ships?: boolean; dine_in?: boolean; fulfilment_mode?: string | null } | null>(null)
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState<LadderCreator | null>(null)
   const [busy, setBusy] = useState(false)
@@ -168,25 +168,34 @@ export default function LadderPage() {
     <AuthGuard>
       <SuperAdminInterface>
         <div className="space-y-ds-4 p-ds-4">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <Link href={`/work/campaigns/${campaignId}/timeline`}
-                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="h-3.5 w-3.5" />Back to the campaign
-              </Link>
-              <h1 className="mt-2 text-ds-title">Delivery</h1>
-              {/* Four numbers in four outlined pills, two of which the board below already
-                  shows: the product count is the Products panel and the paid count is the
-                  height of the last column. The two that are NOT on the board, how many are
-                  booked and how many are out of time, are the sentence instead. */}
-              <p className="mt-1 text-muted-foreground">
-                {creators.length} booked
-                {waiting.length > 0 && (
-                  <span className="text-[var(--tone-warn-ink)]">, {waiting.length} due or late</span>
-                )}
-                . Click anyone to do the next thing.
-              </p>
-            </div>
+          <div className="space-y-2">
+            <Link href={`/work/campaigns/${campaignId}/timeline`}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="h-3.5 w-3.5" />Back to the campaign
+            </Link>
+            {/* The record's own name once the board has loaded; the screen's name until then,
+                so the title never reads as empty. The sentence is the one thing the board
+                does not already show: how many are booked and how many are out of time. */}
+            <PageHead
+              title={campaign?.name || "Delivery board"}
+              /* The count of people who are waiting is the one number on this screen worth
+                 colouring, and flattening the subtitle to a plain string dropped it. Amber
+                 arrives with its word beside it, as it does everywhere else in here. */
+              sub={
+                <>
+                  Delivery board &middot; {creators.length} booked
+                  {waiting.length > 0 && (
+                    <>
+                      ,{" "}
+                      <span className="font-semibold text-[color:var(--tone-warn-ink)]">
+                        {waiting.length} due or late
+                      </span>
+                    </>
+                  )}
+                  . Click anyone to do the next thing.
+                </>
+              }
+            />
           </div>
 
           {/* Getting the product to the creators. Its own panel, because on a campaign that

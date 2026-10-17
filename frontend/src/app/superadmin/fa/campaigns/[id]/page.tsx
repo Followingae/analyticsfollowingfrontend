@@ -7,6 +7,7 @@ import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Users, ClipboardList, ExternalLink } from "lucide-react"
+import { PageHead } from "@/components/console/primitives"
 import { FaPage, Failed, Loading, Nothing, TONE_BADGE, TONE_TEXT, type Tone } from "../../_ui"
 import Link from "next/link"
 import { faCampaignApi } from "@/services/faAdminApi"
@@ -112,29 +113,23 @@ export default function FACampaignFunnelPage() {
               <Button size="sm" variant="ghost" onClick={() => router.push("/superadmin/fa/campaigns")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div className="min-w-0">
-                <h1 className="truncate text-ds-title">
-                  {campaign?.name || "Campaign"}
-                </h1>
-                <div className="mt-ds-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                  {campaign?.campaign_type && (
-                    <Badge variant="outline" className={`capitalize ${TONE_BADGE.neutral}`}>
-                      {String(campaign.campaign_type).replace(/_/g, " ")}
-                    </Badge>
+              <div className="min-w-0 flex-1">
+                <PageHead
+                  title={campaign?.name || "Campaign"}
+                  sub={[
+                    campaign?.campaign_type ? String(campaign.campaign_type).replace(/_/g, " ") : null,
+                    campaign?.status ?? null,
+                    `${creators.length}${campaign?.max_participants ? ` of ${campaign.max_participants}` : ""} creators`,
+                  ].filter(Boolean).join(" · ")}
+                  action={(
+                    /* The queue has a campaign picker; it just never read the campaign you came from. */
+                    <Link href={`/superadmin/fa/deliverables?campaign=${id}`}>
+                      <Button size="sm" variant="outline"><ClipboardList className="h-4 w-4 mr-1.5" />All deliverables</Button>
+                    </Link>
                   )}
-                  {campaign?.status && (
-                    <Badge variant="outline" className={`capitalize ${campaign.status === "active" ? TONE_BADGE.good : TONE_BADGE.neutral}`}>
-                      {campaign.status}
-                    </Badge>
-                  )}
-                  <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{creators.length}{campaign?.max_participants ? ` of ${campaign.max_participants}` : ""} creators</span>
-                </div>
+                />
               </div>
             </div>
-            {/* The queue has a campaign picker; it just never read the campaign you came from. */}
-            <Link href={`/superadmin/fa/deliverables?campaign=${id}`}>
-              <Button size="sm" variant="outline"><ClipboardList className="h-4 w-4 mr-1.5" />All deliverables</Button>
-            </Link>
           </div>
 
           <AutoApproveCard campaignId={id} />

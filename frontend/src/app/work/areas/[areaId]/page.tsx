@@ -33,7 +33,7 @@ import { proposalApprovalApi } from "@/services/proposalApprovalApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { AddCreatorsDialog } from "@/components/superadmin/influencer-database/AddCreatorsDialog"
 import { cdnAvatar } from "@/lib/avatar"
-import { FieldStrip, GroupLabel } from "@/components/console/primitives"
+import { FieldStrip, GroupLabel, PageHead } from "@/components/console/primitives"
 import { BriefDetail } from "@/components/console/BriefDetail"
 import { BriefFields } from "@/components/console/BriefFields"
 import { useConfirm } from "@/components/console/confirm"
@@ -481,82 +481,14 @@ export default function ImdListDetailPage() {
             <p className="py-20 text-center text-muted-foreground">There is no roster at this address.</p>
           ) : (
             <>
-              <div className="flex items-end justify-between gap-4 flex-wrap">
-                <div>
-                  <div className="flex flex-wrap items-center gap-ds-2">
-                    <h1 className="text-ds-title">{list.name}</h1>
-                    {/* The round is a fact about the area, so it sits with its name. It only
-                        appears once there has been more than one: "round 1" on everything is
-                        a label nobody reads. */}
-                    {roundNo > 1 && (
-                      <span className="rounded-ds-full bg-[var(--tone-info-wash)] px-2.5 py-0.5 text-ds-caption font-medium">
-                        Round {roundNo}
-                      </span>
-                    )}
-                    {locked && (
-                      <span className="inline-flex items-center gap-1 rounded-ds-full bg-[var(--tone-neutral-wash)] px-2.5 py-0.5 text-ds-caption font-medium text-muted-foreground">
-                        <Lock className="h-3 w-3" />Closed
-                      </span>
-                    )}
-                  </div>
-                  {list.team_name && (
-                    <p className="mt-1 text-sm text-muted-foreground">{list.team_name}</p>
-                  )}
-                  {list.description && <p className="mt-1 text-muted-foreground">{list.description}</p>}
-                  {/* The one-line brief used to sit here, in a tinted box, roughly forty
-                      pixels above the whole brief under the heading "The brief". One idea
-                      under two headings, and the reader had to check whether the second one
-                      said anything the first had not. The sentence is the right shape for a
-                      card and for the alert; the screen where the work happens gets the
-                      brief itself, once, below. */}
-                  {/* Five labelled facts rather than four badges and a colour each. The one
-                      that was missing is the one the talent team is actually held to:
-                      how many are stocked and still waiting on a verdict. */}
-                  <div className="mt-ds-3">
-                    <FieldStrip fields={[
-                      { label: 'Found', value: list.items.length },
-                      { label: 'Cleared', value: clearedCount },
-                      { label: 'Waiting on you', value: awaitingCount || '—' },
-                      { label: 'Picked', value: pickedByClient || '—' },
-                      { label: 'Turned down', value: droppedCount || '—' },
-                      {
-                        label: 'Wanted by',
-                        value: list.due_at
-                          ? (dueOver > 0 && !locked
-                              ? <span className="text-[var(--tone-bad-ink)]">
-                                  {dueOver} day{dueOver === 1 ? '' : 's'} late
-                                </span>
-                              : new Date(list.due_at).toLocaleDateString('en-GB',
-                                  { day: 'numeric', month: 'short' }))
-                          : '—',
-                      },
-                    ]} />
-                  </div>
-                  {/* How this area came to be, in the three names the business already knows:
-                      business development logged the brand, a founder released it, and it
-                      went to the talent team. Nobody is asked for any of this at release,
-                      because all three are already recorded. Each part is dropped when it is
-                      not known rather than printed as a blank. */}
-                  {(list.logged_by_email || list.released_by_email || handedTo.length > 0) && (
-                    <p className="mt-ds-2 text-ds-caption text-muted-foreground">
-                      {[
-                        list.logged_by_email && `Logged by ${who(list.logged_by_email)}`,
-                        list.released_by_email && `released by ${who(list.released_by_email)}`,
-                        handedTo.length > 0 && `with ${handedTo.map(who).join(", ")}`,
-                      ].filter(Boolean).join(" · ")}
-                    </p>
-                  )}
-                  {listLink?.expires_at && (
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Link open until {new Date(listLink.expires_at).toLocaleDateString('en-GB',
-                        { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
-                  )}
-                </div>
                 {/* Seven buttons of equal weight is no ranking at all. One primary, which
                     is the thing you came here to do, and everything else behind a menu in
                     the order it is actually reached for. Nothing is gone: every item below
                     is the same action, on the same gate, that had its own button. */}
+                <PageHead
+                  title={list.name}
+                  sub={list.team_name || undefined}
+                  action={
                 <div className="flex flex-wrap items-center gap-2">
                   {listLink && (
                     <Button variant="outline" className="gap-2" onClick={() => copy(listLink.path)}>
@@ -618,7 +550,75 @@ export default function ImdListDetailPage() {
                     </Button>
                   )}
                 </div>
-              </div>
+                  }
+                />
+                <div>
+                  <div className="flex flex-wrap items-center gap-ds-2">
+                    {/* The round is a fact about the area, so it sits with its name. It only
+                        appears once there has been more than one: "round 1" on everything is
+                        a label nobody reads. */}
+                    {roundNo > 1 && (
+                      <span className="rounded-ds-full bg-[var(--tone-info-wash)] px-2.5 py-0.5 text-ds-caption font-medium">
+                        Round {roundNo}
+                      </span>
+                    )}
+                    {locked && (
+                      <span className="inline-flex items-center gap-1 rounded-ds-full bg-[var(--tone-neutral-wash)] px-2.5 py-0.5 text-ds-caption font-medium text-muted-foreground">
+                        <Lock className="h-3 w-3" />Closed
+                      </span>
+                    )}
+                  </div>
+                  {list.description && <p className="mt-1 text-muted-foreground">{list.description}</p>}
+                  {/* The one-line brief used to sit here, in a tinted box, roughly forty
+                      pixels above the whole brief under the heading "The brief". One idea
+                      under two headings, and the reader had to check whether the second one
+                      said anything the first had not. The sentence is the right shape for a
+                      card and for the alert; the screen where the work happens gets the
+                      brief itself, once, below. */}
+                  {/* Five labelled facts rather than four badges and a colour each. The one
+                      that was missing is the one the talent team is actually held to:
+                      how many are stocked and still waiting on a verdict. */}
+                  <div className="mt-ds-3">
+                    <FieldStrip fields={[
+                      { label: 'Found', value: list.items.length },
+                      { label: 'Cleared', value: clearedCount },
+                      { label: 'Waiting on you', value: awaitingCount || '—' },
+                      { label: 'Picked', value: pickedByClient || '—' },
+                      { label: 'Turned down', value: droppedCount || '—' },
+                      {
+                        label: 'Wanted by',
+                        value: list.due_at
+                          ? (dueOver > 0 && !locked
+                              ? <span className="text-[var(--tone-bad-ink)]">
+                                  {dueOver} day{dueOver === 1 ? '' : 's'} late
+                                </span>
+                              : new Date(list.due_at).toLocaleDateString('en-GB',
+                                  { day: 'numeric', month: 'short' }))
+                          : '—',
+                      },
+                    ]} />
+                  </div>
+                  {/* How this area came to be, in the three names the business already knows:
+                      business development logged the brand, a founder released it, and it
+                      went to the talent team. Nobody is asked for any of this at release,
+                      because all three are already recorded. Each part is dropped when it is
+                      not known rather than printed as a blank. */}
+                  {(list.logged_by_email || list.released_by_email || handedTo.length > 0) && (
+                    <p className="mt-ds-2 text-ds-caption text-muted-foreground">
+                      {[
+                        list.logged_by_email && `Logged by ${who(list.logged_by_email)}`,
+                        list.released_by_email && `released by ${who(list.released_by_email)}`,
+                        handedTo.length > 0 && `with ${handedTo.map(who).join(", ")}`,
+                      ].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                  {listLink?.expires_at && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Link open until {new Date(listLink.expires_at).toLocaleDateString('en-GB',
+                        { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  )}
+                </div>
 
               {/* A closed round is a state, not a failure, so it is a tint and a sentence
                   rather than a card or an alert. One hairline above it separates it from the

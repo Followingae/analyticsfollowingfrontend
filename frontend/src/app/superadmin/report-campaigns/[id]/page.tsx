@@ -14,6 +14,8 @@
 import { useCallback, useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
+import { PageHead } from "@/components/console/primitives"
+import { fullName } from "@/lib/destinations"
 import { toast } from "sonner"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import {
@@ -131,10 +133,24 @@ export default function ReportCampaignDetail() {
             <Button asChild variant="ghost" size="sm" className="-ml-2 mb-1 gap-1.5 text-muted-foreground">
               <Link href="/superadmin/report-campaigns"><ArrowLeft className="h-3.5 w-3.5" /> Report campaigns</Link>
             </Button>
-            <h1 className="truncate text-ds-title">{campaign.name}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{campaign.brand_name}</p>
           </div>
+        </div>
 
+        <PageHead
+          title={campaign.name}
+          sub={campaign.brand_name}
+          action={
+            <Button size="sm" variant={token ? "secondary" : "default"} className="gap-1.5"
+                    disabled={busy} onClick={share}>
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : copied ? <Check className="h-3.5 w-3.5" />
+                : token ? <Copy className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
+              {copied ? "Copied" : token ? "Copy link" : "Create share link"}
+            </Button>
+          }
+        />
+
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="ghost" size="sm" className="gap-1.5" onClick={load}>
               <RefreshCw className="h-3.5 w-3.5" /> Refresh
@@ -149,13 +165,6 @@ export default function ReportCampaignDetail() {
                 </a>
               </Button>
             )}
-            <Button size="sm" variant={token ? "secondary" : "default"} className="gap-1.5"
-                    disabled={busy} onClick={share}>
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : copied ? <Check className="h-3.5 w-3.5" />
-                : token ? <Copy className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
-              {copied ? "Copied" : token ? "Copy link" : "Create share link"}
-            </Button>
             {token && (
               <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground"
                       disabled={busy} onClick={() => setConfirmRevoke(true)}>

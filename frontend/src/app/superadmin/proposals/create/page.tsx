@@ -48,6 +48,8 @@ import {
   type PickerTab,
 } from "@/components/superadmin/proposals/builder/CreatorSourcePicker"
 import { RosterPanel } from "@/components/superadmin/proposals/builder/RosterPanel"
+import { PageHead } from "@/components/console/primitives"
+import { fullName } from "@/lib/destinations"
 import {
   unitSellPrice,
   type DeliverableAssignmentMap,
@@ -742,11 +744,6 @@ function CreateProposalContent() {
   // Render
   // =========================================================================
 
-  const pageTitle = isAddMoreMode
-    ? "Add More Influencers"
-    : isEditMode
-      ? "Edit Proposal"
-      : "Create Proposal"
   const pageDescription = isAddMoreMode
     ? "Add more influencers to fulfill the brand's request"
     : isEditMode
@@ -802,9 +799,8 @@ function CreateProposalContent() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <div>
-            <h1 className="text-ds-title">{pageTitle}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{pageDescription}</p>
+          <div className="flex-1">
+            <PageHead title={fullName("/work/proposals/create")} sub={pageDescription} />
           </div>
         </motion.div>
 
