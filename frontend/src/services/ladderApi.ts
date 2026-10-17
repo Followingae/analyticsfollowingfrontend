@@ -52,6 +52,23 @@ export interface LadderCreator {
   rate_proposed_by_email?: string | null
   rate_agreed_at?: string | null
   rate_agreed_by_email?: string | null
+  /**
+   * Who is holding this row, and how long they have held it.
+   *
+   * `owner_user_id` has existed on `campaign_creators` since the pipeline was built; the
+   * ladder endpoint simply never asked for it, so the board could say which ROLE owned a rung
+   * and never which PERSON owned the row. A rung is a role, and a role is not somebody who
+   * answers for it. Null is a real and currently very common value: it is null on every row
+   * in production, and it renders as "Nobody yet" rather than as a blank cell.
+   *
+   * `stage_changed_at` is the dwell clock, maintained by a database trigger so it cannot drift
+   * across the six places that write a stage. It is null for rows that have not moved since
+   * the column was added, which means we do not know, and the screen draws a dash for that
+   * rather than a reassuring zero.
+   */
+  owner_user_id?: string | null
+  owner_email?: string | null
+  stage_changed_at?: string | null
   agreement_url?: string | null
   agreement_name?: string | null
   agreement_at?: string | null

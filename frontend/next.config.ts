@@ -138,7 +138,10 @@ const nextConfig: NextConfig = {
           // it was matched AFTER, swallowed here, and sent to /superadmin/enrolments/[id],
           // which does not exist: opening any single enrolment record 404'd in production
           // while the list it was opened from worked perfectly.
-          source: '/work/:path((?!areas|brands|chasing|coverage|creators|enrolments|goals|guide|inbox|manual|money|payables|pipeline|sourcing|team|today).*)',
+          // `payouts` is the payout-runs screen: the list, one run, and the three steps the
+          // bank file goes through. Real pages under src/app/work/payouts, so it is excluded
+          // here or /work/payouts is rewritten to a /superadmin/payouts that does not exist.
+          source: '/work/:path((?!areas|brands|chasing|coverage|creators|enrolments|goals|guide|inbox|manual|money|payables|payouts|pipeline|sourcing|team|today).*)',
           destination: '/superadmin/:path*',
         },
       ],

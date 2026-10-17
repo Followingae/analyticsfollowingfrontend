@@ -22,8 +22,9 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Building2, Layers, Users, Tag, ShieldCheck, Send, FileText, RotateCcw, ClipboardCheck,
-  Megaphone, HandCoins, Banknote, Clock, ChevronDown, CheckCircle2, ListChecks,
+  Megaphone, HandCoins, Banknote, Clock, ChevronDown, CheckCircle2, ListChecks, AlertCircle,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 type Item = {
@@ -86,7 +87,27 @@ type Group = {
   wheres: string[]
 }
 
-export function WaitingOnYou({ items }: { items: Item[] }) {
+export function WaitingOnYou({
+  items,
+  failed = false,
+  onRetry,
+}: {
+  items: Item[]
+  /**
+   * Whether the read that produced `items` actually answered.
+   *
+   * WHY THIS IS A PROP AND NOT THE CALLER'S PROBLEM. An empty list used to render a green
+   * tick and "Nothing pending", which is right on a genuinely quiet day and a lie after a
+   * failed request: the one component whose job is to tell a founder what is waiting on her
+   * would report a refused read as good news. The only caller today guards it with its own
+   * flag, which is correct and also invisible, so the next caller would not know to.
+   *
+   * An all-clear is a CLAIM. This component will not make it unless somebody tells it the
+   * question was actually asked and answered.
+   */
+  failed?: boolean
+  onRetry?: () => void
+}) {
   const groups = useMemo<Group[]>(() => {
     const by = new Map<string, Item[]>()
     for (const it of items) {
@@ -109,6 +130,24 @@ export function WaitingOnYou({ items }: { items: Item[] }) {
       // Longest wait first. A founder's morning is a queue of oldest-first, always.
       .sort((a, b) => b.oldest - a.oldest)
   }, [items])
+
+  // A failed read is not an empty queue, and it must never wear the colour of one.
+  if (failed) {
+    return (
+      <div className="flex flex-col items-center gap-ds-2 py-ds-6 text-center">
+        <AlertCircle className="h-8 w-8 text-[var(--tone-bad-dot)]" />
+        <p className="text-ds-label">We could not read your queue</p>
+        <p className="text-ds-caption max-w-xs">
+          This is not an all clear. Something may well be waiting on you.
+        </p>
+        {onRetry && (
+          <Button variant="outline" size="sm" onClick={onRetry} className="mt-ds-1">
+            Try again
+          </Button>
+        )}
+      </div>
+    )
+  }
 
   if (!items.length) {
     return (

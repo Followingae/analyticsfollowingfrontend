@@ -236,6 +236,15 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Creator payments',
     hint: 'What we owe every creator',
   },
+  /* Payables is what we owe. This is the act of paying it: approved payments gathered into
+     one run, checked, turned into a single bank file, and closed once the bank has taken it.
+     Six endpoints for this existed for months with no screen at all, which is why there are
+     zero runs in production. */
+  '/work/payouts': {
+    short: 'Payout runs',
+    full: 'Payout runs',
+    hint: 'Checked, turned into one bank file, and closed once the bank has taken it',
+  },
   /* The URL stays /work/mor. Renaming it would break every link already sent in a
      notification email, and the path is not what anybody reads. */
   '/work/mor': {

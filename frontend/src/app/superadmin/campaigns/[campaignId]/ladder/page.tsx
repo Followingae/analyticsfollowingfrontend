@@ -28,13 +28,43 @@ import { Separator } from "@/components/ui/separator"
 import {
   ArrowLeft, Loader2, CheckCircle2, AlertTriangle, FileText, Send,
   Image as ImageIcon, Link2, Banknote, UserMinus, PackageCheck, Truck, Undo2, Boxes, Upload,
+  LayoutGrid, Rows3,
 } from "lucide-react"
 import { toast } from "sonner"
 import { ladderApi, STAGES, type LadderCreator, type Stage } from "@/services/ladderApi"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { cdnAvatar } from "@/lib/avatar"
+import { cn } from "@/lib/utils"
 import { Aed, CARD, PageHead } from "@/components/console/primitives"
+import {
+  Age, Dash, DENSITY, DensityProvider, DensityToggle, FilterBar, NoMatches, Owner,
+  StageRail, StageRibbon, TableShell, useDensity, type RailSegment,
+} from "@/components/console/surfaces"
+import { StageChip } from "@/components/console/Glyph"
 import { SettleCosts } from "@/components/superadmin/proposals/SettleCosts"
+
+/**
+ * A person's name from the only thing we are given, their work address.
+ *
+ * `hajar.m@following.ae` reads as "Hajar M". It is not a display name and we do not have
+ * one, but a name is what the row has to carry: "Waiting on hajar.m@following.ae" is an
+ * address, and an address is not an answer to who has this.
+ */
+function ownerName(email?: string | null): string | null {
+  if (!email) return null
+  const local = email.split("@")[0]?.trim()
+  if (!local) return null
+  const words = local
+    .split(/[._+-]+/)
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+  return words.length > 0 ? words.join(" ") : null
+}
+
+/** Up to two letters for the bubble beside the name. */
+function ownerInitials(name: string): string {
+  return name.split(" ").filter(Boolean).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join("")
+}
 
 /**
  * The figure only.
@@ -68,6 +98,100 @@ function dueState(c: LadderCreator): { text: string; tone: "calm" | "warn" | "la
   if (days === 0) return { text: "Due today", tone: "warn" }
   if (days === 1) return { text: "Due tomorrow", tone: "warn" }
   return { text: `Due ${day(c.content_due)}`, tone: "calm" }
+}
+
+/** Where a rung sits in the ladder. -1 for a creator who has left it. */
+const rungIndex = (s: Stage) => STAGES.findIndex(x => x.key === s)
+
+const isLate = (c: LadderCreator) => dueState(c)?.tone === "late"
+
+/**
+ * The one definition of stuck, used by the lens, by the rail's tones and by the sentence
+ * under the rail, so the count on the control and the colour on the bar can never disagree.
+ *
+ * Four ways a creator stops moving: nobody owns the row, the date went past with nothing
+ * in, a founder has not confirmed the rate that talent recorded, or the post is live and
+ * the payment is a founder's to make.
+ *
+ * Unowned is first on purpose. It is the one of the four that nobody will ever notice on
+ * their own, because an unowned row does not nag anybody, and it is currently the state of
+ * every row in the business.
+ */
+function isStuck(c: LadderCreator): boolean {
+  if (c.stage === "dropped" || c.stage === "paid") return false
+  if (!c.owner_user_id) return true
+  if (isLate(c)) return true
+  if (c.stage === "enrolled" && c.agreed_rate_cents != null && !c.rate_agreed_at) return true
+  return c.stage === "posted"
+}
+
+/** A live row with nobody's name on it. Work addressed to a role is addressed to nobody. */
+const isUnowned = (c: LadderCreator) => c.stage !== "dropped" && !c.owner_user_id
+
+/** The next thing to do for this creator, in the same words as the panel's button. */
+function nextAction(c: LadderCreator): string {
+  switch (c.stage) {
+    case "enrolled":
+      return c.agreed_rate_cents == null ? "Record the rate" : "Confirm the rate"
+    case "rate_agreed": return "Get the agreement on file"
+    case "contracted": return "Send the guide"
+    case "briefed": return "Chase the content"
+    case "content_in": return "Review and approve it"
+    case "content_approved": return "Record the post link"
+    case "posted": return "Pay the agreed rate"
+    case "paid": return "Nothing left to do"
+    default: return "Off the campaign"
+  }
+}
+
+/**
+ * When the creator arrived on the rung they are on.
+ *
+ * `stage_changed_at` is the real answer and is preferred wherever it is there. It is kept
+ * by a trigger, so rows that have not moved since it landed are still null, and for those
+ * the stamp of the rung BEFORE is the next best thing: the moment they finished the step
+ * that put them here. Nothing records an arrival on Enrolled, so a creator with no rate
+ * proposed yet and no stage change has no waiting time rather than a zero.
+ */
+function enteredRungAt(c: LadderCreator): string | null {
+  if (c.stage_changed_at) return c.stage_changed_at
+  switch (c.stage) {
+    case "enrolled": return c.rate_proposed_at ?? null
+    case "rate_agreed": return c.rate_agreed_at ?? null
+    case "contracted": return c.agreement_at ?? null
+    case "briefed": return c.guide_sent_at ?? null
+    case "content_in": return c.content_at ?? null
+    case "content_approved": return c.content_approved_at ?? null
+    case "posted": return c.posted_at ?? null
+    case "paid": return c.paid_at ?? null
+    default: return null
+  }
+}
+
+const daysSince = (iso: string) =>
+  Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000))
+
+/** How many days past the promised date, when the date has passed and nothing is in. */
+function lateDays(c: LadderCreator): number {
+  if (!c.content_due || c.content_at) return 0
+  const due = new Date(c.content_due + "T00:00:00")
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  return Math.max(0, Math.round((today.getTime() - due.getTime()) / 86_400_000))
+}
+
+/**
+ * The deliverables this creator is on the campaign for.
+ *
+ * The ladder endpoint carries no assigned or selected deliverable list, only the frozen
+ * price snapshots, so the names come from the snapshot's keys. A key is not a figure, so
+ * this leaks no cost to a role that cannot see one.
+ */
+function deliverableNames(c: LadderCreator): string[] {
+  const snap = c.sell_price_snapshot ?? c.cost_price_snapshot ?? null
+  if (!snap) return []
+  return Object.entries(snap)
+    .filter(([, v]) => v != null)
+    .map(([k]) => k.replace(/_/g, " "))
 }
 
 export default function LadderPage() {
@@ -141,13 +265,98 @@ export default function LadderPage() {
     }
   }
 
+  /* ── the process view: one rail, one ribbon, one lens, two layouts ──────────────────
+     None of this is sized by the number of creators. The rail is as wide as the ladder,
+     the ribbon is eight numbers, and the lens is one count, so the screen reads the same
+     at 10 as it does at 200. */
+
+  // Which stage the ribbon has pinned, or null for the whole roster.
+  const [stageFilter, setStageFilter] = useState<Stage | null>(null)
+  // The lens. `stuck` is everything late or waiting on a founder.
+  const [lens, setLens] = useState<"all" | "stuck">("all")
+  /* null means nobody has chosen, so the threshold decides. Read after mount, which is
+     also why the server pass and the first client pass agree. */
+  const [view, setView] = useState<"board" | "list" | null>(null)
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(`console.ladderView.${campaignId}`)
+      if (saved === "board" || saved === "list") setView(saved)
+    } catch {
+      /* Private window or blocked site data. The threshold is a fine answer. */
+    }
+  }, [campaignId])
+  const chooseView = (v: "board" | "list") => {
+    setView(v)
+    try { window.localStorage.setItem(`console.ladderView.${campaignId}`, v) } catch { /* not worth saying */ }
+  }
+  /* A board stops being readable somewhere around forty cards: eight columns of five is a
+     screen, eight columns of twenty-five is a scroll in both directions. Over that the
+     list leads, and either way the choice is one click away and remembered. */
+  const BOARD_UP_TO = 40
+  const shown: "board" | "list" = view ?? (creators.length >= BOARD_UP_TO ? "list" : "board")
+
+  const stuckCount = useMemo(() => creators.filter(isStuck).length, [creators])
+
+  const visible = useMemo(
+    () => creators.filter(c =>
+      (!stageFilter || c.stage === stageFilter) && (lens === "all" || isStuck(c))),
+    [creators, stageFilter, lens],
+  )
+
+  const clearFilters = () => { setStageFilter(null); setLens("all") }
+
+  /**
+   * The rail and the ribbon share their segments, so the bar and the numbers under it can
+   * never tell two stories. Tone: a rung the whole roster has already passed is done, the
+   * rung holding the most people is current, and any rung with somebody late on it is bad.
+   */
+  const segments: RailSegment[] = useMemo(() => {
+    const live = creators.filter(c => c.stage !== "dropped")
+    const counts = STAGES.map(s => live.filter(c => c.stage === s.key).length)
+    const lates = STAGES.map(s => live.filter(c => c.stage === s.key && isLate(c)).length)
+    const firstHeld = counts.findIndex(n => n > 0)
+    let current = -1, most = 0
+    counts.forEach((n, i) => { if (n > most) { most = n; current = i } })
+    return STAGES.map((s, i) => ({
+      key: s.key,
+      label: s.label,
+      n: counts[i],
+      tone: lates[i] > 0 ? "bad"
+        : firstHeld >= 0 && i < firstHeld ? "done"
+          : i === current ? "current" : "neutral",
+    }))
+  }, [creators])
+
+  /** How far along the roster actually is: every live creator's own rung, averaged. */
+  const percent = useMemo(() => {
+    const live = creators.filter(c => c.stage !== "dropped")
+    if (live.length === 0 || STAGES.length < 2) return 0
+    const sum = live.reduce((a, c) => a + Math.max(0, rungIndex(c.stage)) / (STAGES.length - 1), 0)
+    return Math.round((sum / live.length) * 100)
+  }, [creators])
+
+  const currentLabel = segments.find(s => s.tone === "current")?.label ?? null
+  const lateTotal = useMemo(() => creators.filter(c => c.stage !== "dropped" && isLate(c)).length, [creators])
+  /* Said out loud under the rail, because an unowned row is the one kind of stuck that
+     never chases anybody and so is never found by somebody doing their rounds. */
+  const unownedTotal = useMemo(() => creators.filter(isUnowned).length, [creators])
+
   const byStage = useMemo(() => {
     const m: Record<string, LadderCreator[]> = {}
     for (const s of STAGES) m[s.key] = []
     m.dropped = []
-    for (const c of creators) (m[c.stage] ??= []).push(c)
+    for (const c of visible) (m[c.stage] ??= []).push(c)
     return m
-  }, [creators])
+  }, [visible])
+
+  /** Late first, then up the ladder, then by handle. The list opens on what is wrong. */
+  const rows = useMemo(
+    () => [...visible].sort((a, b) =>
+      Number(isLate(b)) - Number(isLate(a))
+      || rungIndex(a.stage) - rungIndex(b.stage)
+      || (a.username || "").localeCompare(b.username || "")),
+    [visible],
+  )
 
   const waiting = useMemo(() => creators.filter(c => dueState(c)?.tone !== "calm" && dueState(c)), [creators])
 
@@ -197,6 +406,93 @@ export default function LadderPage() {
               }
             />
           </div>
+
+          {/* ── where everyone is ──────────────────────────────────────────────────────
+              The rail, the ribbon and the lens. This block is the process view: it is
+              sized by the ladder and not by the roster, so it is the same four lines of
+              screen on a campaign of ten and a campaign of two hundred. */}
+          {!loading && !failure && creators.length > 0 && (
+            <section className="space-y-ds-3">
+              <div className="flex items-center gap-ds-3">
+                <StageRail segments={segments} className="min-w-0 flex-1" />
+                <span className="shrink-0 text-ds-label font-semibold tabular-nums">
+                  {percent}% through
+                </span>
+              </div>
+              {/* The sentence the colours need: a tone on the bar never travels alone. */}
+              <p className="text-ds-caption text-muted-foreground">
+                {currentLabel
+                  ? <>Most of the roster is sitting on <span className="font-medium text-foreground">{currentLabel}</span></>
+                  : <>Nobody is on the ladder right now</>}
+                {lateTotal > 0 && (
+                  <>
+                    , and{" "}
+                    <span className="font-semibold text-[color:var(--tone-warn-ink)]">
+                      {lateTotal} {lateTotal === 1 ? "is" : "are"} late
+                    </span>
+                  </>
+                )}
+                . Click a rung to see only those creators.
+              </p>
+              {/* Not folded into the sentence above: it is a different kind of problem from
+                  a rung being busy, and it is the state of every row until somebody is put
+                  on them. The word carries the amber, as everywhere else in here. */}
+              {unownedTotal > 0 && (
+                <p className="text-ds-caption">
+                  <span className="font-semibold text-[color:var(--tone-warn-ink)]">
+                    {unownedTotal === creators.length
+                      ? `Nobody owns any of these ${creators.length}`
+                      : `${unownedTotal} ${unownedTotal === 1 ? "has" : "have"} nobody on them`}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {" "}&middot; a rung is a role, and a role is not a person who answers for it.
+                  </span>
+                </p>
+              )}
+
+              <StageRibbon
+                segments={segments}
+                value={stageFilter}
+                onChange={(k) => setStageFilter(k as Stage | null)}
+              />
+
+              {/* The lens, and the switch between the two layouts. One control for the
+                  thing somebody actually opened this screen to find. */}
+              <FilterBar
+                chips={[
+                  { key: "all", label: "Everyone", n: creators.length },
+                  { key: "stuck", label: "Stuck", n: stuckCount },
+                ]}
+                value={lens}
+                onChange={(k) => setLens(k === "stuck" ? "stuck" : "all")}
+                right={
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button" size="sm" variant={shown === "board" ? "default" : "outline"}
+                      aria-pressed={shown === "board"} onClick={() => chooseView("board")}
+                      className="h-8 gap-1.5 rounded-lg"
+                    >
+                      <LayoutGrid className="h-3.5 w-3.5" aria-hidden />Board
+                    </Button>
+                    <Button
+                      type="button" size="sm" variant={shown === "list" ? "default" : "outline"}
+                      aria-pressed={shown === "list"} onClick={() => chooseView("list")}
+                      className="h-8 gap-1.5 rounded-lg"
+                    >
+                      <Rows3 className="h-3.5 w-3.5" aria-hidden />List
+                    </Button>
+                  </div>
+                }
+              />
+              {lens === "stuck" && (
+                <p className="text-ds-caption text-muted-foreground">
+                  Stuck means nobody owns the row, the date went past with nothing in, a
+                  founder has not confirmed the rate, or the post is live and the payment is
+                  a founder&apos;s to make.
+                </p>
+              )}
+            </section>
+          )}
 
           {/* Getting the product to the creators. Its own panel, because on a campaign that
               ships it is the question everybody asks — the client most of all — and it runs
@@ -291,6 +587,19 @@ export default function LadderPage() {
                 Creators arrive here when a proposal is approved.
               </p>
             </div>
+          ) : visible.length === 0 ? (
+            /* Filtered to nothing by the operator, which is the one case where a table
+               vanishing is worse than a line of text: they caused it and need to know it
+               was the rung or the lens rather than the campaign. */
+            <div className={`${CARD} bg-card`}>
+              <NoMatches onClear={clearFilters} />
+            </div>
+          ) : shown === "list" ? (
+            /* The list. Every creator on one dense row, which is what a roster of two
+               hundred wants: a row carries seven facts and a card carries two. */
+            <DensityProvider id={`ladder.${campaignId}`}>
+              <RosterTable rows={rows} canSeeCost={canSeeCost} onOpen={setOpen} />
+            </DensityProvider>
           ) : (
             /* The board used to be boxes inside boxes: each column was a tinted, rounded,
                padded well, and every creator inside it was a card of its own. The well was
@@ -433,6 +742,27 @@ export default function LadderPage() {
                     {/* Cost, so leadership and talent only. Where it is out of scope the
                         row still says whether the rate is settled, because that is a state,
                         not a number, and everyone chasing this creator needs it. */}
+                    {/* Who holds it, first, and shown even when the answer is nobody: this
+                        is the panel somebody acts in, and an unowned row is the state to
+                        notice before anything else on the list. */}
+                    {open.stage !== "dropped" && (
+                      <div className="flex items-center justify-between gap-ds-2">
+                        <span className="text-muted-foreground">Holding it</span>
+                        {open.owner_user_id ? (
+                          <Owner
+                            name={ownerName(open.owner_email) ?? "someone we cannot name"}
+                            waiting={RUNG_ROLE[open.stage]?.waiting}
+                          />
+                        ) : (
+                          <span className="flex items-center gap-ds-2">
+                            <Owner name={null} />
+                            <span className="text-muted-foreground">
+                              should sit with {RUNG_ROLE[open.stage]?.desk ?? "somebody"}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {open.agreed_rate_cents != null && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Rate</span>
@@ -726,5 +1056,182 @@ export default function LadderPage() {
         </Sheet>
       </SuperAdminInterface>
     </AuthGuard>
+  )
+}
+
+/**
+ * The ROLE that owns each rung, read off the one list rather than typed again.
+ *
+ * It is no longer the answer to "who holds this" — the row's own owner is, and that is a
+ * person. This survives as the second line: it says which desk the row belongs on, which
+ * is exactly what somebody needs when the answer to the first question is nobody.
+ */
+const RUNG_ROLE: Record<string, { name: string; desk: string; waiting: boolean }> = Object.fromEntries(
+  STAGES.map(s => [s.key, {
+    name: s.who === "The creator" ? "the creator" : s.who,
+    /** The same role inside a sentence: "Should sit with a founder". */
+    desk: s.who === "Founder" ? "a founder" : s.who === "The creator" ? "the creator" : s.who.toLowerCase(),
+    waiting: s.who === "Founder" || s.who === "The creator",
+  }]),
+)
+
+/**
+ * The roster as a table: the same creators as the board, one dense row each.
+ *
+ * The board answers "where is everyone" by shape, and stops answering it somewhere around
+ * forty cards. This answers the same question by column, and a row carries seven facts
+ * where a card carries two, so it is the view that survives two hundred creators. Clicking
+ * a row opens the same panel the board's cards open, which keeps one route to a place.
+ */
+function RosterTable({
+  rows,
+  canSeeCost,
+  onOpen,
+}: {
+  rows: LadderCreator[]
+  canSeeCost: boolean
+  onOpen: (c: LadderCreator) => void
+}) {
+  const d = DENSITY[useDensity()]
+  const heads = ["Creator", "Rung", "Next thing to do", "Who holds it", "Deliverables", "Rate", "Waiting"]
+  return (
+    <TableShell
+      toolbar={
+        <>
+          <span className="text-ds-caption">
+            {rows.length} {rows.length === 1 ? "creator" : "creators"} in this view
+          </span>
+          <div className="ml-auto">
+            <DensityToggle />
+          </div>
+        </>
+      }
+      footer={
+        <span className="text-ds-caption">Click a row to do the next thing for that creator.</span>
+      }
+    >
+      <table className="w-full min-w-[980px] text-left">
+        <thead>
+          <tr className={cn("border-b bg-muted/30", d.divider)}>
+            {heads.map((h) => (
+              <th
+                key={h}
+                scope="col"
+                className={cn(d.cell, "text-ds-caption font-semibold text-muted-foreground")}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((c) => {
+            const entered = enteredRungAt(c)
+            const over = lateDays(c)
+            const names = deliverableNames(c)
+            const role = RUNG_ROLE[c.stage]
+            const holder = c.owner_user_id ? ownerName(c.owner_email) : null
+            return (
+              <tr
+                key={c.id}
+                onClick={() => onOpen(c)}
+                className={cn(d.row, "cursor-pointer border-b hover:bg-muted/40", d.divider)}
+              >
+                <td className={d.cell}>
+                  {/* The row is clickable with a mouse and this is the same thing for a
+                      keyboard, so the roster can be walked without a pointer. */}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onOpen(c) }}
+                    className="flex max-w-[220px] items-center gap-ds-2 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <Avatar className="h-6 w-6 shrink-0">
+                      <AvatarImage src={cdnAvatar(c.avatar || undefined)} />
+                      <AvatarFallback>{(c.username || "?")[0]?.toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">@{c.username}</span>
+                      {c.followers_count != null && (
+                        <span className="block truncate text-ds-caption text-muted-foreground">
+                          {compact(c.followers_count)}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                </td>
+                <td className={d.cell}>
+                  <StageChip rung={c.stage} state={over > 0 ? "late" : undefined} />
+                </td>
+                <td className={cn(d.cell, "text-ds-body-sm")}>{nextAction(c)}</td>
+                {/* Who holds it is a PERSON. Where that is nobody, which is every row in
+                    the business today, the cell says so as a first class value and then
+                    says whose desk it should be on, so it reads as a thing to fix rather
+                    than as a cell nobody filled in. */}
+                <td className={d.cell}>
+                  {c.stage === "dropped" ? (
+                    <span className="text-ds-caption text-muted-foreground">Off the campaign</span>
+                  ) : c.owner_user_id ? (
+                    <span title={role ? `${role.name} owns this rung` : undefined}>
+                      <Owner
+                        name={holder ?? "someone we cannot name"}
+                        waiting={role?.waiting}
+                        initials={holder ? ownerInitials(holder) : undefined}
+                      />
+                    </span>
+                  ) : (
+                    <span className="flex flex-col items-start gap-0.5">
+                      <Owner name={null} />
+                      {role && (
+                        <span className="text-ds-caption text-muted-foreground">
+                          Should sit with {role.desk}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </td>
+                <td className={cn(d.cell, "text-ds-caption text-muted-foreground")}>
+                  {names.length === 0 ? (
+                    <Dash reason="unset" what="deliverables" />
+                  ) : (
+                    <>
+                      {names.slice(0, 3).join(", ")}
+                      {names.length > 3 && ` +${names.length - 3}`}
+                    </>
+                  )}
+                </td>
+                {/* The rate is a COST. Leadership and talent see the figure; everybody else
+                    sees the column with a dash that says why, because a column that
+                    disappears teaches people the number does not exist. */}
+                <td className={cn(d.cell, "tabular-nums")}>
+                  {!canSeeCost ? (
+                    <Dash reason="unseen" what="the agreed rate" />
+                  ) : c.agreed_rate_cents == null ? (
+                    <Dash reason="unset" what="agreed rate" />
+                  ) : (
+                    <span className="text-ds-body-sm">
+                      <Money cents={c.agreed_rate_cents} />
+                      {!c.rate_agreed_at && (
+                        <span className="text-muted-foreground"> &middot; to confirm</span>
+                      )}
+                    </span>
+                  )}
+                </td>
+                <td className={d.cell}>
+                  {over > 0 ? (
+                    <Age days={entered ? daysSince(entered) : 0} lateDays={over} />
+                  ) : entered ? (
+                    <Age days={daysSince(entered)} />
+                  ) : (
+                    /* Nothing stamps an arrival on Enrolled, so this is genuinely unknown
+                       rather than nought days. */
+                    <Dash reason="unset" what="waiting time" />
+                  )}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </TableShell>
   )
 }
