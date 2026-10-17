@@ -45,7 +45,7 @@ import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { ProposalEmailDialog } from "@/components/proposals/ProposalEmailDialog"
 import { ClientsHubHeader } from "@/components/console/ClientsHubHeader"
-import { Failed } from "@/components/console/surfaces"
+import { Failed, ReadStateRow } from "@/components/console/surfaces"
 import { useConfirm } from "@/components/console/confirm"
 
 export default function SuperadminProposalsPage() {
@@ -250,31 +250,31 @@ export default function SuperadminProposalsPage() {
                         <TableCell className="text-right"><div className="h-8 w-8 bg-muted animate-pulse rounded ml-auto" /></TableCell>
                       </TableRow>
                     ))
-                  ) : failed ? (
-                    /* `Failed` rather than `ReadState` here because the empty branch is a
-                       table row, and ReadState's copy is a paragraph that cannot sit inside
-                       a tbody. The row carries it instead, and the Create button is gone. */
-                    <TableRow>
-                      <TableCell colSpan={showMargin ? 8 : 7} className="px-6">
-                        <Failed what="the proposals" onRetry={loadData} />
-                      </TableCell>
-                    </TableRow>
-                  ) : proposals.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={showMargin ? 8 : 7} className="text-center py-16">
-                        <FileText className="h-8 w-8 mx-auto text-muted-foreground/60 mb-3" />
-                        <p className="text-sm font-medium mb-1">No proposals found</p>
-                        <p className="text-xs text-muted-foreground mb-4">Create a proposal to get started</p>
-                        <Link href="/superadmin/proposals/create">
-                          <Button variant="outline" size="sm">
-                            <Plus className="mr-2 h-4 w-4" />
-                            Create a proposal
-                          </Button>
-                        </Link>
-                      </TableCell>
-                    </TableRow>
                   ) : (
-                    proposals.map((p) => (
+                    /* The skeleton rows are drawn above, so this only has to answer whether
+                       the read came back. The Create button stays inside `nothing`, which is
+                       the only branch it may ever appear in. */
+                    <ReadStateRow
+                      failed={failed}
+                      empty={proposals.length === 0}
+                      what="the proposals"
+                      onRetry={loadData}
+                      colSpan={showMargin ? 8 : 7}
+                      nothing={
+                        <span className="block py-10 text-center">
+                          <FileText className="h-8 w-8 mx-auto text-muted-foreground/60 mb-3 block" />
+                          <span className="text-sm font-medium mb-1 block text-foreground">No proposals found</span>
+                          <span className="text-xs text-muted-foreground mb-4 block">Create a proposal to get started</span>
+                          <Link href="/superadmin/proposals/create">
+                            <Button variant="outline" size="sm">
+                              <Plus className="mr-2 h-4 w-4" />
+                              Create a proposal
+                            </Button>
+                          </Link>
+                        </span>
+                      }
+                    >
+                    {proposals.map((p) => (
                       <TableRow key={p.id} className="group transition-colors duration-150 hover:bg-muted/50">
                         <TableCell>
                           <Link
@@ -365,7 +365,8 @@ export default function SuperadminProposalsPage() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))
+                    ))}
+                    </ReadStateRow>
                   )}
                 </TableBody>
               </Table>

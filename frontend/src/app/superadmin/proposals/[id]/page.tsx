@@ -6,7 +6,7 @@ import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { adminProposalApi, AdminProposalDetail, AdminProposalInfluencer } from "@/services/adminProposalMasterApi"
 import { toast } from "sonner"
 import { PageHead } from "@/components/console/primitives"
-import { Dash, Failed } from "@/components/console/surfaces"
+import { Dash, Failed, ReadStateRow } from "@/components/console/surfaces"
 import { fullName } from "@/lib/destinations"
 
 import { Badge } from "@/components/ui/badge"
@@ -550,17 +550,19 @@ export default function ProposalDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {influencers.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={9 + (showCost ? 2 : 0) - (showSell ? 0 : 1)}
-                        className="text-center text-muted-foreground py-8"
-                      >
-                        No influencers added yet
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    influencers.map((inf) => {
+                  {/* `failed` is the page's own flag. The whole page returns the failure
+                      above this point, so it is false here by construction, and the prop
+                      keeps it that way: nobody can add a read to this table without saying
+                      what happens when it breaks. */}
+                  <ReadStateRow
+                    failed={failed}
+                    empty={influencers.length === 0}
+                    what="this proposal's roster"
+                    onRetry={loadDetail}
+                    colSpan={9 + (showCost ? 2 : 0) - (showSell ? 0 : 1)}
+                    nothing="No influencers added yet"
+                  >
+                    {influencers.map((inf) => {
                       const sell = showSell ? getSellPrice(inf) : 0
                       const cost = showCost ? getCostPrice(inf) : 0
                       /* No sell price means there is no margin to state, not a margin of
@@ -703,8 +705,8 @@ export default function ProposalDetailPage() {
                           </TableCell>
                         </TableRow>
                       )
-                    })
-                  )}
+                    })}
+                  </ReadStateRow>
                 </TableBody>
                 {influencers.length > 0 && (
                   <TableFooter>

@@ -636,7 +636,60 @@ export function ReadState({
   if (failed) return <Failed what={what} onRetry={onRetry} />
   if (empty) {
     if (!nothing) return null
-    return <p className="text-ds-caption py-5">{nothing}</p>
+    // A div, not a paragraph. A genuine empty state is sometimes a sentence and sometimes a
+    // sentence plus the one control that fills it, and forcing a caller to express that as
+    // phrasing content inside a `p` is the component being narrow rather than the caller
+    // being wrong.
+    return <div className="text-ds-caption py-5">{nothing}</div>
+  }
+  return <>{children}</>
+}
+
+/**
+ * The same three questions, for a screen whose list is a real table.
+ *
+ * `ReadState`'s empty branch is a paragraph, and a paragraph cannot live inside a `tbody`.
+ * Two of the eight screens converted away from reporting failures as good news hit exactly
+ * that, and both reached for `Failed` by hand inside a colspan cell, which works and loses
+ * the compiler's insistence that somebody answer whether the read came back.
+ *
+ * So the table shape gets the guarantee too. Same required `failed`, same branch order, one
+ * extra prop for the span.
+ */
+export function ReadStateRow({
+  failed,
+  loading = false,
+  empty,
+  what,
+  onRetry,
+  nothing,
+  colSpan,
+  children,
+}: {
+  failed: boolean
+  loading?: boolean
+  empty: boolean
+  what: string
+  onRetry?: () => void
+  nothing?: React.ReactNode
+  /** How many columns the message spans. The table knows this; the component cannot guess it. */
+  colSpan: number
+  children: React.ReactNode
+}) {
+  if (loading) return null
+  if (failed || empty) {
+    if (empty && !failed && !nothing) return null
+    return (
+      <tr>
+        <td colSpan={colSpan} className="px-3">
+          {failed ? (
+            <Failed what={what} onRetry={onRetry} />
+          ) : (
+            <div className="text-ds-caption py-5">{nothing}</div>
+          )}
+        </td>
+      </tr>
+    )
   }
   return <>{children}</>
 }
