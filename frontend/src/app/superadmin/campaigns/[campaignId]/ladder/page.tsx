@@ -40,8 +40,9 @@ import {
   Age, Dash, DENSITY, DensityProvider, DensityToggle, FilterBar, NoMatches, Owner,
   StageRail, StageRibbon, TableShell, useDensity, type RailSegment,
 } from "@/components/console/surfaces"
-import { StageChip } from "@/components/console/Glyph"
+import { ActionIcon, StageChip } from "@/components/console/Glyph"
 import { SettleCosts } from "@/components/superadmin/proposals/SettleCosts"
+import { approvalsApi } from "@/services/approvalsApi"
 
 /**
  * A person's name from the only thing we are given, their work address.
@@ -64,6 +65,47 @@ function ownerName(email?: string | null): string | null {
 /** Up to two letters for the bubble beside the name. */
 function ownerInitials(name: string): string {
   return name.split(" ").filter(Boolean).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join("")
+}
+
+/**
+ * "I am waiting on you", from the panel where the waiting is visible.
+ *
+ * A rate recorded by talent and not yet confirmed by a founder is the one rung on this
+ * board that nobody can move on their own, and until now the only way to move it was to
+ * walk over to a desk. This sends the reminder, which mints a fresh one-time link, so the
+ * approver can answer from a phone with no login.
+ *
+ * No confirmation in front of it: it decides nothing and is undone by being ignored. The
+ * toast is the receipt. A 404 means nothing was ever formally raised and a 429 means
+ * somebody already asked today, and both of those are replies rather than failures, so
+ * neither is shown in red.
+ */
+function NudgeRate({ creatorId }: { creatorId: string }) {
+  const [sending, setSending] = useState(false)
+  const send = async () => {
+    setSending(true)
+    try {
+      const r = await approvalsApi.remind("campaign_creator", creatorId, "confirm_rate")
+      if (r.ok) {
+        const who = ownerName(r.approver_email) ?? r.approver_email ?? "The approver"
+        toast.success(`${who} has been emailed.`, {
+          description: `They can answer straight from it without logging in.${r.note ? ` ${r.note}.` : ""}`,
+        })
+      } else {
+        toast.message(r.answer)
+      }
+    } catch (e) {
+      toast.error((e as Error).message || "Could not send the reminder")
+    } finally {
+      setSending(false)
+    }
+  }
+  return (
+    <Button variant="outline" size="sm" className="w-full gap-2" disabled={sending} onClick={send}>
+      <ActionIcon verb="nudge" size="default" />
+      {sending ? "Nudging the founder" : "Nudge the founder"}
+    </Button>
+  )
 }
 
 /**
@@ -897,6 +939,21 @@ export default function LadderPage() {
                             onClick={() => act(() => ladderApi.confirmRate(open.id), "Rate confirmed")}>
                       <CheckCircle2 className="h-4 w-4" />Confirm <Money cents={open.agreed_rate_cents} />
                     </Button>
+                  )}
+
+                  {/* Waiting on a founder. Shown to everybody who can open this panel, not
+                      only to leadership: an account manager who cannot see the figure is
+                      still the person who knows the client has been waiting four days, and
+                      making her ask a founder to ask a founder is the problem rather than
+                      the fix. */}
+                  {open.stage === "enrolled" && open.agreed_rate_cents != null && !open.rate_agreed_at && (
+                    <div className="space-y-2">
+                      <NudgeRate creatorId={open.id} />
+                      <p className="text-xs text-muted-foreground">
+                        Emails whoever the decision was raised with, with a fresh link they can
+                        answer from their phone. One a day.
+                      </p>
+                    </div>
                   )}
 
                   {open.stage === "rate_agreed" && (

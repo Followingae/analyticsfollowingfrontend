@@ -37,11 +37,16 @@ import { API_CONFIG } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { Panel, Row, type Tone } from "@/components/console/primitives"
 import { Age, FilterBar, NoMatches, Owner, type FilterChip } from "@/components/console/surfaces"
+import { ActionIcon } from "@/components/console/Glyph"
 import { MoneyHubHeader } from "@/components/console/MoneyHubHeader"
+import { approvalsApi } from "@/services/approvalsApi"
 
 interface ApprovalRow {
   id: string
   entity_type: string
+  /** The thing the decision is about. Needed to nudge: the endpoint is addressed by the
+   *  thing waiting, not by the approval's own id. */
+  entity_id?: string | null
   action: string
   summary: string
   approver_email: string
@@ -52,6 +57,62 @@ interface ApprovalRow {
   decision_source: string | null
   decision_note: string | null
   requested_by_email: string | null
+  /** When somebody last asked again, and how many times they have. A decision on its
+   *  fourth ask is a conversation to have, not another email to send. */
+  reminded_at?: string | null
+  reminder_count?: number | null
+}
+
+/** How often this has been asked again, said the way a person would say it. */
+const askedAgain = (n?: number | null) =>
+  !n || n < 1 ? null : n === 1 ? "asked again once" : `asked again ${n} times`
+
+/**
+ * One nudge button, with the in-flight state on it so a double click cannot send twice.
+ *
+ * No dialog in front of it. A reminder decides nothing and is undone by ignoring it, and a
+ * confirmation would make asking feel heavier than the decision being asked about. The
+ * toast afterwards is the receipt.
+ *
+ * The address is the name here, the same rule the rest of this screen keeps: we hold no
+ * display name for an approver, and reading one out of the left of an @ invents it.
+ */
+function NudgeButton({
+  entityType,
+  entityId,
+  action,
+  approverEmail,
+}: {
+  entityType: string
+  entityId: string
+  action?: string
+  approverEmail: string
+}) {
+  const [sending, setSending] = useState(false)
+  const send = async () => {
+    setSending(true)
+    try {
+      const r = await approvalsApi.remind(entityType, entityId, action)
+      if (r.ok) {
+        toast.success(`${r.approver_email || approverEmail} has been emailed.`, {
+          description: `They can answer straight from it without logging in.${r.note ? ` ${r.note}.` : ""}`,
+        })
+      } else {
+        // A 404 or a 429. Both are replies, so neither is red.
+        toast.message(r.answer)
+      }
+    } catch (e) {
+      toast.error((e as Error).message || "Could not send the reminder")
+    } finally {
+      setSending(false)
+    }
+  }
+  return (
+    <Button variant="outline" size="sm" className="gap-1.5" disabled={sending} onClick={send}>
+      <ActionIcon verb="nudge" />
+      {sending ? "Nudging" : "Nudge"}
+    </Button>
+  )
 }
 
 const ACTION_LABEL: Record<string, string> = {
@@ -213,6 +274,12 @@ export default function ApprovalsPage() {
                               ? <span>· {ago(a.decided_at)}{a.decision_source ? ` by ${a.decision_source}` : ""}</span>
                               : null}
                             {a.decision_note ? <span>· “{a.decision_note}”</span> : null}
+                            {/* How often somebody has already asked. On the fourth ask the
+                                answer is not another email, and this row is where that
+                                becomes visible. */}
+                            {!a.decided_at && askedAgain(a.reminder_count)
+                              ? <span>· {askedAgain(a.reminder_count)}</span>
+                              : null}
                           </span>
                         }
                         right={
@@ -239,6 +306,18 @@ export default function ApprovalsPage() {
                                 has passed. */}
                             {!a.decided_at && (
                               <Age days={daysSince(a.created_at)} lateDays={lateBy(a.expires_at)} />
+                            )}
+                            {/* Only on a row that is actually waiting, and only when the
+                                row knows WHICH THING is waiting: the endpoint is addressed
+                                by the entity, so without an entity id there is nothing to
+                                nudge and a button here would only ever answer 404. */}
+                            {!a.decided_at && a.entity_id && (
+                              <NudgeButton
+                                entityType={a.entity_type}
+                                entityId={a.entity_id}
+                                action={a.action}
+                                approverEmail={a.approver_email}
+                              />
                             )}
                           </>
                         }

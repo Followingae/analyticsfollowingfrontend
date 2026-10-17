@@ -46,6 +46,8 @@ import {
 import { ArrowUpRight, Search, UserPlus, X } from 'lucide-react'
 import { cdnAvatar } from '@/lib/avatar'
 import { cn } from '@/lib/utils'
+import { ActionIcon } from '@/components/console/Glyph'
+import { approvalsApi } from '@/services/approvalsApi'
 import { isTypingTarget } from '@/components/console/KeyboardShortcuts'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
@@ -111,6 +113,64 @@ function dueWords(due: Row['due']): string | null {
 const initials = (s?: string | null) =>
   (s || '?').replace(/[^A-Za-z ]/g, '').trim().split(/\s+/).slice(0, 2)
     .map(w => w[0]).join('').toUpperCase() || '?'
+
+/** A name out of a work address, so a toast can say Hajar rather than hajar.m@following.ae. */
+const nameFromEmail = (email?: string | null) => {
+  const local = (email || '').split('@')[0]?.trim()
+  if (!local) return null
+  return local.split(/[._+-]+/).filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || null
+}
+
+/**
+ * A row is waiting on a founder when talent has recorded a rate and nobody has confirmed
+ * it. That is a decision this list can see but cannot make, so what it offers is the ask.
+ *
+ * The row cannot know whether the decision was ever formally raised, only that it is in the
+ * state where it should have been, so the nudge is offered and a 404 is allowed to answer.
+ */
+const awaitsFounder = (r: Row) => r.stage === 'enrolled' && r.last_event.what === 'Rate proposed'
+
+/**
+ * One nudge, no dialog. Asking somebody to decide is not a consequence, it is a message,
+ * and it is undone by being ignored, so the receipt is a toast and nothing stops the click.
+ * Disabled while in flight so a second click cannot send a second email.
+ */
+function NudgeButton({ rowId, who }: { rowId: string; who: string }) {
+  const [sending, setSending] = useState(false)
+  const send = async () => {
+    setSending(true)
+    try {
+      const res = await approvalsApi.remind('campaign_creator', rowId, 'confirm_rate')
+      if (res.ok) {
+        const name = nameFromEmail(res.approver_email) ?? res.approver_email ?? 'The approver'
+        toast.success(`${name} has been emailed.`, {
+          description: `They can answer straight from it without logging in.${res.note ? ` ${res.note}.` : ''}`,
+        })
+      } else {
+        // 404: nothing was ever raised. 429: somebody asked this morning. Both are answers.
+        toast.message(res.answer)
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not send the reminder')
+    } finally {
+      setSending(false)
+    }
+  }
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-7 shrink-0 gap-1.5 px-2 text-xs"
+      disabled={sending}
+      onClick={send}
+      title={`Ask ${who} to confirm the rate`}
+    >
+      <ActionIcon verb="nudge" />
+      {sending ? 'Nudging' : 'Nudge'}
+    </Button>
+  )
+}
 
 export default function PipelinePage() {
   const router = useRouter()
@@ -558,6 +618,11 @@ export default function PipelinePage() {
                         )}
                       </span>
                     </button>
+
+                    {/* The one thing this list can do about a row that is waiting on
+                        somebody else: say so. Only on the rows that are actually waiting
+                        on a founder, so it does not become furniture on every row. */}
+                    {awaitsFounder(r) && <NudgeButton rowId={r.id} who="a founder" />}
 
                     {/* Whose row it is. A name here is the difference between a list of
                         things and somebody's list of things. */}
