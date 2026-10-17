@@ -18,6 +18,7 @@ import { Check, X, ExternalLink, Camera, ImageIcon, Loader2, Pencil, ChevronLeft
 import { PageHead } from "@/components/console/primitives"
 import { FaPage, Failed, Loading, Nothing, TONE_BADGE, TONE_TEXT, type Tone } from "../_ui"
 import { faDeliverableApi, faCampaignApi } from "@/services/faAdminApi"
+import { useConfirm } from "@/components/console/confirm"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { Aed } from "@/components/console/primitives"
@@ -106,6 +107,7 @@ export default function FADeliverablesPage() {
 }
 
 function FADeliverables() {
+  const confirmAction = useConfirm()
   const params = useSearchParams()
   const askedStage = params?.get("stage") || ""
   const askedCampaign = params?.get("campaign") || ""
@@ -182,14 +184,53 @@ function FADeliverables() {
     if (!d.campaign_id) return toast.error("No campaign linked")
     return act(d.id + "re", () => faDeliverableApi.requestEdit(d.campaign_id!, d.id, note || undefined), "Edit requested")
   }
-  // Proof verification is Following-team ONLY — the campaign-scoped /confirm endpoint
-  // is intentionally disabled (403) for everyone, so always use the admin verify route.
-  const confirm = (d: Deliverable) =>
-    act(d.id + "cf", () => faDeliverableApi.verify(d.id), "Verified, payout released")
+  // Proof verification is Following-team ONLY: the campaign-scoped /confirm endpoint is
+  // intentionally disabled (403) for everyone, so always use the admin verify route.
+  //
+  // RENAMED from `confirm`. It shadowed the browser global, which is how it survived the sweep
+  // that replaced every native confirm box in the console: a grep for `confirm(` found this and
+  // it was left alone as a false positive. Meanwhile this was the one money action in the
+  // console with NO confirmation of any kind, and it releases a creator's payout.
+  //
+  // It asks now. Not as a money dialog, because the row does not carry the amount and a figure
+  // invented for a confirmation screen is worse than no figure at all. It states the two
+  // consequences instead and names who they land on.
+  const verifyProof = async (d: Deliverable) => {
+    const who = d.member_name || d.member_handle || "this creator"
+    const ok = await confirmAction({
+      kind: "destructive",
+      title: `Verify ${who}'s proof`,
+      body: d.campaign_name
+        ? `${d.quantity} ${d.type} on ${d.campaign_name}.`
+        : `${d.quantity} ${d.type}.`,
+      losses: [
+        { label: "Her payout is released", detail: "This is the step that pays her", warn: true },
+        { label: "The proof is accepted", detail: "It stays on file", kept: true },
+      ],
+      confirmLabel: "Verify and release",
+      cancelLabel: "Leave it submitted",
+    })
+    if (!ok) return
+    return act(d.id + "cf", () => faDeliverableApi.verify(d.id), "Verified, payout released")
+  }
   useEffect(() => { setPicked(new Set()) }, [filter, campaignId])
 
-  const reject = (d: Deliverable) =>
-    act(d.id + "rj", () => faDeliverableApi.reject(d.id), "Deliverable rejected")
+  const reject = async (d: Deliverable) => {
+    const who = d.member_name || d.member_handle || "this creator"
+    const ok = await confirmAction({
+      kind: "destructive",
+      title: `Reject ${who}'s proof`,
+      body: "She is told, and she keeps her place on the campaign.",
+      losses: [
+        { label: "No payout is released", warn: true },
+        { label: "Her place on the campaign", detail: "Kept. She can submit again.", kept: true },
+      ],
+      confirmLabel: "Reject the proof",
+      cancelLabel: "Leave it submitted",
+    })
+    if (!ok) return
+    return act(d.id + "rj", () => faDeliverableApi.reject(d.id), "Deliverable rejected")
+  }
 
   /* One at a time, deliberately. Each verify releases a payout, so a single failure must
      cost that one row and not the rest, and the count at the end has to be what actually
@@ -199,6 +240,25 @@ function FADeliverables() {
   const verifyPicked = async () => {
     const ids = [...picked]
     if (!ids.length) return
+    // The count is the minimum specificity a confirmation owes you when it touches many rows,
+    // and this one releases a payout per row. The creators are named rather than counted,
+    // because a list is better than a number whenever the list will fit.
+    const chosen = deliverables.filter((d) => picked.has(d.id))
+    const ok = await confirmAction({
+      kind: "destructive",
+      title: `Verify ${ids.length} proof${ids.length === 1 ? "" : "s"}`,
+      body:
+        "Each one releases that creator's payout. They go one at a time, so if one is refused " +
+        "the rest still go through and the count at the end is what actually happened.",
+      losses: chosen.slice(0, 8).map((d) => ({
+        label: d.member_name || d.member_handle || "Unnamed creator",
+        detail: d.campaign_name || undefined,
+        warn: true,
+      })),
+      confirmLabel: `Verify and release ${ids.length}`,
+      cancelLabel: "Leave them submitted",
+    })
+    if (!ok) return
     setBulkRunning(true)
     let done = 0
     const failed: string[] = []
@@ -404,7 +464,7 @@ function FADeliverables() {
                               <Button size="sm" variant="outline" disabled={!!busy} onClick={() => reject(d)}>
                                 <X className="h-4 w-4 mr-1" />Reject
                               </Button>
-                              <Button size="sm" disabled={!!busy} onClick={() => confirm(d)}>
+                              <Button size="sm" disabled={!!busy} onClick={() => verifyProof(d)}>
                                 {busy === d.id + "cf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4 mr-1" />Verify</>}
                               </Button>
                             </>
