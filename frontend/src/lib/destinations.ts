@@ -54,6 +54,13 @@ export const DESTINATIONS: Record<string, Destination> = {
     // now says what is in it: decisions that are open.
     hint: 'Everything waiting on a decision from you',
   },
+  '/work/desk': {
+    short: 'Desk',
+    full: 'The Desk',
+    // Named for the place, not the channel. It takes email and WhatsApp today and will take
+    // more, and "Inbox" is already what /work/inbox was called before it became Decisions.
+    hint: 'Email and WhatsApp that came in, and who it is from',
+  },
   '/work/guide': {
     short: 'Guide',
     full: 'Guide',

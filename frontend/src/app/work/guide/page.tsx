@@ -38,6 +38,7 @@ import { Button } from '@/components/ui/button'
 import {
   Wallet,
   Download, CircleCheck, Ban, Sunrise,
+  Mail,
   Search, ArrowUpRight, Users2, Coins, Database, Map, Megaphone, ClipboardCheck,
   FileSignature, Banknote, BarChart3, Building2, FileText, Send, Inbox, ListChecks,
   ShieldCheck, Store, Activity, Bell, Wrench, MailCheck, MessageCircle, Users,
@@ -85,6 +86,12 @@ const SECTIONS: Section[] = [
         what: 'Everything anywhere in the platform that needs a decision from you.',
         why: 'It pulls from every queue at once, so you do not have to remember which screen a thing was waiting on. It only lists queues your role can act on.',
         also: ['queue', 'approvals', 'to do'],
+      },
+      {
+        title: 'The Desk', href: '/work/desk', icon: Mail,
+        what: 'Email sent to desk@following.ae and WhatsApp replies on our own numbers, landed where everybody can see them. Each one says who we think it is from and what it is probably about.',
+        why: 'This company runs in Gmail, so the platform was always a few days behind the real client, and when somebody was away their inbox was the single point of failure. Inbound WhatsApp was worse than absent: it arrived, was checked for the words STOP and START, and was thrown away — so every creator who ever replied to one of our messages replied into nothing. It is a landing strip and not an inbox: nothing here sends a reply, and replying still happens in Gmail and WhatsApp where the history is. What it does is make sure a message exists somewhere the team can see it, and let you take it so two people do not both answer. Messages we cannot place sort to the top and are never hidden from anybody, because an enquiry from somebody we have never met is the most valuable message on the screen. A guess is labelled as a guess, and Place it is how you overrule one.',
+        also: ['desk', 'inbox', 'email', 'whatsapp', 'inbound', 'enquiry', 'reply', 'forward', 'hello@', 'unmatched', 'who is this from'],
       },
       {
         title: 'Pipeline', href: '/work/pipeline', icon: ClipboardCheck,

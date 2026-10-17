@@ -34,6 +34,7 @@ export type ServerNotificationType =
   | 'creator_rejected'
   | 'creator_submitted'
   | 'credit_purchase'
+  | 'desk_message_received'
   | 'fa_application'
   | 'fa_content_approved'
   | 'fa_content_edit_requested'
@@ -162,6 +163,9 @@ export const NOTIFICATION_CATEGORIES = {
     'low_balance',
     'subscription_cancelled',
   ],
+  desk: [
+    'desk_message_received',
+  ],
   team: [
     'team_invite',
     'team_update',
@@ -188,6 +192,7 @@ export const CATEGORY_DOMAIN: Record<NotificationCategory, string> = {
   shares: 'Shares',
   analytics: 'Analytics',
   billing: 'Billing',
+  desk: 'Desk',
   team: 'Team',
   system: 'System',
 }
@@ -205,6 +210,7 @@ export const CATEGORY_LABEL: Record<NotificationCategory, string> = {
   shares: 'Shares',
   analytics: 'Analytics',
   billing: 'Billing',
+  desk: 'Desk',
   team: 'Team',
   system: 'System',
 }
@@ -229,6 +235,7 @@ export const EVENT_LABEL: Partial<Record<ServerNotificationType, string>> = {
   creator_rejected: "Creator turned down",
   creator_submitted: "Creators added to the waiting room",
   credit_purchase: "Credits added / subscription active",
+  desk_message_received: "Something came in on the Desk",
   fa_application: "New campaign application (team)",
   fa_content_approved: "Content approved (team)",
   fa_content_edit_requested: "An edit was requested on content (team)",
@@ -287,6 +294,7 @@ export interface UnreadCounts {
   unread_shares: number
   unread_analytics: number
   unread_billing: number
+  unread_desk: number
   unread_team: number
   unread_system: number
   /** Live but uncatalogued, so the total and the tabs always agree. */
@@ -307,6 +315,7 @@ export const EMPTY_UNREAD_COUNTS: UnreadCounts = {
   unread_shares: 0,
   unread_analytics: 0,
   unread_billing: 0,
+  unread_desk: 0,
   unread_team: 0,
   unread_system: 0,
   unread_other: 0,

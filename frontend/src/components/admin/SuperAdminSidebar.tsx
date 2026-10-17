@@ -38,6 +38,7 @@ import {
   ListChecks,
   Users2,
   Inbox,
+  Mail,
 
   Bell,
   MailCheck,
@@ -114,6 +115,9 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     // purpose: the page shows only the queues the viewer's role can act on, and for someone
     // with none it says so rather than hiding.
     { title: "Waiting on me", url: "/work/inbox", icon: Inbox },
+    // Beside it, because they are the two halves of "what is waiting on me": decisions the
+    // platform knows about, and messages from outside it that it did not until now.
+    { title: shortName("/work/desk"), url: "/work/desk", icon: Mail },
     // Ungated. Everybody has a role and the manual describes all of them, so putting it
     // behind the permissions it explains would be a closed loop.
     { title: "The manual", url: "/work/guide", icon: BookOpen },

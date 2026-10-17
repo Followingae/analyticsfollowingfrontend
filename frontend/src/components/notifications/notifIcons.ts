@@ -27,6 +27,7 @@ import {
   FileUp,
   Gavel,
   HandCoins,
+  Inbox,
   Link2,
   ListChecks,
   Megaphone,
@@ -134,6 +135,9 @@ export const NOTIF_LOOK: Partial<Record<ServerNotificationType, NotifLook>> = {
   // Team
   team_invite: { icon: UserPlus, tone: 'plain' },
   team_update: { icon: Users, tone: 'plain' },
+
+  // The Desk
+  desk_message_received: { icon: Inbox, tone: 'plain' },
 
   // System
   access_anomaly: { icon: ShieldAlert, tone: 'warn' },
