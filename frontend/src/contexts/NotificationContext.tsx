@@ -7,6 +7,9 @@ import {
   ServerNotification,
   UnreadCounts,
   NotificationCategory,
+  EMPTY_UNREAD_COUNTS,
+  NOTIFICATION_CATEGORIES,
+  CATEGORY_DOMAIN,
 } from '@/services/notificationApi'
 import { useAuth } from '@/contexts/AuthContext'
 import { tokenManager } from '@/utils/tokenManager'
@@ -16,7 +19,7 @@ interface NotificationContextType {
   unreadCounts: UnreadCounts
   loading: boolean
   markAsRead: (id: string) => void
-  markAllAsRead: (notificationType?: string) => void
+  markAllAsRead: (opts?: { notificationType?: string; domain?: string }) => void
   /** Mark notifications as read by reference (e.g. when visiting a proposal page) */
   markReadByReference: (referenceType: string, referenceId?: string) => void
   /** Re-fetch both list + counts from server */
@@ -25,9 +28,15 @@ interface NotificationContextType {
   deduplicatedToast: (message: string, type?: 'error' | 'success' | 'info') => void
 }
 
-const defaultCounts: UnreadCounts = {
-  total_unread: 0, unread_shares: 0, unread_proposals: 0, unread_campaigns: 0,
-  unread_analytics: 0, unread_billing: 0, unread_team: 0, unread_system: 0,
+// Generated from the backend event catalog, so a new domain cannot be missed in the zero
+// case — which is how a bucket silently stayed at zero while its notifications arrived.
+const defaultCounts: UnreadCounts = EMPTY_UNREAD_COUNTS
+
+/** The event types a domain covers, for scoping an optimistic mark-all-read. */
+function typesInDomain(domain: string): readonly string[] {
+  const key = (Object.keys(CATEGORY_DOMAIN) as NotificationCategory[])
+    .find(k => CATEGORY_DOMAIN[k] === domain)
+  return key ? (NOTIFICATION_CATEGORIES[key] as readonly string[]) : []
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined)
@@ -140,12 +149,22 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     })
   }, [fetchUnreadCounts])
 
-  const markAllAsRead = useCallback((notificationType?: string) => {
-    setNotifications(prev =>
-      prev.map(n => ({ ...n, is_read: true, read_at: n.read_at || new Date().toISOString() }))
-    )
-    setUnreadCounts(defaultCounts)
-    notificationApiService.markAllAsRead(notificationType).then(() => {
+  const markAllAsRead = useCallback((opts?: { notificationType?: string; domain?: string }) => {
+    // Scoped optimistically, matching what the server will actually do. This used to mark
+    // EVERY notification read locally and zero every count even when one category was
+    // asked for, so clearing the Billing tab emptied the whole page until the next poll
+    // put it all back.
+    const scope: readonly string[] | null = opts?.notificationType
+      ? [opts.notificationType]
+      : opts?.domain ? typesInDomain(opts.domain) : null
+
+    setNotifications(prev => prev.map(n =>
+      (!scope || scope.includes(n.notification_type))
+        ? { ...n, is_read: true, read_at: n.read_at || new Date().toISOString() }
+        : n
+    ))
+    if (!scope) setUnreadCounts(defaultCounts)
+    notificationApiService.markAllAsRead(opts).then(() => {
       fetchUnreadCounts()
     })
   }, [fetchUnreadCounts])

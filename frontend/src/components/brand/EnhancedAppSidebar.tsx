@@ -33,6 +33,7 @@ import {
   Compass as IconCompass,
   List as IconList,
   FileText as IconFileText,
+  FileCheck2 as IconDocuments,
   Wallet as IconWallet,
   Bell as IconBell,
   Radar as IconRadar,
@@ -193,6 +194,14 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
         title: "Billing",
         url: "/billing",
         icon: IconCreditCard,
+      },
+      // Beside Billing, because they are the two halves of the same question: what have I
+      // been charged, and where is the paperwork for it. A client could reach exactly one
+      // signed agreement before this, on whichever campaign they happened to open.
+      {
+        title: "Documents",
+        url: "/documents",
+        icon: IconDocuments,
       },
       {
         title: "Notifications",

@@ -113,6 +113,12 @@ const SECTIONS: Section[] = [
         also: ['imd', 'master database', 'pricing', 'cost', 'country', 'bulk', 'gcc', 'insights', 'screenshots', 'direct analytics'],
       },
       {
+        title: 'When a creator’s numbers look wrong', href: '/work/influencers', icon: Users2,
+        what: 'On any creator’s analytics there are two buttons. Recompute re-works the numbers from the data we already hold and costs nothing. Refresh scrapes Instagram again and spends real money.',
+        why: 'Try Recompute first. Everything the calculations have learned since that creator was last scraped gets applied — the engagement that divides by views where a reel reached far past the follower count, the failed posts that used to be counted as real ones, the country — and it buys nothing new because nothing new is needed. Refresh is for a creator whose Instagram has genuinely changed since we looked, or one whose row predates us keeping the raw data, which Recompute will tell you rather than quietly doing nothing.',
+        also: ['recompute', 'refresh', 'wrong numbers', 'engagement', 'analytics', 'apify', 'cost', 'rescrape', 're-analyse'],
+      },
+      {
         title: 'Creators needing a price', href: '/work/influencers/review', icon: Coins,
         what: 'The queue of creators sitting in the database with no price on them.',
         why: 'Every name here is one nobody can sell yet, which is why it carries a count in the sidebar.',
@@ -255,6 +261,12 @@ const SECTIONS: Section[] = [
         also: ['revenue', 'margin', 'cash'],
       },
       {
+        title: 'What a campaign costs', href: '/work/campaigns', icon: Coins,
+        what: 'On any campaign, beside Content: what it costs, what it sells for, the margin, what the client has actually paid, and how much is left to draw. A row per creator with their state, and the four decisions only a founder makes.',
+        why: 'Four of those decisions had no screen at all before and were only reachable from the database. Settlement on or off is chosen once, at award time, and the rate is stamped then — a live campaign is never quietly repriced. Working capital is the only way to pay a creator before the client has paid us, and it is an amount rather than a switch, so approving 20,000 does not open the campaign to 200,000; the reason you type is what somebody reads six weeks later. Brand brought them takes a creator the brand introduced out of what the campaign costs, because they are not ours to pay, and getting it wrong understates the margin by that creator’s whole fee. A creator with no agreed rate is listed as such and counts in no total — the screen will not guess a price to make the arithmetic look finished.',
+        also: ['cost', 'margin', 'settlement', 'working capital', 'funded', 'headroom', 'brand sourced', 'brand brought', 'unpriced', 'vat', 'fee'],
+      },
+      {
         title: 'Sign-offs', href: '/work/approvals', icon: ClipboardCheck,
         what: 'Everything held until one of the founders says yes.',
         also: ['approvals', 'authorise'],
@@ -277,12 +289,19 @@ const SECTIONS: Section[] = [
       {
         title: 'Staff', href: '/work/staff', icon: ShieldCheck,
         what: 'Internal accounts and what each role can reach.',
-        also: ['roles', 'permissions'],
+        why: 'Two separate things, and the screen keeps them separate. The areas decide which screens somebody can open; the clients decide whose work is on those screens. Every client is a third option beside the per-client ticks, and it includes clients added later, so nobody has to remember to come back here when we win one. It widens which clients and nothing else: an account manager with it on sees every client and still never sees cost, and a talent manager sees every client and still never sees sell.',
+        also: ['roles', 'permissions', 'all clients', 'every client', 'client access', 'sees all clients'],
       },
       {
         title: 'Office screens', href: '/work/system/displays', icon: Activity,
         what: 'What the wall screens show, and how often they change.',
         also: ['tv', 'wall', 'display'],
+      },
+      {
+        title: 'Image pipeline', href: '/work/system/images', icon: Activity,
+        what: 'Every avatar and thumbnail in the product is served from our own CDN. This is what is queued, what failed and why, and how much we are storing.',
+        why: 'Instagram blocks hotlinking, so a failed job here is a creator who appears on a proposal with no face — and the only way anybody found out was a client mentioning it. Retry is not a fix: it re-queues a job that already failed, and where the cause was an expired Instagram URL it will fail again, which is what the try count on each row is there to tell you before somebody presses it a fourth time.',
+        also: ['cdn', 'images', 'thumbnails', 'avatars', 'broken images', 'r2', 'storage', 'failed jobs'],
       },
     ],
   },

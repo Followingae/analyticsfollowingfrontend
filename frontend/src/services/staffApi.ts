@@ -72,6 +72,9 @@ export interface StaffDetail {
   effective: AccessMap
   modules_override?: string[] | null; default_modules: string[]
   clients: { team_id: string; name: string }[]
+  /** Whether the per-client grants above are consulted at all. On, they are not: this
+   *  person sees every client, including ones added later. */
+  sees_all_clients?: boolean
 }
 
 /** The module catalogue, served rather than hard-coded so this screen cannot fall behind
@@ -95,6 +98,10 @@ export const staffAdminApi = {
   list: () => jget('/api/v1/admin/staff').then(r => r.data as StaffMember[]),
   get: (id: string) => jget(`/api/v1/admin/staff/${id}`).then(r => r.data as StaffDetail),
   setClients: (id: string, teamIds: string[]) => jpost(`/api/v1/admin/staff/${id}/clients`, { team_ids: teamIds }),
+  /** The whole client list, including clients that do not exist yet. Superadmin only on the
+   *  server — stricter than the per-client grant beside it, deliberately. */
+  setSeesAllClients: (id: string, seesAll: boolean) =>
+    jpost(`/api/v1/admin/staff/${id}/all-clients`, { sees_all_clients: seesAll }),
   setModules: (id: string, modules: string[] | null) => jpost(`/api/v1/admin/staff/${id}/modules`, { modules }),
   catalogue: () => jget('/api/v1/admin/access-catalogue').then(r => r.data as AccessCatalogue),
   setAccess: (id: string, access: AccessMap | null, preset?: string | null) =>

@@ -414,6 +414,13 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Job queue',
     hint: 'Background work running now, and what has failed',
   },
+  '/work/system/images': {
+    short: 'Images',
+    full: 'Image pipeline',
+    // Named for the thing it looks after rather than the technology. "CDN" is what the
+    // bucket is called; the question people arrive with is why a creator has no face.
+    hint: 'Avatars and thumbnails on our own CDN, and the jobs that failed',
+  },
 
   // ── Settings ────────────────────────────────────────────────────────────────────────
   '/work/users': {

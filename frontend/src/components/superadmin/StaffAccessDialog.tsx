@@ -122,6 +122,11 @@ export function StaffAccessDialog({ staffId, open, onOpenChange, onSaved }: {
   const [access, setAccess] = useState<AccessMap>({});
   const [presetKey, setPresetKey] = useState<string | null>(null);
   const [grantedTeams, setGrantedTeams] = useState<Set<string>>(new Set());
+  /* Whether the per-client ticks below are consulted at all. `users.sees_all_clients` has
+     been read by the server since it shipped and written by nothing, so the only way to let
+     somebody see every client was to tick every client by hand — and a client added next
+     month was then invisible to the people running it until somebody remembered. */
+  const [seesAll, setSeesAll] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -154,6 +159,7 @@ export function StaffAccessDialog({ staffId, open, onOpenChange, onSaved }: {
         setAccess(d.access ?? d.role_preset ?? {});
         setPresetKey(d.preset_key ?? null);
         setGrantedTeams(new Set((d.clients || []).map((x) => x.team_id)));
+        setSeesAll(!!d.sees_all_clients);
       } catch (e: unknown) {
         setFailure(e instanceof Error ? e.message : "The request did not complete");
       } finally {
@@ -206,6 +212,9 @@ export function StaffAccessDialog({ staffId, open, onOpenChange, onSaved }: {
     try {
       setSaving(true);
       await staffAdminApi.setAccess(staffId, Object.keys(access).length ? access : null, presetKey);
+      /* Written even when it has not changed, and before the per-client set, so the two can
+         never disagree about who this person can see. */
+      await staffAdminApi.setSeesAllClients(staffId, seesAll);
       await staffAdminApi.setClients(staffId, Array.from(grantedTeams));
       toast.success("Access updated");
       onSaved?.();
@@ -374,12 +383,40 @@ export function StaffAccessDialog({ staffId, open, onOpenChange, onSaved }: {
                 Separate from the areas above. Access to Campaigns lets them open the screen;
                 this decides whose campaigns are on it.
               </p>
+
+              {/* Every client, including the ones that do not exist yet. It widens WHICH
+                  clients and nothing else: an account manager with this on sees every
+                  client and still never sees cost. */}
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-ds-lg border
+                                border-black/[0.06] p-3 dark:border-white/[0.07]">
+                <Checkbox
+                  checked={seesAll} disabled={readOnly}
+                  onCheckedChange={(v: boolean | "indeterminate") => setSeesAll(v === true)}
+                />
+                <span className="space-y-1">
+                  <span className="block text-[13.5px] font-medium">Every client</span>
+                  <span className="block text-[12.5px] leading-relaxed text-muted-foreground">
+                    Including clients added later, so nobody has to remember. What they may
+                    read about a client does not change: this widens which clients, not
+                    which fields.
+                  </span>
+                </span>
+              </label>
+
               <Input
                 value={clientQuery} onChange={(e) => setClientQuery(e.target.value)}
                 placeholder="Search clients" className="h-9 text-[13.5px]"
+                disabled={seesAll}
               />
-              <div className="max-h-56 space-y-1 overflow-y-auto rounded-ds-lg border
-                              border-black/[0.06] p-3 dark:border-white/[0.07]">
+              {seesAll && (
+                <p className="text-[12.5px] text-muted-foreground">
+                  These ticks are kept but are not being used while &ldquo;every
+                  client&rdquo; is on.
+                </p>
+              )}
+              <div className={`max-h-56 space-y-1 overflow-y-auto rounded-ds-lg border
+                              border-black/[0.06] p-3 dark:border-white/[0.07]
+                              ${seesAll ? "pointer-events-none opacity-45" : ""}`}>
                 {shownClients.length === 0 ? (
                   <p className="py-2 text-center text-[12.5px] text-muted-foreground">
                     {clients.length === 0 ? "No clients found." : "Nothing matches that."}

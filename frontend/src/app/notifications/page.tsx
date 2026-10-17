@@ -7,77 +7,30 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Page, PageHead, ListRow, Nothing } from "@/components/brand/primitives"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Bell,
-  Check,
-  Link2,
-  Clock,
-  FileText,
-  FileCheck,
-  BarChart3,
-  CreditCard,
-  AlertTriangle,
-  UserPlus,
-  Users,
-  Megaphone,
-  FileUp,
-  ChevronLeft,
-} from "lucide-react"
+import { Check, ChevronLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useState, useMemo } from "react"
 import {
   ServerNotification,
-  ServerNotificationType,
   UnreadCounts,
   NOTIFICATION_CATEGORIES,
   NotificationCategory,
+  CATEGORY_DOMAIN,
+  CATEGORY_LABEL,
 } from "@/services/notificationApi"
-
-// ── Icon + color map (matches bell dropdown) ─────────────────────────
+import { lookFor, TONE_INK } from "@/components/notifications/notifIcons"
 
 /**
- * Thirteen notification types used to carry thirteen hand-picked hues: green, red, blue,
- * indigo, emerald, cyan, purple, orange. None of them is a token in this theme, six of
- * them are near-indistinguishable from each other, and none of them told the reader
- * anything the icon and the title were not already saying.
+ * The glyph and the tone come from the table shared with the bell, so the same event does
+ * not arrive wearing two different icons depending on where you read it.
  *
- * So colour is now reserved for the three cases where it IS the information: something
- * needs money (warning), something was taken away (danger), something arrived (success).
- * Everything else is the icon, in the muted ink, and the type is a word in the meta line.
+ * No coloured disc behind it. The disc was a second shape per row, which is what made this
+ * page read as a wall rather than a list.
  */
-const ICON_MAP: Record<ServerNotificationType, {
-  icon: React.ComponentType<{ className?: string }>
-  tone: 'plain' | 'good' | 'warn' | 'bad'
-}> = {
-  share_received:      { icon: Link2,         tone: 'good' },
-  share_revoked:       { icon: Link2,         tone: 'bad' },
-  share_extended:      { icon: Clock,         tone: 'plain' },
-  proposal_received:   { icon: FileText,      tone: 'plain' },
-  proposal_updated:    { icon: FileCheck,     tone: 'plain' },
-  campaign_application:{ icon: Megaphone,     tone: 'plain' },
-  campaign_deliverable:{ icon: FileUp,        tone: 'plain' },
-  analytics_completed: { icon: BarChart3,     tone: 'plain' },
-  credit_purchase:     { icon: CreditCard,    tone: 'good' },
-  low_balance:         { icon: AlertTriangle, tone: 'warn' },
-  team_invite:         { icon: UserPlus,      tone: 'plain' },
-  team_update:         { icon: Users,         tone: 'plain' },
-  system:              { icon: Bell,          tone: 'plain' },
-}
-
-const TONE_INK = {
-  plain: 'text-muted-foreground',
-  good: 'text-success',
-  warn: 'text-warning',
-  bad: 'text-danger',
-} as const
-
-function NotifIcon({ type }: { type: ServerNotificationType }) {
-  const entry = ICON_MAP[type] || ICON_MAP.system
-  const Icon = entry.icon
-  // No coloured disc behind it. The disc was a second shape per row for thirteen rows,
-  // which is what made this page read as a wall rather than a list.
-  return <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', TONE_INK[entry.tone])} />
+function NotifIcon({ type }: { type: string }) {
+  const { icon: Icon, tone } = lookFor(type)
+  return <Icon className={cn('mt-0.5 h-4 w-4 shrink-0', TONE_INK[tone])} />
 }
 
 // ── Relative time ────────────────────────────────────────────────────
@@ -97,17 +50,25 @@ function getRelativeTime(iso: string): string {
 interface CategoryTab {
   key: 'all' | NotificationCategory
   label: string
-  countKey?: keyof UnreadCounts
+  countKey: keyof UnreadCounts
 }
 
+/**
+ * One tab per catalog group, derived rather than listed.
+ *
+ * There were seven hand-written tabs covering the brand-facing half of the catalog, so a
+ * sourcing alert, an approval, a creator payment and a quiet client landed in the feed and
+ * belonged to no tab: visible under "All" and nowhere else, which on a busy day means never
+ * seen. The order follows the catalog's own domain order, and a tab with nothing in it is
+ * not rendered, so a brand user still sees the five groups that concern them.
+ */
 const CATEGORY_TABS: CategoryTab[] = [
-  { key: 'all',       label: 'All Notifications' },
-  { key: 'shares',    label: 'Shares',    countKey: 'unread_shares' },
-  { key: 'proposals', label: 'Proposals', countKey: 'unread_proposals' },
-  { key: 'campaigns', label: 'Campaigns', countKey: 'unread_campaigns' },
-  { key: 'analytics', label: 'Analytics', countKey: 'unread_analytics' },
-  { key: 'billing',   label: 'Billing',   countKey: 'unread_billing' },
-  { key: 'team',      label: 'Team',      countKey: 'unread_team' },
+  { key: 'all', label: 'Everything', countKey: 'total_unread' },
+  ...(Object.keys(NOTIFICATION_CATEGORIES) as NotificationCategory[]).map(key => ({
+    key,
+    label: CATEGORY_LABEL[key],
+    countKey: `unread_${key}` as keyof UnreadCounts,
+  })),
 ]
 
 // ── Page ─────────────────────────────────────────────────────────────
@@ -123,6 +84,16 @@ export default function NotificationsPage() {
 
   const [activeCategory, setActiveCategory] = useState<'all' | NotificationCategory>('all')
   const [unreadOnly, setUnreadOnly] = useState(false)
+
+  /* Fifteen tabs is a wall, and most people only ever receive events from four or five
+     groups. A tab is shown when something in it has arrived, or when it is the tab you are
+     reading, so selecting the last item in a group does not make the tab vanish underneath
+     you as it goes to zero. */
+  const tabs = useMemo(() => CATEGORY_TABS.filter(t => {
+    if (t.key === 'all' || t.key === activeCategory) return true
+    const types = NOTIFICATION_CATEGORIES[t.key] as readonly string[]
+    return notifications.some(n => types.includes(n.notification_type))
+  }), [notifications, activeCategory])
 
   const filtered = useMemo(() => {
     let items = notifications
@@ -146,9 +117,10 @@ export default function NotificationsPage() {
   }
 
   const handleMarkAllRead = () => {
+    // By domain. This used to send the FIRST type in the group, so pressing "mark all read"
+    // on a tab showing eight alerts cleared one of them and left the tab looking broken.
     if (activeCategory !== 'all') {
-      const types = NOTIFICATION_CATEGORIES[activeCategory]
-      markAllAsRead(types[0])
+      markAllAsRead({ domain: CATEGORY_DOMAIN[activeCategory] })
     } else {
       markAllAsRead()
     }
@@ -156,7 +128,7 @@ export default function NotificationsPage() {
 
   const activeCategoryUnread = activeCategory === 'all'
     ? unreadCounts.total_unread
-    : (unreadCounts[CATEGORY_TABS.find(t => t.key === activeCategory)?.countKey || 'total_unread' as keyof UnreadCounts] ?? 0)
+    : (unreadCounts[`unread_${activeCategory}` as keyof UnreadCounts] ?? 0)
 
   return (
     <AuthGuard requireAuth={true}>
@@ -180,7 +152,7 @@ export default function NotificationsPage() {
               </button>
             }
             title="Notifications"
-            sub="Shares, proposals, campaigns, analytics and billing, newest first."
+            sub="Everything the platform has told you, newest first."
             action={
               activeCategoryUnread > 0 ? (
                 <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
@@ -197,8 +169,8 @@ export default function NotificationsPage() {
                 way: the selected item is the one in the foreground ink, not the one with a
                 filled primary background shouting over the page's real action. */}
             <nav className="flex gap-ds-3 overflow-x-auto border-b border-border/70 pb-ds-2 lg:flex-col lg:gap-0 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-ds-3">
-              {CATEGORY_TABS.map(tab => {
-                const count = tab.countKey ? unreadCounts[tab.countKey] : unreadCounts.total_unread
+              {tabs.map(tab => {
+                const count = unreadCounts[tab.countKey] ?? 0
                 const isActive = activeCategory === tab.key
                 return (
                   <button

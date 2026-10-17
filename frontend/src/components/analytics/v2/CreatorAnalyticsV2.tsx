@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { AlertTriangle, BadgeCheck, ExternalLink, Loader2, RefreshCw } from "lucide-react"
+import { AlertTriangle, BadgeCheck, Calculator, ExternalLink, Loader2, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { creatorAnalyticsV2Api, NotAnalysedError } from "@/services/creatorAnalyticsV2Api"
 import { engagementStanding } from "@/components/proposals/proposal-utils"
@@ -48,6 +48,7 @@ export function CreatorAnalyticsV2({
   const [error, setError] = useState<string | null>(null)
   const [notAnalysed, setNotAnalysed] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [recomputing, setRecomputing] = useState(false)
 
   const load = async () => {
     setLoading(true); setError(null); setNotAnalysed(false)
@@ -75,6 +76,30 @@ export function CreatorAnalyticsV2({
       toast.error(e instanceof Error ? e.message : "Analysis failed")
     } finally {
       setRefreshing(false)
+    }
+  }
+
+  /**
+   * Re-derive from the raw we already bought. Costs nothing.
+   *
+   * This existed in the pipeline from the start and had no button: it was reachable only
+   * from `scripts/backfill_creator_analytics.py --recompute` on a shell. So the only thing
+   * anybody could press when a creator's numbers looked wrong was Refresh, which re-scrapes
+   * and spends real money at Apify on posts we are already holding.
+   *
+   * Kept as its own action rather than folded into Refresh. One of them spends money and
+   * one of them does not, and a single button that sometimes costs dirhams is a button
+   * people stop pressing.
+   */
+  const recompute = async () => {
+    setRecomputing(true)
+    try {
+      setData(await creatorAnalyticsV2Api.recompute(username))
+      toast.success(`@${username} recomputed from stored data`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not recompute")
+    } finally {
+      setRecomputing(false)
     }
   }
 
@@ -189,12 +214,27 @@ export function CreatorAnalyticsV2({
                 </TooltipProvider>
               )}
               {!isPublic && (
-                <Button variant="outline" size="sm" onClick={refresh} disabled={refreshing}>
-                  {refreshing
-                    ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
-                  Refresh
-                </Button>
+                <>
+                  {/* The free one first, because it is the one to try first. Refresh buys
+                      the same posts again; this applies everything the derive layer has
+                      learned since the row was written, for nothing. */}
+                  <Button variant="outline" size="sm" onClick={recompute}
+                          disabled={recomputing || refreshing}
+                          title="Re-derive from the data we already hold. No scrape, no cost.">
+                    {recomputing
+                      ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      : <Calculator className="mr-1.5 h-3.5 w-3.5" />}
+                    Recompute
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={refresh}
+                          disabled={refreshing || recomputing}
+                          title="Scrape Instagram again. This spends money.">
+                    {refreshing
+                      ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
+                    Refresh
+                  </Button>
+                </>
               )}
             </div>
           </div>

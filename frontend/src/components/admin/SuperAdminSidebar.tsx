@@ -237,6 +237,9 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     ...(can("system") ? [{ title: shortName("/work/notifications"), url: "/work/notifications" }] : []),
     ...(can("system") ? [{ title: shortName("/work/whatsapp"), url: "/work/whatsapp" }] : []),
     ...(can("system") ? [{ title: shortName("/work/system"), url: "/work/system" }] : []),
+    /* Beside the job queue, because they are the same question asked about two different
+       queues: what is running, and what has failed. */
+    ...(can("system") ? [{ title: shortName("/work/system/images"), url: "/work/system/images" }] : []),
   ]
 
   const systemItems = [

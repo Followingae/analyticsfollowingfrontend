@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
   Search, ArrowUpRight, LayoutDashboard, Compass, Users2, ListChecks, FileText,
-  Megaphone, Sparkles, CreditCard, Bell, Settings, Mail, Wallet,
+  Megaphone, Sparkles, CreditCard, Bell, Settings, Mail, Wallet, FileCheck2,
 } from 'lucide-react'
 
 type Entry = {
@@ -109,6 +109,14 @@ const SCREENS: Entry[] = [
     title: 'Billing', href: '/billing', icon: CreditCard,
     what: 'Your plan, your invoices and your credit balance.',
     also: ['invoices', 'plan', 'payment', 'subscription'],
+  },
+  {
+    title: 'Documents', href: '/documents', icon: FileCheck2,
+    what: 'The paperwork itself: the agreement you signed, and the receipt against each '
+        + 'payment you made. Billing shows what you have been charged; this is where you '
+        + 'download the documents for your own records.',
+    also: ['agreement', 'contract', 'signed', 'receipt', 'receipts', 'paperwork',
+           'download', 'accounts', 'records', 'countersigned'],
   },
   {
     title: 'Notifications', href: '/notifications', icon: Bell,

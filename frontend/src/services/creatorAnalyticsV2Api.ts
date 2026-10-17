@@ -58,6 +58,18 @@ export const creatorAnalyticsV2Api = {
 
   /** Run the pipeline now. Superadmin only — it spends Apify + LLM budget.
    *  Synchronous and slow (~1-2 min for 90 posts); show a real progress state. */
+  /** Re-derive from the raw bundle we already hold. No scrape, no cost. Superadmin only
+   *  on the server. 409 when the row predates raw storage and has nothing to derive from. */
+  async recompute(username: string): Promise<CreatorAnalyticsV2> {
+    const res = await fetchWithAuth(
+      `${BASE}/${encodeURIComponent(username)}/recompute`,
+      { method: "POST", headers: getAuthHeaders() }
+    )
+    if (!res.ok) throw new Error(await readError(res, "Could not recompute"))
+    const body = await res.json()
+    return body.data as CreatorAnalyticsV2
+  },
+
   async refresh(username: string, postLimit = 90): Promise<CreatorAnalyticsV2> {
     const res = await fetchWithAuth(
       `${BASE}/${encodeURIComponent(username)}/refresh?post_limit=${postLimit}`,

@@ -1,20 +1,7 @@
 "use client"
 
 import * as React from "react"
-import {
-  Bell,
-  Link2,
-  Clock,
-  FileText,
-  FileCheck,
-  BarChart3,
-  CreditCard,
-  AlertTriangle,
-  UserPlus,
-  Users,
-  Megaphone,
-  FileUp,
-} from "lucide-react"
+import { Bell } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -31,39 +18,21 @@ import {
   ServerNotification,
   ServerNotificationType,
   UnreadCounts,
-  NOTIFICATION_CATEGORIES,
-  NotificationCategory,
 } from "@/services/notificationApi"
+import { lookFor, TONE_BG, TONE_INK } from "@/components/notifications/notifIcons"
 
-// ── Icon + color map ──────────────────────────────────────────────────
-
-const ICON_MAP: Record<ServerNotificationType, {
-  icon: React.ComponentType<{ className?: string }>
-  color: string
-  bg: string
-}> = {
-  // Colors map to semantic status tokens (globals.css) — no raw Tailwind palette.
-  share_received:      { icon: Link2,          color: 'text-success',          bg: 'bg-success/10' },
-  share_revoked:       { icon: Link2,          color: 'text-danger',           bg: 'bg-danger/10' },
-  share_extended:      { icon: Clock,          color: 'text-info',             bg: 'bg-info/10' },
-  proposal_received:   { icon: FileText,       color: 'text-info',             bg: 'bg-info/10' },
-  proposal_updated:    { icon: FileCheck,      color: 'text-info',             bg: 'bg-info/10' },
-  campaign_application:{ icon: Megaphone,      color: 'text-success',          bg: 'bg-success/10' },
-  campaign_deliverable:{ icon: FileUp,         color: 'text-info',             bg: 'bg-info/10' },
-  analytics_completed: { icon: BarChart3,      color: 'text-primary',          bg: 'bg-primary/10' },
-  credit_purchase:     { icon: CreditCard,     color: 'text-success',          bg: 'bg-success/10' },
-  low_balance:         { icon: AlertTriangle,  color: 'text-warning',          bg: 'bg-warning/10' },
-  team_invite:         { icon: UserPlus,       color: 'text-info',             bg: 'bg-info/10' },
-  team_update:         { icon: Users,          color: 'text-info',             bg: 'bg-info/10' },
-  system:              { icon: Bell,           color: 'text-muted-foreground', bg: 'bg-muted' },
-}
-
+/**
+ * The glyph table lives in `notifIcons.ts` and is shared with the notifications page, so
+ * the bell and the page cannot show two different icons for the same event. It was a
+ * thirteen-entry `Record<ServerNotificationType, ...>` here and a second thirteen-entry
+ * copy there, and the union has sixty-one members: a `Record` of all of them would have
+ * had to be exhaustive, which is why neither copy ever grew.
+ */
 function NotifIcon({ type }: { type: ServerNotificationType }) {
-  const entry = ICON_MAP[type] || ICON_MAP.system
-  const Icon = entry.icon
+  const { icon: Icon, tone } = lookFor(type)
   return (
-    <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full", entry.bg)}>
-      <Icon className={cn("h-4 w-4", entry.color)} />
+    <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full", TONE_BG[tone])}>
+      <Icon className={cn("h-4 w-4", TONE_INK[tone])} />
     </div>
   )
 }
@@ -86,7 +55,7 @@ interface NotificationBellProps {
   notifications: ServerNotification[]
   unreadCounts: UnreadCounts
   onMarkAsRead: (id: string) => void
-  onMarkAllAsRead: (notificationType?: string) => void
+  onMarkAllAsRead: (opts?: { notificationType?: string; domain?: string }) => void
   className?: string
 }
 

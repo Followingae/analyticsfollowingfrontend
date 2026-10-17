@@ -30,6 +30,7 @@ import { cdnAvatar } from '@/lib/avatar'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
+import { useAdminAccess } from '@/hooks/useAdminAccess'
 
 interface TEvent {
   kind: string; at: string | null; title: string; detail: string
@@ -78,6 +79,9 @@ const when = (iso: string | null) =>
 export default function CampaignTimelinePage() {
   const { campaignId } = useParams<{ campaignId: string }>()
   const router = useRouter()
+  /* Declared with the other hooks and not beside the button it gates: the header renders
+     after an early return, and a hook below that return is a hook that does not always run. */
+  const { canSeeMargin } = useAdminAccess()
   const [t, setT] = useState<Timeline | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -239,6 +243,14 @@ export default function CampaignTimelinePage() {
                             onClick={() => router.push(`/work/campaigns/${campaignId}/content`)}>
                       Content
                     </Button>
+                    {/* Margin, so leadership only — and hidden rather than refused, because
+                        offering a tab that answers 403 is worse than not offering it. */}
+                    {canSeeMargin && (
+                      <Button variant="outline" size="sm" className="rounded-full px-4"
+                              onClick={() => router.push(`/work/campaigns/${campaignId}/money`)}>
+                        Money
+                      </Button>
+                    )}
                   </div>
                   <PageHead
                     title={c.name}
