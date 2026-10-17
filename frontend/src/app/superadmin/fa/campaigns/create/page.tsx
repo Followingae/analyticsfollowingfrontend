@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { CARD, PageHead } from "@/components/console/primitives"
+import { Failed } from "@/components/console/surfaces"
 import { FaPage, Nothing, Section, Step, TONE_BADGE, TONE_TEXT } from "../../_ui"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -80,6 +81,10 @@ export default function CreateCashbackCampaignPage() {
   const [allPools, setAllPools] = useState<PoolOption[]>([])
   const [merchants, setMerchants] = useState<MerchantOption[]>([])
   const [loadingData, setLoadingData] = useState(true)
+  /* Merchants and pools arrive on one read. When it breaks, neither list may be reported as
+     empty: "No merchants exist yet" next to an "Add a merchant first" button invites somebody
+     to create a second copy of a merchant that is already there. */
+  const [failedData, setFailedData] = useState(false)
 
   // ─── Form state ─────────────────────────────────────────────────
   const [selectedMerchantId, setSelectedMerchantId] = useState("")
@@ -118,25 +123,29 @@ export default function CreateCashbackCampaignPage() {
   const [submitting, setSubmitting] = useState(false)
 
   // ─── Load data ──────────────────────────────────────────────────
-  useEffect(() => {
-    async function load() {
-      try {
-        const [poolRes, merchantRes] = await Promise.all([
-          faPoolApi.listAll(),
-          faMerchantApi.list(),
-        ])
-        const poolList = poolRes?.data?.pools || poolRes?.data || []
-        setAllPools(Array.isArray(poolList) ? poolList : [])
-        const merchantList = merchantRes?.data?.merchants || merchantRes?.merchants || []
-        setMerchants(Array.isArray(merchantList) ? merchantList.filter((m: MerchantOption) => m.status !== "inactive") : [])
-      } catch {
-        toast.error("Failed to load form data")
-      } finally {
-        setLoadingData(false)
-      }
+  const loadFormData = useCallback(async () => {
+    setLoadingData(true)
+    setFailedData(false)
+    try {
+      const [poolRes, merchantRes] = await Promise.all([
+        faPoolApi.listAll(),
+        faMerchantApi.list(),
+      ])
+      const poolList = poolRes?.data?.pools || poolRes?.data || []
+      setAllPools(Array.isArray(poolList) ? poolList : [])
+      const merchantList = merchantRes?.data?.merchants || merchantRes?.merchants || []
+      setMerchants(Array.isArray(merchantList) ? merchantList.filter((m: MerchantOption) => m.status !== "inactive") : [])
+    } catch {
+      setFailedData(true)
+      setAllPools([])
+      setMerchants([])
+      toast.error("Failed to load form data")
+    } finally {
+      setLoadingData(false)
     }
-    load()
   }, [])
+
+  useEffect(() => { void loadFormData() }, [loadFormData])
 
   // ─── Derived ────────────────────────────────────────────────────
   const selectedMerchant = merchants.find((m) => m.id === selectedMerchantId)
@@ -281,6 +290,12 @@ export default function CreateCashbackCampaignPage() {
                       <div className="h-3 w-1/2 rounded bg-black/[0.06] dark:bg-white/[0.08]" />
                     </div>
                   ))
+                ) : failedData ? (
+                  /* No "Add a merchant first" over a failure: the merchant may well exist,
+                     and the button would have somebody create it twice. */
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <Failed what="the merchants" onRetry={loadFormData} />
+                  </div>
                 ) : merchants.length === 0 ? (
                   <div className="space-y-ds-2 sm:col-span-2 lg:col-span-3">
                     <Nothing>No merchants exist yet, and cashback has to be redeemed at one.</Nothing>
@@ -350,7 +365,13 @@ export default function CreateCashbackCampaignPage() {
               description="The client's pool the cashback is paid out of. An empty pool cannot pay anybody."
             >
               <div className="grid grid-cols-1 gap-ds-2 sm:grid-cols-2">
-                {filteredPools.length === 0 && !loadingData ? (
+                {failedData ? (
+                  /* The pools came off the same read as the merchants, so "no funding pool"
+                     would be a statement about this client's money made from a 500. */
+                  <div className="sm:col-span-2">
+                    <Failed what="the funding pools" onRetry={loadFormData} />
+                  </div>
+                ) : filteredPools.length === 0 && !loadingData ? (
                   <div className="sm:col-span-2">
                     <Nothing>This client has no funding pool yet.</Nothing>
                   </div>

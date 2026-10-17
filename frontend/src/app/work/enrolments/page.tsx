@@ -42,13 +42,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
-  Loader2, Copy, Check, Download, ShieldCheck, X, ExternalLink, Search,
+  Loader2, Copy, Check, Download, X, ExternalLink, Search,
   FileSignature, CircleAlert, CircleCheck, Banknote, Plus,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
   Age, Dash, FilterBar, NoMatches, NotAgreed, Owner, SectionHead, type FilterChip,
 } from "@/components/console/surfaces"
+import { useConfirm } from "@/components/console/confirm"
 import { enrolmentApi, type EnrolmentRow } from "@/services/enrolmentApi"
 import { DirectEnrolmentDialog } from "@/components/enrolment/DirectEnrolmentDialog"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
@@ -109,7 +110,21 @@ const toneClass: Record<string, string> = {
   dead: "bg-muted text-muted-foreground",
 }
 
-/** The four views, keyed on who is blocking. */
+/**
+ * The views, keyed on who is blocking.
+ *
+ * There is no approval queue here any more, and there must not be one again. Nothing in the
+ * product creates a `pending_approval` link: `app/api/admin/enrolment_routes.py` says so in
+ * its own header, a link is raised against a cost leadership has already settled, and
+ * production has never held a row in that state. `POST /{id}/approve` and `/{id}/reject`
+ * survive on the server only to clear links raised under the old flow, so they are reachable
+ * by anyone who needs them and are not worth a tab, a chip or a button on a screen the team
+ * reads every day. A filter for a state nothing can enter is not a count holding at zero, it
+ * is a control that can never do anything.
+ *
+ * "Waiting on us" stays, because payees-to-confirm is a live state somebody has to clear
+ * before a signed creator can be paid.
+ */
 type View = "waiting" | "out" | "done" | "dead"
 
 export default function EnrolmentsPageWrapper() {
@@ -126,7 +141,8 @@ function EnrolmentsPage() {
   /* `canExport` is the same set of people the server calls leadership: operators plus the
      CEO and co-founder. The server refuses either way; this only stops us showing a button
      that would always come back 403. */
-  const { can, canExport: isLeadership } = useAdminAccess()
+  const { canExport: isLeadership } = useAdminAccess()
+  const confirm = useConfirm()
   const [direct, setDirect] = useState(false)
   const [rows, setRows] = useState<EnrolmentRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -161,7 +177,6 @@ function EnrolmentsPage() {
         .filter(Boolean).some((v) => String(v).toLowerCase().includes(needle)))
   }, [rows, q])
 
-  const pending = filtered.filter((r) => r.status === "pending_approval")
   const out = filtered.filter((r) => r.status === "live")
   // Signed and killed are opposite outcomes and were sharing one tab called "Finished and
   // closed". Sixteen retracted links read on that screen as sixteen creators who had been
@@ -173,34 +188,71 @@ function EnrolmentsPage() {
   // as waiting on us even though the link itself is finished.
   const payeeWaiting = filtered.filter((r) => r.completed_at && r.bank_status === "pending")
 
-  const view: View = picked ?? (pending.length || payeeWaiting.length ? "waiting" : "out")
+  const view: View = picked ?? (payeeWaiting.length ? "waiting" : "out")
 
   /* Named after who is blocking rather than after a status, and a count is a fact so it
-     renders at zero. Nothing is pruned by role: a scoped talent manager cannot approve a
-     link, but she still has to see that one of hers is sitting in the queue, so none of
-     these chips is a tautology for anybody. */
+     renders at zero. Nothing is pruned by role: none of these chips is a tautology for
+     anybody who can open this screen. */
   const chips: FilterChip[] = [
-    { key: "waiting", label: "Waiting on us", n: pending.length + payeeWaiting.length },
+    { key: "waiting", label: "Waiting on us", n: payeeWaiting.length },
     { key: "out", label: "With the creator", n: out.length },
     { key: "done", label: "Signed", n: done.length },
     { key: "dead", label: "Cancelled", n: dead.length },
   ]
 
+  /* No dialog: copying is reversible the moment you paste something else. The receipt is
+     the thing that matters, because what is now on the clipboard is a live signing link
+     that works for whoever holds it, and people paste into the wrong window. */
   const copy = (r: EnrolmentRow) => {
     navigator.clipboard.writeText(r.url)
-    setCopiedId(r.id); toast.success("Link copied")
+    setCopiedId(r.id)
+    toast.success("Copied. The link is live and works for whoever holds it, so send it only to " +
+      `${r.creator_handle || r.creator_name || "the creator"}.`)
     setTimeout(() => setCopiedId(null), 1800)
   }
 
-  const approve = async (r: EnrolmentRow) => {
-    setBusyId(r.id)
+  /**
+   * The roster workbook.
+   *
+   * The one action on this screen that cannot be taken back, which is why it asks. It is not
+   * the filtered view: the endpoint re-reads every link, up to 2,000 of them, and the file
+   * carries each creator's fee, personal email, mobile, home address and bank holder name
+   * beside it. The full IBAN and the signature are stripped server side.
+   */
+  const exportRoster = async () => {
+    const ok = await confirm({
+      kind: "destructive",
+      title: "Download the roster?",
+      body: "A spreadsheet leaves the screen, and the rules the screen enforces do not travel with it.",
+      confirmLabel: "Download the roster",
+      losses: [
+        {
+          label: "Every link we have ever raised, not only what is on screen",
+          detail: "Up to 2,000 rows. Neither the search box nor the chip above narrows the file.",
+        },
+        {
+          label: "Each creator's fee, personal email, mobile and home address",
+          warn: true,
+          detail: "With the bank holder name, the last four digits of the account and the bank country beside them.",
+        },
+        {
+          label: "Field visibility stops applying the moment it is a file",
+          warn: true,
+          detail: "Nothing in a spreadsheet can keep a figure from whoever opens it next, so a copy that has been sent on cannot be called back.",
+        },
+        {
+          label: "The full IBAN and the signature stay on the server",
+          kept: true,
+          detail: "Both are stripped from this export, so the file cannot be used to pay anybody or to re-sign anything.",
+        },
+      ],
+    })
+    if (!ok) return
     try {
-      await enrolmentApi.approve(r.id)
-      toast.success(`Live. ${r.talent_name || "The owner"} has been emailed the link.`)
-      await load()
+      await enrolmentApi.rosterXlsx()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not approve that.")
-    } finally { setBusyId(null) }
+      toast.error(e instanceof Error ? e.message : "Export failed")
+    }
   }
 
   const doRetract = async () => {
@@ -216,13 +268,11 @@ function EnrolmentsPage() {
     } finally { setBusyId(null) }
   }
 
-  const Row = ({ r, actions }: { r: EnrolmentRow; actions?: boolean }) => {
+  const Row = ({ r }: { r: EnrolmentRow }) => {
     const p = progressOf(r)
-    /* The expiry is a date we promised, so a live or unapproved link past it is late. Once
-       somebody has signed, the expiry stopped mattering and the row is not late at all. */
-    const overdue = !r.completed_at && ["live", "pending_approval"].includes(r.status)
-      ? lateBy(r.expires_at)
-      : undefined
+    /* The expiry is a date we promised, so a live link past it is late. Once somebody has
+       signed, the expiry stopped mattering and the row is not late at all. */
+    const overdue = !r.completed_at && r.status === "live" ? lateBy(r.expires_at) : undefined
     return (
       <TableRow>
         <TableCell>
@@ -287,12 +337,7 @@ function EnrolmentsPage() {
                 {copiedId === r.id ? <Check className="h-4 w-4 text-[color:var(--tone-good-ink)]" /> : <Copy className="h-4 w-4" />}
               </Button>
             )}
-            {actions && r.status === "pending_approval" && can("proposals") && (
-              <Button size="sm" onClick={() => approve(r)} disabled={busyId === r.id}>
-                {busyId === r.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><ShieldCheck className="mr-1.5 h-4 w-4" />Approve</>}
-              </Button>
-            )}
-            {["live", "pending_approval"].includes(r.status) && (
+            {r.status === "live" && (
               <Button size="icon" variant="ghost" title="Retract" onClick={() => setRetracting(r)}>
                 <X className="h-4 w-4" />
               </Button>
@@ -306,7 +351,7 @@ function EnrolmentsPage() {
     )
   }
 
-  const Grid = ({ list, actions }: { list: EnrolmentRow[]; actions?: boolean }) => (
+  const Grid = ({ list }: { list: EnrolmentRow[] }) => (
     <div className="overflow-x-auto rounded-xl border">
       <Table>
         <TableHeader>
@@ -321,7 +366,7 @@ function EnrolmentsPage() {
             <TableHead className="text-right"><span className="sr-only">Actions</span></TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>{list.map((r) => <Row key={r.id} r={r} actions={actions} />)}</TableBody>
+        <TableBody>{list.map((r) => <Row key={r.id} r={r} />)}</TableBody>
       </Table>
     </div>
   )
@@ -357,12 +402,13 @@ function EnrolmentsPage() {
               <Banknote className="mr-2 h-4 w-4" /> Payments
             </Link>
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => enrolmentApi.rosterXlsx().catch((e) => toast.error(e instanceof Error ? e.message : "Export failed"))}
-          >
-            <Download className="mr-2 h-4 w-4" /> Export
-          </Button>
+          {/* Gated the way "New link" is. The server has always refused a non-leadership
+              export, so the button was only ever a 403 for the people who could see it. */}
+          {isLeadership && (
+            <Button variant="outline" onClick={() => { void exportRoster() }}>
+              <Download className="mr-2 h-4 w-4" /> Export
+            </Button>
+          )}
           {/* Every other link on this screen was raised from a booking that already exists.
               This is the one way to paper a creator with no proposal behind them. */}
           {isLeadership && (
@@ -398,20 +444,9 @@ function EnrolmentsPage() {
           <FilterBar chips={chips} value={view} onChange={(k: string) => setPicked(k as View)} />
 
           {view === "waiting" && (
-            <div className="space-y-8">
-              {pending.length > 0 && (
-                <section>
-                  <SectionHead
-                    icon={ShieldCheck}
-                    title="Links to approve"
-                    count={pending.length}
-                    note="A talent manager made these. They do not work until somebody approves them, so a link sitting here is a creator not being signed."
-                  />
-                  <Grid list={pending} actions />
-                </section>
-              )}
-              {payeeWaiting.length > 0 && (
-                <section>
+            <section>
+              {payeeWaiting.length > 0 ? (
+                <>
                   <SectionHead
                     icon={Banknote}
                     title="Payees to confirm"
@@ -419,10 +454,9 @@ function EnrolmentsPage() {
                     note="These creators are signed and their bank details are in. Somebody has to check the holder name and last four digits with them directly before anything pays out."
                   />
                   <Grid list={payeeWaiting} />
-                </section>
-              )}
-              {!pending.length && !payeeWaiting.length && <Nothing />}
-            </div>
+                </>
+              ) : <Nothing />}
+            </section>
           )}
 
           {view === "out" && (

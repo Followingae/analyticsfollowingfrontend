@@ -6,6 +6,7 @@ import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { adminProposalApi, AdminProposalDetail, AdminProposalInfluencer } from "@/services/adminProposalMasterApi"
 import { toast } from "sonner"
 import { PageHead } from "@/components/console/primitives"
+import { Dash, Failed } from "@/components/console/surfaces"
 import { fullName } from "@/lib/destinations"
 
 import { Badge } from "@/components/ui/badge"
@@ -103,6 +104,9 @@ export default function ProposalDetailPage() {
 
   const [data, setData] = useState<AdminProposalDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  /* A read that broke is not a proposal that does not exist, and it is not a roster of
+     nobody priced at zero. Tracked so neither claim can be made from a 500. */
+  const [failed, setFailed] = useState(false)
   const [sending, setSending] = useState(false)
   /* Taking several creators off at once. A roster arrives as a pasted list and is trimmed
      the same way - one at a time through a row menu turns a twenty-name cut into twenty
@@ -120,9 +124,12 @@ export default function ProposalDetailPage() {
   async function loadDetail() {
     try {
       setLoading(true)
+      setFailed(false)
       const detail = await adminProposalApi.getDetail(id)
       setData(detail)
     } catch (err: any) {
+      setFailed(true)
+      setData(null)
       toast.error(err.message || "Failed to load proposal")
     } finally {
       setLoading(false)
@@ -212,6 +219,22 @@ export default function ProposalDetailPage() {
       <SuperadminLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </SuperadminLayout>
+    )
+  }
+
+  /* The request broke. "Proposal not found" over a 500 told operators a proposal had been
+     deleted, so the whole page says what actually happened and offers the read again. */
+  if (failed) {
+    return (
+      <SuperadminLayout>
+        <div className="min-h-[400px]">
+          <Failed what="this proposal" onRetry={loadDetail} />
+          <Button variant="outline" onClick={() => router.push("/superadmin/proposals")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Proposals
+          </Button>
         </div>
       </SuperadminLayout>
     )
@@ -409,19 +432,24 @@ export default function ProposalDetailPage() {
               animate="visible"
               className={showCost ? "grid grid-cols-2 md:grid-cols-4 gap-4" : "grid grid-cols-2 gap-4"}
             >
+              {/* A money total the server did not send is not AED 0, and a margin it did
+                  not send is not 0.0%. An en dash says the figure never arrived. */}
               {showSell && (
                 <motion.div variants={proposalMotion.staggerItem}>
-                  <StandardMetricCard icon={Coins} label="Total Sell" value={formatCurrency(financials.total_sell ?? 0)} />
+                  <StandardMetricCard icon={Coins} label="Total Sell"
+                    value={financials.total_sell == null ? "–" : formatCurrency(financials.total_sell)} />
                 </motion.div>
               )}
               {showCost && (
                 <motion.div variants={proposalMotion.staggerItem}>
-                  <StandardMetricCard icon={Coins} label="Total Cost" value={formatCurrency(financials.total_cost ?? 0)} />
+                  <StandardMetricCard icon={Coins} label="Total Cost"
+                    value={financials.total_cost == null ? "–" : formatCurrency(financials.total_cost)} />
                 </motion.div>
               )}
               {showCost && (
                 <motion.div variants={proposalMotion.staggerItem}>
-                  <StandardMetricCard icon={TrendingUp} label="Margin %" value={`${financials.margin_percentage?.toFixed(1) ?? "0.0"}%`} />
+                  <StandardMetricCard icon={TrendingUp} label="Margin %"
+                    value={financials.margin_percentage == null ? "–" : `${financials.margin_percentage.toFixed(1)}%`} />
                 </motion.div>
               )}
               <motion.div variants={proposalMotion.staggerItem}>
@@ -433,7 +461,11 @@ export default function ProposalDetailPage() {
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-muted-foreground">Profit Margin</span>
-                    <span className="text-sm font-medium">{financials.margin_percentage?.toFixed(1) ?? "0.0"}%</span>
+                    <span className="text-sm font-medium">
+                      {financials.margin_percentage == null
+                        ? <Dash reason="unmeasured" what="the margin on this proposal" />
+                        : `${financials.margin_percentage.toFixed(1)}%`}
+                    </span>
                   </div>
                   <Progress value={financials.margin_percentage ?? 0} />
                 </CardContent>
@@ -531,7 +563,9 @@ export default function ProposalDetailPage() {
                     influencers.map((inf) => {
                       const sell = showSell ? getSellPrice(inf) : 0
                       const cost = showCost ? getCostPrice(inf) : 0
-                      const margin = sell > 0 ? ((sell - cost) / sell) * 100 : 0
+                      /* No sell price means there is no margin to state, not a margin of
+                         nothing. A percentage with no denominator is a made-up figure. */
+                      const margin = sell > 0 ? ((sell - cost) / sell) * 100 : null
                       return (
                         <TableRow key={inf.id} data-state={picked.has(inf.id) ? "selected" : undefined}>
                           <TableCell>
@@ -604,7 +638,9 @@ export default function ProposalDetailPage() {
                           )}
                           {showCost && (
                             <TableCell className="text-right">
-                              {margin.toFixed(1)}%
+                              {margin == null
+                                ? <Dash reason="unset" what="sell price, so no margin" />
+                                : `${margin.toFixed(1)}%`}
                             </TableCell>
                           )}
                           <TableCell>
@@ -691,7 +727,7 @@ export default function ProposalDetailPage() {
                           {totalSell > 0
                             ? (((totalSell - totalCost) / totalSell) * 100).toFixed(1) +
                               "%"
-                            : "0.0%"}
+                            : <Dash reason="unset" what="sell pricing on this roster" />}
                         </TableCell>
                       )}
                       <TableCell colSpan={3} />

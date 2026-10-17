@@ -552,6 +552,95 @@ export function NoMatches({ onClear }: { onClear?: () => void }) {
   )
 }
 
+/* ══ Did the question get answered ═══════════════════════════════════════════════════════ */
+
+/**
+ * The request broke.
+ *
+ * Copy lifted from `superadmin/fa/_ui.tsx`, which already had this right, and promoted here
+ * so the console has ONE of these instead of three near-duplicates, one of which is shared
+ * with the brand-facing campaign screens and therefore not ours to change.
+ */
+export function Failed({ what, onRetry }: { what: string; onRetry?: () => void }) {
+  return (
+    <div className="space-y-3 py-5">
+      <div className="flex items-center gap-2">
+        <span className="size-2 flex-none rounded-full bg-[var(--tone-bad-dot)]" aria-hidden />
+        <p className="text-ds-label font-medium">Could not load {what}</p>
+      </div>
+      <p className="text-ds-caption max-w-lg">
+        The request did not come back. Nothing below is a measurement, so do not read it as one.
+        Try again, and if it keeps failing the API is down.
+      </p>
+      {onRetry && (
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          Try again
+        </Button>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Loading, then failed, then empty, then the data. In that order, and the order is not the
+ * caller's to get wrong.
+ *
+ * WHY THIS EXISTS, AND WHY `failed` IS REQUIRED.
+ *
+ * A sweep of 111 internal files found EIGHT screens that render an all clear over a failed
+ * read. Not an empty state: a claim. The pipeline says "No creators booked yet" and, with the
+ * late filter on, "Nothing is late. That is the whole list." A broadcast that may have gone to
+ * 1,308 people says "No recipients." A proposal says "Nobody is confirmed on this proposal
+ * yet. This screen fills in once the client has picked their creators", which is a statement
+ * about what a CLIENT did, manufactured from a 500. One offers an "Add a merchant first"
+ * button, so a failed read invites somebody to create a duplicate merchant.
+ *
+ * Every one of those is the same two-line mistake: a `catch` that toasts and leaves the rows
+ * at `[]`, and an empty branch keyed on `length === 0` with no flag between them. None of them
+ * looks like a bug. They all look like information, which is why they survived, and it is most
+ * of why this team stopped believing these screens and went back to the spreadsheet.
+ *
+ * Fixing eight call sites fixes eight call sites. Making `failed` a REQUIRED prop means
+ * TypeScript asks every present and future caller the only question that matters: did the
+ * request actually come back? There is no way to render the empty branch without having
+ * answered it.
+ *
+ * `nothing` is optional because the house rule is that a section with no data renders nothing
+ * at all. Pass it only where the absence is itself the answer somebody came for, or where the
+ * user filtered the list down themselves.
+ */
+export function ReadState({
+  failed,
+  loading = false,
+  empty,
+  what,
+  onRetry,
+  nothing,
+  skeleton,
+  children,
+}: {
+  /** Did the read fail. Required: this is the question the bug was caused by not asking. */
+  failed: boolean
+  loading?: boolean
+  /** Did it come back with nothing. Only consulted once we know it came back at all. */
+  empty: boolean
+  /** What could not be loaded, as a noun phrase: "your pipeline", "this broadcast's recipients". */
+  what: string
+  onRetry?: () => void
+  /** What to say when the answer genuinely is none. Omit to render nothing, which is the default. */
+  nothing?: React.ReactNode
+  skeleton?: React.ReactNode
+  children: React.ReactNode
+}) {
+  if (loading) return <>{skeleton ?? null}</>
+  if (failed) return <Failed what={what} onRetry={onRetry} />
+  if (empty) {
+    if (!nothing) return null
+    return <p className="text-ds-caption py-5">{nothing}</p>
+  }
+  return <>{children}</>
+}
+
 /* ══ Owner ════════════════════════════════════════════════════════════════════════════════ */
 
 /**

@@ -34,6 +34,7 @@ import { creatorIntakeApi, type PendingCreator } from '@/services/creatorIntakeA
 import { AddCreatorsDialog } from '@/components/superadmin/influencer-database/AddCreatorsDialog'
 import { CreatorsHubHeader } from '@/components/console/CreatorsHubHeader'
 import { Aed, CARD, PageHead } from '@/components/console/primitives'
+import { Dash, ReadState } from '@/components/console/surfaces'
 import { fullName } from '@/lib/destinations'
 import { briefLine } from '@/lib/areaBrief'
 import type { AreaBrief } from '@/services/imdListsApi'
@@ -64,6 +65,9 @@ export default function ReviewQueuePage() {
   const [items, setItems] = useState<PendingCreator[]>([])
   const [scope, setScope] = useState<string>('leadership')
   const [loading, setLoading] = useState(true)
+  /* Whether the queue came back. "Every creator here has a cost recorded" is a flat claim
+     about the data, and it was being made on the strength of a request that did not answer. */
+  const [failed, setFailed] = useState(false)
   const [lane, setLane] = useState<Lane>('needs_cost')
   const [view, setView] = useState<'grid' | 'stack'>('grid')
   const [addOpen, setAddOpen] = useState(false)
@@ -79,6 +83,7 @@ export default function ReviewQueuePage() {
   const canSell = scope === 'leadership'
 
   const load = async (keepLane = true) => {
+    setFailed(false)
     try {
       const res = await creatorIntakeApi.reviewQueue()
       const list = res.data?.items || []
@@ -89,6 +94,8 @@ export default function ReviewQueuePage() {
         setLane(res.data?.scope === 'leadership' && res.data?.needs_sell ? 'needs_sell' : 'needs_cost')
       }
     } catch (e) {
+      setFailed(true)
+      setItems([])
       toast.error(e instanceof Error ? e.message : 'Could not load these creators')
     } finally {
       setLoading(false)
@@ -248,11 +255,19 @@ export default function ReviewQueuePage() {
 
         <Tabs value={lane} onValueChange={(v: string) => setLane(v as Lane)}>
           <TabsList data-tour="waiting-lanes">
+            {/* The size of each lane is a count of real work. Over a failed read it is a
+                dash, because "(0)" here reads as "there is nothing to do". */}
             <TabsTrigger value="needs_cost">
-              Needs a cost ({lanes.needs_cost.length})
+              Needs a cost (
+              {failed
+                ? <Dash reason="unmeasured" what="how many creators need a cost" />
+                : lanes.needs_cost.length})
             </TabsTrigger>
             <TabsTrigger value="needs_sell">
-              Needs a sell price ({lanes.needs_sell.length})
+              Needs a sell price (
+              {failed
+                ? <Dash reason="unmeasured" what="how many creators need a sell price" />
+                : lanes.needs_sell.length})
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -263,20 +278,29 @@ export default function ReviewQueuePage() {
             : 'The cost is in. Set what we charge the client and add them to the database.'}
         </p>
 
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />Loading…
-          </div>
-        ) : shown.length === 0 ? (
-          <div className="py-ds-6 text-center">
-            <p className="text-ds-label">Nothing waiting here</p>
-            <p className="mt-ds-1 text-ds-body text-muted-foreground">
-              {lane === 'needs_cost'
-                ? 'Every creator here has a cost recorded.'
-                : 'Every creator with a cost has been priced and added to the database.'}
-            </p>
-          </div>
-        ) : view === 'grid' ? (
+        <ReadState
+          failed={failed}
+          loading={loading}
+          empty={shown.length === 0}
+          what="the waiting room"
+          onRetry={() => load()}
+          nothing={
+            <>
+              <span className="block text-ds-label text-foreground">Nothing waiting here</span>
+              <span className="mt-ds-1 block">
+                {lane === 'needs_cost'
+                  ? 'Every creator here has a cost recorded.'
+                  : 'Every creator with a cost has been priced and added to the database.'}
+              </span>
+            </>
+          }
+          skeleton={
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />Loading…
+            </div>
+          }
+        >
+          {view === 'grid' ? (
           <div className="grid gap-ds-3 sm:grid-cols-2 xl:grid-cols-3">
             {shown.map((c) => (
               <div key={c.id}
@@ -449,7 +473,8 @@ export default function ReviewQueuePage() {
               </>
             )}
           </div>
-        )}
+          )}
+        </ReadState>
       </div>
 
       {/* the talent team's step: what the creator charges us */}

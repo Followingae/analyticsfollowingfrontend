@@ -31,6 +31,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import { PageHead, Panel } from '@/components/console/primitives'
+import { Dash, Failed } from '@/components/console/surfaces'
 import { toast } from 'sonner'
 import { ArrowLeft, Download, RefreshCw, Search } from 'lucide-react'
 import {
@@ -74,8 +75,13 @@ function Detail() {
   const [statusFilter, setStatusFilter] = useState('')
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(true)
+  /* The three reads come back together or not at all. When they do not, this screen must not
+     keep the last funnel on display or print "No recipients." on a broadcast that may have
+     reached 1,308 people. */
+  const [failed, setFailed] = useState(false)
 
   const load = useCallback(async () => {
+    setFailed(false)
     try {
       const [b, an, rc] = await Promise.all([
         whatsappApi.getBroadcast(id),
@@ -86,6 +92,9 @@ function Detail() {
       setA(an)
       setRecipients(rc.recipients)
     } catch (e) {
+      setFailed(true)
+      setA(null)
+      setRecipients([])
       toast.error((e as Error).message)
     } finally {
       setLoading(false)
@@ -145,7 +154,15 @@ function Detail() {
         title={bc?.name || 'Broadcast'}
         sub={
           bc
-            ? `${bc.status === 'sending' ? 'Still going out' : 'Finished'} · ${(bc.total_recipients ?? 0).toLocaleString()} recipients`
+            ? <>
+                {bc.status === 'sending' ? 'Still going out' : 'Finished'}
+                {' · '}
+                {/* How many people this went to is the one number nobody may guess. */}
+                {bc.total_recipients == null
+                  ? <Dash reason="unmeasured" what="how many people this went to" />
+                  : bc.total_recipients.toLocaleString()}
+                {' recipients'}
+              </>
             : undefined
         }
         action={
@@ -166,6 +183,10 @@ function Detail() {
           <Skeleton className="h-28 w-full rounded-ds-lg" />
           <Skeleton className="h-64 w-full rounded-ds-lg" />
         </div>
+      ) : failed ? (
+        /* Before anything else, because every figure and every row below it would otherwise
+           be read as a measurement of a send that we failed to ask about. */
+        <Failed what="this broadcast" onRetry={load} />
       ) : a ? (
         <>
           {/* The funnel, with room. Six figures across, wrapping rather than shrinking. */}
@@ -269,7 +290,15 @@ function Detail() {
                 <TableBody>
                   {shown.length === 0 && (
                     <TableRow><TableCell colSpan={4} className="py-8 text-center text-ds-body-sm text-muted-foreground">
-                      {q || statusFilter ? 'Nobody matches these filters.' : 'No recipients.'}
+                      {q || statusFilter
+                        ? 'Nobody matches these filters.'
+                        /* The funnel above says this went to somebody, so an empty list is
+                           the recipient read coming back short, not an empty broadcast. */
+                        : a.total > 0
+                          ? 'The recipient list did not come back. This broadcast went to '
+                            + a.total.toLocaleString()
+                            + ' people, so this is a short read and not an empty send.'
+                          : 'No recipients.'}
                     </TableCell></TableRow>
                   )}
                   {shown.map(r => {
@@ -313,9 +342,7 @@ function Detail() {
           </Panel>
         </>
       ) : (
-        <p className="text-ds-body text-muted-foreground">
-          This broadcast did not load. That is a failed request, not an empty broadcast.
-        </p>
+        <Failed what="this broadcast" onRetry={load} />
       )}
     </div>
   )

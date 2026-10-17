@@ -13,7 +13,7 @@
  * the screen still answers both questions - which category is strongest, and which market
  * inside it is thin - without asking anyone to hold two pictures at once.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +23,7 @@ import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { Empty, MiniBar, PageHead, Panel, Row, Stat, StatGrid } from '@/components/console/primitives'
+import { Failed } from '@/components/console/surfaces'
 import { CreatorsHubHeader } from '@/components/console/CreatorsHubHeader'
 
 interface Cell { category: string; market: string; held: number; costed: number
@@ -32,19 +33,27 @@ export default function CoveragePage() {
   const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  /* The partial-payload handling below is already careful: a missing totals block or a
+     missing grid reads as a dash, not a zero. The one case it could not tell apart was the
+     whole read failing, which came out as "Nothing to show." */
+  const [failed, setFailed] = useState(false)
   const [hover, setHover] = useState<Cell | null>(null)
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/influencers/coverage`)
-        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed')
-        setData((await res.json()).data)
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Could not load this page')
-      } finally { setLoading(false) }
-    })()
+  const load = useCallback(async () => {
+    setLoading(true)
+    setFailed(false)
+    try {
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/influencers/coverage`)
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed')
+      setData((await res.json()).data)
+    } catch (e) {
+      setFailed(true)
+      setData(null)
+      toast.error(e instanceof Error ? e.message : 'Could not load this page')
+    } finally { setLoading(false) }
   }, [])
+
+  useEffect(() => { void load() }, [load])
 
   const cells: Cell[] = useMemo(() => data?.cells || [], [data])
   const categories: string[] = useMemo(
@@ -81,6 +90,13 @@ export default function CoveragePage() {
           </div>
           <Skeleton className="h-[320px] rounded-ds-2xl" />
         </div>
+      </SuperadminLayout>
+    )
+  }
+  if (failed) {
+    return (
+      <SuperadminLayout>
+        <Failed what="our coverage" onRetry={load} />
       </SuperadminLayout>
     )
   }

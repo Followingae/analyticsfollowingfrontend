@@ -45,6 +45,7 @@ import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { ProposalEmailDialog } from "@/components/proposals/ProposalEmailDialog"
 import { ClientsHubHeader } from "@/components/console/ClientsHubHeader"
+import { Failed } from "@/components/console/surfaces"
 import { useConfirm } from "@/components/console/confirm"
 
 export default function SuperadminProposalsPage() {
@@ -54,6 +55,9 @@ export default function SuperadminProposalsPage() {
   const [emailProposalId, setEmailProposalId] = useState<string | null>(null)
   const [stats, setStats] = useState<AdminProposalStats | null>(null)
   const [loading, setLoading] = useState(true)
+  /* Whether the list came back. "No proposals found" with a Create button under it is an
+     invitation to write a second copy of a quote that already exists. */
+  const [failed, setFailed] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [showMargin, setShowMargin] = useState(false)
 
@@ -63,6 +67,7 @@ export default function SuperadminProposalsPage() {
 
   const loadData = async () => {
     setLoading(true)
+    setFailed(false)
     try {
       const [proposalsRes, statsRes] = await Promise.all([
         adminProposalApi.listProposals(statusFilter === "all" ? undefined : { status: statusFilter }),
@@ -74,6 +79,9 @@ export default function SuperadminProposalsPage() {
       // so, and the screen drops the column rather than showing an empty one.
       setShowMargin((statsRes.scope || proposalsRes.scope) === "leadership")
     } catch (err) {
+      setFailed(true)
+      setProposals([])
+      setStats(null)
       toast.error("Failed to load proposals")
     } finally {
       setLoading(false)
@@ -152,10 +160,20 @@ export default function SuperadminProposalsPage() {
               </motion.div>
               {showMargin && (
                 <motion.div variants={proposalMotion.staggerItem}>
-                  <StandardMetricCard icon={Coins} label="Margin" value={`AED ${(stats.total_margin ?? 0).toLocaleString()}`} subtitle={`avg ${(stats.avg_margin_percentage ?? 0).toFixed(1)}%`} />
+                  {/* A margin the server did not send is not AED 0. */}
+                  <StandardMetricCard
+                    icon={Coins}
+                    label="Margin"
+                    value={stats.total_margin == null ? "–" : `AED ${stats.total_margin.toLocaleString()}`}
+                    subtitle={stats.avg_margin_percentage == null ? undefined : `avg ${stats.avg_margin_percentage.toFixed(1)}%`}
+                  />
                 </motion.div>
               )}
             </motion.div>
+          ) : failed ? (
+            /* Not the skeleton. A skeleton that never resolves says the figures are still
+               coming, and they are not: nobody is going to ask for them again on their own. */
+            <Failed what="the proposal figures" onRetry={loadData} />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -232,6 +250,15 @@ export default function SuperadminProposalsPage() {
                         <TableCell className="text-right"><div className="h-8 w-8 bg-muted animate-pulse rounded ml-auto" /></TableCell>
                       </TableRow>
                     ))
+                  ) : failed ? (
+                    /* `Failed` rather than `ReadState` here because the empty branch is a
+                       table row, and ReadState's copy is a paragraph that cannot sit inside
+                       a tbody. The row carries it instead, and the Create button is gone. */
+                    <TableRow>
+                      <TableCell colSpan={showMargin ? 8 : 7} className="px-6">
+                        <Failed what="the proposals" onRetry={loadData} />
+                      </TableCell>
+                    </TableRow>
                   ) : proposals.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={showMargin ? 8 : 7} className="text-center py-16">

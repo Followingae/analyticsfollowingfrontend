@@ -37,6 +37,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ArrowLeft, Check, Gift, MapPin, Store, CalendarClock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PageHead } from "@/components/console/primitives"
+import { ReadState } from "@/components/console/surfaces"
 import { fullName } from "@/lib/destinations"
 import { cdnAvatar } from "@/lib/avatar"
 
@@ -71,11 +72,15 @@ export default function MechanicsPage() {
   const proposalId = String(params?.id ?? "")
 
   const [loading, setLoading] = useState(true)
+  /* Whether the roster came back at all. Without it this screen answered a failed request
+     with a sentence about what the CLIENT had done, which it had no way of knowing. */
+  const [failed, setFailed] = useState(false)
   const [saving, setSaving] = useState<string | null>(null)
   const [proposal, setProposal] = useState<{ name?: string; is_barter?: boolean; product?: string | null } | null>(null)
   const [creators, setCreators] = useState<Creator[]>([])
 
   const load = useCallback(async () => {
+    setFailed(false)
     try {
       const res = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/admin/proposals/${proposalId}/mechanics`,
@@ -86,6 +91,8 @@ export default function MechanicsPage() {
       setProposal(json.data?.proposal ?? null)
       setCreators(json.data?.creators ?? [])
     } catch {
+      setFailed(true)
+      setCreators([])
       toast.error("Could not load this roster")
     } finally {
       setLoading(false)
@@ -173,18 +180,19 @@ export default function MechanicsPage() {
           </div>
         )}
 
-        {loading ? (
-          <div className="space-y-3">
-            {[0, 1, 2].map(i => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}
-          </div>
-        ) : creators.length === 0 ? (
-          <div className="rounded-xl border bg-card px-5 py-10 text-center">
-            <p className="text-sm text-muted-foreground">
-              Nobody is confirmed on this proposal yet. This screen fills in once the client
-              has picked their creators.
-            </p>
-          </div>
-        ) : (
+        <ReadState
+          failed={failed}
+          loading={loading}
+          empty={creators.length === 0}
+          what="this proposal's confirmed roster"
+          onRetry={load}
+          nothing="Nobody is confirmed on this proposal yet. This screen fills in once the client has picked their creators."
+          skeleton={
+            <div className="space-y-3">
+              {[0, 1, 2].map(i => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}
+            </div>
+          }
+        >
           <div className="space-y-3">
             {creators.map((c) => {
               const mode = c.fulfilment_mode
@@ -294,7 +302,7 @@ export default function MechanicsPage() {
               )
             })}
           </div>
-        )}
+        </ReadState>
       </div>
     </SuperadminLayout>
   )

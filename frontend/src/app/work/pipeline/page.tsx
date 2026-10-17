@@ -32,6 +32,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { PageHead, CARD } from '@/components/console/primitives'
+import { Dash, ReadState } from '@/components/console/surfaces'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -118,6 +119,10 @@ export default function PipelinePage() {
   const [lanes, setLanes] = useState<Lanes>({})
   const [owners, setOwners] = useState<Owner[]>([])
   const [loading, setLoading] = useState(true)
+  /* Did the read come back. Separate from `loading` and from `rows.length`, because an empty
+     list and a failed request look identical otherwise, and this screen used to answer a 500
+     with "Nothing is late. That is the whole list." */
+  const [failed, setFailed] = useState(false)
 
   const [lane, setLane] = useState<string>('live')
   const [stage, setStage] = useState<string>('all')
@@ -139,6 +144,7 @@ export default function PipelinePage() {
 
   const load = useCallback(async () => {
     setLoading(true)
+    setFailed(false)
     try {
       const p = new URLSearchParams({ lane, owner })
       if (stage !== 'all') p.set('stage', stage)
@@ -150,6 +156,10 @@ export default function PipelinePage() {
       setStages(d?.stages || [])
       setLanes(d?.lanes || {})
     } catch (e) {
+      setFailed(true)
+      setRows([])
+      setStages([])
+      setLanes({})
       toast.error(e instanceof Error ? e.message : 'Could not load the pipeline')
     } finally {
       setLoading(false)
@@ -277,11 +287,15 @@ export default function PipelinePage() {
               <span className={cn(
                 'rounded-full px-1.5 text-xs tabular-nums',
                 on ? 'bg-background/20'
-                  : l.key === 'late' && (n ?? 0) > 0
+                  : !failed && l.key === 'late' && (n ?? 0) > 0
                     ? 'bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]'
                     : 'bg-black/[0.06] dark:bg-white/[0.1]',
               )}>
-                {n ?? 0}
+                {/* A zero here is a claim about the size of a population. It is only a zero
+                    when the request answered. */}
+                {failed
+                  ? <Dash reason="unmeasured" what={`how many creators are ${l.label.toLowerCase()}`} />
+                  : n ?? 0}
               </span>
             </button>
           )
@@ -353,7 +367,9 @@ export default function PipelinePage() {
           >
             Every stage
             <span className="tabular-nums text-xs text-muted-foreground">
-              {railStages.reduce((a, s) => a + s.count, 0)}
+              {failed
+                ? <Dash reason="unmeasured" what="how many creators are in the pipeline" />
+                : railStages.reduce((a, s) => a + s.count, 0)}
             </span>
           </button>
           <div className="my-1.5 h-px bg-black/[0.06] dark:bg-white/[0.08]" />
@@ -395,7 +411,14 @@ export default function PipelinePage() {
                 setPicked(on === true ? new Set(rows.map(r => r.id)) : new Set())}
             />
             <span className={cn('text-sm', picked.size ? 'font-medium' : 'text-muted-foreground')}>
-              {picked.size ? `${picked.size} selected` : `${rows.length} ${rows.length === 1 ? 'creator' : 'creators'}`}
+              {picked.size
+                ? `${picked.size} selected`
+                : failed
+                  ? <>
+                      <Dash reason="unmeasured" what="how many creators are on this list" />
+                      {' creators'}
+                    </>
+                  : `${rows.length} ${rows.length === 1 ? 'creator' : 'creators'}`}
             </span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -425,23 +448,32 @@ export default function PipelinePage() {
             </DropdownMenu>
           </div>
 
-          {loading ? (
-            <div className="space-y-px p-2">
-              {Array.from({ length: 6 }).map((_, n) => (
-                <Skeleton key={n} className="h-[62px] rounded-ds-lg" />
-              ))}
-            </div>
-          ) : rows.length === 0 ? (
-            <p className="px-6 py-14 text-center text-sm text-muted-foreground">
-              {query.trim()
+          {/* Loading, then failed, then empty, then the list. The empty sentences below are
+              all claims about the business, so none of them may be reached without the read
+              having come back. */}
+          <ReadState
+            failed={failed}
+            loading={loading}
+            empty={rows.length === 0}
+            what="your pipeline"
+            onRetry={load}
+            nothing={
+              query.trim()
                 ? `Nobody matches “${query.trim()}”.`
                 : lane === 'late'
                   ? 'Nothing is late. That is the whole list.'
                   : stage !== 'all'
                     ? 'Nobody is on this stage right now.'
-                    : 'No creators booked yet. They appear here the moment a proposal is approved.'}
-            </p>
-          ) : (
+                    : 'No creators booked yet. They appear here the moment a proposal is approved.'
+            }
+            skeleton={
+              <div className="space-y-px p-2">
+                {Array.from({ length: 6 }).map((_, n) => (
+                  <Skeleton key={n} className="h-[62px] rounded-ds-lg" />
+                ))}
+              </div>
+            }
+          >
             <ul className="divide-y divide-black/[0.05] dark:divide-white/[0.07]">
               {rows.map(r => {
                 const dw = dueWords(r.due)
@@ -549,7 +581,7 @@ export default function PipelinePage() {
                 )
               })}
             </ul>
-          )}
+          </ReadState>
         </div>
       </div>
     </SuperadminLayout>
