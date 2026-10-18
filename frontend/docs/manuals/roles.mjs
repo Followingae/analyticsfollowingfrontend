@@ -339,7 +339,10 @@ export const ROLES = [
       {
         icon: 'shield',
         title: 'Clear a roster',
-        when: 'When talent has stocked it to the target.',
+        // There is no target. A client who signs fifteen may need to see five hundred
+        // first, so nobody is told how many names to find; a roster is handed up when the
+        // person sourcing judges the client has a real choice.
+        when: 'When talent hands it up for review.',
         path: ['Creators', 'Rosters'],
         steps: [
           'Check each creator against the brief’s budget.',

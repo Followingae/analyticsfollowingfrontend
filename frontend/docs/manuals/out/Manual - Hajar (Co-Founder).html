@@ -32,66 +32,109 @@ em, .ser { font-family: "Playfair Display", Georgia, serif; font-style: italic;
    Black ground, one lime block, type at the size the brand actually uses. The previous
    cover was white with a 52pt heading and a pale glyph, which is a report. */
 .cover {
-  height: 297mm; margin: 0 -18mm; padding: 22mm 18mm 18mm; display: flex;
+  height: 268mm; margin: 0 -18mm; padding: 14mm 18mm 10mm 26mm; display: flex;
   flex-direction: column; break-after: page; position: relative;
-  background: #0b0b0d; color: #f6f3ef; overflow: hidden;
+  background: #ffffff; color: #111111; overflow: hidden;
 }
 .cover .brand { display: flex; align-items: center; gap: 10px; position: relative;
   font-size: 10pt; letter-spacing: .3em; text-transform: uppercase; font-weight: 700; }
-.cover .dot { width: 10px; height: 10px; background: #d3ff02; }
+.cover .dot { width: 10px; height: 10px; background: #111111; }
 .cover .mid { margin-top: auto; position: relative; }
 /* The contents, in the space the title was leaving empty. Useful rather than decorative:
    a nine-section document deserves to say what is in it. */
 .cover .contents { margin-top: 16mm; position: relative; }
 .cover .contents .lbl { font-size: 8.6pt; letter-spacing: .24em; text-transform: uppercase;
-  font-weight: 700; color: rgba(246,243,239,.42); margin-bottom: 5mm; }
+  font-weight: 700; color: #9c9ca4; margin-bottom: 5mm; }
 .cover .contents ol { margin: 0; padding: 0; list-style: none; counter-reset: c;
   columns: 2; column-gap: 12mm; max-width: 112mm; }
 .cover .contents li { counter-increment: c; font-size: 10pt; line-height: 1.9;
-  color: rgba(246,243,239,.62); display: flex; gap: 10px; break-inside: avoid; }
+  color: #666666; display: flex; gap: 10px; break-inside: avoid; }
 .cover .contents li::before { content: counter(c, decimal-leading-zero);
-  color: #d3ff02; font-weight: 700; font-size: 8.4pt; letter-spacing: .08em;
+  color: #111111; font-weight: 700; font-size: 8.4pt; letter-spacing: .08em;
   padding-top: .28em; }
 /* The one human line on the page, and the only place the serif earns its keep here. */
-.cover .for { font-size: 24pt; line-height: 1; margin: 5mm 0 0; color: #d3ff02;
+.cover .for { font-size: 26pt; line-height: 1; margin: 6mm 0 0; color: #111111;
   letter-spacing: -.02em; }
-.cover .kicker { font-size: 10pt; letter-spacing: .24em; text-transform: uppercase;
-  color: #d3ff02; font-weight: 700; margin-bottom: 10mm; }
+.cover .kicker { font-size: 9.4pt; letter-spacing: .26em; text-transform: uppercase;
+  color: #666666; font-weight: 700; margin-bottom: 9mm; display: flex;
+  align-items: center; gap: 10px; }
+.cover .kicker::before { content: ''; width: 22px; height: 9px; background: #d3ff02;
+  flex: none; }
 .cover h1 { font-size: 86pt; line-height: .92; letter-spacing: -.05em; margin: 0;
   font-weight: 700; max-width: 11ch; }
-.cover h1 em { color: #d3ff02; }
-.cover .lede { font-size: 13pt; line-height: 1.5; max-width: 36ch; margin-top: 9mm;
-  color: rgba(246,243,239,.76); font-weight: 400; }
+.cover h1 em { color: #111111; }
+.cover .lede { font-size: 12.5pt; line-height: 1.55; max-width: 40ch; margin-top: 8mm;
+  color: #666666; font-weight: 400; }
 .cover .foot { margin-top: 14mm; display: flex; justify-content: space-between;
   align-items: flex-end; font-size: 9.5pt; position: relative;
-  border-top: 1px solid rgba(246,243,239,.18); padding-top: 6mm;
-  color: rgba(246,243,239,.5); letter-spacing: .04em; }
-.cover .who { font-size: 12pt; color: #f6f3ef; font-weight: 700; letter-spacing: -.02em; }
+  border-top: 1px solid rgba(0,0,0,0.10); padding-top: 6mm;
+  color: #9c9ca4; letter-spacing: .04em; }
+.cover .who { font-size: 12pt; color: #111111; font-weight: 700; letter-spacing: -.02em; }
 /* A lime rule down the left edge, full bleed. A block, never a tint. */
 .cover::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 7mm;
   background: #d3ff02; }
 
 /* ── Sections ───────────────────────────────────────────────────────────────────────── */
-section { break-inside: avoid; margin-bottom: 14mm; }
+/* ⚠️ A SECTION MUST NOT CARRY break-inside: avoid. When its content is taller than a
+   page Chromium cannot honour the request, gives up, and lets the content run off the
+   bottom of the sheet instead of breaking it. That is what "being cut off" was: the third
+   job card on the Talent manual's page 5 printed under the footer and lost its last line.
+   The guard belongs on the things that must not split - a card, a beat, a glossary term -
+   and those carry it individually.
+
+   EVERY SECTION STARTS ITS OWN PAGE. Hand-placed breaks put two whole sections on page 2
+   and left pages 6 and 10 four fifths empty, which is how a document reads as crammed and
+   hollow at the same time. Nine sections, nine pages, nothing to guess. */
+section { break-before: page; margin-bottom: 0; }
+section:first-of-type { break-before: auto; }
+
+/* A section carrying ONE short block - the flow strip, the menu, the five hard rules -
+   left two thirds of its sheet bare, which is the same fault as cramming seen from the
+   other end. These stretch their block over the full height instead. The stretch is opt-in
+   per section: the job cards and the glossary already run long and must not be pulled. */
+section.fill { min-height: 250mm; display: flex; flex-direction: column; }
+section.fill > .flow, section.fill > .menu, section.fill > .rules, section.fill > .vs {
+  flex: 1; }
+/* The strip is two rows; stretched over a whole sheet each cell became a 70mm slab with a
+   line of type adrift in it. It takes half the page and the key sits under it. */
+section.fill > .flow { max-height: 130mm; }
+/* Five short lines spread over a whole sheet become a poster rather than a list, but
+   they still leave the closing note room to breathe under them. */
+section.fill > .rules { max-height: 155mm; }
+section.fill > .vs { max-height: 185mm; }
+/* The three moments of a day spread down the sheet rather than huddling in its top
+   third. The spine draws itself between them, so a taller block reads as a longer day. */
+/* space-BETWEEN, not space-evenly: evenly leaves a gap above the first marker and below
+   the last, and the spine then draws past both ends into nothing. */
+section.fill > .tl { flex: 1; display: flex; flex-direction: column;
+  justify-content: space-between; max-height: 160mm; }
+section.fill > .flow-key { flex: none; margin-top: 5mm; }
 .page-break { break-before: page; }
-.opener { display: flex; align-items: center; gap: 12px; margin: 0 0 5mm; }
+/* A lime block and then the words, rather than lime BEHIND the words. Highlighter pen
+   is what a tint looks like; the brand uses the accent as a field. */
+.opener { display: flex; align-items: center; gap: 12px; margin: 0 0 7mm; }
 .opener .n { font-size: 9.5pt; font-weight: 700; letter-spacing: .24em;
-  text-transform: uppercase; color: #111111; background: #d3ff02; padding: 3px 9px; }
+  text-transform: uppercase; color: #111111; display: flex; align-items: center;
+  gap: 11px; }
+.opener .n::before { content: ''; width: 26px; height: 10px; background: #d3ff02;
+  flex: none; }
 .opener .bar { flex: 1; height: 1px; background: rgba(0,0,0,0.10); }
-h2 { font-size: 30pt; line-height: 1.04; letter-spacing: -.04em; font-weight: 700;
-  margin: 0 0 3mm; break-after: avoid; max-width: 20ch; }
-h2 em { color: #6f8600; }
-.sub { color: #666666; font-size: 10.6pt; margin: 0 0 7mm; max-width: 54ch;
-  line-height: 1.55; }
+h2 { font-size: 34pt; line-height: 1.02; letter-spacing: -.045em; font-weight: 700;
+  margin: 0 0 4mm; break-after: avoid; max-width: 18ch; }
+/* Ink. #6f8600 is a derived olive that exists nowhere in the brand, and it read as a
+   muddy smear next to the real accent. The serif IS the emphasis; it needs no colour. */
+h2 em { color: #111111; }
+.sub { color: #666666; font-size: 11pt; margin: 0 0 10mm; max-width: 52ch;
+  line-height: 1.6; }
 
 /* ── The day ─────────────────────────────────────────────────────────────────────────
    A spine with three moments. Square markers, not circles. */
-.tl { position: relative; padding-left: 30px; }
-.tl::before { content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px;
+.tl { position: relative; padding-left: 34px; }
+.tl::before { content: ''; position: absolute; left: 10px; top: 10px; bottom: 10px;
   width: 1px; background: rgba(0,0,0,0.10); }
 .tl .mo { position: relative; margin-bottom: 7mm; break-inside: avoid; }
 .tl .mo:last-child { margin-bottom: 0; }
-.tl .dot { position: absolute; left: -30px; top: 2px; width: 15px; height: 15px;
+.tl .dot { position: absolute; left: -32px; top: 0; width: 22px; height: 22px;
   background: #d3ff02; display: flex; align-items: center; justify-content: center;
   color: #111111; }
 .tl .hd { font-weight: 700; font-size: 12pt; margin-bottom: 4px; letter-spacing: -.02em; }
@@ -101,14 +144,24 @@ h2 em { color: #6f8600; }
 
 /* ── The flow ribbon ─────────────────────────────────────────────────────────────────
    Square, hard-edged, lime as a solid field. */
-.flow { display: flex; break-inside: avoid; margin: 0 0 4mm; border: 1px solid #111111; }
-.flow .st { flex: 1; padding: 4mm 3mm; border-right: 1px solid rgba(0,0,0,0.10); background: #ffffff; }
+/* Eight columns across 174mm gave each stage 19mm, so "Book and paper them" broke onto
+   three lines and the strip read as rubble. Two rows of four gives each stage 43mm, which
+   fits the longest label on one line. */
+.flow { display: grid; grid-template-columns: repeat(4, 1fr); break-inside: avoid;
+  margin: 0 0 5mm; border: 1px solid #111111; }
+/* Top-aligned, NOT centred. Centring each cell independently put the labels of one
+   row at four different heights, because the cells hold one, two and three lines. */
+.flow .st { padding: 6mm 5mm; display: flex; flex-direction: column;
+  justify-content: flex-start; border-right: 1px solid rgba(0,0,0,0.10);
+  border-bottom: 1px solid rgba(0,0,0,0.10); background: #ffffff; }
+.flow .st:nth-child(4n) { border-right: 0; }
+.flow .st:nth-last-child(-n+4) { border-bottom: 0; }
 .flow .st:last-child { border-right: 0; }
 .flow .st.on { background: #d3ff02; }
 .flow .who { font-size: 7.2pt; letter-spacing: .16em; text-transform: uppercase;
   font-weight: 700; color: #666666; margin-bottom: 3px; }
 .flow .st.on .who { color: rgba(17,17,17,.6); }
-.flow .wt { font-size: 9.6pt; font-weight: 700; line-height: 1.25; letter-spacing: -.02em; }
+.flow .wt { font-size: 10.4pt; font-weight: 700; line-height: 1.3; letter-spacing: -.025em; }
 .flow-key { font-size: 9pt; color: #666666; display: flex; align-items: center; gap: 8px;
   letter-spacing: .02em; }
 .flow-key .sw { width: 14px; height: 10px; background: #d3ff02; flex: none; }
@@ -117,10 +170,10 @@ h2 em { color: #6f8600; }
    A DRAWING, not a screenshot: a screenshot of a product that ships weekly is wrong in a
    month and nobody reprints a manual because a button moved. Square, like the product. */
 .shot { border: 1px solid #111111; break-inside: avoid; background: #f5f5f5; }
-.shot .bar { display: flex; align-items: center; gap: 6px; padding: 6px 10px;
-  background: #111111; }
-.shot .bar .d { width: 6px; height: 6px; background: rgba(246,243,239,.35); }
-.shot .bar .u { margin-left: 6px; font-size: 7.6pt; color: rgba(246,243,239,.62);
+.shot .bar { display: flex; align-items: center; gap: 6px; padding: 7px 10px;
+  background: #f5f5f5; border-bottom: 1px solid rgba(0,0,0,0.10); }
+.shot .bar .d { width: 6px; height: 6px; background: rgba(0,0,0,.18); }
+.shot .bar .u { margin-left: 6px; font-size: 7.6pt; color: #666666;
   font-family: ui-monospace, Menlo, monospace; letter-spacing: .02em; }
 .shot .body { display: flex; min-height: 46mm; }
 .shot .side { width: 33mm; flex: none; background: #ffffff;
@@ -151,23 +204,26 @@ h2 em { color: #6f8600; }
   font-weight: 700; }
 
 /* Square pins, because everything else is. */
-.pin { position: absolute; width: 15px; height: 15px; background: #111111; color: #d3ff02;
-  font-size: 7.4pt; font-weight: 700; display: flex; align-items: center;
-  justify-content: center; }
+.pin { position: absolute; width: 16px; height: 16px; background: #d3ff02; color: #111111;
+  font-size: 7.6pt; font-weight: 800; display: flex; align-items: center;
+  justify-content: center; box-shadow: 0 0 0 1px #111111; }
 .keys { margin: 5mm 0 0; padding: 0; list-style: none; display: grid;
   grid-template-columns: 1fr 1fr; gap: 4mm 8mm; }
 .keys li { display: flex; gap: 9px; font-size: 9.6pt; line-height: 1.55;
   break-inside: avoid; }
-.keys .n { width: 15px; height: 15px; background: #111111; color: #d3ff02; font-size: 7.4pt;
-  font-weight: 700; display: flex; align-items: center; justify-content: center;
-  flex: none; margin-top: .2em; }
+.keys .n { width: 16px; height: 16px; background: #d3ff02; color: #111111; font-size: 7.6pt;
+  font-weight: 800; display: flex; align-items: center; justify-content: center;
+  flex: none; margin-top: .2em; box-shadow: 0 0 0 1px #111111; }
 
 /* ── Where things live ──────────────────────────────────────────────────────────────── */
 .menu { border: 1px solid #111111; break-inside: avoid; }
-.menu .grp { background: #111111; color: #f6f3ef; font-size: 7.6pt; letter-spacing: .2em;
-  font-weight: 700; text-transform: uppercase; padding: 5px 12px; }
-.menu .row { display: flex; align-items: baseline; gap: 12px; padding: 7px 12px;
-  border-bottom: 1px solid rgba(0,0,0,0.10); }
+.menu .grp { background: #f5f5f5; color: #666666; font-size: 7.6pt; letter-spacing: .2em;
+  font-weight: 700; text-transform: uppercase; padding: 6px 12px;
+  border-top: 1px solid rgba(0,0,0,0.10); border-bottom: 1px solid rgba(0,0,0,0.10); }
+.menu { display: flex; flex-direction: column; }
+.menu .grp { flex: none; }
+.menu .row { display: flex; align-items: center; gap: 14px; padding: 7px 14px;
+  border-bottom: 1px solid rgba(0,0,0,0.10); flex: 1; }
 .menu .row:last-child { border-bottom: 0; }
 .menu .nm { font-weight: 700; width: 120px; flex: none; display: flex; align-items: center;
   gap: 8px; font-size: 9.8pt; letter-spacing: -.01em; }
@@ -175,12 +231,12 @@ h2 em { color: #6f8600; }
 .menu .ds { color: #666666; font-size: 9.4pt; }
 
 /* ── A job ──────────────────────────────────────────────────────────────────────────── */
-.job { border: 1px solid rgba(0,0,0,0.10); border-left: 3px solid #d3ff02; padding: 5mm 6mm;
-  margin-bottom: 4mm; break-inside: avoid; }
+.job { border: 1px solid rgba(0,0,0,0.10); border-left: 5px solid #d3ff02; padding: 6mm 7mm;
+  margin-bottom: 6mm; break-inside: avoid; }
 .job .top { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 4mm; }
-.job .badge { width: 26px; height: 26px; background: #111111; color: #d3ff02;
-  display: flex; align-items: center; justify-content: center; font-weight: 700;
-  font-size: 11pt; flex: none; }
+.job .badge { width: 28px; height: 28px; background: #d3ff02; color: #111111;
+  display: flex; align-items: center; justify-content: center; font-weight: 800;
+  font-size: 12pt; flex: none; }
 .job h3 { margin: 0; font-size: 14pt; letter-spacing: -.03em; font-weight: 700;
   line-height: 1.15; }
 .job .when { color: #666666; font-size: 9.2pt; margin-top: 2px; }
@@ -192,7 +248,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   font-weight: 700; display: flex; align-items: center; justify-content: center; }
 .job .next { display: flex; gap: 8px; margin-top: 4mm; padding-top: 3mm;
   border-top: 1px solid rgba(0,0,0,0.10); font-size: 9.4pt; color: #666666; }
-.job .next .ic { color: #6f8600; margin-top: .2em; }
+.job .next .ic { color: #111111; margin-top: .2em; }
 .job .next b { color: #111111; font-weight: 700; }
 
 /* ── The path strip ─────────────────────────────────────────────────────────────────── */
@@ -208,9 +264,10 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 
 /* ── Worked example ─────────────────────────────────────────────────────────────────── */
 .story { border: 1px solid #111111; break-inside: avoid; }
-.story .hd { background: #111111; color: #f6f3ef; padding: 4mm 5mm; display: flex;
-  align-items: center; gap: 9px; font-weight: 700; font-size: 12pt; letter-spacing: -.025em; }
-.story .hd .ic { color: #d3ff02; }
+.story .hd { background: #ffffff; color: #111111; padding: 5mm 6mm; display: flex;
+  align-items: center; gap: 9px; font-weight: 700; font-size: 12.5pt;
+  letter-spacing: -.03em; border-bottom: 3px solid #d3ff02; }
+.story .hd .ic { color: #111111; }
 .story .bd { padding: 5mm 6mm; }
 .story .beat { display: flex; gap: 12px; margin-bottom: 3.5mm; break-inside: avoid; }
 .story .beat:last-child { margin-bottom: 0; }
@@ -220,14 +277,18 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 
 /* ── Good and bad ───────────────────────────────────────────────────────────────────── */
 .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; break-inside: avoid; }
-.vs .col { border: 1px solid rgba(0,0,0,0.10); padding: 5mm; }
+.vs .col { border: 1px solid rgba(0,0,0,0.10); padding: 7mm; }
 .vs .col.good { border-color: #111111; border-top: 4px solid #d3ff02; }
 .vs .col.bad { border-top: 4px solid rgba(0,0,0,0.10); }
 .vs .ttl { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 10pt;
   margin-bottom: 4mm; letter-spacing: -.02em; }
-.vs .col.good .ttl .ic { color: #6f8600; }
+.vs .col.good .ttl .ic { color: #111111; }
 .vs .col.bad .ttl .ic { color: #666666; }
-.vs ul { margin: 0; padding: 0; list-style: none; }
+/* Same trap as the rules block: a stretched column whose only child is a UL just gets
+   taller and leaves the list hanging at the top. The list spreads over the height. */
+.vs .col { display: flex; flex-direction: column; }
+.vs ul { margin: 0; padding: 0; list-style: none; flex: 1; display: flex;
+  flex-direction: column; justify-content: space-evenly; }
 .vs li { font-size: 9.4pt; line-height: 1.55; margin-bottom: 3mm; padding-left: 14px;
   position: relative; }
 .vs li:last-child { margin-bottom: 0; }
@@ -242,39 +303,54 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 .gloss .d { font-size: 9.2pt; color: #666666; line-height: 1.5; }
 
 /* ── Rules ──────────────────────────────────────────────────────────────────────────── */
-.rules { border: 1px solid #111111; border-left: 7mm solid #d3ff02; padding: 5mm 6mm;
-  break-inside: avoid; }
-.rules ul { margin: 0; padding: 0; list-style: none; }
-.rules li { display: flex; gap: 10px; margin-bottom: 3mm; font-size: 10pt; line-height: 1.55; }
+.rules { border: 1px solid #111111; border-left: 7mm solid #d3ff02; padding: 8mm 9mm;
+  break-inside: avoid; display: flex; flex-direction: column; justify-content: space-evenly; }
+/* The UL is the rules block's only child, so letting the BLOCK distribute its
+   children just parked one centred lump in the middle of a tall box. The LIST spreads. */
+.rules ul { margin: 0; padding: 0; list-style: none; flex: 1; display: flex;
+  flex-direction: column; justify-content: space-evenly; }
+.rules li { display: flex; gap: 12px; margin-bottom: 0; font-size: 11.5pt;
+  line-height: 1.5; letter-spacing: -.01em; }
 .rules li:last-child { margin-bottom: 0; }
 .rules .ic { color: #111111; margin-top: .25em; }
 
 /* ── The card on the back ───────────────────────────────────────────────────────────── */
-.card-page { break-before: page; height: 297mm; margin: 0 -18mm; padding: 16mm 18mm;
-  display: flex; flex-direction: column; background: #0b0b0d; color: #f6f3ef; }
-.qr { border: 1px solid rgba(246,243,239,.2); padding: 9mm 10mm; flex: 1; display: flex;
-  flex-direction: column; }
+/* This page gets PINNED TO A WALL, which is the one place a black ground is actively
+   wrong: it is read across a room, often beside a window, and dark grey text on near-black
+   is the first thing to disappear. White, big type, lime only as the rule and the marker. */
+.card-page { break-before: page; height: 268mm; margin: 0 -18mm -20mm;
+  padding: 10mm 18mm;
+  display: flex; flex-direction: column; background: #ffffff; color: #111111; }
+.qr { border: 1px solid #111111; border-top: 8mm solid #d3ff02; padding: 10mm 11mm;
+  flex: 1; display: flex; flex-direction: column; }
 .qr .hd { display: flex; align-items: baseline; justify-content: space-between;
-  border-bottom: 1px solid #d3ff02; padding-bottom: 5mm; margin-bottom: 7mm; }
-.qr .hd h2 { font-size: 34pt; margin: 0; letter-spacing: -.045em; color: #f6f3ef;
+  border-bottom: 2px solid #111111; padding-bottom: 5mm; margin-bottom: 8mm; }
+.qr .hd h2 { font-size: 40pt; margin: 0; letter-spacing: -.05em; color: #111111;
   max-width: none; }
 .qr .hd .r { font-size: 10pt; letter-spacing: .24em; text-transform: uppercase;
-  font-weight: 700; color: #d3ff02; }
+  font-weight: 700; color: #666666; }
 .qr .blk { flex: 1; display: flex; flex-direction: column; justify-content: center;
-  padding: 3mm 0; border-bottom: 1px solid rgba(246,243,239,.12); }
+  padding: 3mm 0; border-bottom: 1px solid rgba(0,0,0,0.10); }
 .qr .blk:last-of-type { border-bottom: 0; }
 .qr .blk .lbl { font-size: 8.6pt; letter-spacing: .24em; text-transform: uppercase;
-  font-weight: 700; color: #d3ff02; margin-bottom: 4mm; }
-.qr ul { margin: 0; padding-left: 16px; }
-.qr li { font-size: 13pt; line-height: 1.45; margin-bottom: 2mm; font-weight: 500;
-  letter-spacing: -.015em; }
-.qr li::marker { color: #d3ff02; }
-.qr .foot { margin-top: auto; border-top: 1px solid rgba(246,243,239,.2); padding-top: 5mm;
-  font-size: 9pt; color: rgba(246,243,239,.45); display: flex;
+  font-weight: 700; color: #111111; margin-bottom: 4mm; display: flex;
+  align-items: center; gap: 10px; }
+.qr .blk .lbl::before { content: ''; width: 20px; height: 9px; background: #d3ff02;
+  flex: none; }
+.qr ul { margin: 0; padding-left: 18px; }
+.qr li { font-size: 14pt; line-height: 1.45; margin-bottom: 2.5mm; font-weight: 500;
+  letter-spacing: -.02em; }
+.qr li::marker { color: #111111; }
+.qr .foot { margin-top: auto; border-top: 1px solid rgba(0,0,0,0.10); padding-top: 5mm;
+  font-size: 9pt; color: #9c9ca4; display: flex;
   justify-content: space-between; letter-spacing: .04em; }
 
 /* ── Small print ────────────────────────────────────────────────────────────────────── */
 .note { font-size: 9.4pt; color: #666666; max-width: 56ch; }
+/* The closing note qualifies the rules above it, so it rides on their page. It used to be
+   its own <section>, which under one-section-one-page would spend a whole sheet on a
+   single sentence. */
+.tail { margin-top: 12mm; padding-top: 6mm; border-top: 1px solid rgba(0,0,0,0.10); }
 </style></head>
 <body>
 
@@ -302,11 +378,11 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     </div>
     <div class="foot">
       <div><div class="who">Hajar</div>Following FZC</div>
-      <div>18 October 2026</div>
+      <div>19 October 2026</div>
     </div>
   </div>
 
-  <section>
+  <section class="fill">
     <div class="opener"><span class="n">01 · Your day</span>
   <span class="bar"></span></div>
     <h2>How a day <em>goes</em></h2>
@@ -337,7 +413,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   </div>
   </section>
 
-  <section>
+  <section class="fill">
     <div class="opener"><span class="n">02 · The whole flow</span>
   <span class="bar"></span></div>
     <h2>Where your work <em>sits</em></h2>
@@ -458,7 +534,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   </ul>
   </section>
 
-  <section>
+  <section class="fill">
     <div class="opener"><span class="n">04 · The menu</span>
   <span class="bar"></span></div>
     <h2>Where things <em>live</em></h2>
@@ -537,7 +613,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
       <span class="badge">1</span>
       <div>
         <h3>Clear a roster</h3>
-        <div class="when">When talent has stocked it to the target.</div>
+        <div class="when">When talent hands it up for review.</div>
       </div>
     </div>
     <div class="path"><span class="lbl">Go to</span><span class="chip start">Creators</span><span class="sep"><svg class="ic" width="11" height="11"
@@ -603,9 +679,10 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <p class="sub">One job, followed the whole way, with the real numbers.</p>
     
   <div class="story">
+    
     <div class="hd"><svg class="ic" width="15" height="15"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg> Thirteen creators, one afternoon</div>
+    stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg> <span>Start to finish</span></div>
     <div class="bd">
       <div class="beat"><div class="t">Open</div><div class="x">Minimalist confirmed three weeks ago. Thirteen creators, not one priced, and the campaign cannot open.</div></div>
       <div class="beat"><div class="t">Why</div><div class="x">Nobody was chasing it because it lived inside one proposal’s page. That is what this screen exists to stop.</div></div>
@@ -617,7 +694,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   </div>
   </section>
 
-  <section>
+  <section class="fill">
     <div class="opener"><span class="n">07 · Right and wrong</span>
   <span class="bar"></span></div>
     <h2>What good looks <em>like</em></h2>
@@ -667,7 +744,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   </div>
   </section>
 
-  <section>
+  <section class="fill">
     <div class="opener"><span class="n">09 · The hard rules</span>
   <span class="bar"></span></div>
     <h2>Rules that cost <em>money</em></h2>
@@ -685,13 +762,13 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     </ul></div>
   </section>
 
-  <section>
+  <div class="tail">
     <p class="note">
       Every screen in the platform is explained under <strong>Guide</strong> in the menu.
       If something here does not match what you see, the product is right and this is out of
       date. Say so and it gets reprinted.
     </p>
-  </section>
+  </div>
 
   
   <div class="card-page">

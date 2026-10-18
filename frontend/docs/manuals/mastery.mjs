@@ -72,11 +72,11 @@ export const MASTERY = {
     story: {
       title: 'A brief on Tuesday, a roster on Thursday',
       beats: [
-        ['Tue 9am', 'A request appears: <b>Source creators for Minimalist</b>. Skincare and '
+        ['Tue 9am', 'A request appears: **Source creators for Minimalist**. Skincare and '
                   + 'derm, UAE, 50k to 300k, must film in studio. Aisha raised it, and the '
-                  + 'deal is not even signed yet. Press <b>I have this</b>.'],
+                  + 'deal is not even signed yet. Press **I have this**.'],
         ['Tue 9am', 'The roster is already open under the request. You never make one.'],
-        ['Tue', 'Start in <b>Lists</b>. Beauty UAE is 53 people and it is current, because '
+        ['Tue', 'Start in **Lists**. Beauty UAE is 53 people and it is current, because '
               + 'it answers itself every time you open it. Thirty of them fit.'],
         ['Tue', 'Then the master database for the rest. Anyone genuinely new, add by handle '
               + 'and we pull their numbers ourselves.'],
@@ -156,8 +156,8 @@ export const MASTERY = {
                   + 'need to know by Thursday.'],
         ['Mon 7pm', 'Answer them. On WhatsApp, as a person, the way you always have. '
                   + 'Nothing about that changes.'],
-        ['Mon 7pm', 'Then raise it in <b>Requests</b>, in their words, ticked as '
-                  + '<b>a client asked for this</b>, due Thursday.'],
+        ['Mon 7pm', 'Then raise it in **Requests**, in their words, ticked as '
+                  + '**a client asked for this**, due Thursday.'],
         ['Mon', 'Leave the owner blank if you are not sure who should do it. Unclaimed is '
               + 'visible, and that is the point.'],
         ['Tue', 'Aqsa takes it. You can see that without asking her.'],
@@ -231,18 +231,18 @@ export const MASTERY = {
       title: 'From a first meeting to names on the table',
       beats: [
         ['Week 1', 'Meeting with Minimalist. Skincare, UAE, wants to launch in six weeks. '
-                 + 'Add the brand, add the deal, stage <b>Met them</b>.'],
+                 + 'Add the brand, add the deal, stage **Met them**.'],
         ['Week 1', 'You get a budget out of them: AED 57,000. Put it on the deal. A deal '
                  + 'with no budget is not a deal yet and the board shows that honestly.'],
-        ['Week 2', 'It feels real. Do not wait. Press <b>Ask talent</b> and write what you '
+        ['Week 2', 'It feels real. Do not wait. Press **Ask talent** and write what you '
                  + 'are looking for: skincare and derm, UAE, 50k to 300k, studio capable.'],
         ['Week 2', 'Say WHAT, never how many. They may need to show sixty before the client '
                  + 'picks fifteen, and a number from you reads as a target.'],
         ['Week 2', 'Aqsa starts the same day. Two weeks ago she would have started after '
                  + 'signature, and the client would have waited.'],
-        ['Week 3', 'Zain checks the quotation and it appears in <b>To send</b>. You copy the '
+        ['Week 3', 'Zain checks the quotation and it appears in **To send**. You copy the '
                  + 'link into your own email. The client hears from you, as always.'],
-        ['Week 3', 'Press <b>I have sent it</b>. Now it is on their record, not only in your '
+        ['Week 3', 'Press **I have sent it**. Now it is on their record, not only in your '
                  + 'sent folder.'],
         ['Week 4', 'They pick. The deal moves to Won and account management takes the client.'],
       ],
@@ -387,10 +387,10 @@ export const MASTERY = {
       title: 'A post goes live, and a client sees it',
       beats: [
         ['Day 1', 'A creator posts. Sana pastes the link on the campaign’s '
-                + '<b>Performance</b> tab.'],
+                + '**Performance** tab.'],
         ['Day 1', 'We read it from Instagram within a minute. Plays, likes, comments, '
                 + 'engagement, measured and not estimated.'],
-        ['Day 1', 'It sits in <b>Waiting on you</b>. The client cannot see it.'],
+        ['Day 1', 'It sits in **Waiting on you**. The client cannot see it.'],
         ['Day 1', 'You release it. Only then does it appear on their Results screen, with '
                 + 'the roll-up across every released post.'],
         ['Weekly', 'We re-count it every seven days for a month, then stop. The clock is '

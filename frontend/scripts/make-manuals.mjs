@@ -222,7 +222,9 @@ function drawnScreen(sc) {
 /** One real job, followed the whole way, with real numbers. */
 const workedExample = (st) => `
   <div class="story">
-    <div class="hd">${icon('lightbulb', 15)} ${esc(st.title)}</div>
+    ${/* The h2 directly above this card is already st.title, so a header here printed the
+         same sentence twice, 15mm apart. The card keeps the lime rule and loses the echo. */''}
+    <div class="hd">${icon('lightbulb', 15)} <span>Start to finish</span></div>
     <div class="bd">${st.beats.map(([t, x]) => `
       <div class="beat"><div class="t">${esc(t)}</div><div class="x">${md(x)}</div></div>`)
       .join('')}
@@ -353,14 +355,14 @@ function page(role) {
     </div>
   </div>
 
-  <section>
+  <section class="fill">
     ${opener('01 \u00b7 Your day')}
     <h2>${serifLast('How a day goes')}</h2>
     <p class="sub">Three moments. Everything else finds you.</p>
     ${dayTimeline(role.day)}
   </section>
 
-  ${m ? `<section>
+  ${m ? `<section class="fill">
     ${opener('02 \u00b7 The whole flow')}
     <h2>${serifLast('Where your work sits')}</h2>
     <p class="sub">${esc(m.flowNote)}</p>
@@ -375,7 +377,7 @@ function page(role) {
     ${drawnScreen(m.screen)}
   </section>` : ''}
 
-  <section${m ? '' : ' class="page-break"'}>
+  <section class="fill">
     ${opener('04 \u00b7 The menu')}
     <h2>${serifLast('Where things live')}</h2>
     <p class="sub">The menu down the left of the screen. This is all of it.</p>
@@ -396,7 +398,7 @@ function page(role) {
     ${workedExample(m.story)}
   </section>` : ''}
 
-  ${m ? `<section>
+  ${m ? `<section class="fill">
     ${opener('07 \u00b7 Right and wrong')}
     <h2>${serifLast('What good looks like')}</h2>
     <p class="sub">Everything on the right has actually happened here and cost us
@@ -412,7 +414,7 @@ function page(role) {
     ${glossary()}
   </section>
 
-  <section>
+  <section class="fill">
     ${opener('09 \u00b7 The hard rules')}
     <h2>${serifLast('Rules that cost money')}</h2>
     <p class="sub">Each one has already cost us something.</p>
@@ -421,13 +423,13 @@ function page(role) {
     </ul></div>
   </section>
 
-  <section>
+  <div class="tail">
     <p class="note">
       Every screen in the platform is explained under <strong>Guide</strong> in the menu.
       If something here does not match what you see, the product is right and this is out of
       date. Say so and it gets reprinted.
     </p>
-  </section>
+  </div>
 
   ${m ? quickCard(role, m.card) : ''}
 
