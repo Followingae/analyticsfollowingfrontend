@@ -73,7 +73,7 @@ export const MASTERY = {
       title: 'A brief on Tuesday, a roster on Thursday',
       beats: [
         ['Tue 9am', 'A request appears: **Source creators for Minimalist**. Skincare and '
-                  + 'derm, UAE, 50k to 300k, must film in studio. Aisha raised it, and the '
+                  + 'derm, UAE, 50k to 300k, must film in studio. Business development raised it, and the '
                   + 'deal is not even signed yet. Press **I have this**.'],
         ['Tue 9am', 'The roster is already open under the request. You never make one.'],
         ['Tue', 'Start in **Lists**. Beauty UAE is 53 people and it is current, because '
@@ -84,8 +84,8 @@ export const MASTERY = {
               + 'choice, which on skincare is usually sixty before they pick fifteen.'],
         ['Wed', 'Record what each one charges and what they would accept. Those are two '
               + 'different numbers and only the second one is real.'],
-        ['Thu', 'Hand the roster up. Hajar clears it and the client sees it the same day.'],
-        ['After', 'Hajar negotiates the final rate. You raise the enrolment links, and each '
+        ['Thu', 'Hand the roster up. Leadership clears it and the client sees it the same day.'],
+        ['After', 'Leadership negotiates the final rate. You raise the enrolment links, and each '
                 + 'creator signs their own agreement and enters their own bank details.'],
       ],
     },
@@ -114,7 +114,7 @@ export const MASTERY = {
                       + 'WhatsApp is not a record.']],
       ['Two numbers, always', ['What they charge. What they agreed. Never just one.']],
       ['Never', ['Never guess a country code.',
-                 'Never promise a creator a fee before Hajar has agreed it.']],
+                 'Never promise a creator a fee before leadership has agreed it.']],
       ['Stuck?', ['A brief with no market, category or budget is not a brief. Ask.']],
     ],
   },
@@ -145,7 +145,7 @@ export const MASTERY = {
         ['row1', 'Story is the whole history. Open it when somebody asks how we got here.'],
         ['card1', 'Delivery is every creator and the rung they are on. This is your chasing list.'],
         ['row2', 'Content is what they have filmed. You send it; the client approves it here.'],
-        ['row3', 'Performance is where you paste a live post. Zain releases it to the client.'],
+        ['row3', 'Performance is where you paste a live post. Leadership releases it to the client.'],
         ['menu', 'Money is only there if you are allowed to see it. It is not part of your job.'],
       ],
     },
@@ -160,7 +160,7 @@ export const MASTERY = {
                   + '**a client asked for this**, due Thursday.'],
         ['Mon', 'Leave the owner blank if you are not sure who should do it. Unclaimed is '
               + 'visible, and that is the point.'],
-        ['Tue', 'Aqsa takes it. You can see that without asking her.'],
+        ['Tue', 'Talent takes it. You can see that without asking.'],
         ['Thu', 'It is marked done and you are told. You tell the client they were right to '
               + 'expect it today.'],
         ['After', 'It is on the client’s record forever. In six months, when they ask '
@@ -192,7 +192,7 @@ export const MASTERY = {
                              + 'Then write it down here.']],
       ['Never', ['Never send a client content nobody has checked.',
                  'Never quote a date talent has not agreed.']],
-      ['Results', ['Paste the live post on Performance. Zain releases it. '
+      ['Results', ['Paste the live post on Performance. Leadership releases it. '
                  + 'The client sees the roll-up themselves.']],
     ],
   },
@@ -238,9 +238,9 @@ export const MASTERY = {
                  + 'are looking for: skincare and derm, UAE, 50k to 300k, studio capable.'],
         ['Week 2', 'Say WHAT, never how many. They may need to show sixty before the client '
                  + 'picks fifteen, and a number from you reads as a target.'],
-        ['Week 2', 'Aqsa starts the same day. Two weeks ago she would have started after '
+        ['Week 2', 'Talent starts the same day. Two weeks ago she would have started after '
                  + 'signature, and the client would have waited.'],
-        ['Week 3', 'Zain checks the quotation and it appears in **To send**. You copy the '
+        ['Week 3', 'Leadership checks the quotation and it appears in **To send**. You copy the '
                  + 'link into your own email. The client hears from you, as always.'],
         ['Week 3', 'Press **I have sent it**. Now it is on their record, not only in your '
                  + 'sent folder.'],
@@ -267,7 +267,7 @@ export const MASTERY = {
     },
     card: [
       ['Open first', ['Sales. Your whole board.',
-                      'To send. Anything Zain has cleared.']],
+                      'To send. Anything leadership has cleared.']],
       ['The one rule', ['Ask talent when it looks real, not when it closes.']],
       ['Say what, not how many', ['A client signing fifteen may need to see hundreds.']],
       ['Never', ['Never quote off the rate card without a founder.',
@@ -280,7 +280,7 @@ export const MASTERY = {
   'co-founder': {
     flow: ['price', 'collect'],
     flowNote: 'Nothing opens until you have priced it, and nothing leaves until you have '
-            + 'cleared it. You are also the second pair of hands when Zain is away.',
+            + 'cleared it. You are also the second pair of hands when the founder is away.',
     screen: {
       title: 'Rates to agree',
       sub: 'Clients said yes. Nothing opens until we know what we pay',
@@ -319,7 +319,7 @@ export const MASTERY = {
                 + 'before you commit it.'],
         ['Done', 'Thirteen rates agreed, the campaign opens with a real margin instead of '
                + 'acquiring one later.'],
-        ['Then', 'Aqsa raises the enrolment links. Each creator signs their own agreement '
+        ['Then', 'Talent raises the enrolment links. Each creator signs their own agreement '
                + 'and enters their own bank details. Nobody types a fee.'],
       ],
     },
@@ -347,7 +347,7 @@ export const MASTERY = {
       ['Quoted is not agreed', ['The quote is what we assumed. The rate is what you got.']],
       ['Never', ['Never pay out beyond what the client has funded.',
                  'Never release a creator with no sell price.']],
-      ['When Zain is away', ['You are the second pair of hands. Everything of his '
+      ['When the founder is away', ['You are the second pair of hands. Everything of his '
                            + 'comes to you.']],
     ],
   },
@@ -369,8 +369,8 @@ export const MASTERY = {
         { k: 'Links to check', v: '2', s: 'quotations' },
       ],
       rows: [
-        { nm: 'Sana  ·  send content to Barakat', tag: 'client', hot: true },
-        { nm: 'Aqsa  ·  delete a standing list', tag: 'delete' },
+        { nm: 'Account management  ·  send content to Barakat', tag: 'client', hot: true },
+        { nm: 'Talent  ·  delete a standing list', tag: 'delete' },
         { nm: '@firaskazma  ·  1.3M views  ·  release to the client', tag: 'results' },
       ],
       keys: [
@@ -386,7 +386,7 @@ export const MASTERY = {
     story: {
       title: 'A post goes live, and a client sees it',
       beats: [
-        ['Day 1', 'A creator posts. Sana pastes the link on the campaign’s '
+        ['Day 1', 'A creator posts. Account management pastes the link on the campaign’s '
                 + '**Performance** tab.'],
         ['Day 1', 'We read it from Instagram within a minute. Plays, likes, comments, '
                 + 'engagement, measured and not estimated.'],
@@ -422,7 +422,7 @@ export const MASTERY = {
                            + 'Re-counted weekly for a month, then it stops.']],
       ['Never', ['No automated email ever reaches a client.',
                  'Cost is never visible to a brand.']],
-      ['Downloads', ['Exports are you and Hajar only, everywhere in the platform.']],
+      ['Downloads', ['Exports are the two founders only, everywhere in the platform.']],
     ],
   },
 };

@@ -24,7 +24,7 @@ export const ROLES = [
     slug: 'talent-manager',
     glyph: 'search',
     title: 'Talent',
-    person: 'Aqsa',
+    promise: 'Names, prices and paperwork',
     kicker: 'Role manual',
     lede: 'You turn a brand’s request into real creators who have said yes, at a price we can sell, with signed paperwork and content that lands on time.',
     day: [
@@ -113,7 +113,7 @@ export const ROLES = [
     slug: 'account-manager',
     glyph: 'building',
     title: 'Account Management',
-    person: 'Sana',
+    promise: 'The client’s whole experience of us',
     kicker: 'Role manual',
     lede: 'You own the client. You know what they bought, what they are owed, and what they have been told, and you tell them before they have to ask.',
     day: [
@@ -155,7 +155,7 @@ export const ROLES = [
         steps: [
           'Paste the link to each post that went live.',
           'We read the numbers off Instagram within a minute or so.',
-          'Zain releases each one. Nothing reaches the client until he does.',
+          'Leadership releases each one. Nothing reaches the client until they do.',
           'Once released the client sees it on their own Results screen.',
         ],
         next: 'They get the roll-up across every post without you building a deck.',
@@ -223,13 +223,13 @@ export const ROLES = [
     slug: 'business-development',
     glyph: 'handshake',
     title: 'Business Development',
-    person: 'Aisha',
+    promise: 'Every deal, first call to won',
     kicker: 'Role manual',
     lede: 'You bring the work in. You qualify it, agree what we charge, get it signed, and hand it over in writing so nothing is lost between you and delivery.',
     day: [
       { icon: 'sunrise', head: 'First thing', items: [
         'Open **Sales**. Your whole board, by stage.',
-        'Open **To send**. Anything Zain has checked and cleared for a client.',
+        'Open **To send**. Anything leadership has checked and cleared for a client.',
         'Open **Partner leads**. Enquiries off the website land here.',
       ]},
       { icon: 'clock', head: 'Through the day', items: [
@@ -281,10 +281,10 @@ export const ROLES = [
       {
         icon: 'banknote',
         title: 'Send the quotation',
-        when: 'Once Zain has checked it.',
+        when: 'Once leadership has checked it.',
         path: ['Clients', 'To send'],
         steps: [
-          'You do not mint the link and you do not build the numbers. Zain does both.',
+          'You do not mint the link and you do not build the numbers. Leadership does both.',
           'When it is checked it appears here and you are told.',
           'Copy the link into your OWN email. The client hears from you, as always.',
           'Then press "I have sent it" so it is on their record and not just your sent folder.',
@@ -314,11 +314,11 @@ export const ROLES = [
 
   // ═══════════════════════════════════════════════════════════════════════════════════
   {
-    file: 'Hajar (Co-Founder)',
+    file: 'Co-Founder',
     slug: 'co-founder',
     glyph: 'shield',
     title: 'Co-Founder',
-    person: 'Hajar',
+    promise: 'What it costs, and what leaves',
     kicker: 'Role manual',
     lede: 'You are the quality gate and the budget gate. Nothing reaches a client that you have not seen, and no money leaves without you.',
     day: [
@@ -397,11 +397,11 @@ export const ROLES = [
 
   // ═══════════════════════════════════════════════════════════════════════════════════
   {
-    file: 'Zain (Founder & CEO)',
+    file: 'Founder & CEO',
     slug: 'founder-ceo',
     glyph: 'target',
     title: 'Founder & CEO',
-    person: 'Zain',
+    promise: 'What we chase, and when money moves',
     kicker: 'Role manual',
     lede: 'You decide what we chase, what things cost, and when money moves. Everything else should reach you without you going to look for it.',
     day: [

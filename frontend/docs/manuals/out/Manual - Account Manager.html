@@ -16,9 +16,11 @@ html, body { margin: 0; padding: 0; }
 body {
   font-family: Manrope, -apple-system, BlinkMacSystemFont, sans-serif;
   color: #111111; background: #ffffff;
-  font-size: 10.2pt; line-height: 1.6; font-weight: 400;
+  font-size: 10.2pt; line-height: 1.72; font-weight: 400;
   font-variant-numeric: tabular-nums;
-  padding: 0 18mm 20mm;
+  /* 24mm of side margin and 10mm of head on top of the print margin. At 18mm and 0 the
+     type sat against the trim, which is what reads as a page with no padding. */
+  padding: 10mm 24mm 20mm;
 }
 .ic { flex: none; vertical-align: -0.18em; }
 b, strong { font-weight: 700; }
@@ -32,7 +34,7 @@ em, .ser { font-family: "Playfair Display", Georgia, serif; font-style: italic;
    Black ground, one lime block, type at the size the brand actually uses. The previous
    cover was white with a 52pt heading and a pale glyph, which is a report. */
 .cover {
-  height: 268mm; margin: 0 -18mm; padding: 14mm 18mm 10mm 26mm; display: flex;
+  height: 263mm; margin: 0 -24mm; padding: 10mm 24mm 6mm 30mm; display: flex;
   flex-direction: column; break-after: page; position: relative;
   background: #ffffff; color: #111111; overflow: hidden;
 }
@@ -112,7 +114,7 @@ section.fill > .flow-key { flex: none; margin-top: 5mm; }
 .page-break { break-before: page; }
 /* A lime block and then the words, rather than lime BEHIND the words. Highlighter pen
    is what a tint looks like; the brand uses the accent as a field. */
-.opener { display: flex; align-items: center; gap: 12px; margin: 0 0 7mm; }
+.opener { display: flex; align-items: center; gap: 14px; margin: 0 0 9mm; }
 .opener .n { font-size: 9.5pt; font-weight: 700; letter-spacing: .24em;
   text-transform: uppercase; color: #111111; display: flex; align-items: center;
   gap: 11px; }
@@ -124,22 +126,22 @@ h2 { font-size: 34pt; line-height: 1.02; letter-spacing: -.045em; font-weight: 7
 /* Ink. #6f8600 is a derived olive that exists nowhere in the brand, and it read as a
    muddy smear next to the real accent. The serif IS the emphasis; it needs no colour. */
 h2 em { color: #111111; }
-.sub { color: #666666; font-size: 11pt; margin: 0 0 10mm; max-width: 52ch;
-  line-height: 1.6; }
+.sub { color: #666666; font-size: 11pt; margin: 0 0 13mm; max-width: 50ch;
+  line-height: 1.7; }
 
 /* ── The day ─────────────────────────────────────────────────────────────────────────
    A spine with three moments. Square markers, not circles. */
 .tl { position: relative; padding-left: 34px; }
 .tl::before { content: ''; position: absolute; left: 10px; top: 10px; bottom: 10px;
   width: 1px; background: rgba(0,0,0,0.10); }
-.tl .mo { position: relative; margin-bottom: 7mm; break-inside: avoid; }
+.tl .mo { position: relative; margin-bottom: 9mm; break-inside: avoid; }
 .tl .mo:last-child { margin-bottom: 0; }
 .tl .dot { position: absolute; left: -32px; top: 0; width: 22px; height: 22px;
   background: #d3ff02; display: flex; align-items: center; justify-content: center;
   color: #111111; }
 .tl .hd { font-weight: 700; font-size: 12pt; margin-bottom: 4px; letter-spacing: -.02em; }
 .tl ul { margin: 0; padding-left: 15px; }
-.tl li { font-size: 10.2pt; line-height: 1.6; margin-bottom: 2px; }
+.tl li { font-size: 10.2pt; line-height: 1.7; margin-bottom: 3px; }
 .tl li::marker { color: #9c9ca4; }
 
 /* ── The flow ribbon ─────────────────────────────────────────────────────────────────
@@ -207,8 +209,8 @@ h2 em { color: #111111; }
 .pin { position: absolute; width: 16px; height: 16px; background: #d3ff02; color: #111111;
   font-size: 7.6pt; font-weight: 800; display: flex; align-items: center;
   justify-content: center; box-shadow: 0 0 0 1px #111111; }
-.keys { margin: 5mm 0 0; padding: 0; list-style: none; display: grid;
-  grid-template-columns: 1fr 1fr; gap: 4mm 8mm; }
+.keys { margin: 8mm 0 0; padding: 0; list-style: none; display: grid;
+  grid-template-columns: 1fr 1fr; gap: 6mm 12mm; }
 .keys li { display: flex; gap: 9px; font-size: 9.6pt; line-height: 1.55;
   break-inside: avoid; }
 .keys .n { width: 16px; height: 16px; background: #d3ff02; color: #111111; font-size: 7.6pt;
@@ -222,7 +224,7 @@ h2 em { color: #111111; }
   border-top: 1px solid rgba(0,0,0,0.10); border-bottom: 1px solid rgba(0,0,0,0.10); }
 .menu { display: flex; flex-direction: column; }
 .menu .grp { flex: none; }
-.menu .row { display: flex; align-items: center; gap: 14px; padding: 7px 14px;
+.menu .row { display: flex; align-items: center; gap: 16px; padding: 9px 16px;
   border-bottom: 1px solid rgba(0,0,0,0.10); flex: 1; }
 .menu .row:last-child { border-bottom: 0; }
 .menu .nm { font-weight: 700; width: 120px; flex: none; display: flex; align-items: center;
@@ -231,8 +233,8 @@ h2 em { color: #111111; }
 .menu .ds { color: #666666; font-size: 9.4pt; }
 
 /* ── A job ──────────────────────────────────────────────────────────────────────────── */
-.job { border: 1px solid rgba(0,0,0,0.10); border-left: 5px solid #d3ff02; padding: 6mm 7mm;
-  margin-bottom: 6mm; break-inside: avoid; }
+.job { border: 1px solid rgba(0,0,0,0.10); border-left: 5px solid #d3ff02; padding: 7mm 9mm;
+  margin-bottom: 8mm; break-inside: avoid; }
 .job .top { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 4mm; }
 .job .badge { width: 28px; height: 28px; background: #d3ff02; color: #111111;
   display: flex; align-items: center; justify-content: center; font-weight: 800;
@@ -241,8 +243,8 @@ h2 em { color: #111111; }
   line-height: 1.15; }
 .job .when { color: #666666; font-size: 9.2pt; margin-top: 2px; }
 ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; }
-ol.steps > li { counter-increment: s; position: relative; padding-left: 24px;
-  margin-bottom: 2mm; font-size: 10pt; line-height: 1.6; }
+ol.steps > li { counter-increment: s; position: relative; padding-left: 28px;
+  margin-bottom: 3.5mm; font-size: 10pt; line-height: 1.65; }
 ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .22em;
   width: 15px; height: 15px; background: #f5f5f5; color: #666666; font-size: 7.4pt;
   font-weight: 700; display: flex; align-items: center; justify-content: center; }
@@ -268,8 +270,8 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   align-items: center; gap: 9px; font-weight: 700; font-size: 12.5pt;
   letter-spacing: -.03em; border-bottom: 3px solid #d3ff02; }
 .story .hd .ic { color: #111111; }
-.story .bd { padding: 5mm 6mm; }
-.story .beat { display: flex; gap: 12px; margin-bottom: 3.5mm; break-inside: avoid; }
+.story .bd { padding: 7mm 9mm; }
+.story .beat { display: flex; gap: 16px; margin-bottom: 5mm; break-inside: avoid; }
 .story .beat:last-child { margin-bottom: 0; }
 .story .t { width: 58px; flex: none; font-size: 7.8pt; font-weight: 700; color: #111111;
   letter-spacing: .1em; text-transform: uppercase; padding-top: .3em; }
@@ -289,7 +291,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 .vs .col { display: flex; flex-direction: column; }
 .vs ul { margin: 0; padding: 0; list-style: none; flex: 1; display: flex;
   flex-direction: column; justify-content: space-evenly; }
-.vs li { font-size: 9.4pt; line-height: 1.55; margin-bottom: 3mm; padding-left: 14px;
+.vs li { font-size: 9.6pt; line-height: 1.65; margin-bottom: 4mm; padding-left: 16px;
   position: relative; }
 .vs li:last-child { margin-bottom: 0; }
 .vs li::before { content: ''; position: absolute; left: 0; top: .6em; width: 6px;
@@ -297,8 +299,8 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 .vs .col.good li::before { background: #d3ff02; }
 
 /* ── Words we use ───────────────────────────────────────────────────────────────────── */
-.gloss { columns: 2; column-gap: 9mm; }
-.gloss .t { break-inside: avoid; margin-bottom: 4mm; }
+.gloss { columns: 2; column-gap: 14mm; }
+.gloss .t { break-inside: avoid; margin-bottom: 6mm; }
 .gloss .w { font-weight: 700; font-size: 9.8pt; letter-spacing: -.01em; }
 .gloss .d { font-size: 9.2pt; color: #666666; line-height: 1.5; }
 
@@ -318,8 +320,8 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 /* This page gets PINNED TO A WALL, which is the one place a black ground is actively
    wrong: it is read across a room, often beside a window, and dark grey text on near-black
    is the first thing to disappear. White, big type, lime only as the rule and the marker. */
-.card-page { break-before: page; height: 268mm; margin: 0 -18mm -20mm;
-  padding: 10mm 18mm;
+.card-page { break-before: page; height: 263mm; margin: 0 -24mm -20mm;
+  padding: 4mm 24mm;
   display: flex; flex-direction: column; background: #ffffff; color: #111111; }
 .qr { border: 1px solid #111111; border-top: 8mm solid #d3ff02; padding: 10mm 11mm;
   flex: 1; display: flex; flex-direction: column; }
@@ -373,11 +375,12 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="mid">
       <div class="kicker">Role manual</div>
       <h1>Account Management</h1>
-      <p class="for"><span class="ser">for Sana</span></p>
+      
+      <p class="for"><span class="ser">The client’s whole experience of us</span></p>
       <p class="lede">You own the client. You know what they bought, what they are owed, and what they have been told, and you tell them before they have to ask.</p>
     </div>
     <div class="foot">
-      <div><div class="who">Sana</div>Following FZC</div>
+      <div><div class="who">Following FZC</div>Internal, not for clients</div>
       <div>19 October 2026</div>
     </div>
   </div>
@@ -529,7 +532,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <li><span class="n">2</span><span>Story is the whole history. Open it when somebody asks how we got here.</span></li>
     <li><span class="n">3</span><span>Delivery is every creator and the rung they are on. This is your chasing list.</span></li>
     <li><span class="n">4</span><span>Content is what they have filmed. You send it; the client approves it here.</span></li>
-    <li><span class="n">5</span><span>Performance is where you paste a live post. Zain releases it to the client.</span></li>
+    <li><span class="n">5</span><span>Performance is where you paste a live post. Leadership releases it to the client.</span></li>
     <li><span class="n">6</span><span>Money is only there if you are allowed to see it. It is not part of your job.</span></li>
   </ul>
   </section>
@@ -637,7 +640,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Performance</span></div>
-    <ol class="steps"><li>Paste the link to each post that went live.</li><li>We read the numbers off Instagram within a minute or so.</li><li>Zain releases each one. Nothing reaches the client until he does.</li><li>Once released the client sees it on their own Results screen.</li></ol>
+    <ol class="steps"><li>Paste the link to each post that went live.</li><li>We read the numbers off Instagram within a minute or so.</li><li>Leadership releases each one. Nothing reaches the client until they do.</li><li>Once released the client sees it on their own Results screen.</li></ol>
     <div class="next"><svg class="ic" width="13" height="13"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> They get the roll-up across every post without you building a deck.</span></div>
@@ -726,7 +729,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
       <div class="beat"><div class="t">Mon 7pm</div><div class="x">Answer them. On WhatsApp, as a person, the way you always have. Nothing about that changes.</div></div>
       <div class="beat"><div class="t">Mon 7pm</div><div class="x">Then raise it in <strong>Requests</strong>, in their words, ticked as <strong>a client asked for this</strong>, due Thursday.</div></div>
       <div class="beat"><div class="t">Mon</div><div class="x">Leave the owner blank if you are not sure who should do it. Unclaimed is visible, and that is the point.</div></div>
-      <div class="beat"><div class="t">Tue</div><div class="x">Aqsa takes it. You can see that without asking her.</div></div>
+      <div class="beat"><div class="t">Tue</div><div class="x">Talent takes it. You can see that without asking.</div></div>
       <div class="beat"><div class="t">Thu</div><div class="x">It is marked done and you are told. You tell the client they were right to expect it today.</div></div>
       <div class="beat"><div class="t">After</div><div class="x">It is on the client’s record forever. In six months, when they ask what we did for them, it is still there.</div></div>
     </div>
@@ -814,7 +817,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="qr">
       <div class="hd">
         <h2>Account Management</h2>
-        <span class="r">Sana</span>
+        <span class="r">Quick card</span>
       </div>
       
         <div class="blk">
@@ -835,7 +838,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
         </div>
         <div class="blk">
           <div class="lbl">Results</div>
-          <ul><li>Paste the live post on Performance. Zain releases it. The client sees the roll-up themselves.</li></ul>
+          <ul><li>Paste the live post on Performance. Leadership releases it. The client sees the roll-up themselves.</li></ul>
         </div>
       <div class="foot">
         <span>Following</span>

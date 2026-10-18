@@ -50,7 +50,7 @@ export const LIME_DEEP = '#6f8600';
 /* ⚠️ 268mm, NOT 297mm. The PDF is printed with 15mm top and 14mm bottom margins, so a page
    that wants to fill its sheet fills the PRINTABLE BOX. At 297mm every full-bleed page
    overran by 29mm and pushed an empty sheet after it. */
-export const BLEED_H = '268mm';
+export const BLEED_H = '263mm';
 
 /**
  * Lucide paths, inlined.
@@ -115,9 +115,11 @@ html, body { margin: 0; padding: 0; }
 body {
   font-family: Manrope, -apple-system, BlinkMacSystemFont, sans-serif;
   color: ${INK}; background: ${PAPER};
-  font-size: 10.2pt; line-height: 1.6; font-weight: 400;
+  font-size: 10.2pt; line-height: 1.72; font-weight: 400;
   font-variant-numeric: tabular-nums;
-  padding: 0 18mm 20mm;
+  /* 24mm of side margin and 10mm of head on top of the print margin. At 18mm and 0 the
+     type sat against the trim, which is what reads as a page with no padding. */
+  padding: 10mm 24mm 20mm;
 }
 .ic { flex: none; vertical-align: -0.18em; }
 b, strong { font-weight: 700; }
@@ -131,7 +133,7 @@ em, .ser { font-family: "Playfair Display", Georgia, serif; font-style: italic;
    Black ground, one lime block, type at the size the brand actually uses. The previous
    cover was white with a 52pt heading and a pale glyph, which is a report. */
 .cover {
-  height: ${BLEED_H}; margin: 0 -18mm; padding: 14mm 18mm 10mm 26mm; display: flex;
+  height: ${BLEED_H}; margin: 0 -24mm; padding: 10mm 24mm 6mm 30mm; display: flex;
   flex-direction: column; break-after: page; position: relative;
   background: ${PAPER}; color: ${INK}; overflow: hidden;
 }
@@ -211,7 +213,7 @@ section.fill > .flow-key { flex: none; margin-top: 5mm; }
 .page-break { break-before: page; }
 /* A lime block and then the words, rather than lime BEHIND the words. Highlighter pen
    is what a tint looks like; the brand uses the accent as a field. */
-.opener { display: flex; align-items: center; gap: 12px; margin: 0 0 7mm; }
+.opener { display: flex; align-items: center; gap: 14px; margin: 0 0 9mm; }
 .opener .n { font-size: 9.5pt; font-weight: 700; letter-spacing: .24em;
   text-transform: uppercase; color: ${INK}; display: flex; align-items: center;
   gap: 11px; }
@@ -223,22 +225,22 @@ h2 { font-size: 34pt; line-height: 1.02; letter-spacing: -.045em; font-weight: 7
 /* Ink. #6f8600 is a derived olive that exists nowhere in the brand, and it read as a
    muddy smear next to the real accent. The serif IS the emphasis; it needs no colour. */
 h2 em { color: ${INK}; }
-.sub { color: ${MUTED}; font-size: 11pt; margin: 0 0 10mm; max-width: 52ch;
-  line-height: 1.6; }
+.sub { color: ${MUTED}; font-size: 11pt; margin: 0 0 13mm; max-width: 50ch;
+  line-height: 1.7; }
 
 /* ── The day ─────────────────────────────────────────────────────────────────────────
    A spine with three moments. Square markers, not circles. */
 .tl { position: relative; padding-left: 34px; }
 .tl::before { content: ''; position: absolute; left: 10px; top: 10px; bottom: 10px;
   width: 1px; background: ${LINE}; }
-.tl .mo { position: relative; margin-bottom: 7mm; break-inside: avoid; }
+.tl .mo { position: relative; margin-bottom: 9mm; break-inside: avoid; }
 .tl .mo:last-child { margin-bottom: 0; }
 .tl .dot { position: absolute; left: -32px; top: 0; width: 22px; height: 22px;
   background: ${LIME}; display: flex; align-items: center; justify-content: center;
   color: ${INK}; }
 .tl .hd { font-weight: 700; font-size: 12pt; margin-bottom: 4px; letter-spacing: -.02em; }
 .tl ul { margin: 0; padding-left: 15px; }
-.tl li { font-size: 10.2pt; line-height: 1.6; margin-bottom: 2px; }
+.tl li { font-size: 10.2pt; line-height: 1.7; margin-bottom: 3px; }
 .tl li::marker { color: ${FAINT}; }
 
 /* ── The flow ribbon ─────────────────────────────────────────────────────────────────
@@ -306,8 +308,8 @@ h2 em { color: ${INK}; }
 .pin { position: absolute; width: 16px; height: 16px; background: ${LIME}; color: ${INK};
   font-size: 7.6pt; font-weight: 800; display: flex; align-items: center;
   justify-content: center; box-shadow: 0 0 0 1px ${INK}; }
-.keys { margin: 5mm 0 0; padding: 0; list-style: none; display: grid;
-  grid-template-columns: 1fr 1fr; gap: 4mm 8mm; }
+.keys { margin: 8mm 0 0; padding: 0; list-style: none; display: grid;
+  grid-template-columns: 1fr 1fr; gap: 6mm 12mm; }
 .keys li { display: flex; gap: 9px; font-size: 9.6pt; line-height: 1.55;
   break-inside: avoid; }
 .keys .n { width: 16px; height: 16px; background: ${LIME}; color: ${INK}; font-size: 7.6pt;
@@ -321,7 +323,7 @@ h2 em { color: ${INK}; }
   border-top: 1px solid ${LINE}; border-bottom: 1px solid ${LINE}; }
 .menu { display: flex; flex-direction: column; }
 .menu .grp { flex: none; }
-.menu .row { display: flex; align-items: center; gap: 14px; padding: 7px 14px;
+.menu .row { display: flex; align-items: center; gap: 16px; padding: 9px 16px;
   border-bottom: 1px solid ${LINE}; flex: 1; }
 .menu .row:last-child { border-bottom: 0; }
 .menu .nm { font-weight: 700; width: 120px; flex: none; display: flex; align-items: center;
@@ -330,8 +332,8 @@ h2 em { color: ${INK}; }
 .menu .ds { color: ${MUTED}; font-size: 9.4pt; }
 
 /* ── A job ──────────────────────────────────────────────────────────────────────────── */
-.job { border: 1px solid ${LINE}; border-left: 5px solid ${LIME}; padding: 6mm 7mm;
-  margin-bottom: 6mm; break-inside: avoid; }
+.job { border: 1px solid ${LINE}; border-left: 5px solid ${LIME}; padding: 7mm 9mm;
+  margin-bottom: 8mm; break-inside: avoid; }
 .job .top { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 4mm; }
 .job .badge { width: 28px; height: 28px; background: ${LIME}; color: ${INK};
   display: flex; align-items: center; justify-content: center; font-weight: 800;
@@ -340,8 +342,8 @@ h2 em { color: ${INK}; }
   line-height: 1.15; }
 .job .when { color: ${MUTED}; font-size: 9.2pt; margin-top: 2px; }
 ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; }
-ol.steps > li { counter-increment: s; position: relative; padding-left: 24px;
-  margin-bottom: 2mm; font-size: 10pt; line-height: 1.6; }
+ol.steps > li { counter-increment: s; position: relative; padding-left: 28px;
+  margin-bottom: 3.5mm; font-size: 10pt; line-height: 1.65; }
 ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .22em;
   width: 15px; height: 15px; background: ${WASH}; color: ${MUTED}; font-size: 7.4pt;
   font-weight: 700; display: flex; align-items: center; justify-content: center; }
@@ -367,8 +369,8 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   align-items: center; gap: 9px; font-weight: 700; font-size: 12.5pt;
   letter-spacing: -.03em; border-bottom: 3px solid ${LIME}; }
 .story .hd .ic { color: ${INK}; }
-.story .bd { padding: 5mm 6mm; }
-.story .beat { display: flex; gap: 12px; margin-bottom: 3.5mm; break-inside: avoid; }
+.story .bd { padding: 7mm 9mm; }
+.story .beat { display: flex; gap: 16px; margin-bottom: 5mm; break-inside: avoid; }
 .story .beat:last-child { margin-bottom: 0; }
 .story .t { width: 58px; flex: none; font-size: 7.8pt; font-weight: 700; color: ${INK};
   letter-spacing: .1em; text-transform: uppercase; padding-top: .3em; }
@@ -388,7 +390,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 .vs .col { display: flex; flex-direction: column; }
 .vs ul { margin: 0; padding: 0; list-style: none; flex: 1; display: flex;
   flex-direction: column; justify-content: space-evenly; }
-.vs li { font-size: 9.4pt; line-height: 1.55; margin-bottom: 3mm; padding-left: 14px;
+.vs li { font-size: 9.6pt; line-height: 1.65; margin-bottom: 4mm; padding-left: 16px;
   position: relative; }
 .vs li:last-child { margin-bottom: 0; }
 .vs li::before { content: ''; position: absolute; left: 0; top: .6em; width: 6px;
@@ -396,8 +398,8 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 .vs .col.good li::before { background: ${LIME}; }
 
 /* ── Words we use ───────────────────────────────────────────────────────────────────── */
-.gloss { columns: 2; column-gap: 9mm; }
-.gloss .t { break-inside: avoid; margin-bottom: 4mm; }
+.gloss { columns: 2; column-gap: 14mm; }
+.gloss .t { break-inside: avoid; margin-bottom: 6mm; }
 .gloss .w { font-weight: 700; font-size: 9.8pt; letter-spacing: -.01em; }
 .gloss .d { font-size: 9.2pt; color: ${MUTED}; line-height: 1.5; }
 
@@ -417,8 +419,8 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 /* This page gets PINNED TO A WALL, which is the one place a black ground is actively
    wrong: it is read across a room, often beside a window, and dark grey text on near-black
    is the first thing to disappear. White, big type, lime only as the rule and the marker. */
-.card-page { break-before: page; height: ${BLEED_H}; margin: 0 -18mm -20mm;
-  padding: 10mm 18mm;
+.card-page { break-before: page; height: ${BLEED_H}; margin: 0 -24mm -20mm;
+  padding: 4mm 24mm;
   display: flex; flex-direction: column; background: ${PAPER}; color: ${INK}; }
 .qr { border: 1px solid ${INK}; border-top: 8mm solid ${LIME}; padding: 10mm 11mm;
   flex: 1; display: flex; flex-direction: column; }

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<title>Co-Founder, Following</title>
+<title>Founder &amp; CEO, Following</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300..800&family=Playfair+Display:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
@@ -16,9 +16,11 @@ html, body { margin: 0; padding: 0; }
 body {
   font-family: Manrope, -apple-system, BlinkMacSystemFont, sans-serif;
   color: #111111; background: #ffffff;
-  font-size: 10.2pt; line-height: 1.6; font-weight: 400;
+  font-size: 10.2pt; line-height: 1.72; font-weight: 400;
   font-variant-numeric: tabular-nums;
-  padding: 0 18mm 20mm;
+  /* 24mm of side margin and 10mm of head on top of the print margin. At 18mm and 0 the
+     type sat against the trim, which is what reads as a page with no padding. */
+  padding: 10mm 24mm 20mm;
 }
 .ic { flex: none; vertical-align: -0.18em; }
 b, strong { font-weight: 700; }
@@ -32,7 +34,7 @@ em, .ser { font-family: "Playfair Display", Georgia, serif; font-style: italic;
    Black ground, one lime block, type at the size the brand actually uses. The previous
    cover was white with a 52pt heading and a pale glyph, which is a report. */
 .cover {
-  height: 268mm; margin: 0 -18mm; padding: 14mm 18mm 10mm 26mm; display: flex;
+  height: 263mm; margin: 0 -24mm; padding: 10mm 24mm 6mm 30mm; display: flex;
   flex-direction: column; break-after: page; position: relative;
   background: #ffffff; color: #111111; overflow: hidden;
 }
@@ -112,7 +114,7 @@ section.fill > .flow-key { flex: none; margin-top: 5mm; }
 .page-break { break-before: page; }
 /* A lime block and then the words, rather than lime BEHIND the words. Highlighter pen
    is what a tint looks like; the brand uses the accent as a field. */
-.opener { display: flex; align-items: center; gap: 12px; margin: 0 0 7mm; }
+.opener { display: flex; align-items: center; gap: 14px; margin: 0 0 9mm; }
 .opener .n { font-size: 9.5pt; font-weight: 700; letter-spacing: .24em;
   text-transform: uppercase; color: #111111; display: flex; align-items: center;
   gap: 11px; }
@@ -124,22 +126,22 @@ h2 { font-size: 34pt; line-height: 1.02; letter-spacing: -.045em; font-weight: 7
 /* Ink. #6f8600 is a derived olive that exists nowhere in the brand, and it read as a
    muddy smear next to the real accent. The serif IS the emphasis; it needs no colour. */
 h2 em { color: #111111; }
-.sub { color: #666666; font-size: 11pt; margin: 0 0 10mm; max-width: 52ch;
-  line-height: 1.6; }
+.sub { color: #666666; font-size: 11pt; margin: 0 0 13mm; max-width: 50ch;
+  line-height: 1.7; }
 
 /* ── The day ─────────────────────────────────────────────────────────────────────────
    A spine with three moments. Square markers, not circles. */
 .tl { position: relative; padding-left: 34px; }
 .tl::before { content: ''; position: absolute; left: 10px; top: 10px; bottom: 10px;
   width: 1px; background: rgba(0,0,0,0.10); }
-.tl .mo { position: relative; margin-bottom: 7mm; break-inside: avoid; }
+.tl .mo { position: relative; margin-bottom: 9mm; break-inside: avoid; }
 .tl .mo:last-child { margin-bottom: 0; }
 .tl .dot { position: absolute; left: -32px; top: 0; width: 22px; height: 22px;
   background: #d3ff02; display: flex; align-items: center; justify-content: center;
   color: #111111; }
 .tl .hd { font-weight: 700; font-size: 12pt; margin-bottom: 4px; letter-spacing: -.02em; }
 .tl ul { margin: 0; padding-left: 15px; }
-.tl li { font-size: 10.2pt; line-height: 1.6; margin-bottom: 2px; }
+.tl li { font-size: 10.2pt; line-height: 1.7; margin-bottom: 3px; }
 .tl li::marker { color: #9c9ca4; }
 
 /* ── The flow ribbon ─────────────────────────────────────────────────────────────────
@@ -207,8 +209,8 @@ h2 em { color: #111111; }
 .pin { position: absolute; width: 16px; height: 16px; background: #d3ff02; color: #111111;
   font-size: 7.6pt; font-weight: 800; display: flex; align-items: center;
   justify-content: center; box-shadow: 0 0 0 1px #111111; }
-.keys { margin: 5mm 0 0; padding: 0; list-style: none; display: grid;
-  grid-template-columns: 1fr 1fr; gap: 4mm 8mm; }
+.keys { margin: 8mm 0 0; padding: 0; list-style: none; display: grid;
+  grid-template-columns: 1fr 1fr; gap: 6mm 12mm; }
 .keys li { display: flex; gap: 9px; font-size: 9.6pt; line-height: 1.55;
   break-inside: avoid; }
 .keys .n { width: 16px; height: 16px; background: #d3ff02; color: #111111; font-size: 7.6pt;
@@ -222,7 +224,7 @@ h2 em { color: #111111; }
   border-top: 1px solid rgba(0,0,0,0.10); border-bottom: 1px solid rgba(0,0,0,0.10); }
 .menu { display: flex; flex-direction: column; }
 .menu .grp { flex: none; }
-.menu .row { display: flex; align-items: center; gap: 14px; padding: 7px 14px;
+.menu .row { display: flex; align-items: center; gap: 16px; padding: 9px 16px;
   border-bottom: 1px solid rgba(0,0,0,0.10); flex: 1; }
 .menu .row:last-child { border-bottom: 0; }
 .menu .nm { font-weight: 700; width: 120px; flex: none; display: flex; align-items: center;
@@ -231,8 +233,8 @@ h2 em { color: #111111; }
 .menu .ds { color: #666666; font-size: 9.4pt; }
 
 /* ── A job ──────────────────────────────────────────────────────────────────────────── */
-.job { border: 1px solid rgba(0,0,0,0.10); border-left: 5px solid #d3ff02; padding: 6mm 7mm;
-  margin-bottom: 6mm; break-inside: avoid; }
+.job { border: 1px solid rgba(0,0,0,0.10); border-left: 5px solid #d3ff02; padding: 7mm 9mm;
+  margin-bottom: 8mm; break-inside: avoid; }
 .job .top { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 4mm; }
 .job .badge { width: 28px; height: 28px; background: #d3ff02; color: #111111;
   display: flex; align-items: center; justify-content: center; font-weight: 800;
@@ -241,8 +243,8 @@ h2 em { color: #111111; }
   line-height: 1.15; }
 .job .when { color: #666666; font-size: 9.2pt; margin-top: 2px; }
 ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; }
-ol.steps > li { counter-increment: s; position: relative; padding-left: 24px;
-  margin-bottom: 2mm; font-size: 10pt; line-height: 1.6; }
+ol.steps > li { counter-increment: s; position: relative; padding-left: 28px;
+  margin-bottom: 3.5mm; font-size: 10pt; line-height: 1.65; }
 ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .22em;
   width: 15px; height: 15px; background: #f5f5f5; color: #666666; font-size: 7.4pt;
   font-weight: 700; display: flex; align-items: center; justify-content: center; }
@@ -268,8 +270,8 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   align-items: center; gap: 9px; font-weight: 700; font-size: 12.5pt;
   letter-spacing: -.03em; border-bottom: 3px solid #d3ff02; }
 .story .hd .ic { color: #111111; }
-.story .bd { padding: 5mm 6mm; }
-.story .beat { display: flex; gap: 12px; margin-bottom: 3.5mm; break-inside: avoid; }
+.story .bd { padding: 7mm 9mm; }
+.story .beat { display: flex; gap: 16px; margin-bottom: 5mm; break-inside: avoid; }
 .story .beat:last-child { margin-bottom: 0; }
 .story .t { width: 58px; flex: none; font-size: 7.8pt; font-weight: 700; color: #111111;
   letter-spacing: .1em; text-transform: uppercase; padding-top: .3em; }
@@ -289,7 +291,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 .vs .col { display: flex; flex-direction: column; }
 .vs ul { margin: 0; padding: 0; list-style: none; flex: 1; display: flex;
   flex-direction: column; justify-content: space-evenly; }
-.vs li { font-size: 9.4pt; line-height: 1.55; margin-bottom: 3mm; padding-left: 14px;
+.vs li { font-size: 9.6pt; line-height: 1.65; margin-bottom: 4mm; padding-left: 16px;
   position: relative; }
 .vs li:last-child { margin-bottom: 0; }
 .vs li::before { content: ''; position: absolute; left: 0; top: .6em; width: 6px;
@@ -297,8 +299,8 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 .vs .col.good li::before { background: #d3ff02; }
 
 /* ── Words we use ───────────────────────────────────────────────────────────────────── */
-.gloss { columns: 2; column-gap: 9mm; }
-.gloss .t { break-inside: avoid; margin-bottom: 4mm; }
+.gloss { columns: 2; column-gap: 14mm; }
+.gloss .t { break-inside: avoid; margin-bottom: 6mm; }
 .gloss .w { font-weight: 700; font-size: 9.8pt; letter-spacing: -.01em; }
 .gloss .d { font-size: 9.2pt; color: #666666; line-height: 1.5; }
 
@@ -318,8 +320,8 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 /* This page gets PINNED TO A WALL, which is the one place a black ground is actively
    wrong: it is read across a room, often beside a window, and dark grey text on near-black
    is the first thing to disappear. White, big type, lime only as the rule and the marker. */
-.card-page { break-before: page; height: 268mm; margin: 0 -18mm -20mm;
-  padding: 10mm 18mm;
+.card-page { break-before: page; height: 263mm; margin: 0 -24mm -20mm;
+  padding: 4mm 24mm;
   display: flex; flex-direction: column; background: #ffffff; color: #111111; }
 .qr { border: 1px solid #111111; border-top: 8mm solid #d3ff02; padding: 10mm 11mm;
   flex: 1; display: flex; flex-direction: column; }
@@ -372,12 +374,13 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     </div>
     <div class="mid">
       <div class="kicker">Role manual</div>
-      <h1>Co-Founder</h1>
-      <p class="for"><span class="ser">for Hajar</span></p>
-      <p class="lede">You are the quality gate and the budget gate. Nothing reaches a client that you have not seen, and no money leaves without you.</p>
+      <h1>Founder &amp; CEO</h1>
+      
+      <p class="for"><span class="ser">What we chase, and when money moves</span></p>
+      <p class="lede">You decide what we chase, what things cost, and when money moves. Everything else should reach you without you going to look for it.</p>
     </div>
     <div class="foot">
-      <div><div class="who">Hajar</div>Following FZC</div>
+      <div><div class="who">Following FZC</div>Internal, not for clients</div>
       <div>19 October 2026</div>
     </div>
   </div>
@@ -394,21 +397,21 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8M4.93 10.93 6.34 12.34M2 18h2M20 18h2M19.07 10.93l-1.41 1.41M22 22H2M16 6l-4-4-4 4M16 18a4 4 0 0 0-8 0"/></svg></span>
       <div class="hd">First thing</div>
-      <ul><li>Open <strong>Rates</strong>. Clients have said yes; these campaigns cannot open until you price them.</li><li>Open <strong>Decisions</strong>. Everything held for you, oldest first.</li></ul>
+      <ul><li>Open <strong>Today</strong>. The whole company on one screen.</li><li>Open <strong>Decisions</strong>. Only what is held for you.</li></ul>
     </div>
     <div class="mo">
       <span class="dot"><svg class="ic" width="10" height="10"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg></span>
       <div class="hd">Through the day</div>
-      <ul><li>Clear rosters quickly. Talent cannot move until you do.</li><li>Strike with a reason. The reason stops the repeat next month.</li><li>Check the talent board on <strong>Rates</strong>: who is holding what, and what is late.</li></ul>
+      <ul><li>Release what you want chased. Talent cannot start until you do.</li><li>Everything else is a notification, not a screen you have to visit.</li></ul>
     </div>
     <div class="mo">
       <span class="dot"><svg class="ic" width="10" height="10"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
-      <div class="hd">Before you log off</div>
-      <ul><li>Nothing has waited on you for more than a day.</li></ul>
+      <div class="hd">Weekly</div>
+      <ul><li>Margin per campaign and what each client is really worth.</li><li>Quiet brands, overdue rosters and late payments find you.</li></ul>
     </div>
   </div>
   </section>
@@ -417,7 +420,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="opener"><span class="n">02 · The whole flow</span>
   <span class="bar"></span></div>
     <h2>Where your work <em>sits</em></h2>
-    <p class="sub">Nothing opens until you have priced it, and nothing leaves until you have cleared it. You are also the second pair of hands when Zain is away.</p>
+    <p class="sub">You sit at both ends: what we chase at the start, what leaves the building at the end. Everything a client sees passes you.</p>
     
   <div class="flow">
     <div class="st">
@@ -466,71 +469,70 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   <div class="shot">
     <div class="bar">
       <span class="d"></span><span class="d"></span><span class="d"></span>
-      <span class="u">platform.following.ae/work/negotiations</span>
+      <span class="u">platform.following.ae/work/approvals</span>
     </div>
     <div class="body">
       <div class="side">
         
         <div class="it">Today</div>
-        <div class="it">Waiting on me</div>
+        <div class="it on">Waiting on me<span class="pin" style="top:50%;right:7px;transform:translateY(-50%)">5</span></div>
+        <div class="it">Requests</div>
+        <div class="it">Desk</div>
         <div class="it">Clients</div>
-        <div class="it">Creators</div>
-        <div class="it">Campaigns</div>
-        <div class="it on">Finance<span class="pin" style="top:50%;right:7px;transform:translateY(-50%)">6</span></div>
+        <div class="it">Finance</div>
       </div>
       <div class="main">
         <div style="position:relative;display:inline-block">
-          <div class="h1">Rates to agree</div>
-          <div class="h2">Clients said yes. Nothing opens until we know what we pay</div>
-          <span class="pin" style="top:-6px;right:-22px">4</span>
+          <div class="h1">Waiting on you</div>
+          <div class="h2">Nothing here has happened yet</div>
+          <span class="pin" style="top:-6px;right:-22px">2</span>
         </div>
         <div class="cards">
           <div class="card" style="position:relative">
-            <span class="pin" style="top:-7px;right:-7px">2</span>
-            <div class="k">Creators to price</div>
-            <div class="v">26</div>
-            <div class="s">across 5 proposals</div>
-          </div>
-          <div class="card" style="position:relative">
-            <span class="pin" style="top:-7px;right:-7px">1</span>
-            <div class="k">Campaigns held up</div>
-            <div class="v">5</div>
-            <div class="s">none can open</div>
+            <span class="pin" style="top:-7px;right:-7px">4</span>
+            <div class="k">Held</div>
+            <div class="v">3</div>
+            <div class="s">oldest 2 days</div>
           </div>
           <div class="card" style="position:relative">
             
-            <div class="k">Ready to open</div>
-            <div class="v">0</div>
-            <div class="s">priced, waiting on you</div>
+            <div class="k">Posts to release</div>
+            <div class="v">7</div>
+            <div class="s">measured, not sent</div>
+          </div>
+          <div class="card" style="position:relative">
+            
+            <div class="k">Links to check</div>
+            <div class="v">2</div>
+            <div class="s">quotations</div>
           </div>
         </div>
         <div class="rowz">
           <div class="r" style="position:relative">
-            <span class="pin" style="top:50%;left:-8px;transform:translateY(-50%)">3</span>
-            <span class="nm">Minimalist  ·  13 confirmed  ·  13 with no rate</span>
-            <span class="tag hot">21 days</span>
+            <span class="pin" style="top:50%;left:-8px;transform:translateY(-50%)">1</span>
+            <span class="nm">Account management  ·  send content to Barakat</span>
+            <span class="tag hot">client</span>
           </div>
           <div class="r" style="position:relative">
-            <span class="pin" style="top:50%;left:-8px;transform:translateY(-50%)">5</span>
-            <span class="nm">Brands For Less  ·  Oman  ·  4 with no rate</span>
-            <span class="tag">14 days</span>
+            <span class="pin" style="top:50%;left:-8px;transform:translateY(-50%)">3</span>
+            <span class="nm">Talent  ·  delete a standing list</span>
+            <span class="tag">delete</span>
           </div>
           <div class="r" style="position:relative">
             
-            <span class="nm">Talent board: who holds what, and what is late</span>
-            <span class="tag">below</span>
+            <span class="nm">@firaskazma  ·  1.3M views  ·  release to the client</span>
+            <span class="tag">results</span>
           </div>
         </div>
       </div>
     </div>
   </div>
   <ul class="keys">
-    <li><span class="n">1</span><span>Longest wait first. The top row is the campaign that has been stuck longest.</span></li>
-    <li><span class="n">2</span><span>Every one of these is a client who has already said yes and cannot start.</span></li>
-    <li><span class="n">3</span><span>Open one and put the real negotiated cost against each creator.</span></li>
-    <li><span class="n">4</span><span>The margin moves as you type, before you commit anything.</span></li>
-    <li><span class="n">5</span><span>When every creator has a rate, the campaign can be opened.</span></li>
-    <li><span class="n">6</span><span>The talent board underneath: counts, never scores. Where the load is, not who is better.</span></li>
+    <li><span class="n">1</span><span>Approving runs the request exactly as it was submitted, on your authority.</span></li>
+    <li><span class="n">2</span><span>Every permission check runs again. You cannot approve somebody into something you could not do yourself.</span></li>
+    <li><span class="n">3</span><span>A refusal needs a reason. An unexplained no comes back next week as the same request.</span></li>
+    <li><span class="n">4</span><span>Oldest first. The longest wait is the one somebody has worked around.</span></li>
+    <li><span class="n">5</span><span>The gate is OFF by default. Deletes and client-facing actions already need you whether it is on or not.</span></li>
   </ul>
   </section>
 
@@ -560,6 +562,12 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>Requests</span>
         <span class="ds">What clients and colleagues have asked for</span>
+      </div>
+      <div class="row">
+        <span class="nm"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M22 7 13.03 12.7a2 2 0 0 1-2.06 0L2 7M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg>Desk</span>
+        <span class="ds">Who has contacted the company. Superadmin only</span>
       </div>
       <div class="row">
         <span class="nm"><svg class="ic" width="14" height="14"
@@ -612,62 +620,106 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="top">
       <span class="badge">1</span>
       <div>
-        <h3>Clear a roster</h3>
-        <div class="when">When talent hands it up for review.</div>
+        <h3>Decide what we chase</h3>
+        <div class="when">When a brand is logged as worth pursuing.</div>
       </div>
     </div>
-    <div class="path"><span class="lbl">Go to</span><span class="chip start">Creators</span><span class="sep"><svg class="ic" width="11" height="11"
+    <div class="path"><span class="lbl">Go to</span><span class="chip start">Clients</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Rosters</span></div>
-    <ol class="steps"><li>Check each creator against the brief’s budget.</li><li>Check they really live in the market the brief asked for.</li><li>Check engagement against follower count.</li><li>Check we have not used them for this brand recently.</li><li>Clear the ones that pass. Strike the rest with the reason.</li></ol>
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Brands</span></div>
+    <ol class="steps"><li>A logged brand is not work until you say so.</li><li>Write what we are looking for, then release it.</li><li>That release is what starts talent researching.</li></ol>
     <div class="next"><svg class="ic" width="13" height="13"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> Account management sends the cleared list to the client.</span></div>
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> Talent begins sourcing against what you wrote.</span></div>
   </div>
   <div class="job">
     <div class="top">
       <span class="badge">2</span>
       <div>
-        <h3>Price what talent has found</h3>
-        <div class="when">As soon as a cost is recorded.</div>
+        <h3>Agree what we pay each creator</h3>
+        <div class="when">As soon as a client confirms. Nothing opens until this is done.</div>
       </div>
     </div>
-    <div class="path"><span class="lbl">Go to</span><span class="chip start">Creators</span><span class="sep"><svg class="ic" width="11" height="11"
+    <div class="path"><span class="lbl">Go to</span><span class="chip start">Finance</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Pending rates</span></div>
-    <ol class="steps"><li>Talent records what a creator charges us.</li><li>You set what we sell them for. Nobody else can.</li><li>Until you do, that creator cannot go on a quote.</li></ol>
-    
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Rates</span></div>
+    <ol class="steps"><li>Every proposal a client has confirmed is here, longest wait first.</li><li>Open one and put the real negotiated cost against each creator.</li><li>The margin moves as you type, before you commit anything.</li><li>What we quoted and what we pay are rarely the same. The second one is the truth.</li><li>When every creator has a rate, the campaign can be opened.</li></ol>
+    <div class="next"><svg class="ic" width="13" height="13"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> The campaign opens with a real margin instead of acquiring one later.</span></div>
   </div>
   <div class="job">
     <div class="top">
       <span class="badge">3</span>
       <div>
-        <h3>Release money</h3>
-        <div class="when">When work is delivered and a payment is requested.</div>
+        <h3>See who is holding what</h3>
+        <div class="when">Whenever you are allocating, and before you hire.</div>
       </div>
     </div>
     <div class="path"><span class="lbl">Go to</span><span class="chip start">Finance</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Approvals</span></div>
-    <ol class="steps"><li>Check the work actually landed before approving.</li><li>Check the creator has signed and given their own bank details.</li><li>Approve. Nothing pays out that the client has not funded.</li></ol>
-    <div class="next"><svg class="ic" width="13" height="13"
-    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> The payment joins the next payout run.</span></div>
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Rates</span></div>
+    <ol class="steps"><li>The talent board is underneath the rates.</li><li>Open requests, how many are late, rosters held, sourced and priced this month.</li><li>Counts, never scores. It tells you where the load is, not who is better.</li><li>Anything nobody has taken is called out at the top.</li></ol>
+    
   </div>
   <div class="job">
     <div class="top">
       <span class="badge">4</span>
       <div>
-        <h3>Watch the shape of the week</h3>
-        <div class="when">Once a week is enough.</div>
+        <h3>See what a campaign is worth</h3>
+        <div class="when">Before you invoice, and whenever it matters.</div>
+      </div>
+    </div>
+    <div class="path"><span class="lbl">Go to</span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Money</span></div>
+    <ol class="steps"><li>Cost, sell, margin and what the client has actually paid.</li><li>How much is left to draw before we are funding it ourselves.</li><li>Approve working capital here if creators must be paid first.</li></ol>
+    
+  </div>
+  <div class="job">
+    <div class="top">
+      <span class="badge">5</span>
+      <div>
+        <h3>Invoice and collect</h3>
+        <div class="when">On the agreed schedule.</div>
+      </div>
+    </div>
+    <div class="path"><span class="lbl">Go to</span><span class="chip start">Clients</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Brands</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open the brand</span></div>
+    <ol class="steps"><li>Raise the advance, then the balance on the agreed terms.</li><li>Record the invoice and attach the file.</li><li>Mark it paid when the transfer lands.</li></ol>
+    
+  </div>
+  <div class="job">
+    <div class="top">
+      <span class="badge">6</span>
+      <div>
+        <h3>See who has contacted the company</h3>
+        <div class="when">Whenever you want to know, not as a queue.</div>
+      </div>
+    </div>
+    <div class="path"><span class="lbl">Go to</span><span class="chip start">Desk</span></div>
+    <ol class="steps"><li>Everything sent to our catch-all address or the marketing number lands here.</li><li>Each one says who we think it is from, and says so plainly when we do not know.</li><li>Nobody replies from here and nothing changes because of it. Only you see it.</li></ol>
+    
+  </div>
+  <div class="job">
+    <div class="top">
+      <span class="badge">7</span>
+      <div>
+        <h3>Control what the platform sends</h3>
+        <div class="when">Whenever the noise is wrong.</div>
       </div>
     </div>
     <div class="path"><span class="lbl">Go to</span><span class="chip start">Admin</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Company</span><span class="sep"><svg class="ic" width="11" height="11"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Settings</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Targets</span></div>
-    <ol class="steps"><li>Targets and progress for the whole team.</li><li>Quiet brands and overdue rosters reach you without looking.</li></ol>
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Sending</span></div>
+    <ol class="steps"><li>Every automated email in the platform is listed here.</li><li>Per event: switch it off, or move it into the twice-daily digest.</li><li>Choose which roles hear it, including whether you do.</li></ol>
     
   </div>
   </section>
@@ -675,7 +727,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   <section class="page-break">
     <div class="opener"><span class="n">06 · A real one</span>
   <span class="bar"></span></div>
-    <h2>Thirteen creators, one <em>afternoon</em></h2>
+    <h2>A post goes live, and a client sees <em>it</em></h2>
     <p class="sub">One job, followed the whole way, with the real numbers.</p>
     
   <div class="story">
@@ -684,12 +736,12 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg> <span>Start to finish</span></div>
     <div class="bd">
-      <div class="beat"><div class="t">Open</div><div class="x">Minimalist confirmed three weeks ago. Thirteen creators, not one priced, and the campaign cannot open.</div></div>
-      <div class="beat"><div class="t">Why</div><div class="x">Nobody was chasing it because it lived inside one proposal’s page. That is what this screen exists to stop.</div></div>
-      <div class="beat"><div class="t">Price</div><div class="x">What we quoted is what we assumed. What we pay is what you negotiate. On the live Lago campaign one creator quoted 6,000 settled at 3,500.</div></div>
-      <div class="beat"><div class="t">Watch</div><div class="x">The margin updates as you type. You see the consequence of a number before you commit it.</div></div>
-      <div class="beat"><div class="t">Done</div><div class="x">Thirteen rates agreed, the campaign opens with a real margin instead of acquiring one later.</div></div>
-      <div class="beat"><div class="t">Then</div><div class="x">Aqsa raises the enrolment links. Each creator signs their own agreement and enters their own bank details. Nobody types a fee.</div></div>
+      <div class="beat"><div class="t">Day 1</div><div class="x">A creator posts. Account management pastes the link on the campaign’s <strong>Performance</strong> tab.</div></div>
+      <div class="beat"><div class="t">Day 1</div><div class="x">We read it from Instagram within a minute. Plays, likes, comments, engagement, measured and not estimated.</div></div>
+      <div class="beat"><div class="t">Day 1</div><div class="x">It sits in <strong>Waiting on you</strong>. The client cannot see it.</div></div>
+      <div class="beat"><div class="t">Day 1</div><div class="x">You release it. Only then does it appear on their Results screen, with the roll-up across every released post.</div></div>
+      <div class="beat"><div class="t">Weekly</div><div class="x">We re-count it every seven days for a month, then stop. The clock is stamped once from the first post so it cannot run forever.</div></div>
+      <div class="beat"><div class="t">Never</div><div class="x">Nothing with a hidden like count is reported as zero. It shows a dash, and the totals say how many could not be read.</div></div>
     </div>
   </div>
   </section>
@@ -706,13 +758,13 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
       <div class="ttl"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> What good looks like</div>
-      <ul><li>Price what clients have already agreed to, before anything else in your day.</li><li>Clear rosters fast. Talent genuinely cannot move until you do.</li><li>Strike a creator with a reason written down. The reason stops the repeat next month.</li><li>Check the talent board when you are allocating, not only when something has gone wrong.</li><li>Use the quoted cost as a starting point, never as the answer.</li></ul>
+      <ul><li>Answer the queue daily. Everything in it is somebody stopped mid-task.</li><li>Turn something down with a reason. It stops the same request next week.</li><li>Release results as they come, so a client sees the campaign working.</li><li>Check the talent board before hiring, not after.</li><li>Let the team work in their own lane without asking you.</li></ul>
     </div>
     <div class="col bad">
       <div class="ttl"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg> What has actually gone wrong</div>
-      <ul><li>Leaving a confirmed proposal unpriced. The client has said yes and is waiting on us.</li><li>Opening a campaign and agreeing rates afterwards. You are then negotiating with somebody who has already started working.</li><li>Approving a creator with no sell price. They cannot be sold, so they are not real.</li><li>Letting a payment go out that the client has not funded.</li><li>Reading the talent board as a scoreboard. It shows load, not quality.</li></ul>
+      <ul><li>Letting the queue sit. The gate turns into a reason people work around the platform.</li><li>Approving without reading. The 202 means nothing has happened yet, and it will happen exactly as submitted.</li><li>Switching the gate on the day before you travel.</li><li>Sending a client anything automatically. No automated email ever reaches a client.</li></ul>
     </div>
   </div>
   </section>
@@ -752,13 +804,13 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="rules"><ul>
       <li><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>A creator the client should not see is your catch, not theirs.</span></li><li><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>No automated email ever reaches a client. Every client email is sent by a person.</span></li><li><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>Always strike with a reason. No reason means it happens again next month.</span></li><li><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>A campaign is never quietly repriced. Terms are stamped when it is awarded.</span></li><li><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>No payment goes out on work you have not confirmed landed.</span></li><li><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>Nothing pays out beyond what the client has funded, unless you approve it in writing.</span></li><li><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>Working capital is an amount you approve in writing, never a general permission.</span></li>
+    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>Cost is never visible to a brand. Only what we sell for.</span></li>
     </ul></div>
   </section>
 
@@ -774,29 +826,29 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   <div class="card-page">
     <div class="qr">
       <div class="hd">
-        <h2>Co-Founder</h2>
-        <span class="r">Hajar</span>
+        <h2>Founder &amp; CEO</h2>
+        <span class="r">Quick card</span>
       </div>
       
         <div class="blk">
           <div class="lbl">Open first</div>
-          <ul><li>Rates. Clients who said yes and cannot start.</li><li>Then Decisions.</li></ul>
+          <ul><li>Waiting on me. Everybody you are blocking.</li></ul>
         </div>
         <div class="blk">
           <div class="lbl">The one rule</div>
-          <ul><li>Nothing opens until every creator has a real rate.</li></ul>
+          <ul><li>Nothing reaches a client that you have not seen.</li></ul>
         </div>
         <div class="blk">
-          <div class="lbl">Quoted is not agreed</div>
-          <ul><li>The quote is what we assumed. The rate is what you got.</li></ul>
+          <div class="lbl">Releasing results</div>
+          <ul><li>Campaign, Performance, release. Re-counted weekly for a month, then it stops.</li></ul>
         </div>
         <div class="blk">
           <div class="lbl">Never</div>
-          <ul><li>Never pay out beyond what the client has funded.</li><li>Never release a creator with no sell price.</li></ul>
+          <ul><li>No automated email ever reaches a client.</li><li>Cost is never visible to a brand.</li></ul>
         </div>
         <div class="blk">
-          <div class="lbl">When Zain is away</div>
-          <ul><li>You are the second pair of hands. Everything of his comes to you.</li></ul>
+          <div class="lbl">Downloads</div>
+          <ul><li>Exports are the two founders only, everywhere in the platform.</li></ul>
         </div>
       <div class="foot">
         <span>Following</span>
