@@ -20,6 +20,12 @@ export interface NotificationEvent {
   subject_override: string | null
   configured: boolean
   updated_at: string | null
+  /** Which staff roles hear this event, in the bell as well as by email. Includes the
+   *  pseudo-role 'superadmin'. */
+  staff_roles: string[]
+  /** False when nobody has chosen and the code default is being shown. "Inherited" and
+   *  "chosen" are different facts and this screen says which. */
+  staff_roles_set: boolean
 }
 
 export interface EventsResponse {
@@ -43,6 +49,9 @@ export interface RuleUpdatePayload {
   recipient_user_ids?: string[]
   recipient_emails?: string[]
   subject_override?: string | null
+  /** [] is a real answer meaning "nobody by role" and is honoured; omit to leave it
+   *  inherited from the code default. */
+  staff_roles?: string[]
 }
 
 export interface DigestPreview {

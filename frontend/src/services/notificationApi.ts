@@ -29,6 +29,8 @@ export type ServerNotificationType =
   | 'content_approved'
   | 'content_arrived'
   | 'content_changes_requested'
+  | 'content_client_review'
+  | 'content_team_digest'
   | 'creator_approved'
   | 'creator_cost_captured'
   | 'creator_rejected'
@@ -130,6 +132,8 @@ export const NOTIFICATION_CATEGORIES = {
     'content_approved',
     'content_arrived',
     'content_changes_requested',
+    'content_client_review',
+    'content_team_digest',
     'fa_content_approved',
     'fa_content_edit_requested',
     'fa_content_submitted',
@@ -230,6 +234,8 @@ export const EVENT_LABEL: Partial<Record<ServerNotificationType, string>> = {
   content_approved: "Client approved content",
   content_arrived: "Creator content arrived",
   content_changes_requested: "Client asked for changes on content",
+  content_client_review: "\u26a0\ufe0f Content review email TO THE CLIENT",
+  content_team_digest: "Content digest, to us",
   creator_approved: "Creator released to the master database",
   creator_cost_captured: "Creator cost captured",
   creator_rejected: "Creator turned down",

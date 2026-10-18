@@ -21,6 +21,22 @@ import {
   type DigestPreview,
 } from "@/services/notificationSettingsApi"
 
+/** The roles an event can be routed to, in the order the business reads them.
+ *  `superadmin` is in the same list as the real staff roles on purpose: the founder used to
+ *  hear EVERYTHING with no way to say otherwise, which is most of why these alerts stopped
+ *  being read. It is now a tick like any other. */
+const ROLE_ORDER = ['superadmin', 'cofounder', 'ceo', 'talent_manager',
+                    'account_manager', 'business_development'] as const
+
+const ROLE_LABEL: Record<string, string> = {
+  superadmin: 'You (superadmin)',
+  cofounder: 'Co-founder',
+  ceo: 'CEO',
+  talent_manager: 'Talent',
+  account_manager: 'Account management',
+  business_development: 'Business development',
+}
+
 // -----------------------------------------------------------------------------
 // Per-event editable row
 // -----------------------------------------------------------------------------
@@ -42,6 +58,11 @@ function EventRow({
   const [userIds, setUserIds] = useState<string[]>(event.recipient_user_ids || [])
   const [emailsText, setEmailsText] = useState((event.recipient_emails || []).join(", "))
   const [subjectOverride, setSubjectOverride] = useState(event.subject_override || "")
+  /* Who hears it at all. Separate from every other control on this row, because it governs
+     the BELL as well as the email: switching email off still leaves an alert arriving in
+     the console for whoever is listed here. */
+  const [roles, setRoles] = useState<string[]>(event.staff_roles || [])
+  const [rolesSet, setRolesSet] = useState(!!event.staff_roles_set)
   const [saving, setSaving] = useState(false)
   const [testTo, setTestTo] = useState("")
   const [testing, setTesting] = useState(false)
@@ -84,6 +105,7 @@ function EventRow({
         recipient_user_ids: userIds,
         recipient_emails: parseEmails(emailsText),
         subject_override: subjectOverride.trim() || null,
+        staff_roles: roles,
       }
       const updated = await notificationSettingsApi.updateRule(event.event_key, payload)
       onSaved(updated)
@@ -140,6 +162,50 @@ function EventRow({
         <div className="flex items-center gap-2 shrink-0">
           <Label htmlFor={`en-${event.event_key}`} className="text-xs text-muted-foreground">Email</Label>
           <Switch id={`en-${event.event_key}`} checked={emailEnabled} onCheckedChange={setEmailEnabled} />
+        </div>
+      </div>
+
+      {/* ── Who hears it ──────────────────────────────────────────────────────────────
+          Deliberately above and outside the email settings. "Who gets this" was a Python
+          dictionary nobody could see, so the only lever here was email on or off — and
+          turning email off still left the alert arriving in somebody's console. This is the
+          control that answers "my team should not be getting this". */}
+      <div className="mt-3 space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Users className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium">Who on the team hears this</span>
+          {!rolesSet && (
+            <span className="text-[11px] text-muted-foreground">
+              inherited &mdash; nobody has chosen yet
+            </span>
+          )}
+          {rolesSet && roles.length === 0 && (
+            <span className="text-[11px] text-[var(--tone-warn-ink)]">
+              nobody &mdash; this alert reaches no one
+            </span>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {ROLE_ORDER.map(r => {
+            const on = roles.includes(r)
+            return (
+              <button
+                key={r}
+                type="button"
+                aria-pressed={on}
+                onClick={() => {
+                  setRoles(prev => on ? prev.filter(x => x !== r) : [...prev, r])
+                  setRolesSet(true)
+                }}
+                className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                  on
+                    ? "border-foreground/30 bg-foreground text-background"
+                    : "text-muted-foreground hover:bg-muted/50"}`}
+              >
+                {ROLE_LABEL[r] || r}
+              </button>
+            )
+          })}
         </div>
       </div>
 
