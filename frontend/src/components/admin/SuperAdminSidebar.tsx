@@ -115,9 +115,17 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     // purpose: the page shows only the queues the viewer's role can act on, and for someone
     // with none it says so rather than hiding.
     { title: "Waiting on me", url: "/work/inbox", icon: Inbox },
-    // Beside it, because they are the two halves of "what is waiting on me": decisions the
-    // platform knows about, and messages from outside it that it did not until now.
-    { title: shortName("/work/desk"), url: "/work/desk", icon: Mail },
+    // THE DESK IS THE SUPERADMIN'S ROW ALONE (2026-10-18).
+    //
+    // It sat here for everybody, beside Decisions, as "the two halves of what is waiting on
+    // me". That was wrong about what feeds it: the WhatsApp number is the MARKETING number
+    // and the address is a catch-all, so what arrives is addressed to the company rather
+    // than to anybody. Shown to the team it read as a queue they were meant to answer, and
+    // it never was one. The server refuses everyone else too, so this only stops us drawing
+    // a row that would answer 403.
+    ...(isSuperAdmin
+      ? [{ title: shortName("/work/desk"), url: "/work/desk", icon: Mail }]
+      : []),
     // Ungated. Everybody has a role and the manual describes all of them, so putting it
     // behind the permissions it explains would be a closed loop.
     { title: "The manual", url: "/work/guide", icon: BookOpen },

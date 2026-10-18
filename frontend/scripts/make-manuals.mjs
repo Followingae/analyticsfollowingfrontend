@@ -100,14 +100,26 @@ const dayCards = (day) => `
     </div>`).join('')}
   </div>`;
 
-const menuMap = () => `
-  <div class="menu">${MENU.map((g) => `
+/**
+ * The menu as THIS role sees it.
+ *
+ * A row carrying `only` is drawn for those slugs alone. The picture is captioned "this is
+ * all of it", so a row somebody does not have makes the whole picture a lie and sends them
+ * looking down the side of their screen for something that was never there. The name still
+ * lives in KNOWN, so a path chip in the manual that does have the row still validates.
+ */
+const menuMap = (slug) => `
+  <div class="menu">${MENU.map((g) => {
+    const rows = g.rows.filter((r) => !r.only || r.only.includes(slug));
+    if (!rows.length) return '';
+    return `
     ${g.group ? `<div class="grp">${esc(g.group)}</div>` : ''}
-    ${g.rows.map((r) => `
+    ${rows.map((r) => `
       <div class="row">
         <span class="nm">${icon(r.icon, 14)}${esc(nameOf(r.path))}</span>
         <span class="ds">${esc(hintOf(r.path))}</span>
-      </div>`).join('')}`).join('')}
+      </div>`).join('')}`;
+  }).join('')}
   </div>`;
 
 const jobCard = (job, n, role) => `
@@ -160,7 +172,7 @@ function page(role) {
   <section>
     <h2>Where things live</h2>
     <p class="sub">The menu down the left of the screen. This is all of it.</p>
-    ${menuMap()}
+    ${menuMap(role.slug)}
   </section>
 
   <section class="page-break">

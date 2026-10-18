@@ -57,9 +57,10 @@ export const DESTINATIONS: Record<string, Destination> = {
   '/work/desk': {
     short: 'Desk',
     full: 'The Desk',
-    // Named for the place, not the channel. It takes email and WhatsApp today and will take
-    // more, and "Inbox" is already what /work/inbox was called before it became Decisions.
-    hint: 'Email and WhatsApp that came in, and who it is from',
+    // Named for the place, not the channel: "Inbox" is already what /work/inbox was called
+    // before it became Decisions. The hint says WHOSE it is, because the thing people got
+    // wrong about this screen was not where it is, it was whether it was work.
+    hint: 'Who has contacted the company. Superadmin only',
   },
   '/work/guide': {
     short: 'Guide',

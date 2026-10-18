@@ -54,6 +54,9 @@ type Entry = {
   why?: string
   /** Words somebody might search for that are not in the title. */
   also?: string[]
+  /** A screen only the superadmin can open. Described to nobody else: a manual entry for a
+      screen that answers 403 is worse than no entry, because it reads as a missing grant. */
+  superadminOnly?: boolean
 }
 
 type Section = {
@@ -88,10 +91,10 @@ const SECTIONS: Section[] = [
         also: ['queue', 'approvals', 'to do'],
       },
       {
-        title: 'The Desk', href: '/work/desk', icon: Mail,
-        what: 'Email sent to desk@following.ae and WhatsApp replies on our own numbers, landed where everybody can see them. Each one says who we think it is from and what it is probably about.',
-        why: 'This company runs in Gmail, so the platform was always a few days behind the real client, and when somebody was away their inbox was the single point of failure. Inbound WhatsApp was worse than absent: it arrived, was checked for the words STOP and START, and was thrown away — so every creator who ever replied to one of our messages replied into nothing. It is a landing strip and not an inbox: nothing here sends a reply, and replying still happens in Gmail and WhatsApp where the history is. What it does is make sure a message exists somewhere the team can see it, and let you take it so two people do not both answer. Messages we cannot place sort to the top and are never hidden from anybody, because an enquiry from somebody we have never met is the most valuable message on the screen. A guess is labelled as a guess, and Place it is how you overrule one.',
-        also: ['desk', 'inbox', 'email', 'whatsapp', 'inbound', 'enquiry', 'reply', 'forward', 'hello@', 'unmatched', 'who is this from'],
+        title: 'The Desk', href: '/work/desk', icon: Mail, superadminOnly: true,
+        what: 'Who has contacted the company. Mail to our catch-all address and replies on the marketing number, each one labelled with who we think it is from.',
+        why: 'It is visibility, not a queue, and it is yours alone. It was briefly shown to the whole team, which was wrong about what feeds it: these are not the lines anybody works on, so what lands is addressed to the company rather than to a person, and a screen full of that in front of an account manager reads as work they have been given. Nothing here sends a reply and nothing in the platform changes because of it. A guess is labelled as a guess, and anything we cannot place sorts to the top, because somebody we have never met getting in touch is the most valuable thing on the screen.',
+        also: ['desk', 'inbox', 'email', 'inbound', 'enquiry', 'unmatched', 'who is this from'],
       },
       {
         title: 'Pipeline', href: '/work/pipeline', icon: ClipboardCheck,
@@ -502,8 +505,13 @@ export default function GuidePage() {
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    if (!needle) return SECTIONS
-    return SECTIONS
+    /* Visibility first, search second. Filtering only on search would leave a superadmin
+       screen described to everybody until somebody typed, which is the whole failure. */
+    const visible = SECTIONS
+      .map((s) => ({ ...s, entries: s.entries.filter((e) => !e.superadminOnly || isSuperAdmin) }))
+      .filter((s) => s.entries.length > 0)
+    if (!needle) return visible
+    return visible
       .map((s) => ({
         ...s,
         entries: s.entries.filter((e) =>
@@ -514,7 +522,7 @@ export default function GuidePage() {
         ),
       }))
       .filter((s) => s.entries.length > 0)
-  }, [q])
+  }, [q, isSuperAdmin])
 
   return (
     <SuperadminLayout>

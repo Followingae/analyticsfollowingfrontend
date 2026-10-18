@@ -119,11 +119,11 @@ export const ROLES = [
     day: [
       { icon: 'sunrise', head: 'First thing', items: [
         'Open **Today**. What is waiting on you.',
-        'Open **Desk**. Anything a client sent overnight.',
+        'Open **Decisions**. Anything held for your answer.',
         'Open **Clients**. Anyone gone quiet is flagged.',
       ]},
       { icon: 'clock', head: 'Through the day', items: [
-        'Answer clients from the Desk so the team can see it.',
+        'Answer the client wherever they wrote to you, then write it on their record.',
         'Keep every promise you make on the client’s record.',
         'A client should never be the one chasing us.',
       ]},
@@ -200,8 +200,8 @@ export const ROLES = [
     lede: 'You bring the work in. You qualify it, agree what we charge, get it signed, and hand it over in writing so nothing is lost between you and delivery.',
     day: [
       { icon: 'sunrise', head: 'First thing', items: [
-        'Open **Desk**. Overnight enquiries land here.',
-        'Anything we cannot place is somebody brand new.',
+        'Open **Partner leads**. Enquiries off the website land here.',
+        'Anyone with no owner is yours until somebody takes them.',
         'Open **Clients** for who is mid-conversation.',
       ]},
       { icon: 'clock', head: 'Through the day', items: [
@@ -217,11 +217,11 @@ export const ROLES = [
         icon: 'inbox',
         title: 'Take the enquiry',
         when: 'The moment it arrives.',
-        path: ['Desk'],
+        path: ['Clients', 'Partner leads'],
         steps: [
-          'Enquiries arrive here from email and WhatsApp.',
-          'Ones we cannot place sort to the top. Those are strangers, so they matter most.',
-          'Press "I have this" so nobody answers it twice.',
+          'Everybody who filled in the form on the website is here, newest first.',
+          'Open the one you are taking and write down what they asked for.',
+          'Put your name on it so nobody answers it twice.',
         ],
       },
       {
@@ -406,6 +406,17 @@ export const ROLES = [
         ],
       },
       {
+        icon: 'inbox',
+        title: 'See who has contacted the company',
+        when: 'Whenever you want to know, not as a queue.',
+        path: ['Desk'],
+        steps: [
+          'Everything sent to our catch-all address or the marketing number lands here.',
+          'Each one says who we think it is from, and says so plainly when we do not know.',
+          'Nobody replies from here and nothing changes because of it. Only you see it.',
+        ],
+      },
+      {
         icon: 'mail',
         title: 'Control what the platform sends',
         when: 'Whenever the noise is wrong.',
@@ -437,7 +448,9 @@ export const MENU = [
   { group: null, rows: [
     { path: '/work/today', icon: 'list' },
     { path: '/work/inbox', icon: 'inbox' },
-    { path: '/work/desk', icon: 'mail' },
+    // The marketing number and the catch-all address land here. Visibility of who has
+    // contacted the company, not work for anybody, so only the founder has the row.
+    { path: '/work/desk', icon: 'mail', only: ['founder-ceo'] },
     { path: '/work/guide', icon: 'book' },
   ]},
   { group: 'Work', rows: [
