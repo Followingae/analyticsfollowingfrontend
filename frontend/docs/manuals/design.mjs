@@ -65,6 +65,15 @@ const PATHS = {
   camera: 'M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3ZM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
   receipt: 'M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1ZM16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 17.5v-11',
   phone: 'M13 2a9 9 0 0 1 9 9M13 6a5 5 0 0 1 5 5M10.1 13.9a14 14 0 0 0 6 6l1.3-1.8a1 1 0 0 1 1.1-.4c1.2.4 2.4.6 3.5.6a1 1 0 0 1 1 1V22a1 1 0 0 1-1 1A18 18 0 0 1 1 5a1 1 0 0 1 1-1h3.1a1 1 0 0 1 1 1c0 1.2.2 2.4.6 3.5a1 1 0 0 1-.3 1z',
+  hand: 'M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8'
+        + 'M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6'
+        + 'a2 2 0 0 1 2.83-2.82L7 15',
+  sparkle: 'm12 3-1.9 5.8L4 10.7l6.1 1.9L12 18.4l1.9-5.8L20 10.7l-6.1-1.9Z',
+  arrow: 'M5 12h14M12 5l7 7-7 7',
+  x: 'M18 6 6 18M6 6l12 12',
+  lightbulb: 'M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z',
+  quote: 'M10 11H6a1 1 0 0 1-1-1V8a3 3 0 0 1 3-3M19 11h-4a1 1 0 0 1-1-1V8a3 3 0 0 1 3-3',
+  layers: 'm12 2 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 17l9 5 9-5',
 };
 
 /**
@@ -203,4 +212,184 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 /* ── Small print ────────────────────────────────────────────────────────────────────── */
 .note { font-size: 9.2pt; color: ${MUTED}; max-width: 52ch; }
 b, strong { font-weight: 700; }
+
+/* ════════════════════════════════════════════════════════════════════════════════════
+   THE SECOND PASS (2026-10-18)
+
+   The first set was judged "shitty still, won't help them master the platform". That is a
+   fair read of a document made of boxes and bullet lists: it told somebody the name of a
+   screen and left them to work out the rest.
+
+   Mastery needs three things a bullet list cannot give:
+
+     WHERE AM I          a picture of the actual screen with the parts numbered, so the
+                         first time they open it is the second time they have seen it.
+     WHERE DOES THIS GO  the company's whole flow on one line with their lane lit, so they
+                         can see who hands to them and who they are holding up.
+     WHAT DOES GOOD LOOK LIKE
+                         one real job followed the whole way, and the mistakes that have
+                         actually cost us money, printed beside the right answer.
+
+   Everything below exists for one of those three. The restraint from the first pass
+   stands: lime is structure and emphasis, never decoration, one loud thing per spread.
+   ════════════════════════════════════════════════════════════════════════════════════ */
+
+.opener { display: flex; align-items: baseline; gap: 10px; margin: 0 0 4px; }
+.opener .n { font-size: 9pt; font-weight: 800; letter-spacing: .14em; color: ${LIME_DEEP}; }
+.opener .bar { flex: 1; height: 2px; background: ${LINE}; border-radius: 1px; }
+
+/* ── The day, as a timeline ─────────────────────────────────────────────────────────
+   Was three cards in a row, which reads as three unrelated lists. A day is a sequence,
+   so it is drawn as one: a spine down the left and three moments on it. */
+.tl { position: relative; padding-left: 26px; }
+.tl::before { content: ''; position: absolute; left: 8px; top: 10px; bottom: 10px;
+  width: 2px; background: ${LINE}; }
+.tl .mo { position: relative; margin-bottom: 14px; break-inside: avoid; }
+.tl .mo:last-child { margin-bottom: 0; }
+.tl .dot { position: absolute; left: -26px; top: 1px; width: 18px; height: 18px;
+  border-radius: 50%; background: #fff; border: 2px solid ${LIME}; display: flex;
+  align-items: center; justify-content: center; color: ${LIME_DEEP}; }
+.tl .hd { font-weight: 800; font-size: 10.5pt; margin-bottom: 5px; letter-spacing: -.01em; }
+.tl ul { margin: 0; padding-left: 14px; }
+.tl li { font-size: 9.6pt; line-height: 1.55; margin-bottom: 3px; }
+.tl li::marker { color: ${FAINT}; }
+
+/* ── The flow ribbon ────────────────────────────────────────────────────────────────
+   The whole company on one line with this role's stages filled. It answers the question
+   every new person asks in week one and nobody ever writes down: who gives me work, and
+   who am I holding up. */
+.flow { display: flex; gap: 0; break-inside: avoid; margin: 2px 0 10px; }
+.flow .st { flex: 1; position: relative; padding: 11px 10px 12px; border: 1px solid ${LINE};
+  border-right: 0; background: #fff; }
+.flow .st:first-child { border-radius: 9px 0 0 9px; }
+.flow .st:last-child { border-right: 1px solid ${LINE}; border-radius: 0 9px 9px 0; }
+.flow .st.on { background: ${LIME}; border-color: ${LIME}; }
+.flow .who { font-size: 7.4pt; letter-spacing: .12em; text-transform: uppercase;
+  font-weight: 800; color: ${MUTED}; margin-bottom: 3px; }
+.flow .st.on .who { color: ${INK}; opacity: .62; }
+.flow .wt { font-size: 9.4pt; font-weight: 700; line-height: 1.3; letter-spacing: -.01em; }
+.flow-key { font-size: 8.6pt; color: ${MUTED}; display: flex; align-items: center; gap: 7px; }
+.flow-key .sw { width: 13px; height: 9px; background: ${LIME}; border-radius: 2px; flex: none; }
+
+/* ── A drawn screen, with the parts numbered ────────────────────────────────────────
+   The most useful thing in the document and the only one that takes real space. It is a
+   DRAWING, not a screenshot: a screenshot of a product that ships weekly is wrong within
+   a month, and nobody reprints a manual because a button moved four pixels. The shapes
+   are right, the words are right, and the numbers hang off the parts that matter. */
+.shot { border: 1px solid ${LINE}; border-radius: 11px; overflow: hidden;
+  break-inside: avoid; background: ${WASH}; }
+.shot .bar { display: flex; align-items: center; gap: 6px; padding: 7px 11px;
+  background: #fff; border-bottom: 1px solid ${LINE}; }
+.shot .bar .d { width: 7px; height: 7px; border-radius: 50%; background: ${LINE}; }
+.shot .bar .u { margin-left: 6px; font-size: 8pt; color: ${FAINT};
+  font-family: ui-monospace, Menlo, monospace; }
+.shot .body { display: flex; min-height: 50mm; }
+.shot .side { width: 34mm; flex: none; background: #fff; border-right: 1px solid ${LINE};
+  padding: 9px 0; }
+.shot .side .it { display: flex; align-items: center; gap: 7px; padding: 5px 11px;
+  font-size: 8.6pt; color: ${MUTED}; }
+.shot .side .it.on { background: ${WASH}; color: ${INK}; font-weight: 700;
+  box-shadow: inset 2px 0 0 ${LIME}; position: relative; }
+.shot .main { flex: 1; padding: 12px 13px; position: relative; }
+.shot .h1 { font-size: 12.5pt; font-weight: 800; letter-spacing: -.02em; }
+.shot .h2 { font-size: 8.6pt; color: ${MUTED}; margin-top: 2px; }
+.shot .cards { display: flex; gap: 7px; margin-top: 10px; }
+.shot .card { flex: 1 1 0; min-width: 0; background: #fff; border: 1px solid ${LINE};
+  border-radius: 7px; padding: 8px 9px; }
+.shot .card .k { font-size: 7pt; letter-spacing: .1em; text-transform: uppercase;
+  color: ${FAINT}; font-weight: 800; }
+.shot .card .v { font-size: 13pt; font-weight: 800; letter-spacing: -.02em; margin-top: 2px; }
+.shot .card .s { font-size: 7.6pt; color: ${MUTED}; margin-top: 1px; }
+/* overflow is VISIBLE on purpose: a numbered pin hangs off the left edge of a row, and
+   clipping sliced it in half. The rows are white on white so nothing else escapes. */
+.shot .rowz { margin-top: 9px; background: #fff; border: 1px solid ${LINE};
+  border-radius: 7px; }
+.shot .rowz .r { display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  border-bottom: 1px solid ${LINE}; font-size: 8.6pt; }
+.shot .rowz .r:last-child { border-bottom: 0; }
+.shot .rowz .r .nm { font-weight: 700; flex: 1; }
+.shot .rowz .r .tag { font-size: 7.2pt; border: 1px solid ${LINE}; border-radius: 20px;
+  padding: 1px 7px; color: ${MUTED}; }
+.shot .rowz .r .tag.hot { background: ${LIME}; border-color: ${LIME}; color: ${INK};
+  font-weight: 700; }
+.shot .btn { display: inline-flex; align-items: center; gap: 5px; background: ${INK};
+  color: #fff; border-radius: 6px; padding: 4px 10px; font-size: 8.2pt; font-weight: 700; }
+
+/* The pin. Placed absolutely by the caller, so a number can sit on any part. */
+.pin { position: absolute; width: 16px; height: 16px; border-radius: 50%; background: ${INK};
+  color: #fff; font-size: 7.6pt; font-weight: 800; display: flex; align-items: center;
+  justify-content: center; box-shadow: 0 0 0 2.5px #fff; }
+.keys { margin: 10px 0 0; padding: 0; list-style: none; display: grid;
+  grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+.keys li { display: flex; gap: 8px; font-size: 9.2pt; line-height: 1.5; break-inside: avoid; }
+.keys .n { width: 16px; height: 16px; border-radius: 50%; background: ${INK}; color: #fff;
+  font-size: 7.6pt; font-weight: 800; display: flex; align-items: center;
+  justify-content: center; flex: none; margin-top: .14em; }
+
+/* ── Worked example ─────────────────────────────────────────────────────────────────
+   One real thing followed the whole way. The steps say what to do; this says what it
+   looks like when it is done properly, which is a different lesson. */
+.story { border: 1px solid ${LINE}; border-radius: 11px; overflow: hidden; break-inside: avoid; }
+.story .hd { background: ${INK}; color: #fff; padding: 10px 14px; display: flex;
+  align-items: center; gap: 8px; font-weight: 800; font-size: 10.5pt; }
+.story .hd .ic { color: ${LIME}; }
+.story .bd { padding: 13px 15px; }
+.story .beat { display: flex; gap: 11px; margin-bottom: 10px; break-inside: avoid; }
+.story .beat:last-child { margin-bottom: 0; }
+.story .t { width: 56px; flex: none; font-size: 8pt; font-weight: 800; color: ${LIME_DEEP};
+  letter-spacing: .06em; text-transform: uppercase; padding-top: .18em; }
+.story .x { font-size: 9.6pt; line-height: 1.55; }
+
+/* ── Good and bad, side by side ─────────────────────────────────────────────────────
+   Paired, because the lesson is the DIFFERENCE. Printed apart they read as two lists of
+   advice and the contrast, which is the whole point, is lost. */
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; break-inside: avoid; }
+.vs .col { border: 1px solid ${LINE}; border-radius: 10px; padding: 12px 13px 13px; }
+.vs .col.good { border-color: ${LIME_DEEP}; }
+.vs .ttl { display: flex; align-items: center; gap: 7px; font-weight: 800; font-size: 9.6pt;
+  margin-bottom: 9px; }
+.vs .col.good .ttl .ic { color: ${LIME_DEEP}; }
+.vs .col.bad .ttl .ic { color: ${MUTED}; }
+.vs ul { margin: 0; padding: 0; list-style: none; }
+.vs li { font-size: 9.2pt; line-height: 1.5; margin-bottom: 7px; padding-left: 13px;
+  position: relative; }
+.vs li:last-child { margin-bottom: 0; }
+.vs li::before { content: ''; position: absolute; left: 0; top: .55em; width: 5px;
+  height: 5px; border-radius: 50%; background: ${LINE}; }
+.vs .col.good li::before { background: ${LIME}; }
+
+/* ── Words we use ───────────────────────────────────────────────────────────────────
+   Half the confusion in a new product is vocabulary, and ours has words that mean
+   something specific: a roster is not a list, a deal is not a campaign, cost is not
+   sell. Two columns so it stays on one page. */
+.gloss { columns: 2; column-gap: 18px; }
+.gloss .t { break-inside: avoid; margin-bottom: 9px; }
+.gloss .w { font-weight: 800; font-size: 9.6pt; }
+.gloss .d { font-size: 9pt; color: ${MUTED}; line-height: 1.5; }
+
+/* ── The card on the back ───────────────────────────────────────────────────────────
+   One page, the whole job, meant to be pinned up. If somebody only ever reads one page
+   of this document it will be this one, so it carries the five things that matter and
+   nothing else. */
+.card-page { break-before: page; height: 297mm; padding: 20mm; display: flex;
+  flex-direction: column; }
+.qr { border: 2px solid ${INK}; border-radius: 14px; padding: 16px 18px; flex: 1;
+  display: flex; flex-direction: column; }
+.qr .hd { display: flex; align-items: baseline; justify-content: space-between;
+  border-bottom: 2px solid ${INK}; padding-bottom: 10px; margin-bottom: 14px; }
+.qr .hd h2 { font-size: 30pt; margin: 0; letter-spacing: -.03em; }
+.qr .hd .r { font-size: 10pt; letter-spacing: .16em; text-transform: uppercase;
+  font-weight: 800; color: ${MUTED}; }
+/* Each block takes an equal share of the height. Without this the card was a third of an
+   A4 page of text with two thirds of white underneath it, which reads as unfinished
+   rather than spacious - and this is the page most likely to end up on a wall. */
+.qr .blk { flex: 1; display: flex; flex-direction: column; justify-content: center;
+  padding: 4px 0; border-bottom: 1px solid ${LINE}; }
+.qr .blk:last-of-type { border-bottom: 0; }
+.qr .blk .lbl { font-size: 9pt; letter-spacing: .16em; text-transform: uppercase;
+  font-weight: 800; color: ${LIME_DEEP}; margin-bottom: 7px; }
+.qr ul { margin: 0; padding-left: 18px; }
+.qr li { font-size: 13pt; line-height: 1.45; margin-bottom: 5px; font-weight: 500; }
+.qr .foot { margin-top: auto; border-top: 1px solid ${LINE}; padding-top: 10px;
+  font-size: 8.6pt; color: ${FAINT}; display: flex; justify-content: space-between; }
 `;

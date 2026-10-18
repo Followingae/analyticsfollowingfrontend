@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 
 import { CSS, icon } from '../docs/manuals/design.mjs';
 import { ADMIN, MENU, ROLES, TABS } from '../docs/manuals/roles.mjs';
+import { FLOW, GLOSSARY, MASTERY } from '../docs/manuals/mastery.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FE = resolve(HERE, '..');
@@ -95,6 +96,145 @@ function pathStrip(chips, where) {
   return `<div class="path"><span class="lbl">Go to</span>${out.join(sep)}</div>`;
 }
 
+
+/* ══ The teaching sections ══════════════════════════════════════════════════════════════
+   Everything here answers a question a bullet list cannot: where am I, where does my work
+   go, and what does good look like. See docs/manuals/mastery.mjs for why each exists. */
+
+/** A numbered rule above a heading, so the document can be navigated by flicking. */
+const opener = (n) => `<div class="opener"><span class="n">${esc(n)}</span>
+  <span class="bar"></span></div>`;
+
+/** The day as one sequence rather than three unrelated cards. */
+const dayTimeline = (day) => `
+  <div class="tl">${day.map((d) => `
+    <div class="mo">
+      <span class="dot">${icon(d.icon, 10)}</span>
+      <div class="hd">${esc(d.head)}</div>
+      <ul>${d.items.map((i) => `<li>${md(i)}</li>`).join('')}</ul>
+    </div>`).join('')}
+  </div>`;
+
+/** The company's whole flow, with this role's stages filled.
+    Same ribbon in all five manuals on purpose: five people reading five documents should
+    be reading ONE picture of the business, not five. */
+const flowRibbon = (mine) => `
+  <div class="flow">${FLOW.map((f) => `
+    <div class="st${mine.includes(f.key) ? ' on' : ''}">
+      <div class="who">${esc(f.who)}</div>
+      <div class="wt">${esc(f.what)}</div>
+    </div>`).join('')}
+  </div>
+  <p class="flow-key"><span class="sw"></span> Your part</p>`;
+
+/** A drawn screen with numbered pins.
+    A DRAWING and not a screenshot: a screenshot of a product that ships weekly is wrong
+    within a month, and nobody reprints a manual because a button moved four pixels. The
+    shapes and the words are right, which is what somebody needs to recognise it. */
+function drawnScreen(sc) {
+  /* A key is [region, text]. The region names the part of the drawing the number is about,
+     and the pin is rendered INSIDE that part, so it cannot drift away from what it
+     explains and cannot be left off.
+
+     The first version placed pins from a list of fixed coordinates and drew only the first
+     two: five numbered explanations, two numbers on the picture. A pin pointing at nothing
+     is worse than no pin, because it tells somebody they have missed something. */
+  const n = {};              // region -> the number that belongs in it
+  sc.keys.forEach(([region], idx) => { if (!(region in n)) n[region] = idx + 1; });
+  const pin = (region, style) => (region in n)
+    ? `<span class="pin" style="${style}">${n[region]}</span>` : '';
+
+  return `
+  <div class="shot">
+    <div class="bar">
+      <span class="d"></span><span class="d"></span><span class="d"></span>
+      <span class="u">${esc(sc.url)}</span>
+    </div>
+    <div class="body">
+      <div class="side">
+        ${sc.side.map((it) => `
+        <div class="it${it === sc.on ? ' on' : ''}">${esc(it)}${
+          it === sc.on ? pin('menu', 'top:50%;right:7px;transform:translateY(-50%)') : ''
+        }</div>`).join('')}
+      </div>
+      <div class="main">
+        <div style="position:relative;display:inline-block">
+          <div class="h1">${esc(sc.title)}</div>
+          <div class="h2">${esc(sc.sub)}</div>
+          ${pin('title', 'top:-6px;right:-22px')}
+        </div>
+        <div class="cards">${(sc.cards || []).map((c, ci) => `
+          <div class="card" style="position:relative">
+            ${pin('card' + (ci + 1), 'top:-7px;right:-7px')}
+            <div class="k">${esc(c.k)}</div>
+            <div class="v">${esc(c.v)}</div>
+            <div class="s">${esc(c.s)}</div>
+          </div>`).join('')}
+        </div>
+        <div class="rowz">${(sc.rows || []).map((r, ri) => `
+          <div class="r" style="position:relative">
+            ${pin('row' + (ri + 1), 'top:50%;left:-8px;transform:translateY(-50%)')}
+            <span class="nm">${esc(r.nm)}</span>
+            <span class="tag${r.hot ? ' hot' : ''}">${esc(r.tag)}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+  <ul class="keys">${sc.keys.map(([, text], idx) => `
+    <li><span class="n">${idx + 1}</span><span>${md(text)}</span></li>`).join('')}
+  </ul>`;
+}
+
+/** One real job, followed the whole way, with real numbers. */
+const workedExample = (st) => `
+  <div class="story">
+    <div class="hd">${icon('lightbulb', 15)} ${esc(st.title)}</div>
+    <div class="bd">${st.beats.map(([t, x]) => `
+      <div class="beat"><div class="t">${esc(t)}</div><div class="x">${md(x)}</div></div>`)
+      .join('')}
+    </div>
+  </div>`;
+
+/** Right and wrong, printed together, because the lesson is the difference. */
+const goodAndBad = (vs) => `
+  <div class="vs">
+    <div class="col good">
+      <div class="ttl">${icon('check', 14)} What good looks like</div>
+      <ul>${vs.good.map((x) => `<li>${md(x)}</li>`).join('')}</ul>
+    </div>
+    <div class="col bad">
+      <div class="ttl">${icon('x', 14)} What has actually gone wrong</div>
+      <ul>${vs.bad.map((x) => `<li>${md(x)}</li>`).join('')}</ul>
+    </div>
+  </div>`;
+
+const glossary = () => `
+  <div class="gloss">${GLOSSARY.map(([w, d]) => `
+    <div class="t"><div class="w">${esc(w)}</div><div class="d">${esc(d)}</div></div>`)
+    .join('')}
+  </div>`;
+
+/** The last page, meant to be pinned up. If somebody reads one page, it is this one. */
+const quickCard = (role, blocks) => `
+  <div class="card-page">
+    <div class="qr">
+      <div class="hd">
+        <h2>${esc(role.title)}</h2>
+        <span class="r">${esc(role.person)}</span>
+      </div>
+      ${blocks.map(([lbl, items]) => `
+        <div class="blk">
+          <div class="lbl">${esc(lbl)}</div>
+          <ul>${items.map((i) => `<li>${md(i)}</li>`).join('')}</ul>
+        </div>`).join('')}
+      <div class="foot">
+        <span>Following</span>
+        <span>Pin this up. The rest of the manual explains it.</span>
+      </div>
+    </div>
+  </div>`;
+
 const dayCards = (day) => `
   <div class="day">${day.map((d) => `
     <div class="c">
@@ -140,6 +280,7 @@ const jobCard = (job, n, role) => `
   </div>`;
 
 function page(role) {
+  const m = MASTERY[role.slug];
   const today = new Date().toLocaleDateString('en-GB',
     { day: 'numeric', month: 'long', year: 'numeric' });
   return `<!doctype html>
@@ -167,26 +308,68 @@ function page(role) {
   </div>
 
   <section>
-    <h2>Your day</h2>
-    <p class="sub">Three habits. Everything else comes to you.</p>
-    ${dayCards(role.day)}
+    ${opener('01 \u00b7 Your day')}
+    <h2>How a day goes</h2>
+    <p class="sub">Three moments. Everything else finds you.</p>
+    ${dayTimeline(role.day)}
   </section>
 
-  <section>
+  ${m ? `<section>
+    ${opener('02 \u00b7 The whole flow')}
+    <h2>Where your work sits</h2>
+    <p class="sub">${esc(m.flowNote)}</p>
+    ${flowRibbon(m.flow)}
+  </section>` : ''}
+
+  ${m ? `<section class="page-break">
+    ${opener('03 \u00b7 Your screen')}
+    <h2>The screen you will live in</h2>
+    <p class="sub">Drawn, not photographed, so it stays true when a button moves.
+      The numbers are explained underneath.</p>
+    ${drawnScreen(m.screen)}
+  </section>` : ''}
+
+  <section${m ? '' : ' class="page-break"'}>
+    ${opener('04 \u00b7 The menu')}
     <h2>Where things live</h2>
     <p class="sub">The menu down the left of the screen. This is all of it.</p>
     ${menuMap(role.slug)}
   </section>
 
   <section class="page-break">
-    <h2>Your jobs</h2>
-    <p class="sub">In order. The strip on each card is what to click.</p>
+    ${opener('05 \u00b7 Your jobs')}
+    <h2>What you actually do</h2>
+    <p class="sub">In order. The strip on each card is what to click, as you click it.</p>
     ${role.jobs.map((j, i) => jobCard(j, i + 1, role.title)).join('')}
   </section>
 
+  ${m ? `<section class="page-break">
+    ${opener('06 \u00b7 A real one')}
+    <h2>${esc(m.story.title)}</h2>
+    <p class="sub">One job, followed the whole way, with the real numbers.</p>
+    ${workedExample(m.story)}
+  </section>` : ''}
+
+  ${m ? `<section>
+    ${opener('07 \u00b7 Right and wrong')}
+    <h2>What good looks like</h2>
+    <p class="sub">Everything on the right has actually happened here and cost us
+      something.</p>
+    ${goodAndBad(m.vs)}
+  </section>` : ''}
+
+  <section class="page-break">
+    ${opener('08 \u00b7 Vocabulary')}
+    <h2>Words we use</h2>
+    <p class="sub">They mean something specific. A roster is not a list, and cost is not
+      sell.</p>
+    ${glossary()}
+  </section>
+
   <section>
+    ${opener('09 \u00b7 The hard rules')}
     <h2>Rules that cost money</h2>
-    <p class="sub">Each one has cost us something.</p>
+    <p class="sub">Each one has already cost us something.</p>
     <div class="rules"><ul>
       ${role.rules.map((r) => `<li>${icon('ban', 14)}<span>${md(r)}</span></li>`).join('')}
     </ul></div>
@@ -199,6 +382,8 @@ function page(role) {
       date. Say so and it gets reprinted.
     </p>
   </section>
+
+  ${m ? quickCard(role, m.card) : ''}
 
 </body></html>`;
 }
