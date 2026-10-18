@@ -37,6 +37,7 @@ import {
   Wrench,
   ListChecks,
   Users2,
+  Hand,
   Inbox,
   Mail,
 
@@ -115,6 +116,10 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     // purpose: the page shows only the queues the viewer's role can act on, and for someone
     // with none it says so rather than hiding.
     { title: "Waiting on me", url: "/work/inbox", icon: Inbox },
+    // Everything anybody has asked us for, whoever asked. Beside "Waiting on me" because
+    // they are the two halves of the same question: decisions that need me, and things
+    // people are waiting on me to DO.
+    { title: shortName("/work/requests"), url: "/work/requests", icon: Hand },
     // THE DESK IS THE SUPERADMIN'S ROW ALONE (2026-10-18).
     //
     // It sat here for everybody, beside Decisions, as "the two halves of what is waiting on

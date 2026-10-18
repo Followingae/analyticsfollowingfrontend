@@ -61,6 +61,8 @@ export type ServerNotificationType =
   | 'proposal_updated'
   | 'quote_confirmed'
   | 'rate_proposed'
+  | 'request_done'
+  | 'request_raised'
   | 'rfp_quote_received'
   | 'round_amended'
   | 'round_client_responded'
@@ -74,6 +76,7 @@ export type ServerNotificationType =
   | 'share_extended'
   | 'share_received'
   | 'share_revoked'
+  | 'sourcing_requested'
   | 'sourcing_started'
   | 'subscription_cancelled'
   | 'system'
@@ -118,6 +121,7 @@ export const NOTIFICATION_CATEGORIES = {
     'round_overdue',
     'round_ready_for_review',
     'round_shareable',
+    'sourcing_requested',
     'sourcing_started',
   ],
   approvals: [
@@ -266,6 +270,8 @@ export const EVENT_LABEL: Partial<Record<ServerNotificationType, string>> = {
   proposal_updated: "Proposal updated (generic)",
   quote_confirmed: "Client confirmed a quotation themselves",
   rate_proposed: "Negotiated rate waiting on a founder",
+  request_done: "A request was finished",
+  request_raised: "Somebody needs something",
   rfp_quote_received: "Creator quoted on an RFP",
   round_amended: "Creators were taken back off a roster",
   round_due_soon: "Roster is due",
@@ -278,6 +284,7 @@ export const EVENT_LABEL: Partial<Record<ServerNotificationType, string>> = {
   share_extended: "Share access extended",
   share_received: "Influencer list shared",
   share_revoked: "Share access revoked",
+  sourcing_requested: "Business development asked talent to start",
   sourcing_started: "Sourcing released to the team",
   subscription_cancelled: "Subscription cancelled",
   system: "System notification",

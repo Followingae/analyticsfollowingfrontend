@@ -201,6 +201,27 @@ export const DESTINATIONS: Record<string, Destination> = {
     // Was "Creators needing a price". Four words, and a sentence fragment.
     hint: 'Creators nobody can sell until they are priced',
   },
+  '/work/sales': {
+    // ⚠️ TWO REASONS THIS IS NOT CALLED PIPELINE, AND BOTH BIT.
+    //
+    // The name: /work/pipeline is already the DELIVERY ladder, so both screens would have
+    // read "Pipeline · ... and what happens next" in one menu. That is the collision this
+    // registry exists to stop.
+    //
+    // The path: `pipeline` is in the /work rewrite's exclusion list, and the rule is a
+    // negative lookahead on the START of the path. So /work/pipeline-deals failed the
+    // lookahead, was never rewritten to its /superadmin page, and 404'd - the same trap
+    // that once broke /work/brands/{id}. A new segment must not begin with an excluded
+    // word.
+    short: 'Sales',
+    full: 'Sales pipeline',
+    hint: 'Every brand we are talking to, before they are a client',
+  },
+  '/work/requests': {
+    short: 'Requests',
+    full: 'Waiting on us',
+    hint: 'What clients and colleagues have asked for',
+  },
   '/work/lists': {
     short: 'Lists',
     full: 'Standing lists',

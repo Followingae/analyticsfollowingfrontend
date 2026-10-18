@@ -22,6 +22,10 @@ import { Hub, type HubTab } from './Hub'
 import { Stat, StatGrid } from './primitives'
 
 const TABS: HubTab[] = [
+  // Sales comes FIRST because it is where a client starts. The hub used to open on
+  // "Clients", which is the end of the story, and business development had no screen in
+  // here at all: their work lived in a spreadsheet called "Outreach Tracking".
+  { href: '/work/sales', module: 'clients' },
   { href: '/work/clients', module: 'clients' },
   { href: '/work/brands', module: 'clients' },
   { href: '/work/proposals', module: 'proposals' },
