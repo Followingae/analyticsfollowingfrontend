@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Card } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
@@ -71,8 +72,9 @@ interface Participant {
     creator_accepted_at?: string | null
     joined_at?: string | null
     completed_at?: string | null
-    // When a pending barter applicant will be auto-approved if the brand doesn't
-    // act first (applied_at + the backend auto-approve window). Null for paid deals.
+    // When a pending barter application CLOSES if the brand does not answer
+    // (applied_at + the window). The field name is the server's and predates the
+    // timer flipping from accept to decline. Null for paid deals.
     auto_approve_at?: string | null
   }
   cashback: { scan_count: number; total_transaction_amount: number; total_cashback_amount: number }
@@ -197,18 +199,70 @@ function hoursUntil(iso?: string | null): number | null {
   return Math.max(0, Math.round(ms / 3_600_000))
 }
 
+type SortKey = "newest" | "oldest" | "engagement" | "followers"
+
+const SORTS: { key: SortKey; label: string }[] = [
+  { key: "newest", label: "Newest first" },
+  { key: "oldest", label: "Longest waiting" },
+  { key: "engagement", label: "Best engagement" },
+  { key: "followers", label: "Most followers" },
+]
+
+/* Plain buttons rather than a dropdown. There are four, they are all one word, and a
+   dropdown hides three of them behind a click on the screen where comparing people IS the
+   task. "Longest waiting" rather than "oldest": the thing that matters about an old
+   application is that somebody has been waiting on an answer. */
+function SortBar({ value, onChange, total }: {
+  value: SortKey
+  onChange: (k: SortKey) => void
+  total: number
+}) {
+  if (total < 2) return null
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-[12.5px] text-muted-foreground">Sort</span>
+      {SORTS.map((o) => (
+        <button
+          key={o.key}
+          type="button"
+          onClick={() => onChange(o.key)}
+          aria-pressed={value === o.key}
+          className={cn(
+            "rounded-full border px-3 py-1 text-[12.5px] transition-colors",
+            "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
+            "focus-visible:outline-primary",
+            value === o.key
+              ? "border-transparent bg-foreground text-background"
+              : "bg-background hover:bg-muted",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+      <span className="ml-auto text-[12.5px] tabular-nums text-muted-foreground">
+        {total} {total === 1 ? "person" : "people"}
+      </span>
+    </div>
+  )
+}
+
 // Source, worded as the brand's relationship to the creator (leads, not a loud pill).
 function sourceLabel(p: Participant): string {
   if (p.source === "applied") return "Applied via app"
   if (p.is_offline) return "Suggested for you · offline"
   return "Suggested for you"
 }
-// Calm auto-approve countdown (barter pending only; backend nulls it for paid).
+/* How long is left to answer (barter pending only; backend nulls it for paid).
+   ⚠️ The timer DECLINES now, it used to accept, so this had to stop promising the
+   opposite of what will happen. Days once it is past 48h: "closes in 580h" is a number
+   nobody converts. */
 function autoApproveLabel(p: Participant): string | null {
   if (p.status !== "pending_brand_approval") return null
   const h = hoursUntil(p.lifecycle.auto_approve_at)
   if (h == null) return null
-  return h <= 0 ? "auto-approving…" : `auto-approves in ${h}h`
+  if (h <= 0) return "closing…"
+  if (h <= 48) return `closes in ${h}h`
+  return `closes in ${Math.round(h / 24)} days`
 }
 // The deal value line, per campaign type — real data only.
 function DealLine({ p, campaignType }: { p: Participant; campaignType: CampaignType }) {
@@ -340,6 +394,45 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
     }
   }
 
+  /* HOW A PILE OF APPLICANTS IS ORDERED.
+
+     Forty-six people applied to one barter campaign and arrived in whatever order the
+     database happened to return, which is no order at all: you cannot answer "who is
+     newest" or "who is actually any good" by scrolling. Four orders, because those are the
+     four questions somebody has when they open this tab.
+
+     A creator with no engagement rate sorts LAST under the engagement orders rather than
+     counting as zero. Zero engagement is a measurement; no measurement is not, and ranking
+     an unmeasured creator below a genuinely terrible one is the kind of quiet lie that
+     makes somebody reject the wrong person. */
+  const [sortBy, setSortBy] = useState<SortKey>("newest")
+
+  const sortPeople = useCallback((list: Participant[]) => {
+    const when = (p: Participant) =>
+      new Date(p.lifecycle.joined_at || p.lifecycle.invited_at || 0).getTime()
+    const er = (p: Participant) => p.member?.engagement_rate
+    const fol = (p: Participant) => p.member?.followers_count ?? 0
+
+    const out = [...list]
+    switch (sortBy) {
+      case "oldest":
+        return out.sort((a, b) => when(a) - when(b))
+      case "engagement":
+        return out.sort((a, b) => {
+          const x = er(a), y = er(b)
+          if (x == null && y == null) return when(b) - when(a)
+          if (x == null) return 1
+          if (y == null) return -1
+          return y - x
+        })
+      case "followers":
+        return out.sort((a, b) => fol(b) - fol(a))
+      case "newest":
+      default:
+        return out.sort((a, b) => when(b) - when(a))
+    }
+  }, [sortBy])
+
   const grouped = useMemo(() => {
     const groups: Record<string, Participant[]> = { pending: [], active: [], other: [] }
     for (const p of participants) {
@@ -347,8 +440,12 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
       else if (p.status === "accepted" || p.status === "active") groups.active.push(p)
       else groups.other.push(p)
     }
-    return groups
-  }, [participants])
+    return {
+      pending: sortPeople(groups.pending),
+      active: sortPeople(groups.active),
+      other: sortPeople(groups.other),
+    }
+  }, [participants, sortPeople])
 
   const activeFiltered = useMemo(
     () => (contentFilter === "all"
@@ -476,6 +573,8 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
             ) : grouped.pending.length === 0 ? (
               <EmptyState icon={<Sparkles className="h-6 w-6" />} title="Nothing awaiting you" hint="New applicants and suggestions will appear here for approval." />
             ) : (
+              <>
+              <SortBar value={sortBy} onChange={setSortBy} total={grouped.pending.length} />
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {grouped.pending.map((p) => (
                   <ApprovalCard
@@ -490,6 +589,7 @@ export function FaCampaignProgressPanel({ campaignId, campaignType }: Props) {
                   />
                 ))}
               </div>
+              </>
             )}
           </TabsContent>
 

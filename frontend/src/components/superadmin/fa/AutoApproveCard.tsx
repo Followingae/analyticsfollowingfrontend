@@ -1,12 +1,15 @@
 'use client'
 
 /**
- * How long a brand has to answer before we accept a creator for them.
+ * How long a brand has to answer before the application closes.
  *
- * This used to be one number for every campaign — seven days, everywhere, set in code. It is
- * a good default and it stays the default. What it could not do is bend: a brand who checks
- * the platform twice a week needs longer, a brand who has told us to just fill the campaign
- * needs shorter, and a campaign we are running ourselves may not want a timer at all.
+ * ⚠️ THE TIMER DECLINES NOW. It used to accept (changed 2026-10-18). Silence from a client
+ * no longer puts a creator onto that client's campaign with deliverables owed and a coupon
+ * issued; it closes the application as not successful instead. A timeout is not agreement.
+ *
+ * That flip is why the default moved from 7 days to 30. A short clock is a kindness when it
+ * lets somebody in and a cruelty when it shuts them out, and seven days of client silence is
+ * not evidence a creator is unwanted, it is evidence somebody was on holiday.
  *
  * The waiting count is on the card for a reason. A window is an abstraction until you can
  * see that four people have been sitting on it for five days.
@@ -45,10 +48,10 @@ type State = {
 
 /* Days are how everyone talks about this; hours are what the worker counts in. */
 const PRESETS = [
-  { label: '2 days', hours: 48 },
-  { label: '5 days', hours: 120 },
-  { label: '7 days', hours: 168 },
   { label: '14 days', hours: 336 },
+  { label: '30 days', hours: 720 },
+  { label: '60 days', hours: 1440 },
+  { label: '90 days', hours: 2160 },
 ]
 
 export function AutoApproveCard({ campaignId }: { campaignId: string }) {
