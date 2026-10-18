@@ -478,7 +478,8 @@ export const ADMIN = {
 export const TABS = {
   Clients: ['/work/clients', '/work/brands', '/work/proposals', '/work/share', '/work/partners'],
   Creators: ['/work/influencers', '/work/influencers/review', '/work/influencers/analyzed',
-             '/work/areas', '/work/coverage', '/work/fa/members', '/work/fa/reliability'],
+             '/work/lists', '/work/areas', '/work/coverage', '/work/fa/members',
+             '/work/fa/reliability'],
   Campaigns: ['/work/campaigns', '/work/fa/campaigns', '/work/report-campaigns', '/work/chasing'],
   Finance: ['/work/billing', '/work/mor', '/work/payables', '/work/fa/wallets',
             '/work/enrolments', '/work/approvals'],

@@ -201,6 +201,13 @@ export const DESTINATIONS: Record<string, Destination> = {
     // Was "Creators needing a price". Four words, and a sentence fragment.
     hint: 'Creators nobody can sell until they are priced',
   },
+  '/work/lists': {
+    short: 'Lists',
+    full: 'Standing lists',
+    // Not "Segments" and not "Audiences": those are words from someone else's product. A
+    // list is what the team already calls it.
+    hint: 'Who our creators are, by category and country',
+  },
   '/work/areas': {
     short: 'Rosters',
     full: 'Rosters',

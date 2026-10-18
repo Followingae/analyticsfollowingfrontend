@@ -64,6 +64,9 @@ export function CreatorsHubHeader({ className, bare, hideAction }: {
     { href: '/work/influencers', module: 'influencers' },
     { href: '/work/influencers/review', module: 'influencers', count: waiting },
     { label: 'Analysed', href: '/work/influencers/analyzed', module: 'influencers' },
+    // Standing lists sit BEFORE rosters: a roster is sourced for one client and a list is
+    // the roster you source it from.
+    { href: '/work/lists', module: 'influencers' },
     { href: '/work/areas', module: 'influencers' },
     { href: '/work/coverage', module: 'influencers' },
     { href: '/work/fa/members', module: 'fa' },
