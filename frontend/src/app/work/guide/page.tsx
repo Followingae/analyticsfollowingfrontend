@@ -280,6 +280,12 @@ const SECTIONS: Section[] = [
         also: ['cost', 'margin', 'settlement', 'working capital', 'funded', 'headroom', 'brand sourced', 'brand brought', 'unpriced', 'vat', 'fee'],
       },
       {
+        title: 'The approval gate', href: '/work/approvals/gate', icon: ShieldCheck,
+        what: 'The switch that decides what staff can do on their own, and what is held for Zain. Off by default.',
+        why: 'With it on, anything a member of staff does that moves money, reaches a client, changes who can do what, or deletes something is stopped and queued instead of happening. Nothing is lost: the whole request is kept and replayed exactly as it was submitted the moment it is approved, and the person who asked is told either way. Approving runs it on Zain’s authority, not theirs, and every permission check runs again, so nobody can be approved into doing something he could not do himself. Three things are never held, whatever the settings say: anything a brand user or a creator on the app does, logging in, and the queue itself. Each role keeps its own lane by default — talent records costs and builds rosters, business development creates brands and leads, account management writes briefs — because taking that away means they cannot work at all without him.',
+        also: ['approval', 'gate', 'permissions', 'held', 'waiting', 'ceo approval', 'locked', 'cannot save', 'sent for approval', 'queue'],
+      },
+      {
         title: 'Sign-offs', href: '/work/approvals', icon: ClipboardCheck,
         what: 'Everything held until one of the founders says yes.',
         also: ['approvals', 'authorise'],

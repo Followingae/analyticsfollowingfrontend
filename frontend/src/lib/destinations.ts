@@ -421,6 +421,11 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Job queue',
     hint: 'Background work running now, and what has failed',
   },
+  '/work/approvals/gate': {
+    short: 'Approval gate',
+    full: 'The approval gate',
+    hint: 'What staff can do on their own, and what waits for you',
+  },
   '/work/system/images': {
     short: 'Images',
     full: 'Image pipeline',

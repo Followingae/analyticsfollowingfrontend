@@ -40,6 +40,7 @@ import { Age, FilterBar, NoMatches, Owner, type FilterChip } from "@/components/
 import { ActionIcon } from "@/components/console/Glyph"
 import { MoneyHubHeader } from "@/components/console/MoneyHubHeader"
 import { approvalsApi } from "@/services/approvalsApi"
+import { HeldActions } from "@/components/console/HeldActions"
 
 interface ApprovalRow {
   id: string
@@ -204,8 +205,13 @@ export default function ApprovalsPage() {
         <div className="mx-auto max-w-4xl space-y-ds-5 p-4 md:p-7">
           <MoneyHubHeader
             title="Approvals"
-            sub="Decisions we have asked a founder for. Each one goes out as a link they can answer from their phone without logging in, so this is where you see whether they have."
+            sub="Two queues. Things the platform stopped and is holding for you, and decisions we have asked a founder for by email."
           />
+
+          {/* First, because nothing in it has happened. The queue below is a record of
+              decisions already asked for; this one is work that is stopped until somebody
+              answers, and a person reading top to bottom should meet that first. */}
+          <HeldActions />
 
           {failure ? (
             <div className="space-y-3">

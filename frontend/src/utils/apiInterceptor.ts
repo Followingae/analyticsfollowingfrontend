@@ -50,6 +50,27 @@ class ApiInterceptor {
         return this.handle401Error(config)
       }
       
+      // HELD FOR APPROVAL.
+      //
+      // The gate answers 202 rather than an error, because nothing went wrong: the request
+      // was understood, recorded, and is waiting on the superadmin. But 202 is `response.ok`,
+      // and almost every screen in this app treats ok as done — so without this the operator
+      // sees "Saved" and walks away while nothing has happened, which is the worst possible
+      // outcome for a control whose entire job is to stop things happening.
+      //
+      // Converted into a thrown error carrying the gate's own sentence. Every call site
+      // already handles a throw by showing it, so the message reaches the person who pressed
+      // the button without touching 543 call sites.
+      if (response.status === 202) {
+        const held = await response.clone().json().catch(() => null)
+        if (held?.held_for_approval) {
+          const err = new Error(held.detail || held.message || 'Sent for approval.')
+          ;(err as Error & { heldForApproval?: boolean; action?: string }).heldForApproval = true
+          ;(err as Error & { action?: string }).action = held.action
+          throw err
+        }
+      }
+
       // If 403 (Forbidden), check if this is a permission issue vs auth issue
       if (response.status === 403) {
         const responseText = await response.clone().text()

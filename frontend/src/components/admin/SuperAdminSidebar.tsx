@@ -244,6 +244,9 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     /* Beside the job queue, because they are the same question asked about two different
        queues: what is running, and what has failed. */
     ...(can("system") ? [{ title: shortName("/work/system/images"), url: "/work/system/images" }] : []),
+    /* Superadmin only, and by role rather than a module: it decides what everybody else
+       can do without asking, which is not a permission to delegate through a module grant. */
+    ...(isSuperAdmin ? [{ title: shortName("/work/approvals/gate"), url: "/work/approvals/gate" }] : []),
   ]
 
   const systemItems = [
