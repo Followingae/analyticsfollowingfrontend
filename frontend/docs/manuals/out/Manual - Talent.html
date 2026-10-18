@@ -5,7 +5,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300..800&family=Playfair+Display:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
 <style>
-@page { size: A4; margin: 0; }
+/* ⚠️ THE PAGE MARGIN LIVES HERE, AND NOTHING ELSE CAN SUPPLY IT.
+   @page margin OVERRIDES the margins passed to page.pdf(), so with margin:0 every sheet
+   had none and the only padding came from body - which Chromium applies to the TOP of the
+   first page and the BOTTOM of the last, and NOWHERE IN BETWEEN. Measured result: ink at
+   1.8mm from the top of every page, 0.2mm on one of them. Type was touching the trim.
+   Measure with scripts/.inkcheck.mjs rather than trusting how a render looks. */
+@page { size: A4; margin: 22mm 24mm 20mm; }
 
 /* ⚠️ EVERY SECTION AVOIDS BREAKING ACROSS A PAGE unless it genuinely cannot fit. The last
    set let a drawn screen split down the middle of a page, which is what "overflowing"
@@ -20,7 +26,8 @@ body {
   font-variant-numeric: tabular-nums;
   /* 24mm of side margin and 10mm of head on top of the print margin. At 18mm and 0 the
      type sat against the trim, which is what reads as a page with no padding. */
-  padding: 10mm 24mm 20mm;
+  /* No page padding here. @page owns it, so it reaches EVERY sheet. */
+  padding: 0;
 }
 .ic { flex: none; vertical-align: -0.18em; }
 b, strong { font-weight: 700; }
@@ -34,7 +41,8 @@ em, .ser { font-family: "Playfair Display", Georgia, serif; font-style: italic;
    Black ground, one lime block, type at the size the brand actually uses. The previous
    cover was white with a 52pt heading and a pale glyph, which is a report. */
 .cover {
-  height: 263mm; margin: 0 -24mm; padding: 10mm 24mm 6mm 30mm; display: flex;
+  height: 255mm; margin: 0; padding: 0 0 0 16mm;
+  display: flex;
   flex-direction: column; break-after: page; position: relative;
   background: #ffffff; color: #111111; overflow: hidden;
 }
@@ -72,8 +80,9 @@ em, .ser { font-family: "Playfair Display", Georgia, serif; font-style: italic;
   border-top: 1px solid rgba(0,0,0,0.10); padding-top: 6mm;
   color: #9c9ca4; letter-spacing: .04em; }
 .cover .who { font-size: 12pt; color: #111111; font-weight: 700; letter-spacing: -.02em; }
-/* A lime rule down the left edge, full bleed. A block, never a tint. */
-.cover::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 7mm;
+/* A lime rule down the left of the cover. It stops at the page margin rather than running
+   off the sheet, because nothing printed in this office can run off a sheet. */
+.cover::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6mm;
   background: #d3ff02; }
 
 /* ── Sections ───────────────────────────────────────────────────────────────────────── */
@@ -94,9 +103,11 @@ section:first-of-type { break-before: auto; }
    left two thirds of its sheet bare, which is the same fault as cramming seen from the
    other end. These stretch their block over the full height instead. The stretch is opt-in
    per section: the job cards and the glossary already run long and must not be pulled. */
-section.fill { min-height: 250mm; display: flex; flex-direction: column; }
+section.fill { min-height: 248mm; display: flex; flex-direction: column; }
 section.fill > .flow, section.fill > .menu, section.fill > .rules, section.fill > .vs {
   flex: 1; }
+/* The closing note rides on the rules page and never stretches. */
+section.fill > .tail { flex: none; }
 /* The strip is two rows; stretched over a whole sheet each cell became a 70mm slab with a
    line of type adrift in it. It takes half the page and the key sits under it. */
 section.fill > .flow { max-height: 130mm; }
@@ -320,8 +331,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 /* This page gets PINNED TO A WALL, which is the one place a black ground is actively
    wrong: it is read across a room, often beside a window, and dark grey text on near-black
    is the first thing to disappear. White, big type, lime only as the rule and the marker. */
-.card-page { break-before: page; height: 263mm; margin: 0 -24mm -20mm;
-  padding: 4mm 24mm;
+.card-page { break-before: page; height: 255mm; margin: 0; padding: 0;
   display: flex; flex-direction: column; background: #ffffff; color: #111111; }
 .qr { border: 1px solid #111111; border-top: 8mm solid #d3ff02; padding: 10mm 11mm;
   flex: 1; display: flex; flex-direction: column; }
@@ -768,15 +778,15 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>Nothing is real until it is on the screen. WhatsApp is not a record.</span></li>
     </ul></div>
+    
+    <div class="tail">
+      <p class="note">
+        Every screen in the platform is explained under <strong>Guide</strong> in the menu.
+        If something here does not match what you see, the product is right and this is out
+        of date. Say so and it gets reprinted.
+      </p>
+    </div>
   </section>
-
-  <div class="tail">
-    <p class="note">
-      Every screen in the platform is explained under <strong>Guide</strong> in the menu.
-      If something here does not match what you see, the product is right and this is out of
-      date. Say so and it gets reprinted.
-    </p>
-  </div>
 
   
   <div class="card-page">
