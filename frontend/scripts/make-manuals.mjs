@@ -19,7 +19,8 @@
  * product is broken rather than the document.
  */
 import { chromium } from 'playwright';
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -33,6 +34,23 @@ const OUT = resolve(process.argv[2] || join(FE, 'docs', 'manuals', 'out'));
 /** Second argument, or the app's own public folder. Pass "" to skip. */
 const PUBLIC = process.argv[3] === '' ? null
   : resolve(process.argv[3] || join(FE, 'public', 'guides'));
+
+/**
+ * The folder these are actually READ from.
+ *
+ * `out/` is the build and `public/guides` is what the product serves; neither is where
+ * anybody opens a manual. They are opened from the Desktop, and after the manuals were
+ * rebuilt that copy stayed on the previous morning's version because this script had never
+ * heard of it. That is not a one-off: every regeneration would have left the read copies
+ * behind the same way.
+ *
+ * An existence check rather than a requirement, so the script still runs on a machine that
+ * has no such folder. An environment variable would be tidier and would also never be set.
+ */
+const DESKTOP = [
+  join(homedir(), 'Desktop', 'Following Manuals'),
+  join(homedir(), 'OneDrive', 'Desktop', 'Following Manuals'),
+].find((d) => existsSync(d)) || null;
 
 // ── The one source of names ─────────────────────────────────────────────────────────────
 const destSrc = readFileSync(join(FE, 'src', 'lib', 'destinations.ts'), 'utf8');
@@ -422,8 +440,17 @@ for (const role of ROLES) {
     mkdirSync(PUBLIC, { recursive: true });
     copyFileSync(join(OUT, `${name}.pdf`), join(PUBLIC, `${role.slug}.pdf`));
   }
+
+  // And the folder they are actually opened from. Under the SAME human name, because that
+  // is what is already sitting on the Desktop and a second file called
+  // "business-development.pdf" beside "Manual - Business Development.pdf" is how somebody
+  // ends up reading the old one.
+  if (DESKTOP) copyFileSync(join(OUT, `${name}.pdf`), join(DESKTOP, `${name}.pdf`));
+
   console.log('printed', `${name}.pdf`);
 }
 
 await browser.close();
 console.log(`\n${ROLES.length} manuals -> ${OUT}`);
+if (DESKTOP) console.log(`  also refreshed -> ${DESKTOP}`);
+else console.log('  no "Following Manuals" folder found, so nothing was refreshed there');
