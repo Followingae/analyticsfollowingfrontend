@@ -17,20 +17,17 @@
  */
 
 import { useCallback, useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Loader2, RefreshCw, Settings2, AlertTriangle } from "lucide-react"
+import { useParams } from "next/navigation"
+import { Loader2, RefreshCw, Settings2, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
-import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { Button } from "@/components/ui/button"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
-import { PageHead } from "@/components/console/primitives"
 import { ContentWall } from "@/components/content/ContentWall"
 import { FrameioPanel } from "@/components/content/FrameioPanel"
 import { contentAdminApi, type ContentWall as Wall, type ContentSource } from "@/services/contentDeliveryApi"
 
 export default function CampaignContentPage() {
   const campaignId = useParams().campaignId as string
-  const router = useRouter()
   const { isSuperAdmin, canDo, loading: accessLoading } = useAdminAccess()
 
   const [wall, setWall] = useState<Wall | null>(null)
@@ -73,36 +70,28 @@ export default function CampaignContentPage() {
   }
 
   return (
-    <SuperadminLayout>
       <div className="space-y-ds-5">
-        <div className="space-y-2">
-          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground"
-                  onClick={() => router.push(`/work/campaigns/${campaignId}/timeline`)}>
-            <ArrowLeft className="h-3.5 w-3.5" /> Campaign
-          </Button>
-          <PageHead
-            title="Content"
-            sub="What each creator has delivered, and where the client has got to with it."
-            action={(
-              <>
-                {source?.linked && canWrite && (
-                  <Button variant="outline" size="sm" onClick={sync} disabled={syncing} className="gap-1.5">
-                    {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                             : <RefreshCw className="h-3.5 w-3.5" />}
-                    Sync
-                  </Button>
-                )}
-                {/* The only superadmin-only control on the page, and it opens everything else. */}
-                {isSuperAdmin && (
-                  <Button variant="outline" size="sm" onClick={() => setPanel(true)} className="gap-1.5">
-                    <Settings2 className="h-3.5 w-3.5" />
-                    {source?.linked ? "Source" : "Link a folder"}
-                  </Button>
-                )}
-              </>
+        {/* No title and no back button. The shell carries the campaign's name and the tab
+            says Content; repeating both here was two headings and a journey home on a
+            screen you had not left. What stays is the two controls, because they belong to
+            this tab and nothing else. */}
+        {(isSuperAdmin || (source?.linked && canWrite)) && (
+          <div className="flex flex-wrap justify-end gap-2">
+            {source?.linked && canWrite && (
+              <Button variant="outline" size="sm" onClick={sync} disabled={syncing} className="gap-1.5">
+                {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                         : <RefreshCw className="h-3.5 w-3.5" />}
+                Sync
+              </Button>
             )}
-          />
-        </div>
+            {isSuperAdmin && (
+              <Button variant="outline" size="sm" onClick={() => setPanel(true)} className="gap-1.5">
+                <Settings2 className="h-3.5 w-3.5" />
+                {source?.linked ? "Source" : "Link a folder"}
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Health, where the person who can fix it will see it. */}
         {source?.linked && source.last_sync_error && (
@@ -171,6 +160,5 @@ export default function CampaignContentPage() {
                         onChanged={load} />
         )}
       </div>
-    </SuperadminLayout>
   )
 }

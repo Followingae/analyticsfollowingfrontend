@@ -115,7 +115,9 @@ export function activityHref(item: ActivityItem): string {
   if (k === "signup") return "/superadmin/fa/members?tab=pending"
   if (k === "receipt_claim") return "/superadmin/fa/receipt-claims"
   if (CAMPAIGN_KINDS.has(k)) {
-    return item.campaign_id ? `/campaigns/${item.campaign_id}/posts` : "/superadmin/fa/campaigns"
+    // FA campaigns have a team screen of their own. This pointed at the CLIENT's posts
+    // page, which for a self-managed FA campaign with no brand account is empty.
+    return item.campaign_id ? `/work/fa/campaigns/${item.campaign_id}` : "/work/fa/campaigns"
   }
   // A row that navigates to the page it is already on is a dead click. An event we cannot
   // place goes to the FA overview, which at least moves.

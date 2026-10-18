@@ -156,7 +156,7 @@ export default function ReportCampaignDetail() {
               <RefreshCw className="h-3.5 w-3.5" /> Refresh
             </Button>
             <Button asChild variant="outline" size="sm" className="gap-1.5">
-              <Link href={`/campaigns/${campaign.id}/posts`}><Plus className="h-3.5 w-3.5" /> Add posts</Link>
+              <Link href={`/work/campaigns/${campaign.id}/performance`}><Plus className="h-3.5 w-3.5" /> Add posts</Link>
             </Button>
             {token && (
               <Button asChild variant="ghost" size="sm" className="gap-1.5">
@@ -184,7 +184,7 @@ export default function ReportCampaignDetail() {
                 </p>
               </div>
               <Button asChild className="mt-2 gap-1.5">
-                <Link href={`/campaigns/${campaign.id}/posts`}><Plus className="h-4 w-4" /> Add posts</Link>
+                <Link href={`/work/campaigns/${campaign.id}/performance`}><Plus className="h-4 w-4" /> Add posts</Link>
               </Button>
             </div>
         ) : (

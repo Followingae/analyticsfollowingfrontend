@@ -15,8 +15,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { AuthGuard } from "@/components/AuthGuard"
-import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -26,7 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import {
-  ArrowLeft, Loader2, CheckCircle2, AlertTriangle, FileText, Send,
+  Loader2, CheckCircle2, AlertTriangle, FileText, Send,
   Image as ImageIcon, Link2, Banknote, UserMinus, PackageCheck, Truck, Undo2, Boxes, Upload,
   LayoutGrid, Rows3,
 } from "lucide-react"
@@ -35,7 +33,7 @@ import { ladderApi, STAGES, type LadderCreator, type Stage } from "@/services/la
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { cdnAvatar } from "@/lib/avatar"
 import { cn } from "@/lib/utils"
-import { Aed, CARD, PageHead } from "@/components/console/primitives"
+import { Aed, CARD } from "@/components/console/primitives"
 import {
   Age, Dash, DENSITY, DensityProvider, DensityToggle, FilterBar, NoMatches, Owner,
   StageRail, StageRibbon, TableShell, useDensity, type RailSegment,
@@ -416,38 +414,29 @@ export default function LadderPage() {
   }, [creators, campaign])
 
   return (
-    <AuthGuard>
-      <SuperAdminInterface>
-        <div className="space-y-ds-4 p-ds-4">
-          <div className="space-y-2">
-            <Link href={`/work/campaigns/${campaignId}/timeline`}
-                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="h-3.5 w-3.5" />Back to the campaign
-            </Link>
-            {/* The record's own name once the board has loaded; the screen's name until then,
-                so the title never reads as empty. The sentence is the one thing the board
-                does not already show: how many are booked and how many are out of time. */}
-            <PageHead
-              title={campaign?.name || "Delivery board"}
-              /* The count of people who are waiting is the one number on this screen worth
-                 colouring, and flattening the subtitle to a plain string dropped it. Amber
-                 arrives with its word beside it, as it does everywhere else in here. */
-              sub={
-                <>
-                  Delivery board &middot; {creators.length} booked
-                  {waiting.length > 0 && (
-                    <>
-                      ,{" "}
-                      <span className="font-semibold text-[color:var(--tone-warn-ink)]">
-                        {waiting.length} due or late
-                      </span>
-                    </>
-                  )}
-                  . Click anyone to do the next thing.
-                </>
-              }
-            />
-          </div>
+    <>
+        <div className="space-y-ds-4">
+          {/* No shell of its own, no title, no way back.
+
+              This screen used to mount AuthGuard + SuperAdminInterface, which is the
+              console's OTHER shell: the same sidebar and header drawn by a different
+              component, so arriving here from the timeline rebuilt the entire chrome to
+              look identical. It is a tab now and the shell above is already mounted.
+
+              The title has gone with it. What has not is the one sentence the board cannot
+              show by itself, which is how many of these people are out of time. */}
+          <p className="text-ds-caption text-muted-foreground">
+            {creators.length} booked
+            {waiting.length > 0 && (
+              <>
+                ,{" "}
+                <span className="font-semibold text-[color:var(--tone-warn-ink)]">
+                  {waiting.length} due or late
+                </span>
+              </>
+            )}
+            . Click anyone to do the next thing.
+          </p>
 
           {/* ── where everyone is ──────────────────────────────────────────────────────
               The rail, the ribbon and the lens. This block is the process view: it is
@@ -1111,8 +1100,7 @@ export default function LadderPage() {
             )}
           </SheetContent>
         </Sheet>
-      </SuperAdminInterface>
-    </AuthGuard>
+    </>
   )
 }
 

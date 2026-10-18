@@ -310,7 +310,7 @@ export default function FACampaignsPage() {
                   <div key={c.id} className="flex flex-wrap items-center justify-between gap-ds-3 py-ds-3">
                     <button
                       type="button"
-                      onClick={() => router.push(`/campaigns/${c.id}/posts`)}
+                      onClick={() => router.push(`/work/fa/campaigns/${c.id}`)}
                       className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"
                     >
                       <div className="h-10 w-10 rounded-ds-md bg-black/[0.04] flex items-center justify-center shrink-0 dark:bg-white/[0.07]">

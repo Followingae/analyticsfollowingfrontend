@@ -9,13 +9,12 @@
  */
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Button } from '@/components/ui/button'
-import { Aed, CARD, FieldStrip, PageHead, Panel, StageBar, Stat, StatGrid } from '@/components/console/primitives'
+import { Aed, CARD, FieldStrip, Panel, StageBar, Stat, StatGrid } from '@/components/console/primitives'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 
-import { ArrowLeft, Loader2, FileText, Users, Search, ScrollText,
+import { Loader2, FileText, Users, Search, ScrollText,
          Receipt, Camera, Wallet, PackageCheck, Truck, Paperclip, Check,
          Mail, ExternalLink } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -145,17 +144,12 @@ export default function CampaignTimelinePage() {
   }
 
   if (loading) {
-    return <SuperadminLayout><div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <Loader2 className="h-4 w-4 animate-spin" />Loading…</div></SuperadminLayout>
+    return <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />Loading…</div>
   }
   if (failure) {
     return (
-      <SuperadminLayout>
         <div className="space-y-3">
-          <Button variant="ghost" size="sm" className="-ml-2"
-                  onClick={() => router.push('/superadmin/campaigns')}>
-            <ArrowLeft className="mr-1.5 h-4 w-4" />All campaigns
-          </Button>
           <p className="text-sm font-medium">Could not open this campaign.</p>
           <p className="text-sm text-muted-foreground">
             {failure}. The campaign may well be fine: this says the read failed, not that it
@@ -164,10 +158,9 @@ export default function CampaignTimelinePage() {
           <Button variant="outline" size="sm"
                   onClick={() => { setLoading(true); load() }}>Try again</Button>
         </div>
-      </SuperadminLayout>
     )
   }
-  if (!t) return <SuperadminLayout><p className="text-sm">There is no campaign at this address.</p></SuperadminLayout>
+  if (!t) return <p className="text-sm">There is no campaign at this address.</p>
 
   const c = t.campaign
   const confirmed = t.roster.filter(r => r.selected_by_user).length
@@ -211,72 +204,31 @@ export default function CampaignTimelinePage() {
   const nextDue = instalments.find(i => !i.paid_at)
 
   return (
-    <SuperadminLayout>
+    <>
       <div className="space-y-8">
         <div>
-          <Button variant="ghost" size="sm" className="mb-3 -ml-2"
-                  onClick={() => router.push('/superadmin/campaigns')}>
-            <ArrowLeft className="mr-1.5 h-4 w-4" />All campaigns
-          </Button>
-          <div className={cn(CARD, 'relative overflow-hidden bg-white dark:bg-neutral-900/70')}>
-            {/* The header was a three-stop gradient under a `backdrop-blur-2xl`, which is the
-                only piece of decoration on the console and says nothing about the campaign.
-                One tone wash, which is what every other panel here stands on. */}
-            <div className="relative overflow-hidden bg-[var(--tone-neutral-wash)]">
-              <div className="relative flex flex-wrap items-start justify-between gap-4 px-6 py-5">
-                <div className="min-w-0">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    {c.client_name && (
-                      c.team_id ? (
-                        <button type="button" onClick={() => router.push(`/work/brands/${c.team_id}`)}>
-                          <Badge variant="outline" className="rounded-full hover:bg-muted">{c.client_name} →</Badge>
-                        </button>
-                      ) : <Badge variant="outline" className="rounded-full">{c.client_name}</Badge>
-                    )}
-                    <Badge variant="secondary" className="rounded-full capitalize">{c.status}</Badge>
-                    {c.campaign_type && (
-                      <Badge variant="outline" className="rounded-full capitalize">{c.campaign_type}</Badge>
-                    )}
-                    {/* Content sits beside the delivery board because that is the pair a
-                        campaign is actually run from: what is owed, and what has arrived. */}
-                    <Button variant="outline" size="sm" className="rounded-full px-4"
-                            onClick={() => router.push(`/work/campaigns/${campaignId}/content`)}>
-                      Content
-                    </Button>
-                    {/* Margin, so leadership only — and hidden rather than refused, because
-                        offering a tab that answers 403 is worse than not offering it. */}
-                    {canSeeMargin && (
-                      <Button variant="outline" size="sm" className="rounded-full px-4"
-                              onClick={() => router.push(`/work/campaigns/${campaignId}/money`)}>
-                        Money
-                      </Button>
-                    )}
-                  </div>
-                  <PageHead
-                    title={c.name}
-                    action={(
-                      /* Delivery board is the one main action. Content stays on the screen
-                         as a link-weight button beside the status badges above. */
-                      <Button
-                        className="rounded-full bg-neutral-900 px-5 text-white hover:bg-neutral-800
-                                   dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-                        onClick={() => router.push(`/work/campaigns/${campaignId}/ladder`)}
-                      >
-                        Delivery board
-                      </Button>
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
+          {/* THE HEADER CARD IS GONE, and so is "All campaigns".
 
+              It carried the campaign's name, the client badge, the status badge, the type
+              badge and three buttons to Content, Money and the delivery board. Every one of
+              those is now the shell above: the name is the heading, the client and status
+              are the line under it, the type is the chip beside it, and the three buttons
+              are three of the five tabs. Drawn here as well it was the same campaign
+              introduced to you twice, forty pixels apart, with two different ways to leave.
+
+              What is kept is what the shell does not know: the dates, and where the campaign
+              has got to. */}
+          <div className={cn(CARD, 'relative overflow-hidden bg-white dark:bg-neutral-900/70')}>
             {/* The facts strip — a record that opens with a title and nothing else makes you
                 go looking for what you already came to check.
                 Creators and Posts used to sit here too, and they are two of the four figures
                 in the band 40 pixels below, where they carry their denominators. Two of five
                 fields restating two of four stats is the same fact told twice on one screen,
-                so the strip keeps the three the band does not have. */}
-            <div className="border-t border-black/[0.05] px-6 py-4 dark:border-white/[0.07]">
+                so the strip keeps the three the band does not have.
+                No top border: it is the first thing in the card now that the title block
+                above it has gone, and a divider with nothing above it is a line for its own
+                sake. */}
+            <div className="px-6 py-4">
               <FieldStrip fields={[
                 { label: 'Brand', value: c.brand_name || '—' },
                 { label: 'Starts', value: c.start_date ? when(c.start_date) : '—' },
@@ -831,6 +783,6 @@ export default function CampaignTimelinePage() {
         onOpenChange={(v) => { if (!v) setEnrolFor(null) }}
         onCreated={() => load()}
       />
-    </SuperadminLayout>
+    </>
   )
 }

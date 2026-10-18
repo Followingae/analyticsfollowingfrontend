@@ -207,10 +207,12 @@ export default function SuperadminCreateCampaignPage() {
 
       // The UGC branch has always opened the campaign it just made; the other one dropped
       // you on the list holding the same id it had used two lines earlier to attach posts.
+      /* UGC has no team screen of its own yet, so it still opens the client view. Anything
+         else opens the campaign we just made, on our side of it. */
       if (campaignType === "ugc") {
         router.push(`/campaigns/${campaignId}/ugc`)
       } else {
-        router.push(campaignId ? `/superadmin/campaigns/${campaignId}` : `/superadmin/campaigns`)
+        router.push(campaignId ? `/work/campaigns/${campaignId}/timeline` : `/work/campaigns`)
       }
     } catch (e: any) {
       toast.dismiss(loadingToast)

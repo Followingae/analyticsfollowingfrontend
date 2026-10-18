@@ -657,9 +657,13 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
                 </Link>
               </Button>
 
+              {/* Results, not "full analytics". The old link went to a 2,856-line screen
+                  whose job is mostly campaign settings, and whose post view was a column of
+                  very large thumbnails. This one is the grid: every post that went live,
+                  what it did, and the roll-up across all of them. */}
               <Button asChild variant="outline" className="mt-2 w-full rounded-xl">
-                <Link href={`/campaigns/${campaign.id}/posts`}>
-                  <BarChart3 className="mr-2 h-4 w-4" /> Full analytics
+                <Link href={`/campaigns/${campaign.id}/performance`}>
+                  <BarChart3 className="mr-2 h-4 w-4" /> Results
                 </Link>
               </Button>
             </CardContent>

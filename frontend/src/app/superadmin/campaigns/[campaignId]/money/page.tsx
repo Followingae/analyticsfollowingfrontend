@@ -34,13 +34,11 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { AuthGuard } from '@/components/AuthGuard'
-import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import {
-  ArrowLeft, Banknote, HandCoins, Landmark, Loader2, Receipt, TrendingUp, Wallet,
+  Banknote, HandCoins, Landmark, Loader2, Receipt, TrendingUp, Wallet,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Aed, CARD, PageHead, Panel, Stat, StatGrid, type Tone } from '@/components/console/primitives'
+import { Aed, CARD, Panel, Stat, StatGrid, type Tone } from '@/components/console/primitives'
 import {
   Dash, DENSITY, DensityProvider, DensityToggle, ReadState, SectionHead, TableShell,
   useDensity,
@@ -119,14 +117,14 @@ const POPULATION_WORD: Record<string, string> = {
 export default function CampaignMoneyPage() {
   /* Dense by default: this is a money grid with five numeric columns, which is the tier
      dense exists for. The toggle remembers whatever the reader prefers. */
+  /* No shell and no AuthGuard: this is a tab inside the campaign, and the campaign's own
+     layout mounts both. It used to carry AuthGuard + SuperadminLayout of its own, which
+     meant arriving from the delivery board tore down one console and built an identical
+     one. */
   return (
-    <AuthGuard requireAuth>
-      <SuperadminLayout>
-        <DensityProvider id="campaign-money" initial="dense">
-          <CampaignMoney />
-        </DensityProvider>
-      </SuperadminLayout>
-    </AuthGuard>
+    <DensityProvider id="campaign-money" initial="dense">
+      <CampaignMoney />
+    </DensityProvider>
   )
 }
 
@@ -284,10 +282,6 @@ function CampaignMoney() {
   if (!canSeeMargin) {
     return (
       <div className="space-y-5">
-        <PageHead
-          title="Campaign money"
-          sub="What a campaign costs, earns and can afford to pay out."
-        />
         <div className={cn(CARD, 'bg-card p-5 text-ds-label')}>
           <p>This screen is margin, so it is leadership only.</p>
           <p className="mt-2 text-ds-caption text-muted-foreground">
@@ -320,29 +314,16 @@ function CampaignMoney() {
 
   return (
     <div className="space-y-6">
-      <PageHead
-        title={c?.name ? `${c.name}: the money` : 'Campaign money'}
-        sub={
-          c ? (
-            <>
-              {c.client_name || c.brand_name || 'No client on record'}
-              {c.status ? ` · ${c.status}` : ''}
-              {' · '}
-              Approving a deliverable is what moves a creator from committed to owed.
-            </>
-          ) : 'What this campaign costs, earns and can afford to pay out.'
-        }
-        action={
-          <>
-            <DensityToggle />
-            <Button variant="outline" size="sm"
-                    onClick={() => router.push(`/work/campaigns/${campaignId}/timeline`)}>
-              <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
-              The campaign
-            </Button>
-          </>
-        }
-      />
+      {/* The campaign's name, its client and its status are the shell's heading now, and
+          "The campaign" was a button back to a tab that is one click away in the bar above.
+          The one sentence worth keeping is the rule, because it is the thing people get
+          wrong about this screen. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-ds-caption text-muted-foreground">
+          Approving a deliverable is what moves a creator from committed to owed.
+        </p>
+        <DensityToggle />
+      </div>
 
       <ReadState
         failed={failed}

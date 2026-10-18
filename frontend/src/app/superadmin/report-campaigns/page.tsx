@@ -76,7 +76,8 @@ export default function ReportCampaignsPage() {
       toast.success("Report campaign created. Add the post links next.")
       setOpen(false); setName(""); setBrand(""); setDescr("")
       await load()
-      if (r?.data?.id) window.location.href = `/campaigns/${r.data.id}/posts`
+      // The campaign's own Performance tab, on our side. It used to open the client app.
+      if (r?.data?.id) window.location.href = `/work/campaigns/${r.data.id}/performance`
       // Straight to Add Posts on create is deliberate: a new report has nothing to show
       // until links are in it. Every later visit goes to the report itself.
     } catch (e) {
@@ -245,7 +246,7 @@ export default function ReportCampaignsPage() {
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="sm" className="gap-1.5">
-                    <Link href={`/campaigns/${r.id}/posts`}>
+                    <Link href={`/work/campaigns/${r.id}/performance`}>
                       <Plus className="h-3.5 w-3.5" /> Add posts
                     </Link>
                   </Button>

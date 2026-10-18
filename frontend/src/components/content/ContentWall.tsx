@@ -91,7 +91,8 @@ function Thumb({
         "ring-1 ring-black/[0.06] transition dark:ring-white/[0.08]",
         "hover:ring-black/[0.14] focus-visible:outline focus-visible:outline-2",
         "focus-visible:outline-offset-2 focus-visible:outline-primary dark:hover:ring-white/20",
-        // Vertical, because everything delivered here is a reel or a story.
+        // Vertical, because everything delivered here is a reel or a story. The TRACK is
+        // what changed: see the grid below.
         size === "md" ? "aspect-[9/13] w-full" : "aspect-[9/13] w-[104px] shrink-0",
       )}
     >
@@ -202,7 +203,7 @@ function CreatorCard({
   return (
     <article
       className={cn(
-        "rounded-ds-2xl border p-5 transition sm:p-6",
+        "rounded-ds-2xl border p-4 transition sm:p-5",
         loud
           ? "border-black/[0.10] bg-background shadow-[0_1px_2px_rgba(16,20,12,0.04),0_14px_32px_-18px_rgba(16,20,12,0.22)] dark:border-white/[0.12]"
           : "border-black/[0.06] bg-background/60 dark:border-white/[0.07]",
@@ -240,7 +241,16 @@ function CreatorCard({
 
       {/* What */}
       {group.items.length > 0 ? (
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        /* A CONTACT SHEET, NOT A GALLERY.
+           This was `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5`: columns that
+           divide whatever width there is, so every tile grew with the window. On a laptop a
+           9:13 tile 260px wide is 375px tall, and a creator who delivered six pieces filled
+           two screens with them. The client's job here is to look at a set and decide, and
+           they were being made to scroll to see what they were deciding about.
+           Fixed track instead, so tiles stay the size of a phone screenshot and the row
+           count falls out of the window rather than the tile size. Full size is one click
+           away in the player, which is where looking properly actually happens. */
+        <div className="mt-5 grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-2.5">
           {group.items.map((it, i) => (
             <Thumb key={it.id} item={it} onOpen={() => onOpen(group, i)} />
           ))}
@@ -429,7 +439,7 @@ export function ContentWall({
                 a sentence explaining its own heading. */}
             {s.sub && <p className="mt-1 text-[13.5px] text-muted-foreground">{s.sub}</p>}
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {s.groups.map((g) => (
               <CreatorCard
                 key={g.campaign_creator_id}

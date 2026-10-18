@@ -282,17 +282,22 @@ export default function SuperadminCampaignsPage() {
                         </Button>
                         <Button
                           size="sm" variant="ghost" className="rounded-full"
-                          /* A UGC campaign has no posts screen — its content lives on /ugc, and
-                             /posts renders empty for it. Sending someone to the right one of the
-                             two is the difference between "there is nothing here" and the work. */
+                          /* BOTH OF THESE USED TO OPEN THE CLIENT'S OWN SCREEN.
+                             `/campaigns/{id}/posts` and `/campaigns/{id}/ugc` are the brand
+                             app. A member of staff pressing "Posts" on an internal list was
+                             dropped into the customer's view of the campaign, with the
+                             customer's chrome and none of the team's tools, and the way back
+                             was the browser's back button. UGC still has no team screen of
+                             its own, so it keeps the client one and says so; everything else
+                             goes to the campaign's own Performance tab. */
                           onClick={(e) => {
                             e.stopPropagation()
                             router.push(c.campaign_type === 'ugc'
                               ? `/campaigns/${c.id}/ugc`
-                              : `/campaigns/${c.id}/posts`)
+                              : `/work/campaigns/${c.id}/performance`)
                           }}
                         >
-                          {c.campaign_type === 'ugc' ? 'Videos' : 'Posts'}
+                          {c.campaign_type === 'ugc' ? 'Videos' : 'Results'}
                         </Button>
                       </>
                     }

@@ -355,7 +355,7 @@ function MemberCampaignsSection({ memberId, fallbackCount }: { memberId: string;
               </div>
             )
             return c.campaign_id ? (
-              <a key={c.campaign_id + i} href={`/campaigns/${c.campaign_id}/posts`} className="block transition-opacity hover:opacity-80">
+              <a key={c.campaign_id + i} href={`/work/fa/campaigns/${c.campaign_id}`} className="block transition-opacity hover:opacity-80">
                 {row}
               </a>
             ) : (

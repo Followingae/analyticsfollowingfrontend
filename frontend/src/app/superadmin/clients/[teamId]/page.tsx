@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ClientLog } from '@/components/clients/ClientLog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  ArrowLeft, Boxes, Building2, Coins, FileText, Users, Video,
+  ArrowLeft, Boxes, Building2, Coins, FileText, History, Users, Video,
   Calendar, Activity, TrendingUp, AlertCircle, CheckCircle2,
   Clock, XCircle, ChevronRight, Upload, Loader2, ShieldCheck, Mail, Handshake
 } from 'lucide-react';
@@ -552,13 +553,20 @@ function ClientDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={loadTabData}>
-        <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-5">
+        <TabsList className="flex w-full overflow-x-auto md:grid md:grid-cols-6">
           <TabsTrigger value="scope"><FileText className="mr-1.5 h-3.5 w-3.5" />What we agreed</TabsTrigger>
           <TabsTrigger value="work"><Building2 className="mr-1.5 h-3.5 w-3.5" />Work</TabsTrigger>
           <TabsTrigger value="quotes"><Users className="mr-1.5 h-3.5 w-3.5" />Quotes</TabsTrigger>
           <TabsTrigger value="money"><Coins className="mr-1.5 h-3.5 w-3.5" />Money</TabsTrigger>
+          {/* Everything that has happened, and who did it. Last, because it is what you
+              open when you need to know how something came to be rather than to do a job. */}
+          <TabsTrigger value="record"><History className="mr-1.5 h-3.5 w-3.5" />Record</TabsTrigger>
           <TabsTrigger value="setup"><Boxes className="mr-1.5 h-3.5 w-3.5" />Setup</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="record" className="space-y-ds-5">
+          <ClientLog teamId={teamId} />
+        </TabsContent>
 
         {/* SCOPE TAB - The "All Scope" spreadsheet replacement */}
         <TabsContent value="scope" className="space-y-4">
@@ -640,7 +648,11 @@ function ClientDetailPage() {
                       <TableRow
                         key={c.id}
                         className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => router.push(`/campaigns/${c.id}`)}
+                        /* `/campaigns/{id}` is the CLIENT's view. Opening a campaign from
+                           the client cockpit, which is a staff screen, handed a member of
+                           staff the customer's own app. The campaign's team view is at
+                           /work. */
+                        onClick={() => router.push(`/work/campaigns/${c.id}/timeline`)}
                       >
                         <TableCell className="font-medium">{c.name}</TableCell>
                         <TableCell>{typeBadge(c.campaign_type)}</TableCell>
@@ -745,7 +757,7 @@ function ClientDetailPage() {
                     <Progress value={(Number(c.spent) / Number(c.budget)) * 100} className="mt-2 h-1.5" />
                   ) : null}
                   <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/campaigns/${c.id}`)}>Open</Button>
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => router.push(`/work/campaigns/${c.id}/timeline`)}>Open</Button>
                     <Button size="sm" variant="outline" className="flex-1" onClick={() => setCommercialCampaign({ id: c.id, name: c.name })}>
                       <Coins className="mr-1 h-3.5 w-3.5" />Commercial
                     </Button>
