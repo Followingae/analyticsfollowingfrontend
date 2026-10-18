@@ -217,6 +217,16 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Sales pipeline',
     hint: 'Every brand we are talking to, before they are a client',
   },
+  '/work/negotiations': {
+    short: 'Rates',
+    full: 'Rates to agree',
+    hint: 'Clients said yes; nothing opens until we know what we pay',
+  },
+  '/work/handovers': {
+    short: 'To send',
+    full: 'Ready to send',
+    hint: 'Client links Zain has checked, for you to send',
+  },
   '/work/requests': {
     short: 'Requests',
     full: 'Waiting on us',

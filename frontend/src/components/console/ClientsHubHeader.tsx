@@ -35,6 +35,9 @@ const TABS: HubTab[] = [
   { href: '/work/share', module: 'clients' },
   // Merchants who applied through a landing page. Sits with Clients because that is what a
   // lead becomes, and because it was invisible for two months living only in an inbox.
+  // Links checked and waiting to be emailed by a person. The send stays in a real inbox;
+  // what was missing was anybody knowing the link was ready.
+  { href: '/work/handovers', module: 'clients' },
   { label: 'Partner leads', href: '/work/partners', module: 'clients' },
 ]
 

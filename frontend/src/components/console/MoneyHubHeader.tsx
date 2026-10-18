@@ -47,6 +47,10 @@ export function useMoneyTabs(): HubTab[] {
     /* The founders' desk: prices to set, creators to release, payments to approve. Every
        action on it moves money, which is why it is here and not a destination of its own.
        Leadership only, by the same test that gates margin. */
+    /* Every creator waiting on a negotiated rate, across all proposals. The step existed
+       and lived inside one proposal's page, so the work could only be found by remembering
+       which proposal had it. */
+    { href: '/work/negotiations', when: canSeeMargin },
     { href: '/work/approvals', when: canSeeMargin },
   ]
   if (loading) return []

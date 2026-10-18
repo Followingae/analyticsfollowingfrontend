@@ -29,8 +29,8 @@ export const ROLES = [
     lede: 'You turn a brand’s request into real creators who have said yes, at a price we can sell, with signed paperwork and content that lands on time.',
     day: [
       { icon: 'sunrise', head: 'First thing', items: [
-        'Open **Today**. Only what is waiting on you.',
-        'Open **Decisions**. Anything needing your answer.',
+        'Open **Requests**. Everything anybody is waiting on from you.',
+        'Open **Today**. The rest of what is yours.',
         'Open **Pipeline**. Every creator we owe something.',
       ]},
       { icon: 'clock', head: 'Through the day', items: [
@@ -50,13 +50,13 @@ export const ROLES = [
         when: 'Starts when a brief arrives. Ends when the client has a list to choose from.',
         path: ['Creators', 'Rosters'],
         steps: [
-          'Read the brief: market, category, budget, deliverables, dates.',
-          'If any of those five are missing, ask before you source.',
-          'Open the brand’s roster. Everything you find goes here, not a spreadsheet.',
-          'Search the master database first. We already know hundreds of creators.',
-          'Add anyone new by handle. The platform pulls their numbers itself.',
-          'Agree a price. Record both their standard rate and what they agreed.',
-          'Put the price on the creator, then hand the list up for review.',
+          'The ask arrives in **Requests** with a brief. Press "I have this".',
+          'A roster is already open for that brand. Everything you find goes there.',
+          'Start in **Lists**: Food UAE, Beauty UAE and the rest are always up to date.',
+          'Then the master database. Add anyone new by handle and we pull their numbers.',
+          'Nobody tells you how many to find. A client signing fifteen may need to see hundreds.',
+          'Record what they charge and what they agreed. Those are two different numbers.',
+          'Hand the list up for review when it is ready to be seen.',
         ],
         next: 'Leadership reviews for quality and budget. Expect removals. That is the point of the review.',
       },
@@ -118,13 +118,14 @@ export const ROLES = [
     lede: 'You own the client. You know what they bought, what they are owed, and what they have been told, and you tell them before they have to ask.',
     day: [
       { icon: 'sunrise', head: 'First thing', items: [
-        'Open **Today**. What is waiting on you.',
-        'Open **Decisions**. Anything held for your answer.',
+        'Open **Requests**. What clients are waiting on, and who owes it.',
+        'Open **Today**. The rest of what is yours.',
         'Open **Clients**. Anyone gone quiet is flagged.',
       ]},
       { icon: 'clock', head: 'Through the day', items: [
-        'Answer the client wherever they wrote to you, then write it on their record.',
-        'Keep every promise you make on the client’s record.',
+        'Answer the client wherever they wrote to you. WhatsApp and email do not change.',
+        'Then raise it as a **Request** so somebody owns it and a date exists.',
+        'Every promise you make goes on the client’s record the same day.',
         'A client should never be the one chasing us.',
       ]},
       { icon: 'moon', head: 'Before you log off', items: [
@@ -133,6 +134,33 @@ export const ROLES = [
       ]},
     ],
     jobs: [
+      {
+        icon: 'inbox',
+        title: 'Turn a client ask into something that happens',
+        when: 'Every time a client asks for anything.',
+        path: ['Requests', 'Raise one'],
+        steps: [
+          'Write what they asked for in their words, not a summary.',
+          'Tick "a client asked for this" so it carries the weight it should.',
+          'Give it a date. Leave the owner blank if you do not know who should do it.',
+          'It shows on their day until it is done, and they are told when it is.',
+        ],
+        next: 'You stop being the only person who remembers it.',
+      },
+      {
+        icon: 'chart',
+        title: 'Send a client their results',
+        when: 'Once their creators have posted.',
+        path: ['Campaigns', 'Open a campaign', 'Performance'],
+        steps: [
+          'Paste the link to each post that went live.',
+          'We read the numbers off Instagram within a minute or so.',
+          'Zain releases each one. Nothing reaches the client until he does.',
+          'Once released the client sees it on their own Results screen.',
+        ],
+        next: 'They get the roll-up across every post without you building a deck.',
+      },
+
       {
         icon: 'building',
         title: 'Take the handover',
@@ -200,16 +228,17 @@ export const ROLES = [
     lede: 'You bring the work in. You qualify it, agree what we charge, get it signed, and hand it over in writing so nothing is lost between you and delivery.',
     day: [
       { icon: 'sunrise', head: 'First thing', items: [
+        'Open **Sales**. Your whole board, by stage.',
+        'Open **To send**. Anything Zain has checked and cleared for a client.',
         'Open **Partner leads**. Enquiries off the website land here.',
-        'Anyone with no owner is yours until somebody takes them.',
-        'Open **Clients** for who is mid-conversation.',
       ]},
       { icon: 'clock', head: 'Through the day', items: [
-        'Answer a new enquiry the same day, even to say when you will reply.',
-        'Log every conversation. A brand with no notes is a brand nobody can cover.',
+        'Move deals as they move. The board is the record now, not the sheet.',
+        'The moment a deal looks real, press **Ask talent**. Do not wait for the yes.',
+        'Every deal carries a next step and a date, or it is not being worked.',
       ]},
       { icon: 'moon', head: 'Before you log off', items: [
-        'Every enquiry today has an owner and a next step.',
+        'Every enquiry today is a brand on the board with a next step.',
       ]},
     ],
     jobs: [
@@ -228,24 +257,39 @@ export const ROLES = [
         icon: 'clipboard',
         title: 'Qualify it',
         when: 'Before you quote anything.',
-        path: ['Clients', 'Brands', 'Add a brand'],
+        path: ['Clients', 'Sales', 'Add a brand'],
         steps: [
           'Budget, market, category, timing, who signs.',
           'Without a budget there is no brief, and no brief wastes everyone.',
-          'Create the brand and write what you learned on it.',
+          'Add the brand on the board and write what you learned on the deal.',
         ],
         next: 'A founder decides whether we chase it and writes what to look for.',
       },
       {
-        icon: 'banknote',
-        title: 'Agree the rate card',
-        when: 'Once they are real and the budget is known.',
-        path: ['Clients', 'Quotes'],
+        icon: 'users',
+        title: 'Ask talent to start',
+        when: 'The moment the deal looks real. NOT when it closes.',
+        path: ['Clients', 'Sales', 'Ask talent'],
         steps: [
-          'Build the quote from the roster leadership cleared.',
-          'You see what we sell for. You never see what it costs us.',
-          'Send it and record what they said.',
+          'This is the one that used to cost us weeks. Talent heard when a campaign locked.',
+          'Press it on the deal and write what you are looking for: market, category, size.',
+          'Say WHAT, never how many. A client signing fifteen may need to see hundreds.',
+          'Talent get it on their day, with a roster already open and your brief on it.',
         ],
+        next: 'Sourcing runs while you are still negotiating, so names exist when they ask.',
+      },
+      {
+        icon: 'banknote',
+        title: 'Send the quotation',
+        when: 'Once Zain has checked it.',
+        path: ['Clients', 'To send'],
+        steps: [
+          'You do not mint the link and you do not build the numbers. Zain does both.',
+          'When it is checked it appears here and you are told.',
+          'Copy the link into your OWN email. The client hears from you, as always.',
+          'Then press "I have sent it" so it is on their record and not just your sent folder.',
+        ],
+        next: 'The client opens it and picks. You see what they chose without asking.',
       },
       {
         icon: 'handshake',
@@ -279,12 +323,13 @@ export const ROLES = [
     lede: 'You are the quality gate and the budget gate. Nothing reaches a client that you have not seen, and no money leaves without you.',
     day: [
       { icon: 'sunrise', head: 'First thing', items: [
+        'Open **Rates**. Clients have said yes; these campaigns cannot open until you price them.',
         'Open **Decisions**. Everything held for you, oldest first.',
-        'Open **Finance → Approvals**. Money waiting on a yes.',
       ]},
       { icon: 'clock', head: 'Through the day', items: [
         'Clear rosters quickly. Talent cannot move until you do.',
         'Strike with a reason. The reason stops the repeat next month.',
+        'Check the talent board on **Rates**: who is holding what, and what is late.',
       ]},
       { icon: 'moon', head: 'Before you log off', items: [
         'Nothing has waited on you for more than a day.',
@@ -384,6 +429,32 @@ export const ROLES = [
         next: 'Talent begins sourcing against what you wrote.',
       },
       {
+        icon: 'banknote',
+        title: 'Agree what we pay each creator',
+        when: 'As soon as a client confirms. Nothing opens until this is done.',
+        path: ['Finance', 'Rates'],
+        steps: [
+          'Every proposal a client has confirmed is here, longest wait first.',
+          'Open one and put the real negotiated cost against each creator.',
+          'The margin moves as you type, before you commit anything.',
+          'What we quoted and what we pay are rarely the same. The second one is the truth.',
+          'When every creator has a rate, the campaign can be opened.',
+        ],
+        next: 'The campaign opens with a real margin instead of acquiring one later.',
+      },
+      {
+        icon: 'users',
+        title: 'See who is holding what',
+        when: 'Whenever you are allocating, and before you hire.',
+        path: ['Finance', 'Rates'],
+        steps: [
+          'The talent board is underneath the rates.',
+          'Open requests, how many are late, rosters held, sourced and priced this month.',
+          'Counts, never scores. It tells you where the load is, not who is better.',
+          'Anything nobody has taken is called out at the top.',
+        ],
+      },
+      {
         icon: 'wallet',
         title: 'See what a campaign is worth',
         when: 'Before you invoice, and whenever it matters.',
@@ -448,6 +519,8 @@ export const MENU = [
   { group: null, rows: [
     { path: '/work/today', icon: 'list' },
     { path: '/work/inbox', icon: 'inbox' },
+    // Everything anybody has asked us for, whoever asked.
+    { path: '/work/requests', icon: 'hand' },
     // The marketing number and the catch-all address land here. Visibility of who has
     // contacted the company, not work for anybody, so only the founder has the row.
     { path: '/work/desk', icon: 'mail', only: ['founder-ceo'] },
@@ -476,11 +549,12 @@ export const ADMIN = {
 
 /** The tabs inside each destination, so a path chip can be checked against something real. */
 export const TABS = {
-  Clients: ['/work/clients', '/work/brands', '/work/proposals', '/work/share', '/work/partners'],
+  Clients: ['/work/sales', '/work/clients', '/work/brands', '/work/proposals',
+            '/work/share', '/work/handovers', '/work/partners'],
   Creators: ['/work/influencers', '/work/influencers/review', '/work/influencers/analyzed',
              '/work/lists', '/work/areas', '/work/coverage', '/work/fa/members',
              '/work/fa/reliability'],
   Campaigns: ['/work/campaigns', '/work/fa/campaigns', '/work/report-campaigns', '/work/chasing'],
   Finance: ['/work/billing', '/work/mor', '/work/payables', '/work/fa/wallets',
-            '/work/enrolments', '/work/approvals'],
+            '/work/enrolments', '/work/negotiations', '/work/approvals'],
 };

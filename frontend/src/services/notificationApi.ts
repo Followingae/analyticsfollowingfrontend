@@ -74,6 +74,7 @@ export type ServerNotificationType =
   | 'round_shareable'
   | 'share_expiring'
   | 'share_extended'
+  | 'share_ready_to_send'
   | 'share_received'
   | 'share_revoked'
   | 'sourcing_requested'
@@ -130,6 +131,7 @@ export const NOTIFICATION_CATEGORIES = {
   ],
   clients: [
     'brand_gone_quiet',
+    'share_ready_to_send',
   ],
   deliverables: [
     'campaign_deliverable',
@@ -282,6 +284,7 @@ export const EVENT_LABEL: Partial<Record<ServerNotificationType, string>> = {
   round_shareable: "Roster is ready to send to the client",
   share_expiring: "A client's link is about to expire",
   share_extended: "Share access extended",
+  share_ready_to_send: "A client link is checked and ready to send",
   share_received: "Influencer list shared",
   share_revoked: "Share access revoked",
   sourcing_requested: "Business development asked talent to start",

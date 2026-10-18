@@ -39,7 +39,7 @@ import {
   Wallet,
   Download, CircleCheck, Ban, Sunrise,
   Mail,
-  Search, ArrowUpRight, Users2, Coins, Database, Map, Megaphone, ClipboardCheck,
+  Search, ArrowUpRight, Users2, Coins, Database, Map, Megaphone, ClipboardCheck, Hand,
   FileSignature, Banknote, BarChart3, Building2, FileText, Send, Inbox, ListChecks,
   ShieldCheck, Store, Activity, Bell, Wrench, MailCheck, MessageCircle, Users,
 } from 'lucide-react'
@@ -89,6 +89,12 @@ const SECTIONS: Section[] = [
         what: 'Everything anywhere in the platform that needs a decision from you.',
         why: 'It pulls from every queue at once, so you do not have to remember which screen a thing was waiting on. It only lists queues your role can act on.',
         also: ['queue', 'approvals', 'to do'],
+      },
+      {
+        title: 'Waiting on us', href: '/work/requests', icon: Hand,
+        what: 'Everything anybody has asked us for, whoever asked, with who owes it and by when.',
+        why: 'One list on purpose. A client asking through their account manager and a colleague asking for creators by tomorrow are the same thing: somebody needs something by a date. Two queues means one of them stops being read. Where it came from is a chip, not a second screen. Oldest first, because the request that has waited longest is the one somebody has already given up on and worked around. A request nobody has taken says so, which is the most useful thing on the page.',
+        also: ['requests', 'asks', 'queue', 'chasing', 'todo', 'client requests'],
       },
       {
         title: 'The Desk', href: '/work/desk', icon: Mail, superadminOnly: true,
@@ -187,9 +193,21 @@ const SECTIONS: Section[] = [
     blurb: 'Getting brands in the door and turning interest into a signed quote.',
     entries: [
       {
+        title: 'Sales', href: '/work/sales', icon: Megaphone,
+        what: 'Your board. Every brand we are talking to, grouped by what stage the conversation is at.',
+        why: 'This replaces the spreadsheet. It is one row per DEAL, grouped under the brand, because a client who has run eighteen campaigns cannot be described by a single stage: they are live on one and negotiating the next. The button that matters is Ask talent. Press it the moment a deal looks real rather than when it closes, because sourcing takes days and the client expects names the moment they say yes. It raises a request and opens a roster with your brief on it.',
+        also: ['crm', 'deals', 'outreach', 'pipeline', 'prospects', 'spreadsheet'],
+      },
+      {
+        title: 'Ready to send', href: '/work/handovers', icon: Send,
+        what: 'Client links Zain has checked, waiting for you to email them.',
+        why: 'The client still hears from you, out of your own inbox, and that does not change. What changed is that the platform knows the link is ready and tells you, instead of Zain emailing you separately to say so. Press "I have sent it" afterwards and the fact lands on the client record rather than living only in your sent folder.',
+        also: ['quotes', 'links', 'share', 'send to client', 'quotation'],
+      },
+      {
         title: 'Brands', href: '/work/brands', icon: Building2,
         what: 'Every brand we are talking to, and how warm each one is.',
-        also: ['leads', 'pipeline', 'prospects'],
+        also: ['leads', 'prospects'],
       },
       {
         title: 'Quotes', href: '/work/proposals', icon: FileText,
@@ -247,6 +265,12 @@ const SECTIONS: Section[] = [
     role: 'Leadership',
     blurb: 'Money, sign-offs and the shape of the company. Everything above, plus these.',
     entries: [
+      {
+        title: 'Rates to agree', href: '/work/negotiations', icon: Banknote,
+        what: 'Every creator waiting on a negotiated rate, across every proposal at once, plus who in talent is holding what.',
+        why: 'The step always existed and had nowhere to live: it was one panel inside one proposal, so the only way to find the work was to remember which proposal had it. The first time anybody asked the question properly there were five proposals and twenty-six creators unpriced, holding up every one of those campaigns. Longest wait first. The talent board underneath is counts, never scores: it shows where the load is, not who is better.',
+        also: ['negotiate', 'costs', 'settle', 'margin', 'talent board', 'allocation'],
+      },
       {
         title: 'Creator payments', href: '/work/payables', icon: Banknote,
         what: 'The payment book: what we owe every creator and whether it has gone out.',

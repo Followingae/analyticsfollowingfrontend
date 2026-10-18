@@ -64,10 +64,13 @@ const KNOWN = new Set([
   // The collapsed parents themselves. They are headings you expand, not destinations, so
   // they have no entry in the registry and are named here.
   'Admin', 'Company', 'Settings', 'Creator app',
+  // The five tabs INSIDE one campaign. They are a route each but not a destination in the
+  // registry, because they only exist under a campaign that is already open.
+  'Story', 'Delivery', 'Content', 'Performance',
 ]);
 
 /** Chips that are an instruction rather than a place: a button, a row, a thing to open. */
-const isAction = (s) => /^(Open|Add|Share|Mint|Money|Set|Send|Create)\b/.test(s)
+const isAction = (s) => /^(Open|Add|Ask|Raise|Share|Mint|Money|Set|Send|Create)\b/.test(s)
   || s === 'Share link' || s === 'Money';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
