@@ -120,6 +120,21 @@ function pathStrip(chips, where) {
    go, and what does good look like. See docs/manuals/mastery.mjs for why each exists. */
 
 /** A numbered rule above a heading, so the document can be navigated by flicking. */
+/**
+ * The brand's signature: the LAST word of a heading in Playfair italic against Manrope.
+ *
+ * Taken from the marketing site, where every headline sets one emphasised word this way.
+ * It was missing entirely from the first two passes, which is most of why they read as
+ * software documentation rather than as an agency's work. A single-word heading is left
+ * alone: italicising the whole thing makes it a pull quote.
+ */
+function serifLast(text) {
+  const words = String(text).trim().split(/\s+/);
+  if (words.length < 2) return esc(text);
+  const last = words.pop();
+  return `${esc(words.join(' '))} <em>${esc(last)}</em>`;
+}
+
 const opener = (n) => `<div class="opener"><span class="n">${esc(n)}</span>
   <span class="bar"></span></div>`;
 
@@ -306,17 +321,30 @@ function page(role) {
 <title>${esc(role.title)}, Following</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300..800&family=Playfair+Display:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
 <style>${CSS}</style></head>
 <body>
 
   <div class="cover">
     <div class="brand"><span class="dot"></span>Following</div>
-    ${icon(role.glyph || 'target', 300, 'glyph', 0.6)}
+    <div class="contents">
+      <div class="lbl">Inside</div>
+      <ol>
+        <li>How a day goes</li>
+        <li>Where your work sits</li>
+        <li>The screen you will live in</li>
+        <li>Where things live</li>
+        <li>What you actually do</li>
+        <li>A real one, start to finish</li>
+        <li>Right and wrong</li>
+        <li>Words we use</li>
+        <li>Rules that cost money</li>
+      </ol>
+    </div>
     <div class="mid">
       <div class="kicker">${esc(role.kicker)}</div>
       <h1>${esc(role.title)}</h1>
-      <div class="rule"></div>
+      <p class="for"><span class="ser">for ${esc(role.person)}</span></p>
       <p class="lede">${esc(role.lede)}</p>
     </div>
     <div class="foot">
@@ -327,21 +355,21 @@ function page(role) {
 
   <section>
     ${opener('01 \u00b7 Your day')}
-    <h2>How a day goes</h2>
+    <h2>${serifLast('How a day goes')}</h2>
     <p class="sub">Three moments. Everything else finds you.</p>
     ${dayTimeline(role.day)}
   </section>
 
   ${m ? `<section>
     ${opener('02 \u00b7 The whole flow')}
-    <h2>Where your work sits</h2>
+    <h2>${serifLast('Where your work sits')}</h2>
     <p class="sub">${esc(m.flowNote)}</p>
     ${flowRibbon(m.flow)}
   </section>` : ''}
 
   ${m ? `<section class="page-break">
     ${opener('03 \u00b7 Your screen')}
-    <h2>The screen you will live in</h2>
+    <h2>${serifLast('The screen you will live in')}</h2>
     <p class="sub">Drawn, not photographed, so it stays true when a button moves.
       The numbers are explained underneath.</p>
     ${drawnScreen(m.screen)}
@@ -349,28 +377,28 @@ function page(role) {
 
   <section${m ? '' : ' class="page-break"'}>
     ${opener('04 \u00b7 The menu')}
-    <h2>Where things live</h2>
+    <h2>${serifLast('Where things live')}</h2>
     <p class="sub">The menu down the left of the screen. This is all of it.</p>
     ${menuMap(role.slug)}
   </section>
 
   <section class="page-break">
     ${opener('05 \u00b7 Your jobs')}
-    <h2>What you actually do</h2>
+    <h2>${serifLast('What you actually do')}</h2>
     <p class="sub">In order. The strip on each card is what to click, as you click it.</p>
     ${role.jobs.map((j, i) => jobCard(j, i + 1, role.title)).join('')}
   </section>
 
   ${m ? `<section class="page-break">
     ${opener('06 \u00b7 A real one')}
-    <h2>${esc(m.story.title)}</h2>
+    <h2>${serifLast(m.story.title)}</h2>
     <p class="sub">One job, followed the whole way, with the real numbers.</p>
     ${workedExample(m.story)}
   </section>` : ''}
 
   ${m ? `<section>
     ${opener('07 \u00b7 Right and wrong')}
-    <h2>What good looks like</h2>
+    <h2>${serifLast('What good looks like')}</h2>
     <p class="sub">Everything on the right has actually happened here and cost us
       something.</p>
     ${goodAndBad(m.vs)}
@@ -378,7 +406,7 @@ function page(role) {
 
   <section class="page-break">
     ${opener('08 \u00b7 Vocabulary')}
-    <h2>Words we use</h2>
+    <h2>${serifLast('Words we use')}</h2>
     <p class="sub">They mean something specific. A roster is not a list, and cost is not
       sell.</p>
     ${glossary()}
@@ -386,7 +414,7 @@ function page(role) {
 
   <section>
     ${opener('09 \u00b7 The hard rules')}
-    <h2>Rules that cost money</h2>
+    <h2>${serifLast('Rules that cost money')}</h2>
     <p class="sub">Each one has already cost us something.</p>
     <div class="rules"><ul>
       ${role.rules.map((r) => `<li>${icon('ban', 14)}<span>${md(r)}</span></li>`).join('')}
