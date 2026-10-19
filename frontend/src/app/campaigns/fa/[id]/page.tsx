@@ -65,7 +65,7 @@ function CreatorAudienceButton({ member }: { member: any }) {
           Audience
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{member?.full_name || "Creator"}</DialogTitle>
         </DialogHeader>

@@ -121,7 +121,12 @@ export function PostDetail({ post, open, onOpenChange }: {
           of badges, all fighting over 400px. A detail view that is harder to read than
           the tile it came from has no reason to exist. Wider, taller, one scroll, and
           every block gets a gutter. */}
-      <DialogContent className="max-h-[94vh] w-[96vw] max-w-6xl overflow-hidden p-0 sm:w-[92vw]">
+      {/* ⚠️ THE WIDTH MUST BE SET AT THE SAME BREAKPOINT THE BASE USES. DialogContent
+          ships `sm:max-w-lg`, and an unprefixed `max-w-6xl` does NOT replace it: they are
+          different variants, so tailwind-merge keeps both and the sm one wins at every
+          width that matters. The dialog was pinned to 512px, which is why the picture ate
+          the box and the text beside it wrapped one character per line. Prefix it. */}
+      <DialogContent className="max-h-[94vh] w-[96vw] overflow-hidden p-0 sm:max-w-6xl">
         <DialogTitle className="sr-only">
           {post.username ? `@${post.username}` : 'Post'} detail
         </DialogTitle>
@@ -129,7 +134,7 @@ export function PostDetail({ post, open, onOpenChange }: {
           Everything measured on this post.
         </DialogDescription>
 
-        <div className="grid max-h-[94vh] gap-0 md:grid-cols-[minmax(0,420px)_1fr]">
+        <div className="grid max-h-[94vh] grid-cols-1 gap-0 md:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
           {/* The post itself, big enough to actually look at. */}
           <div className="relative aspect-[4/5] overflow-hidden bg-muted md:aspect-auto md:min-h-[560px]">
             {thumb ? (
