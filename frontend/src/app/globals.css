@@ -734,13 +734,18 @@
    purple is the loudest colour on the page everything else can be right and it still reads
    as a different product.
 
-   So internal shells get their own tokens. Solid actions become near-black — the "black
-   pill" the reference uses for the one thing you came to do — and lime is kept for surfaces
-   that mark state: the selected row, the active nav item, a focus ring. Lime is never text;
-   at the saturation the brand uses it is unreadable on white. */
+   So internal shells get their own tokens. The solid action is the brand's LIME PILL with
+   ink on it — the one thing you came to do, in the colour the company actually uses.
+   Changed 2026-10-19: it had been a near-black pill borrowed from a reference dashboard,
+   and a black slab is the one thing the brand direction keeps rejecting.
+   ⚠️ The rule that still holds is LIME IS NEVER TEXT. At the saturation the brand uses it
+   is unreadable on white, so it is a surface — a pill, a selected row, an active nav item,
+   a focus ring — and what sits ON it is ink. */
 .console-shell {
-  --primary: oklch(0.2200 0.0120 140);
-  --primary-foreground: oklch(0.9800 0.0050 120);
+  /* #d3ff02, the brand lime, with ink on top. Contrast runs the right way round: dark text
+     on a bright surface, not bright text on a dark one. */
+  --primary: oklch(0.9354 0.2254 121.4851);
+  --primary-foreground: oklch(0.1822 0 0);
   --ring: oklch(0.8200 0.1700 121);
 
   /* ── The canvas, and why cards need one ─────────────────────────────────────────────
