@@ -13,6 +13,9 @@ import Link from "next/link"
 import { faCampaignApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 import { AutoApproveCard } from '@/components/superadmin/fa/AutoApproveCard'
+import { ParticipantDetailSheet, type ParticipantLike } from "@/components/campaigns/fa/ParticipantDetailSheet"
+import { API_CONFIG, getAuthHeaders } from "@/config/api"
+import { fetchWithAuth } from "@/utils/apiInterceptor"
 
 interface FunnelCreator {
   participant_id: string
@@ -80,6 +83,23 @@ export default function FACampaignFunnelPage() {
    *  when it meant the second. Unanswered now shows an em dash. */
   const [answered, setAnswered] = useState(false)
 
+  /* ⚠️ THE TEAM LOST THE CREATOR SIDEBAR ON THIS SCREEN, AND IT WAS NEVER HERE TO LOSE.
+     `ParticipantDetailSheet` - deliverables, analytics, the coupon, the dine-in visit,
+     approve, reject, approve content, request an edit, upload on the creator's behalf,
+     mark a parcel sent - is mounted in ONE place, `FaCampaignProgressPanel`, and that
+     panel lives on `/campaigns/{id}/posts`, which is the BRAND's app. The team had been
+     reaching it by opening the customer's own screen. Routing staff to internal screens
+     instead was right, but it moved them to a page that had only ever been a read-only
+     funnel: eight numbers and a list of names with nothing behind them.
+
+     The funnel's eight buckets are worth keeping - they are finer than the sheet's three
+     tabs and they are why somebody opens this page - so the rows stay and gain the sheet
+     behind them. The sheet takes the participant shape that `fa-progress` returns, which
+     the funnel endpoint does not, so both are loaded and matched on participant_id. */
+  const [richById, setRichById] = useState<Record<string, ParticipantLike>>({})
+  const [selected, setSelected] = useState<ParticipantLike | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -95,7 +115,33 @@ export default function FACampaignFunnelPage() {
     } finally {
       setLoading(false)
     }
+
+    /* Separate, and deliberately not fatal. If this one fails the funnel still draws and
+       the rows simply do not open, which is the screen as it was a minute ago. Failing the
+       whole page because the detail could not be fetched would be a worse trade. */
+    try {
+      const res = await fetchWithAuth(
+        `${API_CONFIG.BASE_URL}/api/v1/campaigns/${id}/fa-progress`,
+        { headers: getAuthHeaders() },
+      )
+      if (!res.ok) throw new Error(await res.text())
+      const body = await res.json()
+      const list: ParticipantLike[] = body?.data?.participants ?? []
+      setRichById(Object.fromEntries(list.map((p) => [p.participant_id, p])))
+    } catch {
+      setRichById({})
+    }
   }, [id])
+
+  // Keep the open sheet in step with a reload, so approving from inside it redraws the
+  // row behind it rather than leaving yesterday's status on screen.
+  useEffect(() => {
+    setSelected((cur) => (cur ? richById[cur.participant_id] ?? cur : cur))
+  }, [richById])
+
+  const faType = campaign?.campaign_type as string | undefined
+  const sheetType: "cashback" | "paid_deal" | "barter" | null =
+    faType === "cashback" || faType === "paid_deal" || faType === "barter" ? faType : null
 
   useEffect(() => { load() }, [load])
 
@@ -206,8 +252,24 @@ export default function FACampaignFunnelPage() {
                 const chips = Object.entries(c.deliverables)
                   .filter(([k, v]) => k !== "total" && (v as number) > 0)
                   .map(([k, v]) => `${v} ${DELIVERABLE_CHIP_LABELS[k] ?? k}`)
+                const rich = richById[c.participant_id]
+                const openable = !!rich && !!sheetType
                 return (
-                  <div key={c.participant_id} className="flex flex-wrap items-center justify-between gap-ds-3 py-ds-3">
+                  <div
+                    key={c.participant_id}
+                    role={openable ? "button" : undefined}
+                    tabIndex={openable ? 0 : undefined}
+                    aria-label={openable ? `Open ${c.handle ? `@${c.handle}` : c.full_name || "this creator"}` : undefined}
+                    onClick={openable ? () => { setSelected(rich); setSheetOpen(true) } : undefined}
+                    onKeyDown={openable ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelected(rich); setSheetOpen(true) }
+                    } : undefined}
+                    className={`flex flex-wrap items-center justify-between gap-ds-3 py-ds-3 ${
+                      openable
+                        ? "-mx-ds-2 cursor-pointer rounded-lg px-ds-2 hover:bg-muted/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                        : ""
+                    }`}
+                  >
                       <div className="flex items-center gap-ds-3 min-w-0">
                         {c.avatar_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
@@ -223,6 +285,9 @@ export default function FACampaignFunnelPage() {
                               <a
                                 href={`https://instagram.com/${c.handle}`}
                                 target="_blank" rel="noopener noreferrer"
+                                // The row opens the creator now, so this link has to stop
+                                // bubbling or Instagram and the sheet both open at once.
+                                onClick={(e) => e.stopPropagation()}
                                 className="font-medium truncate hover:underline inline-flex items-center gap-1"
                               >
                                 @{c.handle}<ExternalLink className="h-3 w-3 text-muted-foreground" />
@@ -261,6 +326,17 @@ export default function FACampaignFunnelPage() {
             </div>
           )}
           </div>
+
+          {sheetType && (
+            <ParticipantDetailSheet
+              open={sheetOpen}
+              onOpenChange={setSheetOpen}
+              campaignId={id}
+              campaignType={sheetType}
+              participant={selected}
+              onChanged={load}
+            />
+          )}
         </FaPage>
       </SuperAdminInterface>
     </AuthGuard>
