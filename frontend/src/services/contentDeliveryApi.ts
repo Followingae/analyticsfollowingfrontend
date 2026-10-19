@@ -202,6 +202,16 @@ export const contentAdminApi = {
     call<FrameComment[]>(`${A}/campaigns/${campaignId}/items/${itemId}/comments`),
   sendForReview: (campaignId: string, body: { item_ids?: string[]; campaign_creator_id?: string }) =>
     post<{ sent: number }>(`${A}/campaigns/${campaignId}/send-for-review`, body),
+  /** Everything on the campaign that has not been sent yet, in one call. */
+  sendForReviewAll: (campaignId: string) =>
+    post<{ sent: number }>(`${A}/campaigns/${campaignId}/send-for-review`, { all_sent: true }),
+  /** Record an approval the client gave somewhere else - a WhatsApp reply, a call, or by
+   *  simply posting it. Recorded as OURS with how their yes arrived, never as a click they
+   *  did not make. `all_sent` takes the whole campaign and must be asked for explicitly. */
+  approveForClient: (campaignId: string, body: {
+    item_ids?: string[]; campaign_creator_id?: string; all_sent?: boolean
+    via?: 'email' | 'whatsapp' | 'call' | 'meeting' | 'posted' | 'other'; note?: string
+  }) => post<{ approved: number }>(`${A}/campaigns/${campaignId}/approve-for-client`, body),
   note: (campaignId: string, itemId: string, note: string | null) =>
     post<void>(`${A}/campaigns/${campaignId}/items/${itemId}/note`, { note }),
   unapprove: (campaignId: string, itemId: string, reason?: string) =>

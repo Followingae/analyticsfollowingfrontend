@@ -369,6 +369,45 @@ export function ContentWall({
   onRefresh: () => void
 }) {
   const [player, setPlayer] = useState<{ items: ContentItem[]; index: number } | null>(null)
+  const [bulk, setBulk] = useState<"send" | "approved" | null>(null)
+
+  /* ⚠️ A CAMPAIGN-WIDE DECISION IS ONE DECISION, NOT SIXTEEN CLICKS.
+     Every action here was per creator, which is right when a campaign is moving creator by
+     creator and wrong the rest of the time. Damas Nuqoosh landed as fifteen finished pieces
+     across sixteen creators, already approved by the client and already posted, and the only
+     way through the screen was to open each card and press send, then wait for the client to
+     press approve on work that went live weeks ago. That is not a review step, it is data
+     entry with a client in the loop.
+
+     So the campaign-level case is answered at the campaign level, and only for our own side:
+     a brand decides per creator, because "approve everything" is not a thing a client should
+     ever be offered in one click. */
+  const teamPending = side === "team"
+    ? wall.creators.reduce((n, g) => n + (g.state === "with_us" || g.state === "in_production" ? 1 : 0), 0)
+    : 0
+  const teamUndecided = side === "team"
+    ? wall.creators.reduce(
+        (n, g) => n + (g.items || []).filter((i) => i.status !== "approved").length, 0)
+    : 0
+
+  const runBulk = async (kind: "send" | "approved") => {
+    try {
+      setBulk(kind)
+      if (kind === "send") {
+        const r = await contentAdminApi.sendForReviewAll(campaignId)
+        toast.success(r.sent ? `${r.sent} piece${r.sent === 1 ? "" : "s"} sent to the client`
+                             : "Nothing left to send")
+      } else {
+        const r = await contentAdminApi.approveForClient(campaignId, { all_sent: true, via: "whatsapp" })
+        toast.success(r.approved
+          ? `${r.approved} piece${r.approved === 1 ? "" : "s"} recorded as approved by the client`
+          : "Nothing left to approve")
+      }
+      onRefresh()
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "That did not work.")
+    } finally { setBulk(null) }
+  }
 
   const sections = useMemo(() => {
     const bucket = (states: string[]) => wall.creators.filter((g) => states.includes(g.state))
@@ -417,6 +456,31 @@ export function ContentWall({
           </span>{" "}
           {side === "brand" ? "to review" : "with the client"}
         </p>
+      )}
+
+      {/* Only our side, only when there is something undecided, and the whole-campaign
+          shortcut says plainly what it records rather than hiding behind "Approve all". */}
+      {side === "team" && canDecide && teamUndecided > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-ds-2xl
+                        border border-black/[0.08] bg-muted/40 px-4 py-3 dark:border-white/[0.10]">
+          <p className="text-[13.5px] text-muted-foreground">
+            <span className="font-medium text-foreground tabular-nums">{teamUndecided}</span>{" "}
+            piece{teamUndecided === 1 ? "" : "s"} not approved yet
+            {teamPending > 0 && `, ${teamPending} creator${teamPending === 1 ? "" : "s"} not sent`}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {teamPending > 0 && (
+              <Button size="sm" variant="outline" disabled={bulk !== null}
+                      onClick={() => runBulk("send")}>
+                {bulk === "send" ? "Sending…" : "Send everything to the client"}
+              </Button>
+            )}
+            <Button size="sm" variant="outline" disabled={bulk !== null}
+                    onClick={() => runBulk("approved")}>
+              {bulk === "approved" ? "Recording…" : "The client already approved all of it"}
+            </Button>
+          </div>
+        </div>
       )}
 
       {nothing && (
