@@ -46,6 +46,22 @@ export interface PerfPost {
   full_name: string | null
   followers_count: number | null
   profile_pic_url: string | null
+  tagged_users: unknown[] | null
+  coauthor_producers: unknown[] | null
+  is_carousel: boolean | null
+  carousel_media_count: number | null
+  has_audio: boolean | null
+  width: number | null
+  height: number | null
+  accessibility_caption: string | null
+  /** ⚠️ The only honest basis for the words "hidden by the creator". When this is true
+   *  the counts are switched off on Instagram itself. When it is false and we still have
+   *  no number, the gap is ours and the card says so instead. */
+  like_and_view_counts_disabled: boolean | null
+  comments_disabled: boolean | null
+  ai_content_category: string | null
+  ai_sentiment: string | null
+  ai_language_code: string | null
 }
 
 export interface PerfTotals {

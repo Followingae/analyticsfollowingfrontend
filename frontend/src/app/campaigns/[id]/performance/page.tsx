@@ -28,13 +28,15 @@ import { Button } from "@/components/ui/button"
 import {
   NoPostsYet, PerformanceTotals, PostGrid, PostTile,
 } from "@/components/campaigns/performance/PerformanceGrid"
-import { campaignPerformanceApi, type PerfReport } from "@/services/campaignPerformanceApi"
+import { campaignPerformanceApi, type PerfPost, type PerfReport } from "@/services/campaignPerformanceApi"
+import { PostDetail } from "@/components/campaigns/performance/PostDetail"
 
 function Results({ campaignId }: { campaignId: string }) {
   const router = useRouter()
   const [data, setData] = useState<PerfReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<string | null>(null)
+  const [detail, setDetail] = useState<PerfPost | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -89,7 +91,7 @@ function Results({ campaignId }: { campaignId: string }) {
         <div className="space-y-8">
           {data && <PerformanceTotals totals={data.totals} />}
           <PostGrid>
-            {posts.map((p) => <PostTile key={p.link_id} post={p} side="brand" />)}
+            {posts.map((p) => <PostTile key={p.link_id} post={p} side="brand" onOpen={() => setDetail(p)} />)}
           </PostGrid>
         </div>
       )}

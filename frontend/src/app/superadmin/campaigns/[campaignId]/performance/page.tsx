@@ -31,7 +31,8 @@ import { useConfirm } from '@/components/console/confirm'
 import {
   NoPostsYet, PerformanceTotals, PostGrid, PostTile,
 } from '@/components/campaigns/performance/PerformanceGrid'
-import { campaignPerformanceApi, type PerfReport } from '@/services/campaignPerformanceApi'
+import { PostDetail } from '@/components/campaigns/performance/PostDetail'
+import { campaignPerformanceApi, type PerfPost, type PerfReport } from '@/services/campaignPerformanceApi'
 
 const POLL_MS = 4000
 
@@ -140,6 +141,7 @@ export default function CampaignPerformancePage() {
   const live = posts.filter((p) => p.status === 'approved')
   const closed = posts.filter((p) => p.status === 'rejected' || p.status === 'failed')
   const canDecide = !!data?.can_decide
+  const [detail, setDetail] = useState<PerfPost | null>(null)
 
   return (
     <div className="space-y-6">
@@ -192,6 +194,7 @@ export default function CampaignPerformancePage() {
                     key={p.link_id} post={p} side="team" canDecide={canDecide}
                     busy={busy === p.link_id}
                     onDecide={(ok) => decide(p.link_id, ok, p.username ? `@${p.username}` : 'this post')}
+                    onOpen={() => setDetail(p)}
                   />
                 ))}
               </PostGrid>
@@ -211,6 +214,7 @@ export default function CampaignPerformancePage() {
                     key={p.link_id} post={p} side="team" canDecide={canDecide}
                     busy={busy === p.link_id}
                     onDecide={(ok) => decide(p.link_id, ok, p.username ? `@${p.username}` : 'this post')}
+                    onOpen={() => setDetail(p)}
                   />
                 ))}
               </PostGrid>
@@ -239,6 +243,9 @@ export default function CampaignPerformancePage() {
           )}
         </div>
       </ReadState>
+
+      <PostDetail post={detail} open={!!detail}
+                  onOpenChange={(o) => { if (!o) setDetail(null) }} />
 
       {!loading && !failed && posts.length === 0 && <NoPostsYet side="team" />}
     </div>

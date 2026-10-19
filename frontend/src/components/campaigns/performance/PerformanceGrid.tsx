@@ -126,7 +126,7 @@ export function PerformanceTotals({ totals }: { totals: PerfReport['totals'] }) 
   )
 }
 
-export function PostTile({ post, side, canDecide, busy, onDecide, onRetry, onRemove }: {
+export function PostTile({ post, side, canDecide, busy, onDecide, onRetry, onRemove, onOpen }: {
   post: PerfPost
   side: 'team' | 'brand'
   canDecide?: boolean
@@ -134,6 +134,7 @@ export function PostTile({ post, side, canDecide, busy, onDecide, onRetry, onRem
   onDecide?: (approve: boolean) => void
   onRetry?: () => void
   onRemove?: () => void
+  onOpen?: () => void
 }) {
   const state = post.status ? STATE[post.status] : null
   const thumb = post.cdn_thumbnail_url || post.display_url
@@ -144,8 +145,12 @@ export function PostTile({ post, side, canDecide, busy, onDecide, onRetry, onRem
       {/* The picture. 4:5 rather than the 9:13 the content wall uses: that one is a review
           screen where the content IS the point, this one is a results grid where the
           numbers are, and a tall tile pushed them off the bottom of every row. */}
-      <a href={post.url} target="_blank" rel="noreferrer"
-         className="group relative block aspect-[4/5] overflow-hidden bg-muted
+      {/* ⚠️ THIS USED TO LEAVE THE PLATFORM. Clicking a result opened Instagram, so the
+          only way to read a caption, see what was tagged or find out where it was filmed
+          was to go and look at the post we had already measured. It opens the detail now;
+          "Open on Instagram" is a line inside it, for when somebody actually wants that. */}
+      <button type="button" onClick={onOpen}
+              className="group relative block aspect-[4/5] w-full overflow-hidden bg-muted text-left
                     focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
                     focus-visible:outline-primary">
         {thumb ? (
@@ -159,9 +164,10 @@ export function PostTile({ post, side, canDecide, busy, onDecide, onRetry, onRem
               : <Eye className="h-5 w-5 text-muted-foreground/40" />}
           </div>
         )}
-        <span className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 opacity-0
-                         backdrop-blur-sm transition group-hover:opacity-100">
-          <ExternalLink className="h-3 w-3 text-white" />
+        <span className="absolute right-2 top-2 rounded-full bg-black/50 px-2 py-1 text-[11px]
+                         font-medium text-white opacity-0 backdrop-blur-sm transition
+                         group-hover:opacity-100">
+          Details
         </span>
         {/* Our own state, never the client's. */}
         {side === 'team' && state && post.status !== 'approved' && (
@@ -170,7 +176,7 @@ export function PostTile({ post, side, canDecide, busy, onDecide, onRetry, onRem
             {state.label}
           </Badge>
         )}
-      </a>
+      </button>
 
       <div className="flex flex-1 flex-col gap-2.5 p-3">
         <div className="flex min-w-0 items-center gap-2">
