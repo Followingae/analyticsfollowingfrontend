@@ -280,6 +280,37 @@ export const clientApi = {
       body: JSON.stringify(payload),
     }) as Promise<{ success: boolean; message: string; data: { to: string; campaign_id: string } }>,
 
+  // --- "Your report is ready" email ---
+  // Only campaigns with something RELEASED come back: the backend refuses to send
+  // otherwise, so the list and the refusal agree.
+  reportableCampaigns: (teamId: string) =>
+    authFetch(`${BASE}/${teamId}/report-ready/campaigns`) as Promise<{
+      success: boolean;
+      data: { campaigns: Array<{
+        campaign_id: string; campaign_name: string; hero_image_url: string | null;
+        totals: {
+          posts: number | null; creators: number | null; plays: number | null;
+          engagement: number | null; engagement_rate_by_plays: number | null;
+          engagement_rate_by_followers: number | null;
+        };
+      }> };
+    }>,
+
+  previewReportReady: (teamId: string, payload: ReportReadyPayload) =>
+    authFetch(`${BASE}/${teamId}/report-ready/preview`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }) as Promise<{ success: boolean; data: {
+      html: string; to: string; subject: string; default_cc: string[];
+      pending_posting: number;
+    } }>,
+
+  sendReportReady: (teamId: string, payload: ReportReadyPayload & { cc?: string[]; bcc?: string[] }) =>
+    authFetch(`${BASE}/${teamId}/report-ready/send`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }) as Promise<{ success: boolean; message: string; data: { to: string } }>,
+
   resetPassword: (teamId: string, password?: string) =>
     authFetch(`${BASE}/${teamId}/reset-password`, {
       method: 'POST',
@@ -289,6 +320,14 @@ export const clientApi = {
 
 /** The wording is prefilled server-side from the campaign's real state; the caller may
  *  override any of it before sending, and nothing sends by itself. */
+export interface ReportReadyPayload {
+  campaign_id: string;
+  recipient_name?: string;
+  subject?: string;
+  note?: string;
+  to?: string;
+}
+
 export interface CampaignUpdatePayload {
   campaign_id: string;
   recipient_name?: string;

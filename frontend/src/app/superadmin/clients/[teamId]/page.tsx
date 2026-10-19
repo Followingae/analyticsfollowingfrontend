@@ -36,6 +36,7 @@ import {
 import { ClientAccessDialog } from '@/components/clients/ClientAccessDialog';
 import { CampaignBriefingDialog } from '@/components/clients/CampaignBriefingDialog';
 import { CampaignUpdateDialog } from '@/components/clients/CampaignUpdateDialog';
+import { ReportReadyDialog } from '@/components/clients/ReportReadyDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -204,6 +205,7 @@ function ClientDetailPage() {
   const [accessOpen, setAccessOpen] = useState(false);
   const [briefingOpen, setBriefingOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [payoutsOpen, setPayoutsOpen] = useState(false);
   // Whether this client actually has Creator Payouts. Telling somebody a module is
   // switched on when it is not is the one thing this email must never do, so the menu
@@ -471,6 +473,9 @@ function ClientDetailPage() {
               <DropdownMenuItem onClick={() => setUpdateOpen(true)}>
                 Send an update
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setReportOpen(true)}>
+                Their report is ready
+              </DropdownMenuItem>
               {hasPayouts && (
                 <DropdownMenuItem onClick={() => setPayoutsOpen(true)}>
                   Creator Payouts is on
@@ -524,6 +529,13 @@ function ClientDetailPage() {
         teamId={teamId}
         open={updateOpen}
         onOpenChange={setUpdateOpen}
+        defaultEmail={client.owner_email || undefined}
+        defaultName={(client.owner_name || '').split(' ')[0]}
+      />
+      <ReportReadyDialog
+        teamId={teamId}
+        open={reportOpen}
+        onOpenChange={setReportOpen}
         defaultEmail={client.owner_email || undefined}
         defaultName={(client.owner_name || '').split(' ')[0]}
       />
