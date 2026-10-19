@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import {
   Check, X, Loader2, BarChart3, Instagram, Film, ImageIcon, Camera, Layers,
   Gift, Coins, QrCode, CheckCircle2, Clock, Sparkles, ExternalLink, BadgeCheck, Bot, Pencil,
-  Mail, Phone, MessageCircle, Lock, MapPin, Copy,
+  Mail, Phone, MessageCircle, Lock, MapPin, Copy, Download,
 } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { FirstPartyAudienceAnalytics } from "@/components/analytics/FirstPartyAudienceAnalytics"
@@ -1156,6 +1156,17 @@ function SubmissionCard({
   const mediaUrls = (d.content_urls && d.content_urls.length ? d.content_urls : (d.content_url ? [d.content_url] : []))
   // Prefer proof media once posted, else the content under review.
   const previewUrl = d.proof_url || d.content_url || null
+
+  /* ⚠️ THE CONTENT DOES NOT STOP EXISTING WHEN THE POST GOES UP. The card showed the
+     proof once there was one, and the approved content vanished with it - so a brand who
+     wanted the file, to re-use it or simply to keep it, had nowhere to get it from the
+     moment the creator posted. That is backwards: proof of posting is the least valuable
+     thing on this card and the finished asset is the most.
+
+     The hero still leads with the proof, because "has it gone up" is the live question.
+     The files sit underneath it and stay there for good. */
+  const hasPosted = !!d.proof_url
+  const contentFiles = mediaUrls.filter((u) => !!u && u !== d.proof_url)
   const showContent = !!previewUrl || stage === "verified"
   const editsLeft = Math.max(0, (d.revision_limit ?? 2) - (d.revision_count ?? 0))
   return (
@@ -1205,6 +1216,23 @@ function SubmissionCard({
           <span className="text-xs font-semibold">{meta.label}{d.quantity > 1 ? ` ×${d.quantity}` : ""}</span>
           <StatusPill stage={stage} />
         </div>
+        {/* The asset, always reachable once it has been uploaded. */}
+        {contentFiles.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+            <span className="text-[10px] text-muted-foreground">
+              {hasPosted ? "Approved content" : "Uploaded"}
+            </span>
+            {contentFiles.map((u, i) => (
+              <a key={u} href={u} target="_blank" rel="noopener noreferrer" download
+                 className="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5
+                            text-[10px] font-medium hover:bg-muted">
+                <Download className="h-2.5 w-2.5" />
+                {contentFiles.length > 1 ? `File ${i + 1}` : "Download"}
+              </a>
+            ))}
+          </div>
+        )}
+
         <p className="text-[10px] text-muted-foreground/70 mt-auto">
           {isDone ? `Verified ${fmtDate(d.verified_at)}`
             : stage === "proof_submitted" ? `Proof ${fmtDate(d.submitted_at)}`
