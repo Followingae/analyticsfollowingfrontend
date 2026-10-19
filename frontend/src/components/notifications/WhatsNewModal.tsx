@@ -40,6 +40,37 @@ const ALWAYS_SHOW = new Set(["campaign_report_ready", "proposal_received"]);
 const outranksQuiet = (items: ServerNotification[]): boolean =>
   items.some((n) => ALWAYS_SHOW.has((n.notification_type || "").toLowerCase()));
 
+// ⚠️ A FRESH LOGIN IS THE MOMENT SOMEBODY IS ASKING "what's new". Both suppressions here
+// exist to stop the modal nagging across RELOADS, and neither should outlive the session
+// that earned them: "Later" means later, and the next time you sign in IS later. Without
+// this, one person opening the account once - to test it, or to glance at something else -
+// silently spends the popup for everybody who signs in afterwards.
+//
+// `users.last_login` is the signal, because it changes on a real sign-in and not on a
+// refresh. Comparing it to what we last saw tells a new session from a new page load.
+const LOGIN_KEY = "whatsnew_login_seen";
+
+// ⚠️ CLIENTS ONLY, and not out of favouritism. `last_login` is read back from the users
+// row for a brand, but several internal paths build a response without one and synthesise
+// `now()`, so for staff it can change on every call - which would turn "a fresh login
+// clears the hush" into "every page load clears the hush", the exact nag the hush exists
+// to stop. Staff reload this app all day; a client signs in occasionally and is the one
+// this popup is for. If the synthesised values are ever cleaned up, widen it.
+const isStaff = (role?: string | null): boolean =>
+  ["super_admin", "superadmin", "admin"].includes((role || "").toLowerCase());
+
+function clearSuppressionsOnNewLogin(lastLogin?: string | null, role?: string | null): void {
+  if (typeof window === "undefined" || !lastLogin || isStaff(role)) return;
+  try {
+    if (window.localStorage.getItem(LOGIN_KEY) === lastLogin) return;
+    window.localStorage.setItem(LOGIN_KEY, lastLogin);
+    window.localStorage.removeItem(QUIET_KEY);
+    window.localStorage.removeItem(DISMISS_KEY);
+  } catch {
+    /* localStorage unavailable — the modal simply behaves as it did before */
+  }
+}
+
 function inQuietPeriod(): boolean {
   if (typeof window === "undefined") return true;
   try {
@@ -108,6 +139,10 @@ export function WhatsNewModal() {
     if (shownThisLoad) return;
 
     (async () => {
+      // Before reading anything: a new sign-in wipes the hush and the "Later" list, so the
+      // popup is owed to whoever just logged in rather than to whoever looked last.
+      clearSuppressionsOnNewLogin(user?.last_login, user?.role);
+
       const res = await notificationApiService.getNotifications({ unread_only: true, page_size: 8 });
       const unread = (res.data || []).filter((n) => !n.is_read);
       if (unread.length === 0) return;
@@ -123,7 +158,7 @@ export function WhatsNewModal() {
       setOpen(true);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isLoading, user?.email, onAuthPage]);
+  }, [isAuthenticated, isLoading, user?.email, user?.last_login, onAuthPage]);
 
   // Fire balloons shortly after the modal opens if any item is celebratory.
   useEffect(() => {
