@@ -180,7 +180,7 @@ export default function CampaignPerformancePage() {
           {waiting.length > 0 && (
             <section className="space-y-3">
               <SectionHead
-                title={canDecide ? 'Waiting on you' : 'Waiting on Zain'}
+                title={canDecide ? 'Waiting on you' : 'Waiting on a founder'}
                 count={waiting.length}
                 note={canDecide
                   ? 'The client cannot see these yet. Releasing one puts it on their results.'

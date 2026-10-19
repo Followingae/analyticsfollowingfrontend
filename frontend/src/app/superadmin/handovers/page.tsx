@@ -112,7 +112,7 @@ function Handovers() {
     <div className="space-y-6">
       <PageHead
         title="Ready to send"
-        sub="Links Zain has checked. You send them from your own inbox, as always."
+        sub="Links a founder has checked. You send them from your own inbox, as always."
       />
 
       <ReadState

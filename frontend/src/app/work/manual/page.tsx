@@ -95,7 +95,7 @@ const DESKS = [
   { who: 'Sana', role: 'Account management',
     sees: 'Your clients · out with the client · content due this week · gone quiet',
     first: 'A proposal the client has answered, or one they have not.' },
-  { who: 'Hajar & Zain', role: 'Founders',
+  { who: 'The founders', role: 'Founders',
     sees: 'Open pipeline · collected this month · owed to us · owed to creators',
     first: 'Creators to price, creators to clear, rates to confirm, people to pay.' },
 ]
@@ -131,7 +131,7 @@ const SLIDES: Slide[] = [
     handover: 'It lands on the founders’ Today as “Start sourcing”, with the brand beside it, and turns urgent after three days.',
   },
   {
-    id: 'area', kind: 'stop', who: 'Hajar or Zain', role: 'Founder', icon: Layers,
+    id: 'area', kind: 'stop', who: 'A founder', role: 'Founder', icon: Layers,
     title: 'The founder opens the roster',
     lede: 'A roster is one brand’s working list: the brief, an owner, a number and a date. It is the only place creators are gathered for that brand.',
     does: [
@@ -167,7 +167,7 @@ const SLIDES: Slide[] = [
     handover: 'Saving a cost moves that creator into the founders’ lane and tells them a price is waiting.',
   },
   {
-    id: 'price', kind: 'stop', who: 'Hajar or Zain', role: 'Founder', icon: Tag,
+    id: 'price', kind: 'stop', who: 'A founder', role: 'Founder', icon: Tag,
     title: 'Price them, and let them in',
     lede: 'The waiting room is two lists because it is two jobs. The second is the founders’: turn what a creator charges us into what we charge a client.',
     does: [
@@ -183,7 +183,7 @@ const SLIDES: Slide[] = [
     handover: 'Approving starts their analytics, the first money we spend on them, and drops them back onto the brand’s roster.',
   },
   {
-    id: 'clear', kind: 'stop', who: 'Hajar or Zain', role: 'Founder', icon: ShieldCheck,
+    id: 'clear', kind: 'stop', who: 'A founder', role: 'Founder', icon: ShieldCheck,
     title: 'Decide who the client may see',
     lede: 'Being in the database and being shown to a brand are two decisions, made on different days. This is the gate.',
     does: [
@@ -233,7 +233,7 @@ const SLIDES: Slide[] = [
     handover: 'Yes, no, or “show me more”: all three arrive on the account manager’s Today.',
   },
   {
-    id: 'confirm', kind: 'stop', who: 'Hajar or Zain', role: 'Founder', icon: ShieldCheck,
+    id: 'confirm', kind: 'stop', who: 'A founder', role: 'Founder', icon: ShieldCheck,
     title: 'They say yes',
     lede: 'Most clients confirm by email or on a call rather than in the platform. That yes can be locked here, and the campaign opens the moment it is.',
     does: [
@@ -249,7 +249,7 @@ const SLIDES: Slide[] = [
     handover: 'Their copy of the proposal keeps the roster and the agreed total. The per-creator prices come off once it is locked.',
   },
   {
-    id: 'partial', kind: 'stop', who: 'Hajar or Zain', role: 'Founder', icon: RotateCcw,
+    id: 'partial', kind: 'stop', who: 'A founder', role: 'Founder', icon: RotateCcw,
     title: 'They only took some of them',
     lede: 'Clients read a proposal as a menu. They take the two they are sure about, see how it goes, and come back for the rest, which is not a rejection of the other nineteen, and their budget has not gone anywhere.',
     does: [
@@ -295,7 +295,7 @@ const SLIDES: Slide[] = [
     handover: 'Everything you mark here is what the client sees on their own campaign page, in their words.',
   },
   {
-    id: 'pay', kind: 'stop', who: 'Hajar or Zain', role: 'Founder', icon: HandCoins,
+    id: 'pay', kind: 'stop', who: 'A founder', role: 'Founder', icon: HandCoins,
     title: 'Money out',
     lede: 'The last decision, and deliberately a person’s rather than a rule’s.',
     does: [

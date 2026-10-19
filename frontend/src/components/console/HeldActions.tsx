@@ -168,11 +168,11 @@ export function HeldActions({ onCount }: { onCount?: (n: number) => void }) {
   return (
     <section className="space-y-3">
       <SectionHead
-        title={canAnswer ? 'Waiting on you' : 'Your requests, waiting on Zain'}
+        title={canAnswer ? 'Waiting on you' : 'Your requests, waiting on a founder'}
         count={actions.length}
         note={canAnswer
           ? 'Nothing here has happened yet. Approving runs it exactly as it was submitted.'
-          : 'Held until Zain answers. You will be told either way.'}
+          : 'Held until a founder answers. You will be told either way.'}
       />
 
       <ReadState

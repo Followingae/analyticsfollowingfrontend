@@ -200,8 +200,8 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'Ready to send', href: '/work/handovers', icon: Send,
-        what: 'Client links Zain has checked, waiting for you to email them.',
-        why: 'The client still hears from you, out of your own inbox, and that does not change. What changed is that the platform knows the link is ready and tells you, instead of Zain emailing you separately to say so. Press "I have sent it" afterwards and the fact lands on the client record rather than living only in your sent folder.',
+        what: 'Client links a founder has checked, waiting for you to email them.',
+        why: 'The client still hears from you, out of your own inbox, and that does not change. What changed is that the platform knows the link is ready and tells you, instead of somebody emailing you separately to say so. Press "I have sent it" afterwards and the fact lands on the client record rather than living only in your sent folder.',
         also: ['quotes', 'links', 'share', 'send to client', 'quotation'],
       },
       {
@@ -308,8 +308,8 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'The approval gate', href: '/work/approvals/gate', icon: ShieldCheck,
-        what: 'The switch that decides what staff can do on their own, and what is held for Zain. Off by default.',
-        why: 'With it on, anything a member of staff does that moves money, reaches a client, changes who can do what, or deletes something is stopped and queued instead of happening. Nothing is lost: the whole request is kept and replayed exactly as it was submitted the moment it is approved, and the person who asked is told either way. Approving runs it on Zain’s authority, not theirs, and every permission check runs again, so nobody can be approved into doing something he could not do himself. Three things are never held, whatever the settings say: anything a brand user or a creator on the app does, logging in, and the queue itself. Each role keeps its own lane by default — talent records costs and builds rosters, business development creates brands and leads, account management writes briefs — because taking that away means they cannot work at all without him.',
+        what: 'The switch that decides what staff can do on their own, and what is held for a founder. Off by default.',
+        why: 'With it on, anything a member of staff does that moves money, reaches a client, changes who can do what, or deletes something is stopped and queued instead of happening. Nothing is lost: the whole request is kept and replayed exactly as it was submitted the moment it is approved, and the person who asked is told either way. Approving runs it on the approver’s authority, not theirs, and every permission check runs again, so nobody can be approved into doing something the approver could not do themselves. Three things are never held, whatever the settings say: anything a brand user or a creator on the app does, logging in, and the queue itself. Each role keeps its own lane by default — talent records costs and builds rosters, business development creates brands and leads, account management writes briefs — because taking that away means they cannot work at all without a founder in the loop.',
         also: ['approval', 'gate', 'permissions', 'held', 'waiting', 'ceo approval', 'locked', 'cannot save', 'sent for approval', 'queue'],
       },
       {
