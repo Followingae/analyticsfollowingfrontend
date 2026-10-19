@@ -95,6 +95,9 @@ function Results({ campaignId }: { campaignId: string }) {
           </PostGrid>
         </div>
       )}
+
+      <PostDetail post={detail} open={!!detail}
+                  onOpenChange={(o) => { if (!o) setDetail(null) }} />
     </div>
   )
 }

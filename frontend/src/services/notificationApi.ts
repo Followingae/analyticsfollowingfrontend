@@ -26,6 +26,7 @@ export type ServerNotificationType =
   | 'campaign_deliverable'
   | 'campaign_invite_accepted'
   | 'campaign_invite_declined'
+  | 'campaign_report_ready'
   | 'content_approved'
   | 'content_arrived'
   | 'content_changes_requested'
@@ -102,6 +103,7 @@ export const NOTIFICATION_CATEGORIES = {
     'campaign_application',
     'campaign_invite_accepted',
     'campaign_invite_declined',
+    'campaign_report_ready',
     'fa_application',
   ],
   creators: [
@@ -237,6 +239,7 @@ export const EVENT_LABEL: Partial<Record<ServerNotificationType, string>> = {
   campaign_deliverable: "Deliverable / content update (brand)",
   campaign_invite_accepted: "Creator accepted campaign invite",
   campaign_invite_declined: "Creator declined campaign invite",
+  campaign_report_ready: "Campaign report ready",
   content_approved: "Client approved content",
   content_arrived: "Creator content arrived",
   content_changes_requested: "Client asked for changes on content",

@@ -75,6 +75,8 @@ type Journey = {
     confirmed_at?: string | null
   }
   overall: { key: string; headline: string; sub: string; steps: Step[] }
+  /** Once most of the roster is live and released, the results ARE the campaign. */
+  report?: { ready: boolean; ready_at: string | null; live: number; pending: number; share: number }
   counts: Record<string, any>
   needs_product: boolean
   dine_in: boolean
@@ -472,6 +474,7 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
 
   const { campaign, overall, counts, creators, timeline } = data
   const agreements = data.agreements || []
+  const reportReady = !!data.report?.ready
 
   return (
     /* Gaps rather than `space-y`: they do not collapse, they do not leak past the container,
@@ -651,21 +654,49 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
               {/* Content leads, analytics follows. For most of a campaign's life there is
                   nothing to measure yet but there is plenty to approve, and a client sent to
                   a page of empty charts reads it as a campaign that is not happening. */}
-              <Button asChild className="mt-4 w-full rounded-xl">
-                <Link href={`/campaigns/${campaign.id}/content`}>
-                  <Eye className="mr-2 h-4 w-4" /> Review content
-                </Link>
-              </Button>
+              {/* ⚠️ THE ORDER FLIPS ONCE THERE ARE RESULTS. Content leads for most of a
+                  campaign's life, because there is nothing to measure yet and plenty to
+                  approve. But a client whose posts are live and counted opens this page
+                  for the numbers, and leading with "review content" on a finished
+                  campaign is the platform insisting on its own order of events. */}
+              {reportReady ? (
+                <>
+                  <Button asChild className="mt-4 w-full rounded-xl">
+                    <Link href={`/campaigns/${campaign.id}/performance`}>
+                      <BarChart3 className="mr-2 h-4 w-4" /> See your results
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="mt-2 w-full rounded-xl">
+                    <Link href={`/campaigns/${campaign.id}/content`}>
+                      <Eye className="mr-2 h-4 w-4" /> Review content
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button asChild className="mt-4 w-full rounded-xl">
+                    <Link href={`/campaigns/${campaign.id}/content`}>
+                      <Eye className="mr-2 h-4 w-4" /> Review content
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" className="mt-2 w-full rounded-xl">
+                    <Link href={`/campaigns/${campaign.id}/performance`}>
+                      <BarChart3 className="mr-2 h-4 w-4" /> Results
+                    </Link>
+                  </Button>
+                </>
+              )}
 
-              {/* Results, not "full analytics". The old link went to a 2,856-line screen
-                  whose job is mostly campaign settings, and whose post view was a column of
-                  very large thumbnails. This one is the grid: every post that went live,
-                  what it did, and the roll-up across all of them. */}
-              <Button asChild variant="outline" className="mt-2 w-full rounded-xl">
-                <Link href={`/campaigns/${campaign.id}/performance`}>
-                  <BarChart3 className="mr-2 h-4 w-4" /> Results
-                </Link>
-              </Button>
+              {/* Who the campaign is still waiting on, said once and without alarm. It is
+                  the question a client asks the moment they read their numbers. */}
+              {reportReady && (data.report?.pending ?? 0) > 0 && (
+                <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
+                  {data.report!.live} of {data.report!.live + data.report!.pending} creators
+                  are live.{' '}
+                  {data.report!.pending === 1 ? '1 is' : `${data.report!.pending} are`} still
+                  to post, and will join your results automatically.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
