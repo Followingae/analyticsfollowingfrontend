@@ -13,6 +13,10 @@
  * each of them, what we are paying, and what that leaves. The rail on the right keeps the
  * total honest as rows are ticked and costs are typed, so nobody locks a deal and discovers
  * the margin afterwards.
+ *
+ * On a BARTER deal none of that money exists, so none of it is shown: the client spent slots
+ * rather than cash and every creator is paid in product. The roster carries what each one
+ * receives instead of a price, and the rail says so in words rather than printing zeroes.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -40,7 +44,7 @@ import { adminProposalApi, type AdminProposalDetail, type AdminProposalInfluence
 import { API_CONFIG } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { cdnAvatar } from "@/lib/avatar"
-import { sellFor, costFor } from "@/components/proposals/proposal-utils"
+import { sellFor, costFor, barterFor } from "@/components/proposals/proposal-utils"
 import { Aed, PageHead } from "@/components/console/primitives"
 import { fullName } from "@/lib/destinations"
 import { cn } from "@/lib/utils"
@@ -126,6 +130,18 @@ export default function ConfirmForClientPage() {
   const influencers = detail?.influencers || []
   const chosen = useMemo(() => influencers.filter(i => picked[i.id]), [influencers, picked])
 
+  /* ⚠️ A BARTER DEAL HAS NO COST, NO CHARGE AND NO MARGIN, so this screen must not ask for
+     one. It did: it showed "We charge" per creator off the sell snapshot, a "Confirmed cost"
+     box, and a rail reading They pay / We pay / Margin - on a deal where the client spent
+     slots rather than money and every creator is paid in a pendant. It even printed a red
+     "this selection costs more than it earns" off a quote nobody is paying.
+
+     Worse than wrong: a number typed into that box is written to
+     `campaign_creators.agreed_rate_cents`, which would have put a real cash rate on a
+     barter creator and had us owing a fee we never agreed. `approve_proposal` zeroes both
+     sides for these rows, so the screen was contradicting the confirmation it performs. */
+  const isBarterDeal = Boolean(detail?.proposal.is_barter)
+
   const tierById = useMemo(
     () => Object.fromEntries((tiers?.items || []).map(i => [i.id, i])),
     [tiers],
@@ -170,6 +186,12 @@ export default function ConfirmForClientPage() {
     return { sell, cost, margin: sell - cost, pct: sell ? ((sell - cost) / sell) * 100 : null, typed }
   }, [chosen, costs])
 
+  /** What the client hands over, in product. The only total a barter deal has. */
+  const productTotal = useMemo(
+    () => chosen.reduce((s, i) => s + barterFor(i), 0),
+    [chosen],
+  )
+
   const confirm = async () => {
     if (!chosen.length) { toast.error("Choose the creators they confirmed"); return }
     if (byTier && tierState && !tierState.complete) {
@@ -185,7 +207,10 @@ export default function ConfirmForClientPage() {
         content_due: contentDue || undefined,
         ships_product: ships,
         selected_influencer_ids: chosen.map(i => i.id),
-        costs: chosen
+        // Never on a barter deal. The endpoint writes these to
+        // `campaign_creators.agreed_rate_cents`, and a cash rate on a creator being paid
+        // in product is a fee we never agreed to pay.
+        costs: isBarterDeal ? [] : chosen
           .map(i => ({
             id: i.influencer_db_id || i.profile_id || i.id,
             amount_aed: Number(costs[i.id]),
@@ -281,7 +306,7 @@ export default function ConfirmForClientPage() {
                       <h2 className="text-[15px] font-semibold">Who they confirmed</h2>
                       <p className="text-[13px] text-muted-foreground">
                         {chosen.length} of {influencers.length} selected
-                        {totals.typed ? ` · ${totals.typed} costs entered` : ""}
+                        {!isBarterDeal && totals.typed ? ` · ${totals.typed} costs entered` : ""}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -339,30 +364,49 @@ export default function ConfirmForClientPage() {
                             </div>
                           </div>
 
-                          <div className="w-24 text-right">
-                            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">We charge</div>
-                            <div className="text-[13.5px] font-medium tabular-nums"><Aed>{money(sellOf(i))}</Aed></div>
-                          </div>
-
-                          <div className="w-36">
-                            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Confirmed cost</div>
-                            <Input
-                              inputMode="decimal"
-                              disabled={!on}
-                              value={costs[i.id] ?? ""}
-                              placeholder={quoted ? String(quoted) : "—"}
-                              onChange={e => setCosts(c => ({ ...c, [i.id]: e.target.value.replace(/[^\d.]/g, "") }))}
-                              className="mt-0.5 h-9 text-right tabular-nums"
-                            />
-                          </div>
-
-                          <div className="w-24 text-right">
-                            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Margin</div>
-                            <div className={cn("text-[13.5px] font-medium tabular-nums",
-                                               margin < 0 && "text-rose-600 dark:text-rose-400")}>
-                              <Aed>{money(margin)}</Aed>
+                          {isBarterDeal ? (
+                            /* One column, because there is one fact: what they get. */
+                            <div className="w-56">
+                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                They receive
+                              </div>
+                              <div className="truncate text-[13.5px] font-medium" title={i.barter_product || undefined}>
+                                {i.barter_product || "—"}
+                              </div>
+                              {barterFor(i) > 0 && (
+                                <div className="text-[12px] text-muted-foreground tabular-nums">
+                                  worth <Aed>{money(barterFor(i))}</Aed>
+                                </div>
+                              )}
                             </div>
-                          </div>
+                          ) : (
+                            <>
+                              <div className="w-24 text-right">
+                                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">We charge</div>
+                                <div className="text-[13.5px] font-medium tabular-nums"><Aed>{money(sellOf(i))}</Aed></div>
+                              </div>
+
+                              <div className="w-36">
+                                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Confirmed cost</div>
+                                <Input
+                                  inputMode="decimal"
+                                  disabled={!on}
+                                  value={costs[i.id] ?? ""}
+                                  placeholder={quoted ? String(quoted) : "—"}
+                                  onChange={e => setCosts(c => ({ ...c, [i.id]: e.target.value.replace(/[^\d.]/g, "") }))}
+                                  className="mt-0.5 h-9 text-right tabular-nums"
+                                />
+                              </div>
+
+                              <div className="w-24 text-right">
+                                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Margin</div>
+                                <div className={cn("text-[13.5px] font-medium tabular-nums",
+                                                   margin < 0 && "text-rose-600 dark:text-rose-400")}>
+                                  <Aed>{money(margin)}</Aed>
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </div>
                       )
                     })}
@@ -370,10 +414,12 @@ export default function ConfirmForClientPage() {
                 </CardContent>
               </Card>
 
-              <p className="text-[13px] text-muted-foreground">
-                Leave a cost blank and the quote stands in for now, and the campaign will ask for
-                it again before the margin counts as real.
-              </p>
+              {!isBarterDeal && (
+                <p className="text-[13px] text-muted-foreground">
+                  Leave a cost blank and the quote stands in for now, and the campaign will ask for
+                  it again before the margin counts as real.
+                </p>
+              )}
             </div>
 
             {/* ── the decision ───────────────────────────────────────────────── */}
@@ -483,6 +529,33 @@ export default function ConfirmForClientPage() {
 
                   <Separator />
 
+                  {isBarterDeal ? (
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between text-[13.5px]">
+                        <span className="text-muted-foreground">They are charged</span>
+                        <span className="font-medium">Nothing</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[13.5px]">
+                        <span className="text-muted-foreground">Creators are paid</span>
+                        <span className="font-medium">In product</span>
+                      </div>
+                      {productTotal > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-[13.5px] text-muted-foreground">Product they hand over</span>
+                          <span className="text-lg font-semibold tabular-nums">
+                            <Aed>{money(productTotal)}</Aed>
+                          </span>
+                        </div>
+                      )}
+                      <p className="text-[12.5px] text-muted-foreground">
+                        {detail.proposal.barter_product
+                          ? `Each creator receives the ${detail.proposal.barter_product}. `
+                          : ""}
+                        This is a barter deal, so there is no cost to settle and no margin to
+                        read. The product value is what the client gives, never what they owe.
+                      </p>
+                    </div>
+                  ) : (
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between text-[13.5px]">
                       <span className="text-muted-foreground">They pay</span>
@@ -511,6 +584,7 @@ export default function ConfirmForClientPage() {
                       </p>
                     )}
                   </div>
+                  )}
 
                   <Button onClick={confirm} disabled={saving || !chosen.length} className="w-full gap-2 rounded-xl">
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
@@ -526,8 +600,9 @@ export default function ConfirmForClientPage() {
                 <CardContent className="space-y-2 p-4 text-[12.5px] text-muted-foreground">
                   <p className="flex items-start gap-2">
                     <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                    Their copy of the proposal keeps the roster and the agreed total. The
-                    per-creator prices come off the moment it is locked.
+                    {isBarterDeal
+                      ? "Their copy of the proposal keeps the roster and the product each creator receives."
+                      : "Their copy of the proposal keeps the roster and the agreed total. The per-creator prices come off the moment it is locked."}
                   </p>
                   <p className="flex items-start gap-2">
                     <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />

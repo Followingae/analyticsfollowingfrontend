@@ -133,6 +133,14 @@ export interface AdminProposalDetail {
       taken_by: string[]
       taken: boolean
     } | null
+    /** The whole deal is barter: the client spent slots, not money. Nothing on it is
+     *  charged to them and nothing is paid out in cash, so a screen showing cost, sell
+     *  or margin must leave those out rather than print zeroes. Every creator on such a
+     *  proposal comes back with `paid_in_product` true, whatever their own row says. */
+    is_barter?: boolean
+    barter_product?: string | null
+    barter_value_aed?: number | null
+    creator_slots?: number | null
   }
   influencers: AdminProposalInfluencer[]
   /** The caller's money scope, from the backend's `app/core/field_policy.py`. Only
