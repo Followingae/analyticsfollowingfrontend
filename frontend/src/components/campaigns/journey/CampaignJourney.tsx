@@ -128,7 +128,12 @@ const ago = (iso: string) => {
  * The icon breathes rather than spins — this sits on a screen somebody leaves open, and a
  * spinner reads as "loading" no matter what it is next to.
  */
-function HeroStatus({ overall, needsProduct }: { overall: Journey['overall']; needsProduct: boolean }) {
+function HeroStatus({ overall, needsProduct, reportHref, pending }: {
+  overall: Journey['overall']; needsProduct: boolean
+  /** Set once the results are worth reading. See the comment on the button. */
+  reportHref?: string | null
+  pending?: number
+}) {
   const active = overall.steps.find(s => s.active) || overall.steps[0]
   const Icon = ICONS[active?.icon || 'UserCheck'] || UserCheck
   const done = overall.steps.filter(s => s.done).length
@@ -172,6 +177,27 @@ function HeroStatus({ overall, needsProduct }: { overall: Journey['overall']; ne
                 {overall.headline}
               </h2>
               <p className="mt-2 text-[15px] text-muted-foreground">{overall.sub}</p>
+
+              {/* ⚠️ THE RESULTS BELONG WITH THE HEADLINE, not in a card further down.
+                  "Your campaign is live" and no way to see what it did, with a small
+                  "Results" link buried below the fold, is the platform announcing good
+                  news and then hiding it. Only once the report is ready: before that there
+                  is nothing behind this button and a client who presses it learns not to. */}
+              {reportHref && (
+                <div className="mt-5 flex flex-col items-center gap-2">
+                  <Button asChild size="lg" className="rounded-xl px-7">
+                    <Link href={reportHref}>
+                      <BarChart3 className="mr-2 h-4 w-4" /> View report
+                    </Link>
+                  </Button>
+                  {!!pending && (
+                    <p className="text-[12.5px] text-muted-foreground">
+                      {pending === 1 ? '1 creator is' : `${pending} creators are`} still to
+                      post, and will join it automatically.
+                    </p>
+                  )}
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
 
@@ -505,7 +531,9 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
         )}
       </div>
 
-      <HeroStatus overall={overall} needsProduct={data.needs_product} />
+      <HeroStatus overall={overall} needsProduct={data.needs_product}
+                  reportHref={reportReady ? `/campaigns/${campaign.id}/performance` : null}
+                  pending={data.report?.pending} />
 
       {/* ds-5 between columns: wider than any gap inside a figure, so the space reads as the
           break the four borders used to draw. */}
@@ -659,44 +687,19 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
                   approve. But a client whose posts are live and counted opens this page
                   for the numbers, and leading with "review content" on a finished
                   campaign is the platform insisting on its own order of events. */}
-              {reportReady ? (
-                <>
-                  <Button asChild className="mt-4 w-full rounded-xl">
-                    <Link href={`/campaigns/${campaign.id}/performance`}>
-                      <BarChart3 className="mr-2 h-4 w-4" /> See your results
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="mt-2 w-full rounded-xl">
-                    <Link href={`/campaigns/${campaign.id}/content`}>
-                      <Eye className="mr-2 h-4 w-4" /> Review content
-                    </Link>
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button asChild className="mt-4 w-full rounded-xl">
-                    <Link href={`/campaigns/${campaign.id}/content`}>
-                      <Eye className="mr-2 h-4 w-4" /> Review content
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="mt-2 w-full rounded-xl">
-                    <Link href={`/campaigns/${campaign.id}/performance`}>
-                      <BarChart3 className="mr-2 h-4 w-4" /> Results
-                    </Link>
-                  </Button>
-                </>
-              )}
+              <Button asChild className="mt-4 w-full rounded-xl">
+                <Link href={`/campaigns/${campaign.id}/content`}>
+                  <Eye className="mr-2 h-4 w-4" /> Review content
+                </Link>
+              </Button>
 
-              {/* Who the campaign is still waiting on, said once and without alarm. It is
-                  the question a client asks the moment they read their numbers. */}
-              {reportReady && (data.report?.pending ?? 0) > 0 && (
-                <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
-                  {data.report!.live} of {data.report!.live + data.report!.pending} creators
-                  are live.{' '}
-                  {data.report!.pending === 1 ? '1 is' : `${data.report!.pending} are`} still
-                  to post, and will join your results automatically.
-                </p>
-              )}
+              {/* Kept as the quiet way back to the numbers. The loud one is at the top of
+                  the page, beside the headline announcing them. */}
+              <Button asChild variant="outline" className="mt-2 w-full rounded-xl">
+                <Link href={`/campaigns/${campaign.id}/performance`}>
+                  <BarChart3 className="mr-2 h-4 w-4" /> Results
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         </div>
