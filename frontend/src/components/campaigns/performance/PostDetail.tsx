@@ -63,13 +63,13 @@ function Stat({ icon: Icon, label, value, missing }: {
 }) {
   const has = value !== null && value !== undefined
   return (
-    <div className="rounded-ds-lg bg-muted/50 px-3.5 py-3">
+    <div className="rounded-ds-lg bg-muted/50 px-4 py-4">
       <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase
                       tracking-[0.14em] text-muted-foreground">
         <Icon className="h-3 w-3" />{label}
       </div>
       {has ? (
-        <div className="mt-1 text-[22px] font-semibold leading-tight tabular-nums">
+        <div className="mt-2 text-[26px] font-semibold leading-tight tabular-nums">
           {compact(value as number)}
         </div>
       ) : (
@@ -83,7 +83,7 @@ function Row({ icon: Icon, label, children }: {
   icon: typeof MapPin; label: string; children: React.ReactNode
 }) {
   return (
-    <div className="flex gap-3 py-2.5">
+    <div className="flex gap-3.5 py-4">
       <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       <div className="min-w-0 flex-1">
         <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
@@ -116,7 +116,12 @@ export function PostDetail({ post, open, onOpenChange }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto p-0">
+      {/* ⚠️ ROOM. This opened as a 3xl box with a 260px picture and everything else
+          crushed into the column beside it: five stats, a caption, a tag list and a row
+          of badges, all fighting over 400px. A detail view that is harder to read than
+          the tile it came from has no reason to exist. Wider, taller, one scroll, and
+          every block gets a gutter. */}
+      <DialogContent className="max-h-[94vh] w-[96vw] max-w-6xl overflow-hidden p-0 sm:w-[92vw]">
         <DialogTitle className="sr-only">
           {post.username ? `@${post.username}` : 'Post'} detail
         </DialogTitle>
@@ -124,9 +129,9 @@ export function PostDetail({ post, open, onOpenChange }: {
           Everything measured on this post.
         </DialogDescription>
 
-        <div className="grid gap-0 sm:grid-cols-[minmax(0,260px)_1fr]">
-          {/* The post itself */}
-          <div className="relative aspect-[4/5] overflow-hidden bg-muted sm:aspect-auto">
+        <div className="grid max-h-[94vh] gap-0 md:grid-cols-[minmax(0,420px)_1fr]">
+          {/* The post itself, big enough to actually look at. */}
+          <div className="relative aspect-[4/5] overflow-hidden bg-muted md:aspect-auto md:min-h-[560px]">
             {thumb ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={thumb} alt="" className="h-full w-full object-cover" />
@@ -137,7 +142,7 @@ export function PostDetail({ post, open, onOpenChange }: {
             )}
           </div>
 
-          <div className="min-w-0 p-6">
+          <div className="min-w-0 overflow-y-auto p-7 sm:p-9">
             {/* Who */}
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
@@ -158,7 +163,7 @@ export function PostDetail({ post, open, onOpenChange }: {
             </div>
 
             {/* The numbers */}
-            <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+            <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Stat icon={Eye} label="Views" value={post.plays}
                     missing={hidden ? 'Hidden by the creator' : 'We could not read this'} />
               <Stat icon={Heart} label="Likes" value={post.likes_count}
@@ -188,10 +193,10 @@ export function PostDetail({ post, open, onOpenChange }: {
             )}
 
             {/* What it was */}
-            <div className="mt-5 divide-y">
+            <div className="mt-7 divide-y">
               {post.caption && (
                 <Row icon={Sparkles} label="Caption">
-                  <p className="whitespace-pre-line">{post.caption}</p>
+                  <p className="whitespace-pre-line leading-[1.75]">{post.caption}</p>
                 </Row>
               )}
 

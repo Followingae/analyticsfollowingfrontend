@@ -28,6 +28,18 @@ const DISMISS_KEY = "whatsnew_dismissed_ids";
 const QUIET_KEY = "whatsnew_quiet_until";
 const QUIET_HOURS = 12;
 
+// ⚠️ SOME NEWS OUTRANKS THE QUIET PERIOD. The 12-hour hush exists because staff receive
+// dozens of notifications a day and the modal was opening on practically every reload.
+// But it is a blunt instrument: it also swallowed the handful of things a person actually
+// logs in hoping to see, because something unrelated had been dismissed that morning.
+// A client's results arriving is the clearest case, and it happens about once per
+// campaign, so it cannot become a nag. Per-id dismissal still applies: saying "Later" to
+// THIS still means later.
+const ALWAYS_SHOW = new Set(["campaign_report_ready", "proposal_received"]);
+
+const outranksQuiet = (items: ServerNotification[]): boolean =>
+  items.some((n) => ALWAYS_SHOW.has((n.notification_type || "").toLowerCase()));
+
 function inQuietPeriod(): boolean {
   if (typeof window === "undefined") return true;
   try {
@@ -104,8 +116,8 @@ export function WhatsNewModal() {
       const dismissed = getDismissed();
       const fresh = unread.filter((n) => !dismissed.has(n.id));
       if (fresh.length === 0) return;
-      // Closed earlier today means closed. Do not reopen on the next thing that arrives.
-      if (inQuietPeriod()) return;
+      // Closed earlier today means closed, unless what arrived outranks the hush.
+      if (inQuietPeriod() && !outranksQuiet(fresh)) return;
       setShownThisLoad(true);
       setItems(unread);
       setOpen(true);
