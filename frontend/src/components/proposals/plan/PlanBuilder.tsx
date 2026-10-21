@@ -151,6 +151,14 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const openSlots = byCount && slots != null
     ? Math.max(0, slots - lockedList.length)
     : (slots ?? 0)
+  /* A paid deal can also include a number of creators on product. They cost the budget
+     nothing, so the budget bar cannot hold the line on them: without this a client could
+     take every product creator on the roster. Confirmed ones keep their place, for the
+     same reason a confirmed creator keeps a slot above. */
+  const barterCap = !byCount ? (selection.barter ?? null) : null
+  const barterTaken = barterCap
+    ? lockedList.filter(c => c.paid_in_product).length + picked.filter(c => c.paid_in_product).length
+    : 0
   const extras = useMemo(
     () => picked.reduce((s, c) => s + (withMod.has(c.id) ? modifierExtra(c, modifier) : 0), 0),
     [picked, withMod, modifier])
@@ -365,6 +373,14 @@ export function PlanBuilder({ proposalId, data, onReload }: {
       })
       return
     }
+    /* The product places, on a paid deal. Said here with the number, rather than left to the
+       server to refuse on save. */
+    if (adding && barterCap && c.paid_in_product && barterTaken >= barterCap.slots) {
+      toast.error(`Your plan includes ${barterCap.slots} creator${barterCap.slots === 1 ? "" : "s"} on product`, {
+        description: "Take one of them off to swap somebody in.",
+      })
+      return
+    }
     setChosen(prev => {
       const next = new Set(prev)
       next.has(c.id) ? next.delete(c.id) : next.add(c.id)
@@ -372,7 +388,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
       return next
     })
     setBuiltSig(null)
-  }, [save, chosen, byTier, tierRows, byCount, slots, slotsTaken])
+  }, [save, chosen, byTier, tierRows, byCount, slots, slotsTaken, barterCap, barterTaken])
 
   const markOpened = useCallback((c: BrandInfluencer) => {
     if (c.client_opened_at || shownRef.current.has(c.id)) return
@@ -794,6 +810,34 @@ export function PlanBuilder({ proposalId, data, onReload }: {
             </section>
           )}
 
+          {/* The second allowance on a paid deal: creators on product. They are not in the
+              budget, so they get their own count rather than vanishing from the money. */}
+          {barterCap && (
+            <section className="rounded-[20px] border bg-card p-[18px]">
+              <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                <Gift className="size-3.5" />Creators on product
+              </p>
+              <div className="mt-3 text-[32px] font-extrabold leading-none tracking-[-0.04em]">
+                {barterTaken}
+                <span className="text-muted-foreground"> / {barterCap.slots}</span>
+              </div>
+              <p className="mt-1.5 text-[13px] text-muted-foreground">
+                {barterTaken < barterCap.slots
+                  ? `${barterCap.slots - barterTaken} more you can take on product, outside your budget`
+                  : barterTaken > barterCap.slots
+                    ? `Take ${barterTaken - barterCap.slots} off to confirm`
+                    : "All your product places are taken. Swap one to change them."}
+              </p>
+              {barterCap.product && (
+                <ProductBarter
+                  product={barterCap.product}
+                  value={barterCap.product_value_aed}
+                  className="mt-3"
+                />
+              )}
+            </section>
+          )}
+
           {/* Bought by the head, paid in product. What a budget bar does on a paid deal,
               done in the only currency this one has. */}
           {byCount && (
@@ -1025,8 +1069,14 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                        there is no tick left to give. Their answer, "I will stick with what
                        I have", had no button. */
                     : !(picked.length + lockedList.length) || over
+                      /* Over the product places, e.g. the cap was lowered after they ticked. */
+                      || (!!barterCap && barterTaken > barterCap.slots)
               }
-              title={byTier && !tiersComplete ? tierRows.filter(r => r.picked < r.allowed).map(r => `${r.label} ${r.picked} of ${r.allowed}`).join(" · ") : undefined}
+              title={byTier && !tiersComplete
+                ? tierRows.filter(r => r.picked < r.allowed).map(r => `${r.label} ${r.picked} of ${r.allowed}`).join(" · ")
+                : barterCap && barterTaken > barterCap.slots
+                  ? `${barterTaken} on product, your plan includes ${barterCap.slots}`
+                  : undefined}
               onClick={() => setConfirmOpen(true)}
             >
               <Check className="size-4" />

@@ -23,6 +23,15 @@ export interface RetainerMonth {
   total_picked?: number
 }
 
+export interface BarterAllowance {
+  slots: number
+  taken: number
+  confirmed: number
+  remaining: number
+  product?: string | null
+  product_value_aed?: number | null
+}
+
 export interface ProposalSelection {
   /** budget: they spend dirhams. tiers: they spend places per band. count: they spend
    *  creators, which is how a barter deal is sold - there is no money in it at all. */
@@ -34,6 +43,9 @@ export interface ProposalSelection {
   remaining?: number | null
   product?: string | null
   product_value_aed?: number | null
+  /** A paid deal's SECOND allowance: how many creators may come on product, beside the
+   *  budget. Absent when there is no cap. `taken` counts confirmed creators too. */
+  barter?: BarterAllowance | null
   bands?: Record<string, { label?: string }>
   allowances?: Record<string, number>
   state?: { tiers: TierRow[]; complete: boolean; total_picked: number; total_allowed: number }

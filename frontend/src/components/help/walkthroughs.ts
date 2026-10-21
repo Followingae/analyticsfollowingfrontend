@@ -448,6 +448,8 @@ export const WALKTHROUGHS: Walkthrough[] = [
         body: 'Pick the client, the type, the budget and the deadline.' },
       { title: 'Payment steps',
         body: 'Usually an advance and a balance. These become the invoices later, so get them right now.' },
+      { title: 'Some creators on product',
+        body: 'Set a barter allowance: how many creators on product, and what they get. The client takes that many outside the budget, and no more.' },
       { title: 'Add creators',
         body: 'Search the database or paste a handle. Only creators with a price show up.' },
       { title: 'If someone is missing',

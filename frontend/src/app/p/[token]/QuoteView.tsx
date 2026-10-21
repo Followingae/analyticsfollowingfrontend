@@ -28,6 +28,7 @@ import {
   Check, Users, Loader2, Sparkles, Star, Lock, ArrowRight, Info,
 } from 'lucide-react'
 import { cdnAvatar } from "@/lib/avatar"
+import { ProductBarter } from '@/components/proposals/ProductBarter'
 
 const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/proposals`
 
@@ -80,6 +81,10 @@ interface QuoteInfluencer {
   subtotal: number
   total: number
   selectable: boolean
+  /** Paid in product: no price on any line, nothing in the total, the product instead. */
+  paid_in_product?: boolean
+  barter_product?: string | null
+  barter_value_aed?: number | null
 }
 
 interface Modifier {
@@ -486,7 +491,13 @@ function CreatorQuoteCard({
             <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />
           ) : (
             <>
-              <div className="text-xl font-semibold tabular-nums">{money(inf.total) ?? '—'}</div>
+              {/* On product there is no price to show, and a dash would read as unpriced.
+                  The product is the answer to "what does she cost". */}
+              {inf.paid_in_product ? (
+                <ProductBarter product={inf.barter_product} value={inf.barter_value_aed} />
+              ) : (
+                <div className="text-xl font-semibold tabular-nums">{money(inf.total) ?? '—'}</div>
+              )}
               <div className="text-xs text-muted-foreground">
                 {selected.size === 0 ? 'nothing selected' : `${selected.size} selected`}
               </div>
@@ -522,7 +533,9 @@ function CreatorQuoteCard({
                   </span>
                 </label>
                 <span className="shrink-0 tabular-nums font-medium">
-                  {money(isOn ? line.line_total : line.line_total_standard) ?? '—'}
+                  {inf.paid_in_product
+                    ? <span className="text-muted-foreground">On product</span>
+                    : money(isOn ? line.line_total : line.line_total_standard) ?? '—'}
                 </span>
               </div>
 

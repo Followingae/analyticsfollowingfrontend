@@ -141,6 +141,11 @@ export interface AdminProposalDetail {
     barter_product?: string | null
     barter_value_aed?: number | null
     creator_slots?: number | null
+    /** A PAID deal's barter allowance, beside its budget: how many creators on product,
+     *  and the default offer for them. Null on a barter proposal. */
+    campaign_type_target?: string
+    barter_slots?: number | null
+    barter_allowance?: { slots: number | null; product: string | null; value_aed: number | null } | null
   }
   influencers: AdminProposalInfluencer[]
   /** The caller's money scope, from the backend's `app/core/field_policy.py`. Only
@@ -564,6 +569,26 @@ export class AdminProposalApiService {
     if (!response.ok) throw new Error(await errorMessage(response, 'Failed to save the offer'))
     const result = await response.json()
     return result.data
+  }
+
+  // ---------------------------------------------------------------------------
+  // PUT /api/v1/admin/proposals/{id}/barter-allowance - a PAID deal's second allowance:
+  // up to N creators on product beside the budget, and what they get by default.
+  // Unlike barter-offer this never touches the budget. `slots: null` removes the cap.
+  // ---------------------------------------------------------------------------
+  async setBarterAllowance(proposalId: string, allowance: {
+    slots: number | null
+    product?: string | null
+    value_aed?: number | null
+  }): Promise<{ message?: string }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}/barter-allowance`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(allowance),
+    })
+    if (!response.ok) throw new Error(await errorMessage(response, 'Failed to save the barter allowance'))
+    const result = await response.json()
+    return { message: result.message }
   }
 
   // ---------------------------------------------------------------------------

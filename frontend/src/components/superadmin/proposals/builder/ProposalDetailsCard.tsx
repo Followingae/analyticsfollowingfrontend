@@ -83,6 +83,10 @@ interface Props {
   onBarterValue: (v: string) => void
   creatorSlots: string
   onCreatorSlots: (v: string) => void
+  /* a PAID deal's barter allowance: up to N creators on product, beside the budget. The
+     product and value above double as its default offer. */
+  barterSlots: string
+  onBarterSlots: (v: string) => void
 
   brandUsers: BrandUser[]
   usersLoading: boolean
@@ -293,6 +297,58 @@ export function ProposalDetailsCard(p: Props) {
             onChange={p.onPaymentTerms}
             total={Number(p.totalBudget) || 0}
           />
+        )}
+
+        {/* The second allowance on a managed paid deal: "AED 50,000, plus up to five on
+            product". Optional, and off by leaving the count empty. Which creators are on
+            product is still decided per creator in the roster; this only caps how many the
+            client may take, and names what they get unless a creator's line says otherwise. */}
+        {p.campaignTypeTarget === "influencer" && (
+          <div className="rounded-lg border border-dashed bg-muted/30 p-3">
+            <div className="flex items-center gap-2">
+              <Gift className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-sm">Barter allowance</Label>
+              <span className="text-[11px] text-muted-foreground">Optional</span>
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-[160px_1fr_140px]">
+              <div>
+                <Label className="text-xs text-muted-foreground">Creators on product</Label>
+                <Input
+                  className="mt-1 tabular-nums"
+                  type="number"
+                  min={1}
+                  placeholder="No cap"
+                  value={p.barterSlots}
+                  onChange={(e) => p.onBarterSlots(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">What they get</Label>
+                <Input
+                  className="mt-1"
+                  placeholder="e.g. Dinner for two"
+                  value={p.barterProduct}
+                  onChange={(e) => p.onBarterProduct(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Worth (AED)</Label>
+                <Input
+                  className="mt-1 tabular-nums"
+                  type="number"
+                  min={0}
+                  placeholder="400"
+                  value={p.barterValue}
+                  onChange={(e) => p.onBarterValue(e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+              The client spends the budget on paid creators and may also take this many on
+              product, outside the budget. Mark who is on product in the roster; a creator with
+              no product of their own gets this one.
+            </p>
+          </div>
         )}
 
         <div>

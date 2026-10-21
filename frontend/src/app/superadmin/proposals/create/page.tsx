@@ -120,6 +120,11 @@ function CreateProposalContent() {
   const [barterProduct, setBarterProduct] = useState("")
   const [barterValue, setBarterValue] = useState("")
   const [creatorSlots, setCreatorSlots] = useState("")
+  // A PAID deal can also include up to N creators on product, beside the budget. The product
+  // and value above are its default offer; empty means no cap. `hadBarterAllowance` is what
+  // edit mode loaded, so clearing the fields removes the cap rather than being ignored.
+  const [barterSlots, setBarterSlots] = useState("")
+  const [hadBarterAllowance, setHadBarterAllowance] = useState(false)
   const isBarterProposal = campaignTypeTarget === "barter_portal"
 
   // Unified picker tab: master DB | FA members | add by Instagram handle
@@ -219,6 +224,24 @@ function CreateProposalContent() {
         setDeadline(p.deadline_at ? new Date(p.deadline_at) : undefined)
         setCoverImageUrl(p.cover_image_url || "")
         setSelectedUserId(p.user_id || "")
+        // The type is fixed once created, but the form still has to know it: it decides
+        // which allowance fields are shown and saved. Older payloads lack it, so a barter
+        // flag is read as the type when it is missing.
+        const type = (p.campaign_type_target as CampaignTypeTarget | undefined)
+          ?? (p.is_barter ? "barter_portal" : "influencer")
+        setCampaignTypeTarget(type)
+        if (type === "barter_portal") {
+          setBarterProduct(p.barter_product || "")
+          setBarterValue(p.barter_value_aed != null ? String(p.barter_value_aed) : "")
+          setCreatorSlots(p.creator_slots != null ? String(p.creator_slots) : "")
+        }
+        const allowance = p.barter_allowance
+        if (type === "influencer" && allowance && (allowance.slots != null || allowance.product)) {
+          setHadBarterAllowance(true)
+          setBarterSlots(allowance.slots != null ? String(allowance.slots) : "")
+          setBarterProduct(allowance.product || "")
+          setBarterValue(allowance.value_aed != null ? String(allowance.value_aed) : "")
+        }
         if (p.visible_fields) {
           setVisibility((v) => ({ ...v, ...p.visible_fields }))
         }
@@ -575,6 +598,27 @@ function CreateProposalContent() {
   }
 
   /**
+   * Save a managed paid proposal's barter allowance. Skipped when nothing is set and nothing
+   * was set before, so an ordinary paid proposal is left exactly as it was.
+   */
+  async function saveBarterAllowance(proposalId: string) {
+    if (campaignTypeTarget !== "influencer") return
+    const slots = barterSlots === "" ? null : Number(barterSlots)
+    const product = barterProduct.trim()
+    if (slots == null && !product && !hadBarterAllowance) return
+    try {
+      const res = await adminProposalApi.setBarterAllowance(proposalId, {
+        slots,
+        product: product || null,
+        value_aed: barterValue === "" ? null : Number(barterValue),
+      })
+      if (slots != null && res?.message) toast.success(res.message)
+    } catch (err: any) {
+      toast.error(err?.message || "The proposal saved, but the barter allowance did not")
+    }
+  }
+
+  /**
    * Record who is paid in product, after the creators themselves are attached.
    *
    * A second call rather than a field on the add: the barter line belongs to the row on the
@@ -585,7 +629,9 @@ function CreateProposalContent() {
   async function saveBarter(proposalId: string) {
     const lines = barterPayload()
     if (!lines.length) return
-    const missing = lines.filter((l) => !l.product)
+    // A line with no product of its own takes the paid proposal's default offer, if it has one.
+    const hasDefault = !isBarterProposal && !!barterProduct.trim()
+    const missing = hasDefault ? [] : lines.filter((l) => !l.product)
     if (missing.length) {
       toast.error(
         `Name the product for ${missing.length} creator${missing.length !== 1 ? "s" : ""} `
@@ -663,6 +709,7 @@ function CreateProposalContent() {
       })
 
       await saveBarterOffer(editId!)
+      await saveBarterAllowance(editId!)
 
       // Add any new influencers
       if (addedInfluencers.length) {
@@ -714,6 +761,7 @@ function CreateProposalContent() {
 
       // The offer first: a barter proposal without one cannot be answered by anybody.
       await saveBarterOffer(proposal.id)
+      await saveBarterAllowance(proposal.id)
 
       // Optionally pre-attach influencers if the operator added any (not required).
       if (addedInfluencers.length) {
@@ -819,6 +867,8 @@ function CreateProposalContent() {
               onBarterValue={setBarterValue}
               creatorSlots={creatorSlots}
               onCreatorSlots={setCreatorSlots}
+              barterSlots={barterSlots}
+              onBarterSlots={setBarterSlots}
               brandUsers={brandUsers}
               usersLoading={usersLoading}
               selectedUserId={selectedUserId}

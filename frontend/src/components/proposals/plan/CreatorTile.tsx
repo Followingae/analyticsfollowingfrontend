@@ -18,7 +18,7 @@
  * shrunk or moved elsewhere on the card.
  */
 import { memo } from "react"
-import { Check, X, Users, Heart, Sparkles, Star, BadgeCheck, Lock, Layers } from "lucide-react"
+import { Check, X, Users, Heart, Sparkles, Star, BadgeCheck, Lock, Layers, Gift } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { cdnAvatar } from "@/lib/avatar"
 import type { BrandInfluencer } from "@/services/adminProposalMasterApi"
@@ -149,6 +149,14 @@ export const CreatorTile = memo(function CreatorTile({
             <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-400 px-2.5 py-1 text-[11.5px] font-bold leading-none text-amber-950">
               <Layers className="size-3 shrink-0" />
               <em className="not-italic">{c.counts_as}</em>
+            </span>
+          )}
+          {/* Paid in product, so there is no price to show, and no price must not read as
+              free. The product takes the price's place on the card. */}
+          {c.paid_in_product && c.barter_product && (
+            <span className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11.5px] font-semibold leading-none backdrop-blur">
+              <Gift className="size-3 shrink-0" />
+              <em className="truncate not-italic">{c.barter_product}</em>
             </span>
           )}
           {showPricing && cost > 0 && (
