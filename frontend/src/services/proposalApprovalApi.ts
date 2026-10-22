@@ -216,4 +216,9 @@ export const proposalApprovalApi = {
       on_product?: boolean
     },
   ) => jfetch(`${BASE}/${proposalId}/add-from-db`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  /** Change what is booked from a creator already on the proposal: single deliverables, a
+   *  saved package, or a one-off deal for this proposal only. Refused once confirmed. */
+  setLines: (proposalId: string, rowId: string, lines: unknown[]) =>
+    jfetch(`${BASE}/${proposalId}/influencers/${rowId}/lines`, { method: 'PUT', body: JSON.stringify({ lines }) }),
 };

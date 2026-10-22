@@ -372,6 +372,8 @@ export const imdListsApi = {
      * before the proposal reaches the client.
      */
     override?: { reason: string },
+    /** What was picked per creator in the shared picker; wins over `deliverable`. */
+    linesByCreator?: Record<string, unknown[]>,
   ): Promise<{
     data: {
       added: number; already_on_proposal: number; unpriced: string[]; no_cost: string[]
@@ -386,6 +388,7 @@ export const imdListsApi = {
         influencer_ids: influencerIds,
         deliverable_type: deliverable.type,
         quantity: deliverable.quantity,
+        ...(linesByCreator ? { lines_by_creator: linesByCreator } : {}),
         ...(override ? {
           acknowledge_client_rejections: true,
           override_reason: override.reason,

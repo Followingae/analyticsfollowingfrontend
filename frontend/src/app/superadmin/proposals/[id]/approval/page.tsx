@@ -23,6 +23,9 @@ import { proposalApprovalApi, type ApprovalStep } from '@/services/proposalAppro
 import { clientApi } from '@/services/clientManagementApi'
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab'
 import { TmAddCreatorsDialog } from '@/components/proposals/TmAddCreatorsDialog'
+import { EditBookingDialog, type EditBookingRow } from '@/components/proposals/EditBookingDialog'
+import { PlatformIcon } from '@/components/icons/PlatformIcon'
+import { describeIncludes, describeLine, isBundleKey, platformsOfLine } from '@/lib/deliverables'
 import { SellingMode } from '@/components/superadmin/proposals/SellingMode'
 import { PriceModifierCard } from '@/components/superadmin/proposals/PriceModifierCard'
 import { GateOverrideCard } from '@/components/superadmin/proposals/GateOverrideCard'
@@ -74,6 +77,7 @@ export default function ProposalApprovalPage() {
   // Ticked creators, for removing a batch in one go. Cleared after every reload so a
   // stale id can never be sent at a roster that has already changed underneath it.
   const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [editingBooking, setEditingBooking] = useState<EditBookingRow | null>(null)
   const [approveNotes, setApproveNotes] = useState('')
   const [sendBackNotes, setSendBackNotes] = useState('')
   const [shareUrl, setShareUrl] = useState<string | null>(null)
@@ -358,17 +362,26 @@ export default function ProposalApprovalPage() {
                       )}
                       <TableHead>Creator</TableHead>
                       <TableHead>Followers</TableHead>
-                      <TableHead>Rate (AED)</TableHead>
+                      <TableHead>Booking</TableHead>
                       {viewer.is_operator && <TableHead>Internal</TableHead>}
                       {viewer.is_operator && <TableHead className="text-right">Review</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(ws.influencers || []).map((inf: any) => {
-                      const standard = inf.sell_price_snapshot?.reel ?? inf.estimated_cost ?? null
-                      const rate = inf.custom_sell_pricing?.reel ?? standard ?? '-'
-                      const discounted = inf.custom_sell_pricing?.reel != null
-                        && standard != null && Number(inf.custom_sell_pricing.reel) < Number(standard)
+                      // What is booked, priced line by line: a discount beats the frozen
+                      // price, as everywhere else. This read the reel rate whatever the
+                      // booking was, so a TikTok or package booking showed a wrong number.
+                      const lines: any[] = inf.assigned_deliverables || []
+                      const priceOf = (src: any, l: any) => (src?.[l.type] != null ? Number(src[l.type]) * (l.quantity || 1) : null)
+                      const sum = (src: any) => {
+                        const v = lines.map((l) => priceOf(src, l))
+                        return v.some((x) => x != null) ? v.reduce((a: number, x) => a + (x ?? 0), 0) : null
+                      }
+                      const standard = sum(inf.sell_price_snapshot) ?? inf.estimated_cost ?? null
+                      const effective = sum({ ...(inf.sell_price_snapshot || {}), ...(inf.custom_sell_pricing || {}) })
+                      const rate = effective ?? standard ?? '-'
+                      const discounted = effective != null && standard != null && effective < Number(standard)
                       return (
                         <TableRow key={inf.id} data-state={picked.has(inf.id) ? 'selected' : undefined}>
                           {viewer.is_operator && (
@@ -399,12 +412,35 @@ export default function ProposalApprovalPage() {
                           </TableCell>
                           <TableCell>{inf.followers_count ? Number(inf.followers_count).toLocaleString() : '-'}</TableCell>
                           <TableCell>
-                            {rate === '-' ? '-' : `AED ${Number(rate).toLocaleString('en-AE')}`}
-                            {discounted && (
-                              <span className="ml-2 text-xs text-muted-foreground line-through">
-                                {Number(standard).toLocaleString('en-AE')}
+                            <div className="flex flex-col gap-0.5">
+                              {lines.map((l, i) => (
+                                <span key={l.type + i} className="inline-flex items-center gap-1.5 text-xs" title={isBundleKey(l.type) ? describeIncludes(l.includes) : undefined}>
+                                  {platformsOfLine(l).map((pl) => <PlatformIcon key={pl} platform={pl} className="h-3 w-3 text-muted-foreground" />)}
+                                  {describeLine(l)}
+                                </span>
+                              ))}
+                              <span className="text-sm font-medium">
+                                {rate === '-' ? '-' : `AED ${Number(rate).toLocaleString('en-AE')}`}
+                                {discounted && (
+                                  <span className="ml-2 text-xs font-normal text-muted-foreground line-through">
+                                    {Number(standard).toLocaleString('en-AE')}
+                                  </span>
+                                )}
                               </span>
-                            )}
+                              {viewer.is_operator && inf.influencer_db_id && (
+                                <button
+                                  type="button"
+                                  className="w-fit text-xs font-medium text-primary hover:underline"
+                                  onClick={() => setEditingBooking({
+                                    id: String(inf.id), influencer_db_id: String(inf.influencer_db_id),
+                                    username: inf.username, assigned_deliverables: lines,
+                                    paid_in_product: !!inf.paid_in_product,
+                                  })}
+                                >
+                                  Change booking
+                                </button>
+                              )}
+                            </div>
                           </TableCell>
                           {viewer.is_operator && (
                             <TableCell>
@@ -777,6 +813,13 @@ export default function ProposalApprovalPage() {
           </Card>
         )}
       </div>
+      <EditBookingDialog
+        proposalId={proposalId}
+        row={editingBooking}
+        productMode={isBarterProposal || !!editingBooking?.paid_in_product}
+        onOpenChange={(o) => { if (!o) setEditingBooking(null) }}
+        onSaved={load}
+      />
       <TmAddCreatorsDialog
         proposalId={proposalId}
         open={showPicker}

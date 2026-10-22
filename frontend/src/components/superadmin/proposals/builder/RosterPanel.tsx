@@ -27,8 +27,9 @@ import { cn } from "@/lib/utils"
 import {
   AED, DELIVERABLE_TYPES,
   barterSubtotal, creatorSubtotal, followersLabel, unitSellPrice,
-  type BarterMap, type DeliverableAssignmentMap, type MasterInfluencer,
+  type BarterMap, type DeliverableAssignment, type DeliverableAssignmentMap, type MasterInfluencer,
 } from "./types"
+import { BookingPicker, useBookable } from "@/components/proposals/BookingPicker"
 
 interface Props {
   addedInfluencers: MasterInfluencer[]
@@ -41,6 +42,8 @@ interface Props {
   onBarterState: (influencerId: string, state: "asking" | "agreed" | "declined") => void
   onToggleDeliverable: (influencerId: string, type: string) => void
   onUpdateQuantity: (influencerId: string, type: string, quantity: number) => void
+  /** Everything booked from this creator, from the shared picker. */
+  onSetLines: (influencerId: string, lines: DeliverableAssignment[]) => void
   onApplyToAll: (type: string) => void
   onToggleBarter: (influencerId: string) => void
   onUpdateBarter: (influencerId: string, patch: { product?: string; valueAed?: number | null }) => void
@@ -58,6 +61,8 @@ export function RosterPanel(p: Props) {
   // themselves, so adding the two would quote them a number nobody agreed to pay.
   const productTotal = barterSubtotal(p.barter, p.addedInfluencers.map((i) => i.id))
   const productCount = p.addedInfluencers.filter((i) => p.barter[i.id]?.paidInProduct).length
+  // Their platforms, rates and packages, for the shared picker on each row.
+  const bookable = useBookable(p.addedInfluencers.map((i) => i.id))
 
   /* Which bulk pills are worth offering: only deliverables somebody is priced for. */
   const bulkTypes = DELIVERABLE_TYPES.filter((dt) =>
@@ -252,65 +257,15 @@ export function RosterPanel(p: Props) {
                     </div>
                   </div>
 
-                  {/* Deliverables */}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {DELIVERABLE_TYPES.map((dt) => {
-                      const price = unitSellPrice(inf, dt.key)
-                      if (price == null) return null
-                      const assignment = assignments.find((d) => d.type === dt.key)
-                      const isActive = Boolean(assignment)
-                      return (
-                        <div key={dt.key} className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => p.onToggleDeliverable(inf.id, dt.key)}
-                            className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-150 ${
-                              isActive
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                            }`}
-                          >
-                            {dt.label}
-                            {/* No rate on a barter deal. What this creator would have
-                                charged is not what is happening here, and printing it
-                                beside a product invites somebody to add the two up. */}
-                            {!p.isBarterProposal && (
-                              <span className="text-[10px] opacity-70 tabular-nums">
-                                {AED} {price}
-                              </span>
-                            )}
-                          </button>
-                          {isActive && (
-                            <div className="flex items-center border rounded-md overflow-hidden">
-                              <button
-                                type="button"
-                                aria-label={`One fewer ${dt.label}`}
-                                className="px-1.5 py-0.5 text-xs transition-colors duration-150 hover:bg-muted"
-                                onClick={() =>
-                                  p.onUpdateQuantity(inf.id, dt.key, (assignment?.quantity || 1) - 1)
-                                }
-                              >
-                                -
-                              </button>
-                              <span className="px-1.5 py-0.5 text-xs font-medium tabular-nums min-w-[20px] text-center border-x">
-                                {assignment?.quantity || 1}
-                              </span>
-                              <button
-                                type="button"
-                                aria-label={`One more ${dt.label}`}
-                                className="px-1.5 py-0.5 text-xs transition-colors duration-150 hover:bg-muted"
-                                onClick={() =>
-                                  p.onUpdateQuantity(inf.id, dt.key, (assignment?.quantity || 1) + 1)
-                                }
-                              >
-                                +
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
+                  {/* What we are booking: the shared picker every add screen uses, so a
+                      TikTok video, a package or a one-off deal is chosen the same way here. */}
+                  <BookingPicker
+                    className="mt-3"
+                    creator={bookable[inf.id]}
+                    value={assignments}
+                    onChange={(lines) => p.onSetLines(inf.id, lines)}
+                    productMode={p.isBarterProposal || onProduct}
+                  />
 
                   {/* What they get instead of a fee. Two fields, both required in practice:
                       a barter row with no product named reads on the client's screen as a

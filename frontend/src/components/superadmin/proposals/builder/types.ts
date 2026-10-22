@@ -7,6 +7,8 @@
  * nothing in this folder may ever read or render a `cost_*` field.
  */
 
+import { DELIVERABLE_SPECS, describeKey } from "@/lib/deliverables"
+
 export interface BrandUser {
   id: string
   email: string
@@ -31,15 +33,28 @@ export interface MasterInfluencer {
   sell_video_aed_cents?: number | null
   sell_bundle_aed_cents?: number | null
   sell_monthly_aed_cents?: number | null
+  sell_tiktok_video_aed_cents?: number | null
+  sell_tiktok_story_aed_cents?: number | null
+  sell_youtube_video_aed_cents?: number | null
+  sell_youtube_short_aed_cents?: number | null
+  tiktok_username?: string | null
+  youtube_handle?: string | null
   /** Will this creator consider product instead of a fee. Gates the barter switch. */
   accepts_barter?: boolean | null
   /** What they said they would take, or the condition. Internal, never shown to a brand. */
   barter_note?: string | null
 }
 
+/** A deliverable ("reel", "tiktok_video"), a saved package ("pkg_<id>") or a one-off deal
+ *  ("deal"), in the shape the shared BookingPicker produces. Packages and deals carry their
+ *  own price in `sell_aed`, which is what this screen totals them at. */
 export interface DeliverableAssignment {
   type: string
   quantity: number
+  name?: string | null
+  includes?: { type: string; quantity: number }[] | null
+  sell_aed?: number | null
+  cost_aed?: number | null
 }
 
 /**
@@ -64,15 +79,13 @@ export type BarterMap = Record<string, BarterLine>
 /** influencer_db_id -> the deliverables assigned to that creator */
 export type DeliverableAssignmentMap = Record<string, DeliverableAssignment[]>
 
-export const DELIVERABLE_TYPES = [
-  { key: "post", label: "Post", priceField: "sell_post_aed_cents" },
-  { key: "story", label: "Story", priceField: "sell_story_aed_cents" },
-  { key: "reel", label: "Reel", priceField: "sell_reel_aed_cents" },
-  { key: "carousel", label: "Carousel", priceField: "sell_carousel_aed_cents" },
-  { key: "video", label: "Video", priceField: "sell_video_aed_cents" },
-  { key: "bundle", label: "Bundle", priceField: "sell_bundle_aed_cents" },
-  { key: "monthly", label: "Monthly", priceField: "sell_monthly_aed_cents" },
-] as const
+/** Every bookable deliverable, from lib/deliverables. Video, bundle and monthly were
+ *  retired on 2026-10-22; packages replace bundle. */
+export const DELIVERABLE_TYPES = DELIVERABLE_SPECS.map((d) => ({
+  key: d.key,
+  label: describeKey(d.key),
+  priceField: `sell_${d.key}_aed_cents`,
+}))
 
 export const TIER_OPTIONS = ["all", "nano", "micro", "mid", "macro", "mega"]
 
@@ -130,7 +143,8 @@ export function creatorSubtotal(
   // agreed to pay.
   if (barter?.paidInProduct) return 0
   return (assignments || []).reduce((sum, d) => {
-    const unit = unitSellPrice(inf, d.type)
+    // A package or deal is priced as itself, not from the creator's single rates.
+    const unit = d.sell_aed != null ? Number(d.sell_aed) : unitSellPrice(inf, d.type)
     if (unit == null) return sum
     return sum + unit * d.quantity
   }, 0)

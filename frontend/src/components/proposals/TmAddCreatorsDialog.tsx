@@ -16,8 +16,8 @@ import { Label } from "@/components/ui/label";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { API_CONFIG } from "@/config/api";
 import { fetchWithAuth } from "@/utils/apiInterceptor";
+import { BookingPicker, defaultLines, useBookable, type BookingLine } from "@/components/proposals/BookingPicker";
 
-const DELIVERABLES = ["post", "story", "reel", "carousel", "video", "bundle", "monthly"] as const;
 const PAGE_SIZE = 40;
 const ANY_COUNTRY = "__any__";
 
@@ -28,7 +28,8 @@ interface Creator {
    *  manager never sees the sell side and could not work it out from the row. */
   sellable?: boolean;
 }
-type Selected = Record<string, { creator: Creator; deliverables: Record<string, number> }>;
+/** `lines` is null until the creator's rates have loaded, then their default booking. */
+type Selected = Record<string, { creator: Creator; lines: BookingLine[] | null }>;
 
 /** "3 have no sell price yet (@a, @b) · 1 already on this proposal" — reasons, not a count. */
 function summariseSkips(skipped: { username?: string | null; reason: string }[]) {
@@ -256,7 +257,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
     setSelected((prev) => {
       const next = { ...prev };
       if (next[c.id]) delete next[c.id];
-      else next[c.id] = { creator: c, deliverables: { reel: 1 } }; // default one reel
+      else next[c.id] = { creator: c, lines: null };
       return next;
     });
   };
@@ -267,21 +268,31 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
       const pickable = results.filter((c) => !blockedByPrice(c));
       const allOn = pickable.every((c) => next[c.id]);
       if (allOn) pickable.forEach((c) => delete next[c.id]);
-      else pickable.forEach((c) => { if (!next[c.id]) next[c.id] = { creator: c, deliverables: { reel: 1 } }; });
+      else pickable.forEach((c) => { if (!next[c.id]) next[c.id] = { creator: c, lines: null }; });
       return next;
     });
   };
 
-  const setQty = (id: string, type: string, delta: number) => {
-    setSelected((prev) => {
-      const entry = prev[id]; if (!entry) return prev;
-      const cur = entry.deliverables[type] || 0;
-      const q = Math.max(0, cur + delta);
-      const d = { ...entry.deliverables };
-      if (q === 0) delete d[type]; else d[type] = q;
-      return { ...prev, [id]: { ...entry, deliverables: d } };
-    });
+  const setLines = (id: string, lines: BookingLine[]) => {
+    setSelected((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], lines } } : prev));
   };
+
+  // Their platforms, rates and packages, for everyone ticked. A creator's booking starts at
+  // their default (a reel, if they have one) the moment their rates arrive.
+  const bookable = useBookable(Object.keys(selected));
+  useEffect(() => {
+    setSelected((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const [id, entry] of Object.entries(prev)) {
+        if (entry.lines === null && bookable[id]) {
+          next[id] = { ...entry, lines: defaultLines(bookable[id], productMode) };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [bookable, productMode]);
 
   useEffect(() => {
     if (!open) return;
@@ -300,7 +311,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
       const deliverable_assignments = influencer_ids
         .map((id) => ({
           influencer_db_id: id,
-          deliverables: Object.entries(selected[id].deliverables).map(([type, quantity]) => ({ type, quantity })),
+          deliverables: selected[id].lines ?? [],
         }))
         .filter((a) => a.deliverables.length > 0);
       const res = await proposalApprovalApi.addFromDb(proposalId, {
@@ -523,7 +534,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
                                 setResults((prev) => prev.map((r) =>
                                   r.id === c.id ? { ...r, sellable: true } : r));
                                 setSelected((prev) => prev[c.id] ? prev : ({
-                                  ...prev, [c.id]: { creator: { ...c, sellable: true }, deliverables: { reel: 1 } },
+                                  ...prev, [c.id]: { creator: { ...c, sellable: true }, lines: null },
                                 }));
                               }}
                             />
@@ -533,23 +544,13 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
                     </div>
 
                     {sel && (
-                      <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-3">
-                        {DELIVERABLES.map((d) => {
-                          const q = sel.deliverables[d] || 0;
-                          return q > 0 ? (
-                            <div key={d} className="flex items-center gap-1 rounded-lg bg-primary/10 px-1.5 py-1 text-xs">
-                              <span className="capitalize font-medium">{d}</span>
-                              <button type="button" onClick={() => setQty(c.id, d, -1)} className="rounded p-0.5 hover:bg-background"><Minus className="h-3 w-3" /></button>
-                              <span className="w-4 text-center tabular-nums">{q}</span>
-                              <button type="button" onClick={() => setQty(c.id, d, 1)} className="rounded p-0.5 hover:bg-background"><Plus className="h-3 w-3" /></button>
-                            </div>
-                          ) : (
-                            <button key={d} type="button" onClick={() => setQty(c.id, d, 1)} className="rounded-lg border border-dashed px-2 py-1 text-xs capitalize text-muted-foreground hover:border-primary hover:text-foreground">
-                              + {d}
-                            </button>
-                          );
-                        })}
-                      </div>
+                      <BookingPicker
+                        className="mt-3 border-t pt-3"
+                        creator={bookable[c.id]}
+                        value={sel.lines ?? []}
+                        onChange={(lines) => setLines(c.id, lines)}
+                        productMode={productMode}
+                      />
                     )}
                   </div>
                 );

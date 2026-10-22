@@ -44,12 +44,14 @@ import { toast } from "sonner"
 import { imdListsApi, type ClientRejection } from "@/services/imdListsApi"
 import { adminProposalApi } from "@/services/adminProposalMasterApi"
 import type { MasterInfluencer } from "@/types/influencerDatabase"
+import { DELIVERABLE_KEYS, DELIVERABLE_SPECS, describeKey } from "@/lib/deliverables"
+import { BookingPicker, defaultLines, useBookable, type BookingLine } from "@/components/proposals/BookingPicker"
 
-/** Sell pricing lives in several per-deliverable fields; any one of them makes them sellable. */
+/** Sell pricing lives in several per-deliverable fields; any one of them makes them sellable.
+ *  A creator priced only as a package is checked again by the server, which knows. */
 function hasSell(inf: MasterInfluencer): boolean {
   const anyInf = inf as unknown as Record<string, number | null | undefined>
-  return ["post", "reel", "story", "carousel", "video", "bundle", "monthly"]
-    .some(d => Number(anyInf[`sell_${d}_aed_cents`] ?? 0) > 0)
+  return DELIVERABLE_KEYS.some(d => Number(anyInf[`sell_${d}_aed_cents`] ?? 0) > 0)
 }
 
 // Proposals that are still being put together. Once one is with a client, adding creators to
@@ -58,13 +60,7 @@ const OPEN_STATUSES = ["draft", "internal_review", "internally_approved", "more_
 
 // What we are quoting. A creator added with no deliverable shows no price anywhere and is
 // silently left out of the proposal total — so this is asked for, never assumed away.
-const DELIVERABLES = [
-  { key: "reel", label: "Reel" },
-  { key: "post", label: "Post" },
-  { key: "story", label: "Story" },
-  { key: "carousel", label: "Carousel" },
-  { key: "video", label: "Video" },
-]
+const DELIVERABLES = DELIVERABLE_SPECS.map(d => ({ key: d.key, label: describeKey(d.key) }))
 
 export function AddToProposalDialog({
   open, onOpenChange, selected, onDone,
@@ -81,6 +77,9 @@ export function AddToProposalDialog({
   const [q, setQ] = useState("")
   const [dType, setDType] = useState("reel")
   const [qty, setQty] = useState(1)
+  // Per creator, in the shared picker: a TikTok video for one, a package for another.
+  const [perCreator, setPerCreator] = useState(false)
+  const [lines, setLines] = useState<Record<string, BookingLine[]>>({})
 
   // The held-back screen. `held` being non-empty is what switches the dialog over, so there
   // is one source of truth for which screen is showing.
@@ -96,6 +95,19 @@ export function AddToProposalDialog({
 
   const sellable = useMemo(() => selected.filter(hasSell), [selected])
   const unpriced = useMemo(() => selected.filter(i => !hasSell(i)), [selected])
+
+  const bookable = useBookable(perCreator ? sellable.map(i => i.id) : [])
+  useEffect(() => {
+    setLines(prev => {
+      let changed = false
+      const next = { ...prev }
+      for (const i of sellable) {
+        if (!next[i.id] && bookable[i.id]) { next[i.id] = defaultLines(bookable[i.id]); changed = true }
+      }
+      return changed ? next : prev
+    })
+  }, [bookable, sellable])
+  const linesByCreator = perCreator ? lines : undefined
 
   useEffect(() => {
     if (!open) { resetFlow(); return }
@@ -116,11 +128,13 @@ export function AddToProposalDialog({
 
   /** What went on, said once, so both the first pass and the override report it the same way. */
   const reportAdded = (proposalId: string, label: string, d: any, extra?: string) => {
-    const bits = [`${d.added} added to ${label} · ${qty} ${dType}${qty > 1 ? "s" : ""} each`]
+    const bits = [perCreator
+      ? `${d.added} added to ${label}`
+      : `${d.added} added to ${label} · ${qty} × ${describeKey(dType)} each`]
     if (extra) bits.push(extra)
     if (d.already_on_proposal) bits.push(`${d.already_on_proposal} already there`)
     if (d.without_deliverable?.length)
-      bits.push(`${d.without_deliverable.length} have no ${dType} price, set one by hand`)
+      bits.push(`${d.without_deliverable.length} have no ${describeKey(dType)} price, set one by hand`)
     if (d.no_cost?.length) bits.push(`${d.no_cost.length} with no cost recorded`)
     toast.success(bits.join(" · "), {
       action: { label: "Open proposal", onClick: () => router.push(`/work/proposals/${proposalId}`) },
@@ -131,7 +145,7 @@ export function AddToProposalDialog({
     setBusy(true)
     try {
       const res = await imdListsApi.addSelectionToProposal(
-        proposalId, sellable.map(i => i.id), { type: dType, quantity: qty })
+        proposalId, sellable.map(i => i.id), { type: dType, quantity: qty }, undefined, linesByCreator)
       const d = res.data
 
       // Everyone else is already on. Only the held-back ones are still to decide, so the
@@ -171,7 +185,7 @@ export function AddToProposalDialog({
     try {
       const res = await imdListsApi.addSelectionToProposal(
         heldFor.id, held.map(h => h.influencer_db_id), { type: dType, quantity: qty },
-        { reason: overrideWhy.trim() })
+        { reason: overrideWhy.trim() }, linesByCreator)
       reportAdded(heldFor.id, heldFor.label,
                   { ...res.data, added: heldFor.added + (res.data.added || 0) },
                   `${res.data.overridden?.length ?? 0} flagged for review`)
@@ -274,7 +288,7 @@ export function AddToProposalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className={perCreator ? "max-w-2xl" : "max-w-lg"}>
         <DialogHeader>
           <DialogTitle>Add to a proposal</DialogTitle>
           <DialogDescription>
@@ -305,7 +319,26 @@ export function AddToProposalDialog({
         )}
 
         <div className="rounded-lg border p-3">
-          <p className="text-xs font-medium">What are we quoting for each of them?</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-medium">What are we quoting for each of them?</p>
+            <button type="button" onClick={() => setPerCreator(v => !v)} className="text-xs font-medium text-primary hover:underline">
+              {perCreator ? "Same for everyone" : "Choose per creator"}
+            </button>
+          </div>
+          {perCreator ? (
+            <div className="mt-2 flex max-h-[280px] flex-col gap-3 overflow-y-auto">
+              {sellable.map(i => (
+                <div key={i.id} className="flex flex-col gap-1.5 border-t pt-2 first:border-t-0 first:pt-0">
+                  <p className="text-xs font-medium">@{i.username}</p>
+                  <BookingPicker
+                    creator={bookable[i.id]}
+                    value={lines[i.id] ?? []}
+                    onChange={l => setLines(prev => ({ ...prev, [i.id]: l }))}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (<>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {DELIVERABLES.map(d => (
               <Button key={d.key} type="button" size="sm"
@@ -325,6 +358,7 @@ export function AddToProposalDialog({
             A creator added with no deliverable shows no price on the proposal and is left out
             of the total.
           </p>
+          </>)}
         </div>
 
         <div className="relative">

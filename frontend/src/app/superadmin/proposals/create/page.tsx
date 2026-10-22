@@ -52,6 +52,7 @@ import { PageHead } from "@/components/console/primitives"
 import { fullName } from "@/lib/destinations"
 import {
   unitSellPrice,
+  type DeliverableAssignment,
   type DeliverableAssignmentMap,
   type MasterInfluencer,
   type BarterMap,
@@ -458,6 +459,10 @@ function CreateProposalContent() {
       }
       return { ...prev, [influencerId]: [...current, { type, quantity: 1 }] }
     })
+  }
+
+  function setDeliverableLines(influencerId: string, lines: DeliverableAssignment[]) {
+    setDeliverableAssignments((prev) => ({ ...prev, [influencerId]: lines }))
   }
 
   function updateDeliverableQuantity(influencerId: string, type: string, quantity: number) {
@@ -965,6 +970,7 @@ function CreateProposalContent() {
                       setBarterStates((prev) => ({ ...prev, [id]: state }))}
                     onToggleDeliverable={toggleDeliverable}
                     onUpdateQuantity={updateDeliverableQuantity}
+                    onSetLines={setDeliverableLines}
                     onApplyToAll={applyDeliverableToAll}
                     onToggleBarter={toggleBarter}
                     onUpdateBarter={updateBarter}

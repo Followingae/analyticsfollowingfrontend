@@ -29,6 +29,8 @@ import {
 } from 'lucide-react'
 import { cdnAvatar } from "@/lib/avatar"
 import { ProductBarter } from '@/components/proposals/ProductBarter'
+import { PlatformIcon } from '@/components/icons/PlatformIcon'
+import { describeIncludes, describeLine, isBundleKey, platformsOfLine } from '@/lib/deliverables'
 
 const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/proposals`
 
@@ -37,10 +39,6 @@ const money = (n: number | string | null | undefined) =>
 const compact = (n: number | null | undefined) =>
   n == null ? null : new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(n))
 
-const DELIVERABLE_LABEL: Record<string, string> = {
-  post: 'Post', story: 'Story', reel: 'Reel', carousel: 'Carousel',
-  video: 'Video', bundle: 'Bundle', monthly: 'Monthly package',
-}
 
 const AV_GRADIENTS = [
   'from-violet-500 to-fuchsia-500', 'from-sky-500 to-indigo-500', 'from-emerald-500 to-teal-500',
@@ -66,6 +64,10 @@ interface Line {
   modifier_eligible: boolean
   modifier_applied: boolean
   unpriced: boolean
+  /** A package or one-off deal: one line with its own name and contents, booked whole. */
+  name?: string | null
+  includes?: { type: string; quantity: number }[] | null
+  is_package?: boolean
 }
 
 interface QuoteInfluencer {
@@ -181,6 +183,18 @@ export function QuoteView({
 
   const toggleLine = (inf: QuoteInfluencer, line: Line, include: boolean) =>
     save(inf, withLineChanged(inf, line, { include }))
+
+  /**
+   * The client takes a creator as we put them together, or not at all. A package such as
+   * "all 3 platforms for one price" is priced as a whole and cannot be split, so the choice
+   * is per creator: every line we booked comes with them. Add-ons are still answered per
+   * line, below.
+   */
+  const toggleCreator = (inf: QuoteInfluencer, include: boolean) =>
+    save(inf, include
+      ? inf.deliverables.filter((d) => !d.unpriced)
+          .map((d) => ({ type: d.type, modifier: d.modifier_applied ? modifier?.id ?? null : null }))
+      : [])
 
   const setLineVariant = (inf: QuoteInfluencer, line: Line, withModifier: boolean) =>
     save(inf, withLineChanged(inf, line, { include: true, withModifier }))
@@ -308,6 +322,7 @@ export function QuoteView({
                 locked={locked || !inf.selectable}
                 saving={savingId === inf.id}
                 onToggleLine={toggleLine}
+                onToggleCreator={toggleCreator}
                 onSetVariant={setLineVariant}
               />
             </motion.div>
@@ -444,18 +459,20 @@ function Row({ label, value, muted }: { label: string; value: string; muted?: bo
 }
 
 function CreatorQuoteCard({
-  inf, modifier, locked, saving, onToggleLine, onSetVariant,
+  inf, modifier, locked, saving, onToggleCreator, onSetVariant,
 }: {
   inf: QuoteInfluencer
   modifier: Modifier | null
   locked: boolean
   saving: boolean
   onToggleLine: (inf: QuoteInfluencer, line: Line, include: boolean) => void
+  onToggleCreator: (inf: QuoteInfluencer, include: boolean) => void
   onSetVariant: (inf: QuoteInfluencer, line: Line, withModifier: boolean) => void
 }) {
   const { grad, initials } = avatarFor(inf.username || inf.full_name || '?')
   const selected = selectedTypes(inf)
   const priced = inf.deliverables.filter((d) => !d.unpriced)
+  const included = selected.size > 0
 
   return (
     <div className={`rounded-2xl border bg-card p-5 sm:p-6 transition-colors ${
@@ -472,6 +489,14 @@ function CreatorQuoteCard({
       )}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
+          {priced.length > 0 && (
+            <Checkbox
+              aria-label={`Include @${inf.username || 'this creator'}`}
+              checked={included}
+              disabled={locked || saving}
+              onCheckedChange={(v: boolean | 'indeterminate') => onToggleCreator(inf, v === true)}
+            />
+          )}
           <Avatar className="h-12 w-12">
             <AvatarImage src={cdnAvatar(inf.profile_image_url)} alt={inf.username || ''} />
             <AvatarFallback className={`bg-gradient-to-br ${grad} text-white text-sm font-bold`}>
@@ -499,7 +524,7 @@ function CreatorQuoteCard({
                 <div className="text-xl font-semibold tabular-nums">{money(inf.total) ?? '—'}</div>
               )}
               <div className="text-xs text-muted-foreground">
-                {selected.size === 0 ? 'nothing selected' : `${selected.size} selected`}
+                {included ? 'in your plan' : 'not selected'}
               </div>
             </>
           )}
@@ -508,7 +533,7 @@ function CreatorQuoteCard({
 
       <div className="mt-5 space-y-2.5">
         {priced.map((line) => {
-          const isOn = selected.has(line.type)
+          const isOn = included
           return (
             <div
               key={line.type}
@@ -517,21 +542,20 @@ function CreatorQuoteCard({
               }`}
             >
               <div className="flex items-center justify-between gap-4">
-                <label className="flex items-center gap-3 min-w-0 cursor-pointer">
-                  <Checkbox
-                    checked={isOn}
-                    disabled={locked || saving}
-                    onCheckedChange={(v: boolean | 'indeterminate') => onToggleLine(inf, line, v === true)}
-                  />
+                <span className="flex items-start gap-3 min-w-0">
+                  <span className="mt-0.5 flex shrink-0 gap-1 text-muted-foreground">
+                    {platformsOfLine(line).map((pl) => <PlatformIcon key={pl} platform={pl} className="h-4 w-4" />)}
+                  </span>
                   <span className="min-w-0">
-                    <span className="font-medium">
-                      {DELIVERABLE_LABEL[line.type] || line.type}
-                    </span>
+                    <span className="font-medium">{describeLine({ ...line, quantity: 1 })}</span>
                     {line.quantity > 1 && (
                       <span className="text-muted-foreground"> ×{line.quantity}</span>
                     )}
+                    {isBundleKey(line.type) && line.includes?.length ? (
+                      <span className="block text-xs text-muted-foreground">{describeIncludes(line.includes)}</span>
+                    ) : null}
                   </span>
-                </label>
+                </span>
                 <span className="shrink-0 tabular-nums font-medium">
                   {inf.paid_in_product
                     ? <span className="text-muted-foreground">On product</span>
