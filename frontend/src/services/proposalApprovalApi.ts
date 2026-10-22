@@ -182,9 +182,12 @@ export const proposalApprovalApi = {
     sortOrder?: 'asc' | 'desc'
     /** Barter proposals: only creators who will consider product instead of a fee. */
     acceptsBarter?: boolean
+    /** Barter proposals: also creators held inactive only for want of a price, since
+     *  barter quotes nobody. Server-side as status=barter_available. */
+    barterRoster?: boolean
   } = {}) => {
     const p = new URLSearchParams({
-      status: 'active',
+      status: opts.barterRoster ? 'barter_available' : 'active',
       page: String(opts.page ?? 1),
       page_size: String(opts.pageSize ?? 40),
       // Server whitelists these; it already defaulted to created_at desc, but the picker

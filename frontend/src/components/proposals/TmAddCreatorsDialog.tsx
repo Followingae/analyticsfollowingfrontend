@@ -178,6 +178,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
         countries: country !== ANY_COUNTRY ? [country] : undefined,
         excludeProposalId: proposalId,
         acceptsBarter: onlyBarter || undefined,
+        barterRoster: isBarter || undefined,
         sortBy,
         sortOrder,
       });
@@ -191,7 +192,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
     } finally {
       setLoading(false); setLoadingMore(false);
     }
-  }, [search, country, proposalId, sort, onlyBarter]);
+  }, [search, country, proposalId, sort, onlyBarter, isBarter]);
 
   useEffect(() => {
     if (!open) return;
