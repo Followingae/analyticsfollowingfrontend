@@ -15,6 +15,7 @@
  *
  * Nothing here is editable. The team moves the campaign; the client watches it move.
  */
+import { describeKey, describeLine } from '@/lib/deliverables'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
@@ -359,7 +360,7 @@ function CreatorSheet({ c, open, onClose }: { c: Creator | null; open: boolean; 
               <div className="mt-2.5 flex flex-wrap gap-1.5">
                 {c.deliverables.map((d: any, i: number) => (
                   <Badge key={i} variant="secondary" className="rounded-full font-normal">
-                    {typeof d === 'string' ? d : `${d.quantity && d.quantity > 1 ? `${d.quantity} × ` : ''}${d.type || d.label || 'Deliverable'}`}
+                    {typeof d === 'string' ? describeKey(d) : (d.label || describeLine({ type: d.type || 'Deliverable', quantity: d.quantity, name: d.name, includes: d.includes }))}
                   </Badge>
                 ))}
               </div>

@@ -27,6 +27,7 @@
  *   - the bulk bar is visible but dead until something is ticked, so what is possible is
  *     learnable without doing it first.
  */
+import { describeKey } from '@/lib/deliverables'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -75,6 +76,8 @@ interface Row {
   paid_in_product: boolean
   barter_product: string | null
   deliverables: string[]
+  /** The same lines in words: "Reel", "TikTok video", a package by its name. */
+  deliverable_labels?: string[]
 }
 interface Owner { id: string; name: string; email: string; staff_role: string | null }
 interface Lanes { live?: number; late?: number; unassigned?: number; mine?: number; done?: number }
@@ -586,7 +589,7 @@ export default function PipelinePage() {
                         <span className="block truncate text-sm leading-snug">{r.campaign_name}</span>
                         <span className="block truncate text-xs text-muted-foreground">
                           {r.client_name}
-                          {r.deliverables.length ? ` · ${r.deliverables.join(', ')}` : ''}
+                          {r.deliverables.length ? ` · ${(r.deliverable_labels ?? r.deliverables.map(describeKey)).join(', ')}` : ''}
                         </span>
                       </span>
 
