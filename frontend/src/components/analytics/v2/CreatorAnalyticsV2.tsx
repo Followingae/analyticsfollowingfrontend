@@ -18,6 +18,11 @@ import {
 import { OverviewTabV2 } from "./OverviewTabV2"
 import { PostsTabV2 } from "./PostsTabV2"
 import { ContentTabV2 } from "./ContentTabV2"
+import { PlatformPanel } from "@/components/proposals/plan/PlatformPanel"
+import { PlatformIcon } from "@/components/icons/PlatformIcon"
+import { PLATFORM_LABEL, type Platform } from "@/lib/deliverables"
+import type { PlatformMeasured } from "@/services/adminProposalMasterApi"
+import { cn } from "@/lib/utils"
 
 /**
  * Creator Analytics, v2.
@@ -49,6 +54,15 @@ export function CreatorAnalyticsV2({
   const [notAnalysed, setNotAnalysed] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [recomputing, setRecomputing] = useState(false)
+  // TikTok and YouTube, beside Instagram. Fetched apart so a creator with neither costs the
+  // page nothing, and so the Instagram analytics never wait on them.
+  const [others, setOthers] = useState<Partial<Record<"tiktok" | "youtube", PlatformMeasured>>>({})
+  const [platform, setPlatform] = useState<Platform>("instagram")
+  useEffect(() => {
+    setPlatform("instagram")
+    if (shareToken) { setOthers({}); return }
+    creatorAnalyticsV2Api.platforms(username).then(setOthers).catch(() => setOthers({}))
+  }, [username, shareToken])
 
   const load = async () => {
     setLoading(true); setError(null); setNotAnalysed(false)
@@ -245,7 +259,11 @@ export function CreatorAnalyticsV2({
                 which made followers/following ratios like 821,480. */}
             <Head label="Following" value={formatCount(p.following_count)} />
             <Head label="Posts" value={formatCount(p.posts_count)} />
-            {isPresent(eng) && (
+            {isPresent(eng) && eng.likes_hidden && (
+              <Head label="Engagement" value="Likes hidden"
+                    sub={eng.median_comments != null ? `${formatCount(eng.median_comments)} comments a post` : "by the creator"} />
+            )}
+            {isPresent(eng) && !eng.likes_hidden && (
               <Head
                 label="Engagement"
                 value={formatPct(
@@ -278,7 +296,39 @@ export function CreatorAnalyticsV2({
           give four headings above four empty panels, which reads as "we looked and this
           creator has nothing", and for the creators whose collection WE broke that is a
           claim we'd be making about them on our own failure. */}
-      {gap ? (
+      {/* One switcher per platform we measured. Instagram keeps its four tabs; TikTok and
+          YouTube render the same panel brands see on a proposal. */}
+      {Object.keys(others).length > 0 && (
+        <div role="tablist" aria-label="Platform" className="flex gap-1 rounded-full bg-muted p-1">
+          {(["instagram", "tiktok", "youtube"] as Platform[])
+            .filter((p) => p === "instagram" || others[p as "tiktok" | "youtube"])
+            .map((p) => (
+              <button
+                key={p}
+                type="button"
+                role="tab"
+                aria-selected={platform === p}
+                onClick={() => setPlatform(p)}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition",
+                  platform === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <PlatformIcon platform={p} className="size-4" />{PLATFORM_LABEL[p]}
+              </button>
+            ))}
+        </div>
+      )}
+
+      {platform !== "instagram" && others[platform as "tiktok" | "youtube"] ? (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="max-w-2xl">
+              <PlatformPanel data={others[platform as "tiktok" | "youtube"]!} />
+            </div>
+          </CardContent>
+        </Card>
+      ) : gap ? (
         <UnavailableNotice gap={gap} isPublic={isPublic} onRetry={refresh} retrying={refreshing} />
       ) : (
       <Tabs defaultValue="overview">

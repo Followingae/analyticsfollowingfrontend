@@ -3,6 +3,7 @@
 import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import type { CreatorAnalyticsV2 } from "@/types/creatorAnalyticsV2"
+import type { PlatformMeasured } from "@/services/adminProposalMasterApi"
 
 const BASE = `${API_CONFIG.BASE_URL}/api/v2/creator-analytics`
 
@@ -26,6 +27,16 @@ async function readError(res: Response, fallback: string): Promise<string> {
 }
 
 export const creatorAnalyticsV2Api = {
+  /** Their TikTok and YouTube as measured. Empty when we hold neither. */
+  async platforms(username: string): Promise<Partial<Record<"tiktok" | "youtube", PlatformMeasured>>> {
+    const res = await fetchWithAuth(`${BASE}/${encodeURIComponent(username)}/platforms`, {
+      headers: getAuthHeaders(),
+    })
+    if (!res.ok) return {}
+    const body = await res.json()
+    return body?.data?.platforms ?? {}
+  },
+
   /** Stored analytics. Throws NotAnalysedError on 404. */
   async get(username: string): Promise<CreatorAnalyticsV2> {
     const res = await fetchWithAuth(`${BASE}/${encodeURIComponent(username)}`, {
