@@ -192,7 +192,12 @@ export interface AdminProposalInfluencer {
   paid_in_product?: boolean
   barter_product?: string | null
   barter_value_aed?: number | null
-  assigned_deliverables?: Array<{ type: string; quantity: number; modifier_eligible?: boolean }>
+  /** Single deliverables ("reel", "tiktok_video") or a package / one-off deal, which
+   *  carries its own name and contents and is booked whole. */
+  assigned_deliverables?: Array<{
+    type: string; quantity: number; modifier_eligible?: boolean
+    name?: string | null; includes?: { type: string; quantity: number }[] | null; one_off?: boolean
+  }>
 
   selected_deliverables?: Array<{ type: string; quantity?: number; modifier?: string }>
   /** Confirmed onto the campaign, as opposed to merely ticked. Locked creators survive
@@ -251,11 +256,86 @@ export interface BrandProposalView {
   }
 }
 
+/** Engagement as measured on TikTok or YouTube. Per view leads; per follower sits beside it. */
+export interface PlatformEngagement {
+  source: "measured" | "unavailable"
+  sample_size?: number
+  sample_size_all?: number
+  engagement_rate_by_views?: number | null
+  engagement_rate?: number | null
+  reach_ratio?: number | null
+  headline_metric?: "engagement_rate_by_views" | "engagement_rate"
+  engagement_rate_median_all?: number | null
+  viral_skew?: boolean
+}
+
+export interface PlatformCadence {
+  source: "measured" | "unavailable"
+  posts_per_week?: number
+  most_active_weekday?: string
+  last_posted_at?: string
+}
+
+export interface PlatformTopVideo {
+  url: string | null
+  cover: string | null
+  caption: string
+  kind?: "video" | "short" | "stream"
+  views: number | null
+  likes: number | null
+  comments: number | null
+  posted_at: string | null
+}
+
+export interface YouTubeFormat {
+  source: "measured" | "unavailable"
+  count?: number
+  median_views?: number | null
+  median_likes?: number | null
+  median_comments?: number | null
+  median_duration_s?: number | null
+  engagement?: PlatformEngagement
+  cadence?: PlatformCadence
+}
+
+export interface PlatformMeasured {
+  platform: "tiktok" | "youtube"
+  collected_at?: string | null
+  profile: {
+    source: "measured" | "unavailable"
+    handle: string
+    url: string | null
+    display_name?: string | null
+    followers_count?: number | null
+    total_likes?: number | null
+    total_views?: number | null
+    video_count?: number | null
+    is_verified?: boolean | null
+  }
+  engagement: PlatformEngagement
+  typical?: {
+    source: "measured" | "unavailable"
+    median_views?: number | null
+    median_likes?: number | null
+    median_comments?: number | null
+    median_shares?: number | null
+    median_saves?: number | null
+    median_duration_s?: number | null
+  }
+  long_videos?: YouTubeFormat
+  shorts?: YouTubeFormat
+  cadence: PlatformCadence
+  top_videos: PlatformTopVideo[]
+  brands?: { source: string; self_declared_ads?: number; paid_promotions?: number; posts_checked?: number }
+}
+
 export interface BrandInfluencer {
   id: string
   influencer_db_id?: string
   /** TikTok / YouTube links, only the ones we hold. */
   socials?: { tiktok?: string; youtube?: string }
+  /** TikTok / YouTube as we measured them. Only platforms with a real measurement. */
+  platforms_measured?: Partial<Record<"tiktok" | "youtube", PlatformMeasured>>
   priority_order: number
   /** We put our name on this one for this client, with the one-line reason. */
   recommended?: boolean
@@ -313,7 +393,12 @@ export interface BrandInfluencer {
   barter_value_aed?: number | null
   available_deliverables?: string[]
   selected_deliverables?: Array<{ type: string; quantity?: number; modifier?: string }> | string[]
-  assigned_deliverables?: Array<{ type: string; quantity: number; modifier_eligible?: boolean }>
+  /** Single deliverables ("reel", "tiktok_video") or a package / one-off deal, which
+   *  carries its own name and contents and is booked whole. */
+  assigned_deliverables?: Array<{
+    type: string; quantity: number; modifier_eligible?: boolean
+    name?: string | null; includes?: { type: string; quantity: number }[] | null; one_off?: boolean
+  }>
   /** Already confirmed by this client in an earlier round. Shown as confirmed and not
    *  selectable — the booking is made and we are already acting on it. */
   locked?: boolean

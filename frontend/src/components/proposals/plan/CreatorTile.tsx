@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils"
 import { cdnAvatar } from "@/lib/avatar"
 import type { BrandInfluencer } from "@/services/adminProposalMasterApi"
 import { creatorCost } from "./optimiser"
+import { PlatformIcon } from "@/components/icons/PlatformIcon"
+import { PLATFORM_LABEL, platformsOfLine, type Platform } from "@/lib/deliverables"
 
 const fmt = (n?: number | null) =>
   n == null ? "—" : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}K` : `${n}`
@@ -57,6 +59,10 @@ export const CreatorTile = memo(function CreatorTile({
   /* Our recommendation outranks the optimiser's, so only one of these can ever be true. */
   const ours = !!c.recommended && !declined
   const flash = !ours && smartPick && !!why && !declined && !locked
+  // Which platforms this booking covers. Shown only when it goes beyond Instagram, which is
+  // the default and would otherwise put the same icon on every tile.
+  const bookedOn = Array.from(new Set((c.assigned_deliverables ?? []).flatMap(platformsOfLine))) as Platform[]
+  const multiPlatform = bookedOn.some((p) => p !== "instagram")
 
   return (
     <article
@@ -138,6 +144,11 @@ export const CreatorTile = memo(function CreatorTile({
           <div className="flex items-center gap-4 text-[13px] font-semibold">
             <span className="inline-flex items-center gap-1.5"><Users className="size-3.5 opacity-80" />{fmt(c.followers_count)}</span>
             {er != null && <span className="inline-flex items-center gap-1.5"><Heart className="size-3.5 opacity-80" />{er.toFixed(2)}%</span>}
+            {multiPlatform && (
+              <span className="ml-auto inline-flex items-center gap-1.5 opacity-90" title={`Booked on ${bookedOn.map((p) => PLATFORM_LABEL[p]).join(", ")}`}>
+                {bookedOn.map((p) => <PlatformIcon key={p} platform={p} className="size-3.5" />)}
+              </span>
+            )}
           </div>
           {/* What this one costs the plan, said BEFORE the tap. The server sets
               `counts_as` only when a creator takes more than one place — two of a

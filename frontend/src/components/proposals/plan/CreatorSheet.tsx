@@ -23,7 +23,9 @@ import { cn } from "@/lib/utils"
 import { cdnAvatar } from "@/lib/avatar"
 import type { BrandInfluencer } from "@/services/adminProposalMasterApi"
 import { creatorCost, whyFor } from "./optimiser"
-import { TikTokGlyph } from "@/components/icons/PlatformIcon"
+import { PlatformIcon, TikTokGlyph } from "@/components/icons/PlatformIcon"
+import { PLATFORM_LABEL, describeIncludes, describeLine, isBundleKey, platformsOfLine, type Platform } from "@/lib/deliverables"
+import { PlatformPanel } from "./PlatformPanel"
 
 const fmt = (n?: number | null) =>
   n == null ? "—" : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}K` : `${Math.round(n)}`
@@ -52,8 +54,14 @@ export function CreatorSheet({
   onOpenChange: (open: boolean) => void
 }) {
   const [insightsOpen, setInsightsOpen] = useState(false)
-  useEffect(() => { setInsightsOpen(false) }, [c?.id])
+  const [tab, setTab] = useState<Platform>("instagram")
+  useEffect(() => { setInsightsOpen(false); setTab("instagram") }, [c?.id])
   if (!c) return null
+  // A tab per platform we actually measured. Instagram is always there; a TikTok we hold
+  // a link for but have not measured gets its link in the header, not an empty tab.
+  const measuredOn = c.platforms_measured ?? {}
+  const tabs: Platform[] = ["instagram", ...(["tiktok", "youtube"] as const).filter((p) => measuredOn[p])]
+  const lines = c.assigned_deliverables ?? []
   const m = c.measured
   const insights = c.direct_analytics ?? []
   const why = whyFor(c, pool)
@@ -65,7 +73,7 @@ export function CreatorSheet({
 
   return (
     <Sheet open={!!c} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto px-5 pb-6 sm:max-w-lg [&>button]:top-5 [&>button]:right-5">
+      <SheetContent className="w-full overflow-y-auto px-5 pb-6 sm:max-w-xl lg:max-w-2xl [&>button]:top-5 [&>button]:right-5">
         <SheetHeader className="px-0">
           <div className="flex items-center gap-3">
             <img src={cdnAvatar(c.profile_image_url || undefined)} alt="" className="size-12 rounded-full object-cover" />
@@ -137,6 +145,29 @@ export function CreatorSheet({
             {m?.category && <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground">{m.category}</span>}
           </div>
 
+          {tabs.length > 1 && (
+            <div role="tablist" aria-label="Platform" className="flex gap-1 rounded-full bg-muted p-1">
+              {tabs.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === p}
+                  onClick={() => setTab(p)}
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition",
+                    tab === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <PlatformIcon platform={p} className="size-3.5" />{PLATFORM_LABEL[p]}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {tab !== "instagram" && measuredOn[tab] && <PlatformPanel data={measuredOn[tab]!} />}
+
+          {tab === "instagram" && (<>
           {/* Screenshots of their own Instagram insights, sent to us by the creator. Only
               there when we have some: no screenshots, no button. */}
           {insights.length > 0 && (
@@ -275,19 +306,41 @@ export function CreatorSheet({
             </p>
           )}
 
-          {showPricing && creatorCost(c) > 0 && (
-            <section className="flex items-baseline justify-between gap-3 border-t pt-4">
-              <span className="text-[12.5px] text-muted-foreground">
-                {(c.assigned_deliverables ?? []).map(d => `${d.quantity} × ${d.type}`).join(" + ") || "Rate"}
-              </span>
-              <b className="text-xl font-bold tracking-[-0.03em]">{aed(creatorCost(c))}</b>
-            </section>
-          )}
-
           {m?.posts_analysed != null && (
             <p className="text-[11.5px] leading-relaxed text-muted-foreground">
               Measured from their last {m.posts_analysed} posts by our own pipeline, not supplied by the creator.
             </p>
+          )}
+          </>)}
+
+          {/* What this booking is, on which platform. Said whether or not prices are shown:
+              the work is the brand's to know even on a deal priced by the head. A package
+              is one line, taken whole, with what it contains underneath. */}
+          {lines.length > 0 && (
+            <section className="flex flex-col gap-2.5 border-t pt-4">
+              <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground">What you are booking</p>
+              <ul className="flex flex-col gap-2">
+                {lines.map((d, i) => (
+                  <li key={d.type + i} className="flex items-start gap-2.5">
+                    <span className="mt-0.5 flex shrink-0 gap-1 text-muted-foreground">
+                      {platformsOfLine(d).map((p) => <PlatformIcon key={p} platform={p} className="size-3.5" />)}
+                    </span>
+                    <span className="min-w-0 text-[13px]">
+                      <b className="font-semibold">{describeLine(d)}</b>
+                      {isBundleKey(d.type) && d.includes?.length ? (
+                        <span className="block text-[12px] text-muted-foreground">{describeIncludes(d.includes)}</span>
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {showPricing && creatorCost(c) > 0 && (
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-[12.5px] text-muted-foreground">Total for this creator</span>
+                  <b className="text-xl font-bold tracking-[-0.03em]">{aed(creatorCost(c))}</b>
+                </div>
+              )}
+            </section>
           )}
 
           <Button
