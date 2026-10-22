@@ -42,6 +42,8 @@ import {
 } from "@/types/influencerDatabase"
 import { Money } from "./Money"
 import { useMoneyColumns } from "./useMoneyColumns"
+import { CreatorPackagesSection } from "./CreatorPackagesSection"
+import { PLATFORM_LABEL, platformsOfCreator, type Platform } from "@/lib/deliverables"
 import { cn } from "@/lib/utils"
 
 interface InfluencerPricingTabProps {
@@ -88,6 +90,12 @@ function PriceField({
 
 export function InfluencerPricingTab({ influencer, onSave }: InfluencerPricingTabProps) {
   const { canSeeCost, canSeeSell, canSeeMargin } = useMoneyColumns()
+
+  // Rates are grouped by platform, and a platform appears once we hold that account. A
+  // TikTok price for a creator with no TikTok on file could never be booked.
+  const platforms = platformsOfCreator(influencer)
+  const missing = (["tiktok", "youtube"] as Platform[]).filter((p) => !platforms.includes(p))
+  const groups = platforms.map((plat) => ({ plat, items: DELIVERABLES.filter((d) => d.platform === plat) }))
 
   const [costPricing, setCostPricing] = useState<CostPricing>(extractCostPricing(influencer))
   const [sellPricing, setSellPricing] = useState<SellPricing>(extractSellPricing(influencer))
@@ -171,14 +179,19 @@ export function InfluencerPricingTab({ influencer, onSave }: InfluencerPricingTa
               <h3 className="text-ds-label">What we pay</h3>
               <p className="text-ds-caption text-muted-foreground">The creator's own rate</p>
             </div>
-            <div className="flex flex-col gap-ds-2">
-              {DELIVERABLES.map((d) => (
-                <PriceField
-                  key={d.costKey}
-                  label={d.label}
-                  value={costPricing[d.costKey]}
-                  onChange={(v) => handleCostChange(d.costKey, v)}
-                />
+            <div className="flex flex-col gap-ds-3">
+              {groups.map(({ plat, items }) => (
+                <div key={plat} className="flex flex-col gap-ds-2">
+                  <p className="text-ds-overline uppercase text-muted-foreground">{PLATFORM_LABEL[plat]}</p>
+                  {items.map((d) => (
+                    <PriceField
+                      key={d.costKey}
+                      label={d.shortLabel}
+                      value={costPricing[d.costKey] ?? null}
+                      onChange={(v) => handleCostChange(d.costKey, v)}
+                    />
+                  ))}
+                </div>
               ))}
             </div>
           </div>
@@ -216,20 +229,31 @@ export function InfluencerPricingTab({ influencer, onSave }: InfluencerPricingTa
               </div>
             )}
 
-            <div className="flex flex-col gap-ds-2">
-              {DELIVERABLES.map((d) => (
-                <PriceField
-                  key={d.sellKey}
-                  label={d.label}
-                  value={sellPricing[d.sellKey]}
-                  disabled={canDerive && autoCalc}
-                  onChange={(v) => handleSellChange(d.sellKey, v)}
-                />
+            <div className="flex flex-col gap-ds-3">
+              {groups.map(({ plat, items }) => (
+                <div key={plat} className="flex flex-col gap-ds-2">
+                  <p className="text-ds-overline uppercase text-muted-foreground">{PLATFORM_LABEL[plat]}</p>
+                  {items.map((d) => (
+                    <PriceField
+                      key={d.sellKey}
+                      label={d.shortLabel}
+                      value={sellPricing[d.sellKey] ?? null}
+                      disabled={canDerive && autoCalc}
+                      onChange={(v) => handleSellChange(d.sellKey, v)}
+                    />
+                  ))}
+                </div>
               ))}
             </div>
           </div>
         )}
       </div>
+
+      {missing.length > 0 && (
+        <p className="text-ds-caption text-muted-foreground">
+          To price {missing.map((m) => PLATFORM_LABEL[m]).join(" or ")}, add their handle on the Overview tab.
+        </p>
+      )}
 
       {/* Tier is not money, so it stands on its own rather than at the foot of the cost
           column where it happened to be sitting. */}
@@ -301,6 +325,10 @@ export function InfluencerPricingTab({ influencer, onSave }: InfluencerPricingTa
           Save these rates
         </Button>
       </div>
+
+      {/* Packages save on their own, so they sit after the rates' Save button rather than
+          looking as if that button saved them too. */}
+      {(canSeeCost || canSeeSell) && <CreatorPackagesSection influencer={influencer} />}
     </div>
   )
 }

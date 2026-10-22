@@ -19,11 +19,12 @@ import type {
 } from "@/types/influencerDatabase"
 import { Aed } from "@/components/console/primitives"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
+import { describeIncludes, describeKey } from "@/lib/deliverables"
 
 // Reel first — it is the rate quoted in the overwhelming majority of deals, so it gets
 // dedicated columns. The rest live behind the per-row expander.
 const PRIMARY = "reel" as const
-const SECONDARY = ["post", "story", "carousel", "video", "bundle", "monthly"] as const
+const SECONDARY = ["post", "story", "carousel", "tiktok_video", "tiktok_story", "youtube_video", "youtube_short"] as const
 
 /** A figure in dirhams, through the primitive that carries the glyph. The old helper
  *  built its own string around a raw U+20C3, which no system font has a glyph for: outside
@@ -464,6 +465,13 @@ export function ExcelImportReview({
                                     <> · {fmtNum(r.known_profile.followers_count)} followers</>
                                   )}
                                 </div>
+                                {(r.tiktok_username || r.youtube_handle) && (
+                                  <div className="truncate text-xs text-muted-foreground">
+                                    {r.tiktok_username && <>TikTok @{r.tiktok_username}</>}
+                                    {r.tiktok_username && r.youtube_handle && " · "}
+                                    {r.youtube_handle && <>YouTube {r.youtube_handle}</>}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </TableCell>
@@ -563,7 +571,7 @@ export function ExcelImportReview({
                                     return (
                                       <div key={d} className="rounded-md border bg-background p-2.5">
                                         <div className="mb-2 flex items-center justify-between">
-                                          <span className="text-xs font-medium capitalize">{d}</span>
+                                          <span className="text-xs font-medium">{describeKey(d)}</span>
                                           <MarginBadge cost={c} sell={s} />
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -586,6 +594,16 @@ export function ExcelImportReview({
                                     )
                                   })}
                                 </div>
+                                {r.package_includes && r.package_includes.length > 0 && (
+                                  <div className="mt-3 border-t pt-3 text-xs">
+                                    <p className="font-medium">Package: {r.package_name || "Package"}</p>
+                                    <p className="text-muted-foreground">
+                                      {describeIncludes(r.package_includes)}
+                                      {r.package_sell_aed != null && <> · charge <Dh n={r.package_sell_aed} /></>}
+                                      {r.package_cost_aed != null && <> · pay <Dh n={r.package_cost_aed} /></>}
+                                    </p>
+                                  </div>
+                                )}
                                 {(r.categories?.length > 0 || r.internal_notes) && (
                                   <div className="mt-3 space-y-1 border-t pt-3 text-xs text-muted-foreground">
                                     {r.categories?.length > 0 && (

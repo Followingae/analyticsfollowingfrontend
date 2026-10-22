@@ -6,6 +6,8 @@
 
 // ─── Category & Status Enums ──────────────────────────────────────────
 
+import { DELIVERABLE_SPECS, describeKey, type DeliverableKey, type Platform } from '@/lib/deliverables'
+
 export type InfluencerCategory =
   | 'fashion'
   | 'beauty'
@@ -43,6 +45,10 @@ export interface CostPricing {
   cost_video_aed_cents: number | null
   cost_bundle_aed_cents: number | null
   cost_monthly_aed_cents: number | null
+  cost_tiktok_video_aed_cents: number | null
+  cost_tiktok_story_aed_cents: number | null
+  cost_youtube_video_aed_cents: number | null
+  cost_youtube_short_aed_cents: number | null
 }
 
 // ─── Sell Pricing (what we charge brands — shown to clients) ───────────
@@ -55,6 +61,10 @@ export interface SellPricing {
   sell_video_aed_cents: number | null
   sell_bundle_aed_cents: number | null
   sell_monthly_aed_cents: number | null
+  sell_tiktok_video_aed_cents: number | null
+  sell_tiktok_story_aed_cents: number | null
+  sell_youtube_video_aed_cents: number | null
+  sell_youtube_short_aed_cents: number | null
 }
 
 // ─── Master Influencer (unified type) ─────────────────────────────────
@@ -96,6 +106,19 @@ export interface MasterInfluencer {
   sell_video_aed_cents: number | null
   sell_bundle_aed_cents: number | null
   sell_monthly_aed_cents: number | null
+  cost_tiktok_video_aed_cents?: number | null
+  sell_tiktok_video_aed_cents?: number | null
+  cost_tiktok_story_aed_cents?: number | null
+  sell_tiktok_story_aed_cents?: number | null
+  cost_youtube_video_aed_cents?: number | null
+  sell_youtube_video_aed_cents?: number | null
+  cost_youtube_short_aed_cents?: number | null
+  sell_youtube_short_aed_cents?: number | null
+
+  /** Their other channels. Instagram (`username`) is the main account. */
+  tiktok_username?: string | null
+  /** "@handle" or "channel/UC..." */
+  youtube_handle?: string | null
 
   // Auto pricing settings
   auto_calculate_sell: boolean
@@ -135,20 +158,39 @@ export interface MasterInfluencer {
 // ─── Deliverable definitions (for pricing UI) ────────────────────────
 
 export interface DeliverableField {
+  /** "Reel", "TikTok video": what a person reads in a list of every platform. */
   label: string
+  /** The short form for under a platform heading: "Video". */
+  shortLabel: string
+  key: DeliverableKey
+  platform: Platform
   costKey: keyof CostPricing
   sellKey: keyof SellPricing
 }
 
-export const DELIVERABLES: DeliverableField[] = [
-  { label: 'IG Post', costKey: 'cost_post_aed_cents', sellKey: 'sell_post_aed_cents' },
-  { label: 'IG Story', costKey: 'cost_story_aed_cents', sellKey: 'sell_story_aed_cents' },
-  { label: 'IG Reel', costKey: 'cost_reel_aed_cents', sellKey: 'sell_reel_aed_cents' },
-  { label: 'IG Carousel', costKey: 'cost_carousel_aed_cents', sellKey: 'sell_carousel_aed_cents' },
-  { label: 'Video', costKey: 'cost_video_aed_cents', sellKey: 'sell_video_aed_cents' },
-  { label: 'Bundle', costKey: 'cost_bundle_aed_cents', sellKey: 'sell_bundle_aed_cents' },
-  { label: 'Monthly', costKey: 'cost_monthly_aed_cents', sellKey: 'sell_monthly_aed_cents' },
-]
+/** Every bookable deliverable, from the one list in lib/deliverables. Video, bundle and
+ *  monthly were retired on 2026-10-22; packages replace bundle. */
+export const DELIVERABLES: DeliverableField[] = DELIVERABLE_SPECS.map((d) => ({
+  label: describeKey(d.key),
+  shortLabel: d.label,
+  key: d.key,
+  platform: d.platform,
+  costKey: `cost_${d.key}_aed_cents` as keyof CostPricing,
+  sellKey: `sell_${d.key}_aed_cents` as keyof SellPricing,
+}))
+
+/** A creator's saved package: several deliverables, one price, booked whole. */
+export interface CreatorPackage {
+  id: string
+  /** The line key a proposal books it under: "pkg_<id>". */
+  key: string
+  influencer_db_id: string
+  name: string
+  includes: { type: string; quantity: number }[]
+  cost_aed: number | null
+  sell_aed: number | null
+  note?: string | null
+}
 
 // ─── Table Column Definitions ─────────────────────────────────────────
 
@@ -405,6 +447,22 @@ export interface ImportPreviewRow {
   sell_bundle_aed: number | null
   cost_monthly_aed: number | null
   sell_monthly_aed: number | null
+  cost_tiktok_video_aed?: number | null
+  sell_tiktok_video_aed?: number | null
+  cost_tiktok_story_aed?: number | null
+  sell_tiktok_story_aed?: number | null
+  cost_youtube_video_aed?: number | null
+  sell_youtube_video_aed?: number | null
+  cost_youtube_short_aed?: number | null
+  sell_youtube_short_aed?: number | null
+
+  tiktok_username?: string | null
+  youtube_handle?: string | null
+  /** The one package a sheet row may carry. More are added on the creator's page. */
+  package_name?: string | null
+  package_includes?: { type: string; quantity: number }[] | null
+  package_cost_aed?: number | null
+  package_sell_aed?: number | null
 
   known_profile: ImportKnownProfile | null
   /** Reflects the chosen existing_mode: an already-present username is 'update' or 'skip'. */
@@ -550,6 +608,10 @@ export function getEmptyCostPricing(): CostPricing {
     cost_video_aed_cents: null,
     cost_bundle_aed_cents: null,
     cost_monthly_aed_cents: null,
+    cost_tiktok_video_aed_cents: null,
+    cost_tiktok_story_aed_cents: null,
+    cost_youtube_video_aed_cents: null,
+    cost_youtube_short_aed_cents: null,
   }
 }
 
@@ -563,6 +625,10 @@ export function getEmptySellPricing(): SellPricing {
     sell_video_aed_cents: null,
     sell_bundle_aed_cents: null,
     sell_monthly_aed_cents: null,
+    sell_tiktok_video_aed_cents: null,
+    sell_tiktok_story_aed_cents: null,
+    sell_youtube_video_aed_cents: null,
+    sell_youtube_short_aed_cents: null,
   }
 }
 
@@ -576,6 +642,10 @@ export function extractCostPricing(inf: MasterInfluencer): CostPricing {
     cost_video_aed_cents: inf.cost_video_aed_cents,
     cost_bundle_aed_cents: inf.cost_bundle_aed_cents,
     cost_monthly_aed_cents: inf.cost_monthly_aed_cents,
+    cost_tiktok_video_aed_cents: inf.cost_tiktok_video_aed_cents ?? null,
+    cost_tiktok_story_aed_cents: inf.cost_tiktok_story_aed_cents ?? null,
+    cost_youtube_video_aed_cents: inf.cost_youtube_video_aed_cents ?? null,
+    cost_youtube_short_aed_cents: inf.cost_youtube_short_aed_cents ?? null,
   }
 }
 
@@ -589,5 +659,9 @@ export function extractSellPricing(inf: MasterInfluencer): SellPricing {
     sell_video_aed_cents: inf.sell_video_aed_cents,
     sell_bundle_aed_cents: inf.sell_bundle_aed_cents,
     sell_monthly_aed_cents: inf.sell_monthly_aed_cents,
+    sell_tiktok_video_aed_cents: inf.sell_tiktok_video_aed_cents ?? null,
+    sell_tiktok_story_aed_cents: inf.sell_tiktok_story_aed_cents ?? null,
+    sell_youtube_video_aed_cents: inf.sell_youtube_video_aed_cents ?? null,
+    sell_youtube_short_aed_cents: inf.sell_youtube_short_aed_cents ?? null,
   }
 }

@@ -51,15 +51,15 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
   const [acceptsBarter, setAcceptsBarter] = useState(Boolean(influencer.accepts_barter))
   const [barterNote, setBarterNote] = useState(influencer.barter_note || "")
   const [countryOptions, setCountryOptions] = useState<string[]>([])
-  const [tiktok, setTiktok] = useState<string>(influencer.platforms?.tiktok || "")
-  const [youtube, setYoutube] = useState<string>(influencer.platforms?.youtube || "")
+  const [tiktok, setTiktok] = useState<string>(influencer.tiktok_username || "")
+  const [youtube, setYoutube] = useState<string>(influencer.youtube_handle || "")
 
-  /* Blank removes the link; the backend merges each platform on its own, so saving
-     one never clears the other. */
-  function saveSocial(platform: "tiktok" | "youtube", value: string) {
+  /* A handle or a pasted link; the server keeps the handle. Blank removes it. Saving one
+     never touches the other. */
+  function saveSocial(field: "tiktok_username" | "youtube_handle", value: string) {
     const v = value.trim()
-    if (v === (influencer.platforms?.[platform] || "")) return
-    onSave({ [`${platform}_url`]: v })
+    if (v === (influencer[field] || "")) return
+    onSave({ [field]: v })
   }
 
   useEffect(() => {
@@ -240,20 +240,27 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
           creator's proposal card only when a link is saved here. */}
       <div className="flex flex-col gap-ds-2">
         <Label>TikTok and YouTube</Label>
-        <Input
-          placeholder="https://www.tiktok.com/@handle"
-          value={tiktok}
-          onChange={(e) => setTiktok(e.target.value)}
-          onBlur={() => saveSocial("tiktok", tiktok)}
-        />
-        <Input
-          placeholder="https://www.youtube.com/@handle"
-          value={youtube}
-          onChange={(e) => setYoutube(e.target.value)}
-          onBlur={() => saveSocial("youtube", youtube)}
-        />
+        <div className="flex items-center gap-ds-2">
+          <span className="w-16 shrink-0 text-ds-caption text-muted-foreground">TikTok</span>
+          <Input
+            placeholder="Handle or link"
+            value={tiktok}
+            onChange={(e) => setTiktok(e.target.value)}
+            onBlur={() => saveSocial("tiktok_username", tiktok)}
+          />
+        </div>
+        <div className="flex items-center gap-ds-2">
+          <span className="w-16 shrink-0 text-ds-caption text-muted-foreground">YouTube</span>
+          <Input
+            placeholder="@handle or channel link"
+            value={youtube}
+            onChange={(e) => setYoutube(e.target.value)}
+            onBlur={() => saveSocial("youtube_handle", youtube)}
+          />
+        </div>
         <p className="max-w-[65ch] text-ds-caption text-muted-foreground">
-          Shown to clients beside Instagram on proposals. Leave blank if they have none.
+          Instagram stays their main account. Adding one lets you price it on the Rates tab,
+          and clients see it beside Instagram on proposals. Leave blank if they have none.
         </p>
       </div>
 

@@ -195,11 +195,15 @@ export function InfluencerDatabasePage() {
 
   const onSave = useCallback(async (influencerId: string, data: any) => {
     try {
-      assertOk(await superadminApiService.updateInfluencerMetadata(influencerId, data))
+      const res: any = assertOk(await superadminApiService.updateInfluencerMetadata(influencerId, data))
+      // The open sheet reads this record, so it takes the saved row straight away: a TikTok
+      // handle added on Overview must open its prices on the Rates tab without a reload.
+      const saved = res?.data?.influencer
+      if (saved) setDetailInfluencer((cur) => (cur && cur.id === influencerId ? { ...cur, ...saved } : cur))
       toast.success("Saved")
       fetchData()
-    } catch {
-      toast.error("Failed to save")
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save")
     }
   }, [fetchData])
 

@@ -463,6 +463,9 @@ export class SuperadminApiService {
       if (metadata.tier) payload.tier = metadata.tier
       if (metadata.cost_pricing) payload.cost_pricing = metadata.cost_pricing
       if (metadata.sell_pricing) payload.sell_pricing = metadata.sell_pricing
+      // Their other channels; Instagram (`username`) stays the main account.
+      if (metadata.tiktok_username) payload.tiktok_username = metadata.tiktok_username
+      if (metadata.youtube_handle) payload.youtube_handle = metadata.youtube_handle
     }
     const raw = await this.makeRequest(ENDPOINTS.influencerDatabase.add, {
       method: 'POST',

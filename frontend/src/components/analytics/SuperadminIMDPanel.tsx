@@ -52,7 +52,7 @@ export function SuperadminIMDPanel({ influencer, onUpdated }: SuperadminIMDPanel
   const [editSheetOpen, setEditSheetOpen] = useState(false)
 
   const hasPricing = DELIVERABLES.some(
-    d => influencer[d.costKey] !== null || influencer[d.sellKey] !== null
+    d => influencer[d.costKey] != null || influencer[d.sellKey] != null
   )
 
   const handleSave = async (id: string, data: any) => {
@@ -136,8 +136,8 @@ export function SuperadminIMDPanel({ influencer, onUpdated }: SuperadminIMDPanel
                       </thead>
                       <tbody>
                         {DELIVERABLES.map(d => {
-                          const cost = influencer[d.costKey]
-                          const sell = influencer[d.sellKey]
+                          const cost = influencer[d.costKey] ?? null
+                          const sell = influencer[d.sellKey] ?? null
                           if (cost === null && sell === null) return null
                           const margin = computeMarginPercent(cost, sell)
                           return (
