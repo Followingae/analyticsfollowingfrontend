@@ -43,10 +43,19 @@ export function OverviewTabV2({ data }: { data: CreatorAnalyticsV2 }) {
             <CardHeader>
               <CardTitle className="text-base">Engagement</CardTitle>
               <CardDescription>
-                Median across {byView ? engagement.view_sample_size : engagement.sample_size} posts
+                {engagement.likes_hidden
+                  ? "Their like counts are hidden"
+                  : <>Median across {byView ? engagement.view_sample_size : engagement.sample_size} posts</>}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
+              {engagement.likes_hidden && (
+                <p className="text-sm text-muted-foreground">
+                  This creator hides like counts on Instagram, so an engagement rate cannot be
+                  measured.{engagement.median_comments != null && <> A typical post gets{" "}
+                  <span className="font-medium text-foreground tabular-nums">{Math.round(engagement.median_comments).toLocaleString()}</span> comments.</>}
+                </p>
+              )}
               {value !== null && (
                 <div className="flex flex-wrap items-end gap-6">
                   <div>

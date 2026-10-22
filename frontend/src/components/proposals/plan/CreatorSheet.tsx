@@ -26,6 +26,7 @@ import { creatorCost, whyFor } from "./optimiser"
 import { PlatformIcon, TikTokGlyph } from "@/components/icons/PlatformIcon"
 import { PLATFORM_LABEL, describeIncludes, describeLine, isBundleKey, platformsOfLine, type Platform } from "@/lib/deliverables"
 import { PlatformPanel } from "./PlatformPanel"
+import { InstagramPanel, StandingChip } from "./InstagramPanel"
 
 const fmt = (n?: number | null) =>
   n == null ? "—" : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}K` : `${Math.round(n)}`
@@ -33,15 +34,6 @@ const aed = (n: number) => `AED ${Math.round(n).toLocaleString("en-US")}`
 
 const SOCIAL_BTN =
   "grid size-9 shrink-0 place-items-center rounded-lg border text-muted-foreground transition hover:bg-muted hover:text-foreground"
-
-const FORMAT: Record<string, string> = { reel: "Reels", carousel: "Carousels", image: "Photos", video: "Videos" }
-const STANDING: Record<string, string> = {
-  exceptional: "Exceptional for their size",
-  typical: "Typical for their size",
-  // Kept so an older cached payload cannot render "undefined"; never reached now, because
-  // the client is not served this band at all.
-  below_average: "",
-}
 
 export function CreatorSheet({
   creator: c, pool, showPricing, chosen, onToggle, onOpenChange,
@@ -65,11 +57,6 @@ export function CreatorSheet({
   const m = c.measured
   const insights = c.direct_analytics ?? []
   const why = whyFor(c, pool)
-  const er = m?.engagement_rate ?? c.engagement_rate
-  const byFormat = Object.entries(m?.by_content_type ?? {})
-    .sort((a, b) => (b[1]?.sample_size ?? 0) - (a[1]?.sample_size ?? 0))
-  const maxEr = Math.max(...byFormat.map(([, v]) => v?.engagement_rate ?? 0), 0.0001)
-  const mix = Object.entries(m?.content_mix ?? {}).sort((a, b) => b[1] - a[1])
 
   return (
     <Sheet open={!!c} onOpenChange={onOpenChange}>
@@ -133,15 +120,7 @@ export function CreatorSheet({
             {/* Only ever a compliment. The bottom band is not served to a client by the
                 API any more, and this guard keeps it that way if anything else ever feeds
                 this sheet. */}
-            {m?.standing && m.standing !== "below_average" && (
-              <span className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold",
-                m.standing === "exceptional" ? "bg-emerald-500/15 text-emerald-600"
-                  : "bg-muted text-muted-foreground",
-              )}>
-                <Heart className="size-3" />{STANDING[m.standing]}
-              </span>
-            )}
+            <StandingChip standing={m?.standing} />
             {m?.category && <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground">{m.category}</span>}
           </div>
 
@@ -197,120 +176,7 @@ export function CreatorSheet({
             </button>
           )}
 
-          <div className="flex overflow-hidden rounded-2xl border bg-muted/40">
-            <div className="flex-1 p-3.5 text-center">
-              <b className="block text-[17px] font-bold tracking-[-0.025em]">{fmt(c.followers_count)}</b>
-              <span className="text-[10px] uppercase tracking-[0.09em] text-muted-foreground">followers</span>
-            </div>
-            <div className="flex-1 border-l p-3.5 text-center">
-              <b className="block text-[17px] font-bold tracking-[-0.025em]">{er != null ? `${er.toFixed(2)}%` : "—"}</b>
-              <span className="text-[10px] uppercase tracking-[0.09em] text-muted-foreground">engagement</span>
-            </div>
-            {m?.median_views != null && (
-              <div className="flex-1 border-l p-3.5 text-center">
-                <b className="block text-[17px] font-bold tracking-[-0.025em]">{fmt(m.median_views)}</b>
-                <span className="text-[10px] uppercase tracking-[0.09em] text-muted-foreground">median views</span>
-              </div>
-            )}
-          </div>
-
-          {byFormat.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                <BarChart3 className="size-3.5" />Engagement by format
-              </p>
-              {byFormat.map(([f, v]) => (
-                <div key={f} className="grid grid-cols-[74px_1fr_52px_62px] items-center gap-2.5">
-                  <span className="text-[12.5px] font-semibold">{FORMAT[f] ?? f}</span>
-                  <span className="h-2 overflow-hidden rounded-full bg-muted">
-                    <i className="block h-full rounded-full bg-primary" style={{ width: `${Math.max(4, ((v?.engagement_rate ?? 0) / maxEr) * 100)}%` }} />
-                  </span>
-                  <span className="text-right text-[12.5px] font-bold tabular-nums">{(v?.engagement_rate ?? 0).toFixed(2)}%</span>
-                  <span className="text-right text-[11px] text-muted-foreground">{v?.sample_size ?? 0} posts</span>
-                </div>
-              ))}
-            </section>
-          )}
-
-          {(m?.median_likes != null || m?.median_comments != null) && (
-            <section className="flex flex-col gap-3">
-              <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                <Eye className="size-3.5" />Typical post
-              </p>
-              <div className="grid grid-cols-3 gap-2.5">
-                {[
-                  { icon: Heart, v: m?.median_likes, l: "median likes" },
-                  { icon: MessageCircle, v: m?.median_comments, l: "median comments" },
-                  { icon: Eye, v: m?.median_views, l: "median views" },
-                ].filter(x => x.v != null).map((x, n) => (
-                  <div key={n} className="rounded-2xl border bg-muted/40 p-3">
-                    <x.icon className="size-4 text-muted-foreground" />
-                    <b className="mt-1 block text-[17px] font-bold tracking-[-0.025em]">{fmt(x.v)}</b>
-                    <span className="text-[10.5px] text-muted-foreground">{x.l}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {mix.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <p className="text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground">What they post</p>
-              <div className="flex h-3 overflow-hidden rounded-full bg-muted">
-                {mix.map(([f, v]) => (
-                  <i key={f} title={`${FORMAT[f] ?? f} ${Math.round(v * 100)}%`}
-                     className={cn("block h-full", f === "reel" ? "bg-primary" : f === "carousel" ? "bg-blue-500" : "bg-emerald-500")}
-                     style={{ width: `${v * 100}%` }} />
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                {mix.map(([f, v]) => (
-                  <span key={f} className="inline-flex items-center gap-1.5">
-                    <i className={cn("size-2 rounded-full", f === "reel" ? "bg-primary" : f === "carousel" ? "bg-blue-500" : "bg-emerald-500")} />
-                    {FORMAT[f] ?? f} {Math.round(v * 100)}%
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {(m?.posts_per_week != null || m?.most_active_weekday) && (
-            <section className="flex flex-col gap-3">
-              <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                <CalendarDays className="size-3.5" />Posting activity
-              </p>
-              <div className="grid grid-cols-2 gap-2.5">
-                {m?.posts_per_week != null && (
-                  <div className="rounded-2xl border bg-muted/40 p-3">
-                    <CalendarDays className="size-4 text-muted-foreground" />
-                    <b className="mt-1 block text-[17px] font-bold tracking-[-0.025em]">{m.posts_per_week}</b>
-                    <span className="text-[10.5px] text-muted-foreground">posts a week</span>
-                  </div>
-                )}
-                {m?.most_active_weekday && (
-                  <div className="rounded-2xl border bg-muted/40 p-3">
-                    <Clock className="size-4 text-muted-foreground" />
-                    <b className="mt-1 block text-[17px] font-bold tracking-[-0.025em]">{m.most_active_weekday.slice(0, 3)}</b>
-                    <span className="text-[10.5px] text-muted-foreground">most active day</span>
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-
-          {m?.viral_skew && (
-            <p className="flex items-start gap-2.5 rounded-2xl bg-amber-500/10 p-3 text-[12.5px] leading-relaxed text-amber-700 dark:text-amber-400">
-              <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-              Their averages are carried by one post that went far beyond the rest. A typical
-              post performs closer to the medians above.
-            </p>
-          )}
-
-          {m?.posts_analysed != null && (
-            <p className="text-[11.5px] leading-relaxed text-muted-foreground">
-              Measured from their last {m.posts_analysed} posts by our own pipeline, not supplied by the creator.
-            </p>
-          )}
+          <InstagramPanel m={m} followers={c.followers_count} fallbackEr={c.engagement_rate} />
           </>)}
 
           {/* What this booking is, on which platform. Said whether or not prices are shown:

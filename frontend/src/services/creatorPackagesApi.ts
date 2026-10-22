@@ -9,6 +9,7 @@ import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import type { CreatorPackage } from '@/types/influencerDatabase'
 import type { DeliverableKey, Platform } from '@/lib/deliverables'
+import type { PlatformMeasured } from '@/services/adminProposalMasterApi'
 
 const BASE = `${API_CONFIG.BASE_URL}/api/v1/admin`
 
@@ -71,4 +72,20 @@ export const creatorPackagesApi = {
   /** Platforms, priced deliverables and packages for each creator, keyed by id. */
   bookable: (influencerIds: string[]): Promise<{ data: { creators: Record<string, BookableCreator> } }> =>
     call(`${BASE}/influencers/bookable`, { method: 'POST', body: JSON.stringify({ influencer_ids: influencerIds }) }),
+
+  /** What we measured on their TikTok and YouTube, each with its status. */
+  platformAnalytics: (influencerId: string): Promise<{ data: { platforms: Partial<Record<'tiktok' | 'youtube', PlatformAnalyticsRow>> } }> =>
+    call(`${BASE}/influencers/${influencerId}/platform-analytics`),
+
+  /** Measure one platform again (leadership; it spends money at Apify). */
+  refreshPlatform: (influencerId: string, platform: 'tiktok' | 'youtube') =>
+    call(`${BASE}/influencers/${influencerId}/platform-analytics/${platform}/refresh`, { method: 'POST' }),
+}
+
+export interface PlatformAnalyticsRow {
+  handle: string
+  status: 'queued' | 'running' | 'complete' | 'partial' | 'no_content' | 'failed' | 'unavailable'
+  error: string | null
+  collected_at: string | null
+  payload: PlatformMeasured | null
 }

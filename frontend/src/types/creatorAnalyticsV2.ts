@@ -75,6 +75,12 @@ export interface EngagementByType {
 export type HeadlineMetric = 'engagement_rate' | 'engagement_rate_by_view'
 
 export interface EngagementBlock {
+  /** They hide like counts on most recent posts: no engagement rate exists. The comment
+   *  figures are what was measured, reported under their own names. */
+  likes_hidden?: boolean
+  comment_rate?: number | null
+  comment_rate_by_view?: number | null
+  median_comments?: number | null
   source: 'measured'
   sample_size: number
   /** MEDIAN of (likes + comments) / FOLLOWERS. Only meaningful when reach is roughly

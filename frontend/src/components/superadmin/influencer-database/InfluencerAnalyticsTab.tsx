@@ -1,163 +1,192 @@
 "use client"
 
 /**
- * What we have measured about this creator. Density tier: WORKING.
+ * What we have measured about this creator, on every platform we hold.
  *
- * The screen used to open with a 4xl "0.00%" for every creator we have never analysed, and
- * then say underneath that there was no analytics data. Two claims, one of them false, and
- * the false one set in the largest type on the page. A creator we have not measured now says
- * so once, in words, and prints no figures at all: an unmeasured creator and a creator whose
- * audience does not engage look identical as a zero, and only one of those is a reason to
- * drop them from a proposal.
+ * This tab used to read the handful of averages copied onto the creator's database row (one
+ * engagement figure, "typical" likes and comments, a tone score) while a brand looking at
+ * the same creator on a proposal got the full measured panel. Our own team was shown the
+ * thinner and, for creators who hide likes, the wrong picture. It now renders exactly the
+ * panel the brand sees, from the same measurement, plus what only we should see: the size
+ * band even when it is unflattering, the run status, and the buttons to measure again.
  *
- * The cards are gone with them. Three averages in a row are three of the same kind of thing;
- * the space between them says that already.
+ * A creator we have not measured says so once, in words, with no figures.
  */
-import { Badge } from "@/components/ui/badge"
+import { useCallback, useEffect, useState } from "react"
+import { ExternalLink, Loader2, RefreshCw } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { RefreshCw, Brain } from "lucide-react"
-import type { MasterInfluencer } from "@/types/influencerDatabase"
-import { getEngagementColor } from "@/types/influencerDatabase"
-import { count } from "./Money"
 import { cn } from "@/lib/utils"
+import type { MasterInfluencer } from "@/types/influencerDatabase"
+import { creatorAnalyticsV2Api, NotAnalysedError } from "@/services/creatorAnalyticsV2Api"
+import { creatorPackagesApi, type PlatformAnalyticsRow } from "@/services/creatorPackagesApi"
+import { InstagramPanel, StandingChip, measuredFromV2, type InstagramMeasured } from "@/components/proposals/plan/InstagramPanel"
+import { PlatformPanel } from "@/components/proposals/plan/PlatformPanel"
+import { PlatformIcon } from "@/components/icons/PlatformIcon"
+import { PLATFORM_LABEL, platformsOfCreator, type Platform } from "@/lib/deliverables"
 
 interface InfluencerAnalyticsTabProps {
   influencer: MasterInfluencer
   onRefresh: () => void
 }
 
-export function InfluencerAnalyticsTab({
-  influencer,
-  onRefresh,
-}: InfluencerAnalyticsTabProps) {
-  const rate = influencer.engagement_rate
-  // Measured, not "measured and non-zero". A real 0% is a finding; never having run is not.
-  const measured = rate != null
+const when = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : null
 
-  const languageEntries = Object.entries(influencer.language_distribution || {}).sort(
-    (a, b) => b[1] - a[1]
-  )
-  const maxLangValue = languageEntries.length > 0 ? languageEntries[0][1] : 1
+const STATUS_WORDS: Record<PlatformAnalyticsRow["status"], string> = {
+  queued: "Waiting to be measured",
+  running: "Being measured now",
+  complete: "Measured",
+  partial: "Measured, with some parts missing",
+  no_content: "No videos we could read on this account",
+  failed: "The last attempt failed",
+  unavailable: "We could not read this account",
+}
 
-  const lastRefresh = influencer.last_analytics_refresh
-    ? new Date(influencer.last_analytics_refresh).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
+export function InfluencerAnalyticsTab({ influencer, onRefresh }: InfluencerAnalyticsTabProps) {
+  const [tab, setTab] = useState<Platform>("instagram")
+  const [ig, setIg] = useState<InstagramMeasured | null>(null)
+  const [igAt, setIgAt] = useState<string | null>(null)
+  const [igState, setIgState] = useState<"loading" | "ok" | "none" | "error">("loading")
+  const [others, setOthers] = useState<Partial<Record<"tiktok" | "youtube", PlatformAnalyticsRow>>>({})
+  const [busy, setBusy] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setIgState("loading")
+    creatorAnalyticsV2Api.get(influencer.username)
+      .then((p: any) => {
+        setIg(measuredFromV2(p))
+        setIgAt(p?.collected_at ?? p?._provenance?.collected_at ?? null)
+        setIgState("ok")
       })
-    : "Never"
+      .catch((e) => setIgState(e instanceof NotAnalysedError ? "none" : "error"))
+    creatorPackagesApi.platformAnalytics(influencer.id)
+      .then((r) => setOthers(r.data.platforms || {}))
+      .catch(() => setOthers({}))
+  }, [influencer.id, influencer.username])
+
+  useEffect(() => { setTab("instagram"); load() }, [load])
+
+  // While a TikTok or YouTube run is in flight, look again every few seconds.
+  useEffect(() => {
+    const live = Object.values(others).some((r) => r && (r.status === "queued" || r.status === "running"))
+    if (!live) return
+    const t = setTimeout(() => {
+      creatorPackagesApi.platformAnalytics(influencer.id).then((r) => setOthers(r.data.platforms || {})).catch(() => {})
+    }, 6000)
+    return () => clearTimeout(t)
+  }, [others, influencer.id])
+
+  const tabs = platformsOfCreator(influencer)
+
+  async function measure(platform: "tiktok" | "youtube") {
+    setBusy(platform)
+    try {
+      await creatorPackagesApi.refreshPlatform(influencer.id, platform)
+      toast.success(`Measuring their ${PLATFORM_LABEL[platform]}. It takes a minute or two.`)
+      setOthers((o) => ({ ...o, [platform]: { ...(o[platform] as PlatformAnalyticsRow), status: "queued" } }))
+    } catch (e) {
+      toast.error((e as Error).message || "Could not start it")
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const row = tab !== "instagram" ? others[tab] : undefined
 
   return (
-    <div className="flex max-w-[640px] flex-col gap-ds-5">
-      {measured ? (
-        <>
-          <div>
-            <p className="text-ds-caption text-muted-foreground">Engagement</p>
-            <p className={cn("mt-ds-1 text-[40px] font-semibold leading-none tabular-nums", getEngagementColor(rate))}>
-              {rate.toFixed(2)}%
-            </p>
-            <p className="mt-ds-2 max-w-[65ch] text-ds-caption text-muted-foreground">
-              Against {count(influencer.avg_likes)} likes and {count(influencer.avg_comments)} comments
-              on a typical post.
-            </p>
-          </div>
+    <div className="flex max-w-[720px] flex-col gap-ds-4">
+      {tabs.length > 1 && (
+        <div role="tablist" aria-label="Platform" className="flex gap-1 rounded-full bg-muted p-1">
+          {tabs.map((p) => (
+            <button
+              key={p}
+              type="button"
+              role="tab"
+              aria-selected={tab === p}
+              onClick={() => setTab(p)}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition",
+                tab === p ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <PlatformIcon platform={p} className="size-3.5" />{PLATFORM_LABEL[p]}
+            </button>
+          ))}
+        </div>
+      )}
 
-          <div className="grid grid-cols-3 gap-x-ds-5 gap-y-ds-3">
-            <div>
-              <p className="text-ds-caption text-muted-foreground">Likes, typical</p>
-              <p className="mt-ds-1 text-ds-heading tabular-nums">{count(influencer.avg_likes)}</p>
-            </div>
-            <div>
-              <p className="text-ds-caption text-muted-foreground">Comments, typical</p>
-              <p className="mt-ds-1 text-ds-heading tabular-nums">{count(influencer.avg_comments)}</p>
-            </div>
-            <div>
-              <p className="text-ds-caption text-muted-foreground">Views, typical</p>
-              <p className="mt-ds-1 text-ds-heading tabular-nums">{count(influencer.avg_views)}</p>
-            </div>
+      {tab === "instagram" && (
+        <>
+          {igState === "loading" && (
+            <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" />Loading their analytics</div>
+          )}
+          {igState === "none" && (
+            <p className="py-6 text-ds-body text-muted-foreground">We have not measured their Instagram yet.</p>
+          )}
+          {igState === "error" && (
+            <p className="py-6 text-ds-body text-muted-foreground">Their analytics could not be loaded. Try again in a moment.</p>
+          )}
+          {igState === "ok" && (
+            <>
+              {(ig?.standing || ig?.category) && (
+                <div className="flex flex-wrap gap-2">
+                  <StandingChip standing={ig?.standing} internal />
+                  {ig?.category && <span className="rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground">{ig.category}</span>}
+                </div>
+              )}
+              {ig
+                ? <InstagramPanel m={ig} followers={influencer.followers_count} />
+                : <p className="text-ds-body text-muted-foreground">Their profile was read, but no posts we could measure.</p>}
+            </>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-ds-2 border-t pt-ds-3">
+            <span className="text-ds-caption text-muted-foreground">
+              {igAt || influencer.last_analytics_refresh ? `Last measured ${when(igAt || influencer.last_analytics_refresh)}` : "Never measured"}
+            </span>
+            <span className="flex flex-wrap gap-ds-2">
+              <Button variant="outline" size="sm" onClick={onRefresh}>
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />Pull the latest analytics
+              </Button>
+              {igState === "ok" && (
+                <Button size="sm" asChild>
+                  <a href={`/creator-analytics/${influencer.username}`} target="_blank" rel="noopener noreferrer">
+                    Open full analytics<ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              )}
+            </span>
           </div>
         </>
-      ) : (
-        <p className="max-w-[65ch] text-ds-body text-muted-foreground">
-          We have never measured this creator. Nothing is shown rather than zeros: an
-          unmeasured creator and a creator nobody engages with are not the same thing, and
-          only one of them is a reason not to book them.
-        </p>
       )}
 
-      {/* AI analysis, only where there is some. */}
-      {(influencer.ai_content_categories?.length > 0 || influencer.ai_sentiment_score !== null) && (
-        <section className="flex flex-col gap-ds-3">
-          <h3 className="flex items-center gap-ds-2 text-ds-label">
-            <Brain className="h-4 w-4 text-muted-foreground" />
-            What they post about
-          </h3>
-
-          {influencer.ai_content_categories?.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {influencer.ai_content_categories.map((cat) => (
-                <Badge key={cat} variant="secondary" className="text-[10px] capitalize">
-                  {cat}
-                </Badge>
-              ))}
+      {tab !== "instagram" && (
+        <>
+          {row?.payload && (row.status === "complete" || row.status === "partial") ? (
+            <PlatformPanel data={row.payload} />
+          ) : (
+            <div className="flex flex-col gap-ds-1 py-6">
+              <p className="text-ds-body">
+                {row ? STATUS_WORDS[row.status] : `We have not measured their ${PLATFORM_LABEL[tab]} yet.`}
+              </p>
+              {row?.error && <p className="text-ds-caption text-muted-foreground">{row.error}</p>}
+              {row && (row.status === "queued" || row.status === "running") && (
+                <p className="flex items-center gap-1.5 text-ds-caption text-muted-foreground"><Loader2 className="size-3 animate-spin" />This page updates by itself.</p>
+              )}
             </div>
           )}
-
-          {influencer.ai_sentiment_score !== null && (
-            <div className="flex items-center gap-ds-2">
-              <span className="w-40 text-ds-caption text-muted-foreground">Tone of their comments</span>
-              <Progress value={(influencer.ai_sentiment_score || 0) * 100} className="h-1.5 flex-1" />
-              <span className="w-12 text-right text-ds-caption tabular-nums">
-                {influencer.ai_sentiment_score.toFixed(2)}
-              </span>
-            </div>
-          )}
-
-          {influencer.ai_audience_quality_score !== null && (
-            <div className="flex items-center gap-ds-2">
-              <span className="w-40 text-ds-caption text-muted-foreground">Audience quality</span>
-              <Progress value={(influencer.ai_audience_quality_score || 0) * 100} className="h-1.5 flex-1" />
-              <span className="w-12 text-right text-ds-caption tabular-nums">
-                {influencer.ai_audience_quality_score.toFixed(2)}
-              </span>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Languages, only where there are some. */}
-      {languageEntries.length > 0 && (
-        <section className="flex flex-col gap-ds-2">
-          <h3 className="text-ds-label">Languages they post in</h3>
-          <div className="flex flex-col gap-ds-2">
-            {languageEntries.map(([lang, value]) => (
-              <div key={lang} className="flex items-center gap-ds-2">
-                <span className="w-12 text-ds-caption uppercase text-muted-foreground">{lang}</span>
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-black/[0.07] dark:bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-[var(--console-lime)]"
-                    style={{ width: `${(value / maxLangValue) * 100}%` }}
-                  />
-                </div>
-                <span className="w-10 text-right text-ds-caption tabular-nums text-muted-foreground">
-                  {(value * 100).toFixed(0)}%
-                </span>
-              </div>
-            ))}
+          <div className="flex flex-wrap items-center justify-between gap-ds-2 border-t pt-ds-3">
+            <span className="text-ds-caption text-muted-foreground">
+              {row?.collected_at ? `Last measured ${when(row.collected_at)}` : "Never measured"}
+            </span>
+            <Button variant="outline" size="sm" disabled={busy === tab || row?.status === "queued" || row?.status === "running"}
+                    onClick={() => measure(tab as "tiktok" | "youtube")}>
+              {busy === tab ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
+              Measure their {PLATFORM_LABEL[tab]} again
+            </Button>
           </div>
-        </section>
+        </>
       )}
-
-      <div className="flex flex-wrap items-center justify-between gap-ds-2 border-t pt-ds-3">
-        <p className="text-ds-caption text-muted-foreground">Last measured: {lastRefresh}</p>
-        <Button variant="outline" size="sm" onClick={onRefresh}>
-          <RefreshCw className="mr-1.5 h-3 w-3" />
-          Pull the latest analytics
-        </Button>
-      </div>
     </div>
   )
 }

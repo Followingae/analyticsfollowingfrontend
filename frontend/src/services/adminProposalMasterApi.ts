@@ -413,7 +413,10 @@ export interface BrandInfluencer {
   measured?: {
     posts_analysed?: number
     engagement_rate?: number | null
-    standing?: 'exceptional' | 'typical' | 'below_average' | null
+    standing?: 'exceptional' | 'above_average' | 'typical' | 'below_average' | null
+    /** They hide their like counts: there is no engagement rate, only a comment rate. */
+    likes_hidden?: boolean
+    comment_rate?: number | null
     by_content_type?: Record<string, { engagement_rate: number; sample_size: number }>
     viral_skew?: boolean
     median_likes?: number | null
