@@ -1,5 +1,6 @@
 "use client"
 
+import { describeLine } from "@/lib/deliverables"
 import { BrandInfluencer } from "@/services/adminProposalMasterApi"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -223,7 +224,7 @@ export function SelectedCreatorsPanel({
                             key={d.type}
                             className="inline-flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-xs"
                           >
-                            {DELIVERABLE_LABELS[d.type] || d.type}
+                            {describeLine({ ...d, quantity: 1 })}
                             {d.quantity > 1 && (
                               <span className="font-medium">x{d.quantity}</span>
                             )}

@@ -10,6 +10,7 @@
  * add-on can be pulled and restored without retyping its terms.
  */
 
+import { describeLine } from "@/lib/deliverables"
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -196,7 +197,7 @@ export function PriceModifierCard({
                       >
                         <Badge variant={d.modifier_eligible !== false ? 'default' : 'outline'}
                           className="cursor-pointer">
-                          {DELIVERABLE_LABEL[d.type] || d.type}
+                          {describeLine({ ...d, quantity: 1 })}
                           {d.quantity && d.quantity > 1 ? ` ×${d.quantity}` : ''}
                         </Badge>
                       </button>

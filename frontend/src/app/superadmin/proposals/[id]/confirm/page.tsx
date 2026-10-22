@@ -19,6 +19,7 @@
  * receives instead of a price, and the rail says so in words rather than printing zeroes.
  */
 
+import { describeLine } from "@/lib/deliverables"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -359,7 +360,7 @@ export default function ConfirmForClientPage() {
                             <div className="text-[12.5px] text-muted-foreground">
                               {compact(i.followers_count)} followers
                               {i.assigned_deliverables?.length
-                                ? ` · ${i.assigned_deliverables.map(d => `${d.quantity > 1 ? `${d.quantity}× ` : ""}${d.type}`).join(", ")}`
+                                ? ` · ${i.assigned_deliverables.map(d => describeLine(d)).join(", ")}`
                                 : ""}
                             </div>
                           </div>
