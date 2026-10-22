@@ -18,7 +18,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   ArrowLeft, Send, UserPlus, CheckCircle2, RotateCcw, Flag, ArrowUp, ArrowDown, Plus, Trash2,
-  Construction, Instagram } from 'lucide-react'
+  Construction, Instagram, Gift } from 'lucide-react'
 import { proposalApprovalApi, type ApprovalStep } from '@/services/proposalApprovalApi'
 import { clientApi } from '@/services/clientManagementApi'
 import { ClientCommercialTab } from '@/components/clients/ClientCommercialTab'
@@ -55,6 +55,11 @@ export default function ProposalApprovalPage() {
      the picker opens narrowed to people who take barter, and a creator who has not agreed
      is badged, because the client is only ever served the ones who have. */
   const isBarterProposal = ws?.proposal?.campaign_type_target === 'barter_portal'
+  /* A managed PAID deal can carry creators on product too (its barter allowance). The
+     picker then adds either half; the roster badges who is on product. */
+  const productAllowance = ws?.proposal?.campaign_type_target === 'influencer'
+    ? { slots: ws?.proposal?.barter_slots ?? null, product: ws?.proposal?.barter_product ?? null }
+    : null
   const [chain, setChain] = useState<any>(null)
   const [talentManagers, setTalentManagers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -411,6 +416,12 @@ export default function ProposalApprovalPage() {
                                   and nobody else, so a creator added from the picker who has
                                   never been asked says so here rather than quietly sitting
                                   in a roster the client will never see. */}
+                              {!isBarterProposal && (inf as { paid_in_product?: boolean }).paid_in_product && (
+                                <Badge variant="outline" className="gap-1" title="Paid in product, outside the budget">
+                                  <Gift className="h-3 w-3" />
+                                  {(inf as { barter_product?: string | null }).barter_product || 'On product'}
+                                </Badge>
+                              )}
                               {isBarterProposal && (inf as { barter_state?: string }).barter_state !== 'agreed' && (
                                 <Badge
                                   variant="outline"
@@ -774,6 +785,7 @@ export default function ProposalApprovalPage() {
         /* A barter proposal pays in product, so the picker opens narrowed to the creators
            who have said they would consider one. */
         isBarter={isBarterProposal}
+        productAllowance={productAllowance}
       />
     </SuperadminLayout>
   )

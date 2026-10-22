@@ -209,6 +209,11 @@ export const proposalApprovalApi = {
   // TM adds selected master-DB creators (with deliverable assignments) to the proposal.
   addFromDb: (
     proposalId: string,
-    payload: { influencer_ids: string[]; deliverable_assignments?: { influencer_db_id: string; deliverables: { type: string; quantity: number }[] }[] },
+    payload: {
+      influencer_ids: string[]
+      deliverable_assignments?: { influencer_db_id: string; deliverables: { type: string; quantity: number }[] }[]
+      /** The barter half of a mixed paid deal: added paid in product with the proposal offer. */
+      on_product?: boolean
+    },
   ) => jfetch(`${BASE}/${proposalId}/add-from-db`, { method: 'POST', body: JSON.stringify(payload) }),
 };

@@ -132,10 +132,13 @@ function fmt(n?: number) {
   return String(n);
 }
 
-export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, isBarter }: {
+export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, isBarter, productAllowance }: {
   proposalId: string; open: boolean; onOpenChange: (v: boolean) => void; onAdded?: () => void;
   /** This proposal pays in product, so the picker opens narrowed to creators who take it. */
   isBarter?: boolean;
+  /** A PAID proposal that may also take creators on product (its barter allowance). When
+   *  present the dialog can add either way: paid, or on product with this offer. */
+  productAllowance?: { slots: number | null; product: string | null } | null;
 }) {
   const [search, setSearch] = useState("");
   const [country, setCountry] = useState<string>(ANY_COUNTRY);
@@ -154,6 +157,11 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
      once added - they land at "Asking" and cannot reach the client until a human says
      they agreed. The filter saves time; the state is the safety. */
   const [onlyBarter, setOnlyBarter] = useState(false);
+  /* Adding the barter half of a mixed deal. Its own mode rather than a per-row switch: the
+     two halves are searched differently (only creators who take barter, priced or not),
+     and one dialog doing both at once is how a paid creator lands on a voucher. */
+  const [onProduct, setOnProduct] = useState(false);
+  const productMode = Boolean(isBarter) || onProduct;
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -177,8 +185,8 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
         pageSize: PAGE_SIZE,
         countries: country !== ANY_COUNTRY ? [country] : undefined,
         excludeProposalId: proposalId,
-        acceptsBarter: onlyBarter || undefined,
-        barterRoster: isBarter || undefined,
+        acceptsBarter: onlyBarter || onProduct || undefined,
+        barterRoster: productMode || undefined,
         sortBy,
         sortOrder,
       });
@@ -192,13 +200,14 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
     } finally {
       setLoading(false); setLoadingMore(false);
     }
-  }, [search, country, proposalId, sort, onlyBarter, isBarter]);
+  }, [search, country, proposalId, sort, onlyBarter, isBarter, onProduct, productMode]);
 
   useEffect(() => {
     if (!open) return;
     setSelected({}); setSearch(""); setCountry(ANY_COUNTRY); setResults([]); setPage(1);
     setSort("created_at:desc");
     setOnlyBarter(Boolean(isBarter));
+    setOnProduct(false);
     fetchPage(1, false);
     proposalApprovalApi.getCountries()
       .then((r) => setCountries(r?.data?.countries ?? []))
@@ -212,7 +221,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
     const t = setTimeout(() => fetchPage(1, false), 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, country, sort]);
+  }, [search, country, sort, onProduct]);
 
   /**
    * Is a missing sell price a reason to refuse this creator?
@@ -225,7 +234,7 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
    * select-all, the row's opacity and the checkbox's disabled state - and fixing two of them
    * left a roster that looked greyed out and refused to be ticked for no stated reason.
    */
-  const blockedByPrice = (c: Creator) => !isBarter && c.sellable === false;
+  const blockedByPrice = (c: Creator) => !productMode && c.sellable === false;
 
   const toggle = (c: Creator) => {
     // Nobody can be quoted without a sell price, so taking them would only produce a row
@@ -294,7 +303,9 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
           deliverables: Object.entries(selected[id].deliverables).map(([type, quantity]) => ({ type, quantity })),
         }))
         .filter((a) => a.deliverables.length > 0);
-      const res = await proposalApprovalApi.addFromDb(proposalId, { influencer_ids, deliverable_assignments });
+      const res = await proposalApprovalApi.addFromDb(proposalId, {
+        influencer_ids, deliverable_assignments, on_product: onProduct || undefined,
+      });
       // What the server actually did, and its reasons. This used to subtract the count and
       // call the difference "already on this proposal" — which sent somebody hunting for a
       // creator who was not on it at all. The real answer is usually "no sell price yet".
@@ -346,8 +357,28 @@ export function TmAddCreatorsDialog({ proposalId, open, onOpenChange, onAdded, i
       <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[92vh] overflow-hidden p-0">
         <DialogHeader className="border-b p-5">
           <DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4" /> Add creators from the master database</DialogTitle>
+          {/* A mixed deal: which half is being added. Switching clears the ticks, so a
+              creator picked as paid can never be submitted as product by accident. */}
+          {productAllowance && !isBarter && (
+            <div className="mt-2 grid w-full grid-cols-2 gap-1 rounded-lg bg-muted p-1 sm:w-80">
+              {[false, true].map((p) => (
+                <button
+                  key={String(p)}
+                  type="button"
+                  onClick={() => { if (p !== onProduct) { setSelected({}); setOnProduct(p); } }}
+                  className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                    onProduct === p ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {p ? <><Gift className="h-3.5 w-3.5" />On product</> : "Paid"}
+                </button>
+              ))}
+            </div>
+          )}
           <DialogDescription>
-            {isBarter
+            {onProduct
+              ? `Creators who take barter, priced or not. They get ${productAllowance?.product || "the proposal's product"} instead of a fee${productAllowance?.slots ? `, and the client may take up to ${productAllowance.slots}` : ""}.`
+              : isBarter
               ? "This proposal pays in product, so a sell price is not needed to take somebody. Anyone you add who has not agreed to the product stays off the client's roster until you mark them."
               : "Active creators only, and anyone already on this proposal is hidden. A creator with no sell price yet is shown, and a founder can price them from their row."}
           </DialogDescription>
