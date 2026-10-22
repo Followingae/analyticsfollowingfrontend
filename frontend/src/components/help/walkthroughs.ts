@@ -191,6 +191,8 @@ export const WALKTHROUGHS: Walkthrough[] = [
         body: 'Where you found them, whether they take barter. Write it for whoever reads it next year.' },
       { title: 'Press Add',
         body: 'They are saved at once and go to the Waiting room.' },
+      { title: 'Their TikTok and YouTube',
+        body: 'Open the creator and paste the links on the Overview tab. Clients then see those buttons beside Instagram on the proposal.' },
       { title: 'Nothing is spent yet',
         body: 'We only pull their numbers after a founder approves them. Adding people costs nothing.' },
       { title: 'What happens next',

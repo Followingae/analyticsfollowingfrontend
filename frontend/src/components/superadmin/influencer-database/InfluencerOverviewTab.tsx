@@ -51,6 +51,16 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
   const [acceptsBarter, setAcceptsBarter] = useState(Boolean(influencer.accepts_barter))
   const [barterNote, setBarterNote] = useState(influencer.barter_note || "")
   const [countryOptions, setCountryOptions] = useState<string[]>([])
+  const [tiktok, setTiktok] = useState<string>(influencer.platforms?.tiktok || "")
+  const [youtube, setYoutube] = useState<string>(influencer.platforms?.youtube || "")
+
+  /* Blank removes the link; the backend merges each platform on its own, so saving
+     one never clears the other. */
+  function saveSocial(platform: "tiktok" | "youtube", value: string) {
+    const v = value.trim()
+    if (v === (influencer.platforms?.[platform] || "")) return
+    onSave({ [`${platform}_url`]: v })
+  }
 
   useEffect(() => {
     proposalApprovalApi.getCountries()
@@ -223,6 +233,27 @@ export function InfluencerOverviewTab({ influencer, onSave }: InfluencerOverview
         </datalist>
         <p className="max-w-[65ch] text-ds-caption text-muted-foreground">
           Where this creator is open to <em>work</em>: our record, not where they live. Leave blank if unknown.
+        </p>
+      </div>
+
+      {/* Their other channels. The client sees a TikTok or YouTube button on the
+          creator's proposal card only when a link is saved here. */}
+      <div className="flex flex-col gap-ds-2">
+        <Label>TikTok and YouTube</Label>
+        <Input
+          placeholder="https://www.tiktok.com/@handle"
+          value={tiktok}
+          onChange={(e) => setTiktok(e.target.value)}
+          onBlur={() => saveSocial("tiktok", tiktok)}
+        />
+        <Input
+          placeholder="https://www.youtube.com/@handle"
+          value={youtube}
+          onChange={(e) => setYoutube(e.target.value)}
+          onBlur={() => saveSocial("youtube", youtube)}
+        />
+        <p className="max-w-[65ch] text-ds-caption text-muted-foreground">
+          Shown to clients beside Instagram on proposals. Leave blank if they have none.
         </p>
       </div>
 

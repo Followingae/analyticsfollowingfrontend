@@ -13,7 +13,7 @@
  */
 import {
   Instagram, Heart, Users, Eye, MessageCircle, CalendarDays, Clock, BarChart3, Check, Plus, Star, TriangleAlert,
-  ChevronRight,
+  ChevronRight, Youtube,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { ScreenshotLightbox } from "@/components/ScreenshotLightbox"
@@ -27,6 +27,18 @@ import { creatorCost, whyFor } from "./optimiser"
 const fmt = (n?: number | null) =>
   n == null ? "—" : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}K` : `${Math.round(n)}`
 const aed = (n: number) => `AED ${Math.round(n).toLocaleString("en-US")}`
+
+const SOCIAL_BTN =
+  "grid size-9 shrink-0 place-items-center rounded-lg border text-muted-foreground transition hover:bg-muted hover:text-foreground"
+
+/** Lucide has no TikTok mark, so this is the note glyph drawn in the same stroke style. */
+function TikTokGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M9 12a4 4 0 1 0 4 4V3c.5 2.5 2.5 4.5 5 5" />
+    </svg>
+  )
+}
 
 const FORMAT: Record<string, string> = { reel: "Reels", carousel: "Carousels", image: "Photos", video: "Videos" }
 const STANDING: Record<string, string> = {
@@ -69,17 +81,31 @@ export function CreatorSheet({
               <SheetTitle className="truncate text-left text-lg">{c.full_name || c.username}</SheetTitle>
               <p className="text-sm text-muted-foreground">@{c.username}</p>
             </div>
-            {c.username && (
-              <a
-                href={`https://instagram.com/${c.username}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={`@${c.username} on Instagram`}
-                className="ml-auto mr-9 grid size-9 shrink-0 place-items-center rounded-lg border text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              >
-                <Instagram className="size-4" />
-              </a>
-            )}
+            {/* Each channel we hold a link for, Instagram first. TikTok and YouTube only
+                appear when we saved a link, so a button never leads nowhere. */}
+            <div className="ml-auto mr-9 flex shrink-0 items-center gap-1.5">
+              {c.username && (
+                <a
+                  href={`https://instagram.com/${c.username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`@${c.username} on Instagram`}
+                  className={SOCIAL_BTN}
+                >
+                  <Instagram className="size-4" />
+                </a>
+              )}
+              {c.socials?.tiktok && (
+                <a href={c.socials.tiktok} target="_blank" rel="noopener noreferrer" title="On TikTok" className={SOCIAL_BTN}>
+                  <TikTokGlyph className="size-4" />
+                </a>
+              )}
+              {c.socials?.youtube && (
+                <a href={c.socials.youtube} target="_blank" rel="noopener noreferrer" title="On YouTube" className={SOCIAL_BTN}>
+                  <Youtube className="size-4" />
+                </a>
+              )}
+            </div>
           </div>
         </SheetHeader>
 

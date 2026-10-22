@@ -254,6 +254,8 @@ export interface BrandProposalView {
 export interface BrandInfluencer {
   id: string
   influencer_db_id?: string
+  /** TikTok / YouTube links, only the ones we hold. */
+  socials?: { tiktok?: string; youtube?: string }
   priority_order: number
   /** We put our name on this one for this client, with the one-line reason. */
   recommended?: boolean
