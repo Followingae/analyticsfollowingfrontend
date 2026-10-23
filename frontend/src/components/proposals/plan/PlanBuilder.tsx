@@ -703,8 +703,12 @@ export function PlanBuilder({ proposalId, data, onReload }: {
           )}
         </div>
 
-        {/* the plan */}
-        <aside className="sticky top-[76px] flex max-h-[calc(100vh-96px)] flex-col gap-4 overflow-auto">
+        {/* the plan.
+            Sized to end ABOVE the dock fixed to the bottom of the screen. It ended 20px from
+            the bottom, so its last ~60px sat under the dock and the last creators in a long
+            line-up could not be scrolled into view at all. Sections never shrink: a squeezed
+            section clips its own list instead of letting the panel scroll. */}
+        <aside className="sticky top-[76px] flex max-h-[calc(100dvh-76px-96px)] flex-col gap-4 overflow-y-auto overscroll-contain pb-2 [&>*]:shrink-0">
           {/* A retainer is the same places repeating. Each month is filled and confirmed on
               its own, and one that has not opened yet cannot be touched. */}
           {months.length > 0 && (

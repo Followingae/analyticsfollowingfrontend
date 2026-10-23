@@ -59,10 +59,12 @@ export const CreatorTile = memo(function CreatorTile({
   /* Our recommendation outranks the optimiser's, so only one of these can ever be true. */
   const ours = !!c.recommended && !declined
   const flash = !ours && smartPick && !!why && !declined && !locked
-  // Which platforms this booking covers. Shown only when it goes beyond Instagram, which is
-  // the default and would otherwise put the same icon on every tile.
-  const bookedOn = Array.from(new Set((c.assigned_deliverables ?? []).flatMap(platformsOfLine))) as Platform[]
-  const multiPlatform = bookedOn.some((p) => p !== "instagram")
+  // Which platforms this booking covers, on every tile. It was shown only when a booking
+  // went beyond Instagram, which left an Instagram-only or TikTok-only creator saying
+  // nothing about what the client was choosing. A creator with no line yet is booked on
+  // Instagram by default, so that is what they show.
+  const bookedOn = (Array.from(new Set((c.assigned_deliverables ?? []).flatMap(platformsOfLine))) as Platform[])
+  if (!bookedOn.length) bookedOn.push("instagram")
 
   return (
     <article
@@ -144,7 +146,7 @@ export const CreatorTile = memo(function CreatorTile({
           <div className="flex items-center gap-4 text-[13px] font-semibold">
             <span className="inline-flex items-center gap-1.5"><Users className="size-3.5 opacity-80" />{fmt(c.followers_count)}</span>
             {er != null && <span className="inline-flex items-center gap-1.5"><Heart className="size-3.5 opacity-80" />{er.toFixed(2)}%</span>}
-            {multiPlatform && (
+            {bookedOn.length > 0 && (
               <span className="ml-auto inline-flex items-center gap-1.5 opacity-90" title={`Booked on ${bookedOn.map((p) => PLATFORM_LABEL[p]).join(", ")}`}>
                 {bookedOn.map((p) => <PlatformIcon key={p} platform={p} className="size-3.5" />)}
               </span>
