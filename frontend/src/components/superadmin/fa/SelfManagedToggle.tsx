@@ -54,9 +54,8 @@ export function SelfManagedToggle({
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            Your team approves and rejects every applicant, so there is no 72-hour
-            auto-approval on a self-managed campaign, so applications wait until someone
-            decides.
+            Your team approves and rejects every applicant, so a self-managed campaign has
+            no timer: applications wait until someone decides.
             {requiresMerchant && " A merchant is still required: cashback is claimed by scanning a receipt at one."}
           </AlertDescription>
         </Alert>

@@ -98,7 +98,7 @@ export function AutoApproveCard({ campaignId }: { campaignId: string }) {
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
           {state.active ? <Clock className="size-4 text-primary" /> : <TimerOff className="size-4 text-muted-foreground" />}
-          Accepting applications automatically
+          Closing unanswered applications
           {state.is_default && <Badge variant="outline" className="text-[10px]">Default</Badge>}
           {!state.is_default && !paid && (
             <Badge className="text-[10px]">Set for this campaign</Badge>
@@ -126,8 +126,8 @@ export function AutoApproveCard({ campaignId }: { campaignId: string }) {
           /* Not a switch that is merely off — one that does not exist here. Explaining why
              is the difference between a rule and a bug. */
           <p className="text-sm text-muted-foreground">
-            Paid deals are never accepted on a timer. A payment has to be agreed by a
-            person, and silence is not agreement.
+            Paid deals have no timer. A payment has to be agreed by a person, so paid
+            applications wait however long that takes.
           </p>
         ) : (
           <>
@@ -180,7 +180,7 @@ export function AutoApproveCard({ campaignId }: { campaignId: string }) {
               ) : (
                 <Button size="sm" variant="ghost" disabled={saving} onClick={() => save(false, null)}>
                   <TimerOff className="mr-1.5 size-3.5" />
-                  Never auto-accept
+                  Never close them
                 </Button>
               )}
               {!state.is_default && (
@@ -192,8 +192,8 @@ export function AutoApproveCard({ campaignId }: { campaignId: string }) {
 
             <p className="text-[11.5px] leading-relaxed text-muted-foreground">
               Nothing here changes what happens when the brand answers in time. It only
-              decides how long we wait before deciding for them, and the countdown the brand
-              sees moves with it.
+              decides how long an unanswered application waits before it is declined, and the
+              countdown the brand sees moves with it. Nobody is ever accepted by the timer.
             </p>
           </>
         )}
