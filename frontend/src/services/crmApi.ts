@@ -54,6 +54,8 @@ export interface Board {
   stages: { key: Stage; label: string; deals: Deal[] }[]
   totals: { open: number; value_aed: number | null; without_a_budget: number }
   can_edit: boolean
+  /** Founders only: asking talent opens a roster and sends the team to work. */
+  can_ask_talent?: boolean
 }
 
 export interface WorkRequest {

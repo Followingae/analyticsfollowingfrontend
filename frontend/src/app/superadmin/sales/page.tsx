@@ -190,7 +190,7 @@ function Pipeline() {
               </div>
               <div className="space-y-2">
                 {s.deals.map((d) => (
-                  <DealCard key={d.id} deal={d} canEdit={!!board?.can_edit}
+                  <DealCard key={d.id} deal={d} canEdit={!!board?.can_edit} canAsk={!!board?.can_ask_talent}
                             onMove={(st) => move(d, st)}
                             onAsk={() => setAsking(d)}
                             onOpen={() => router.push(`/work/sales/${d.brand_id}`)} />
@@ -212,7 +212,8 @@ function Pipeline() {
   )
 }
 
-function DealCard({ deal, canEdit, onMove, onAsk, onOpen }: {
+function DealCard({ deal, canEdit, canAsk, onMove, onAsk, onOpen }: {
+  canAsk?: boolean
   deal: Deal
   canEdit: boolean
   onMove: (s: Stage) => void
@@ -275,7 +276,7 @@ function DealCard({ deal, canEdit, onMove, onAsk, onOpen }: {
         <div className="flex flex-wrap gap-1.5 pt-0.5">
           {/* Asking is offered until it has been asked, at any stage. The whole point is
               that it can happen before the deal is won. */}
-          {!asked && !deal.closed_at && (
+          {canAsk && !asked && !deal.closed_at && (
             <Button size="sm" variant="outline" className="h-7 flex-1 px-2 text-ds-caption"
                     onClick={onAsk}>
               <Sparkles className="mr-1 h-3 w-3" /> Ask talent
