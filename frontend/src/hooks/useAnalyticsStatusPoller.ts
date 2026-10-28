@@ -26,8 +26,11 @@ export interface AnalyticsStatusMap {
  * `not_started` belongs here and is the important one: a creator nobody has ever analysed
  * is not a creator being analysed. Defaulting a missing status to "pending" is what put
  * "2 influencers are being analyzed" on the screen for days with no job anywhere near them. */
+// `pending` is here too: on the master database it means "waiting for a founder to approve",
+// and nothing runs until they do. Only `queued` and `processing` are real work. Counting
+// pending put "Analysing 25 creators" on screen for 193 imported creators nobody had started.
 const TERMINAL_STATUSES = new Set([
-  "completed", "failed", "skipped", "unavailable", "not_started",
+  "completed", "failed", "skipped", "unavailable", "not_started", "pending",
 ])
 const POLL_INTERVAL_MS = 5000
 
