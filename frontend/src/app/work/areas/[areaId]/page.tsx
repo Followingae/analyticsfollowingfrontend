@@ -26,7 +26,7 @@ import {
 import {
   ArrowLeft, Loader2, Plus, Search, X, Globe, Check, MoreHorizontal,
   Download, Link2, Copy, BarChart3, Link as LinkIcon, ShieldCheck, Ban,
-  Lock, RotateCcw, ThumbsDown, Pencil } from "lucide-react"
+  Lock, RotateCcw, ThumbsDown, Pencil, ClipboardPaste, Send, CircleSlash, FileText, Undo2 } from "lucide-react"
 import { toast } from "sonner"
 import { imdListsApi, creatorShareApi, type ImdListCreator, type ImdListSummary } from "@/services/imdListsApi"
 import { proposalApprovalApi } from "@/services/proposalApprovalApi"
@@ -38,6 +38,14 @@ import { BriefDetail } from "@/components/console/BriefDetail"
 import { BriefFields } from "@/components/console/BriefFields"
 import { useConfirm } from "@/components/console/confirm"
 import type { AreaBrief } from "@/services/imdListsApi"
+import { rosterSheetApi } from "@/services/imdListsApi"
+import { QuoteCell } from "@/components/roster/QuoteCell"
+import { PasteDialog } from "@/components/roster/PasteDialog"
+import { PriceClearDialog } from "@/components/roster/PriceClearDialog"
+import { ToProposalDialog } from "@/components/roster/ToProposalDialog"
+import { CreatorPanel } from "@/components/roster/CreatorPanel"
+import { aed } from "@/components/roster/rosterFormat"
+import { budgetBand } from "@/lib/areaBrief"
 
 const ANY_COUNTRY = "__any__"
 const PAGE_SIZE = 40
@@ -91,6 +99,19 @@ export default function ImdListDetailPage() {
   const [briefOpen, setBriefOpen] = useState(false)
   const [briefDraft, setBriefDraft] = useState<AreaBrief>({})
   const [briefBusy, setBriefBusy] = useState(false)
+
+  /* The sheet. Paste a list in, let someone go for this campaign with a reason, and the
+     founders' half: price and clear, then straight onto a proposal. */
+  const [pasteOpen, setPasteOpen] = useState(false)
+  const [passOpen, setPassOpen] = useState(false)
+  const [passWhy, setPassWhy] = useState("")
+  const [priceOpen, setPriceOpen] = useState(false)
+  const [priceRows, setPriceRows] = useState<ImdListCreator[]>([])
+  const [proposalOpen, setProposalOpen] = useState(false)
+  const [proposalIds, setProposalIds] = useState<string[]>([])
+  const [panel, setPanel] = useState<{ id: string; username: string } | null>(null)
+  const [backOpen, setBackOpen] = useState(false)
+  const [backNote, setBackNote] = useState("")
 
   // add-creators picker
   const [open, setOpen] = useState(false)
@@ -316,6 +337,41 @@ export default function ImdListDetailPage() {
     }
   }
 
+  const talentMarked = async (action: "shortlist" | "pass" | "reset", reason?: string) => {
+    const ids = markedIds.length ? markedIds : []
+    if (!ids.length) return
+    setGateBusy(true)
+    try {
+      const res = await rosterSheetApi.talent(listId, ids, action, reason)
+      toast.success(action === "shortlist" ? `${res.data.updated} sent for review`
+        : action === "pass" ? `${res.data.updated} let go for this campaign, still in the database`
+        : `${res.data.updated} back to work on`)
+      setMarked({}); setPassOpen(false); setPassWhy(""); load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not update them")
+    } finally {
+      setGateBusy(false)
+    }
+  }
+
+  const openPrice = (rows: ImdListCreator[]) => { setPriceRows(rows); setPriceOpen(true) }
+
+  /** A founder's answer to a shortlist, on the rows, instead of a reply to an emailed sheet. */
+  const sendBack = async () => {
+    if (!markedIds.length || !backNote.trim()) return
+    setGateBusy(true)
+    try {
+      await rosterSheetApi.reviewNote(listId, markedIds, backNote.trim(), true)
+      toast.success(`${markedIds.length} sent back with your note`)
+      setMarked({}); setBackOpen(false); setBackNote(""); load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not send them back")
+    } finally {
+      setGateBusy(false)
+    }
+  }
+  const openProposal = (ids: string[]) => { setProposalIds(ids); setProposalOpen(true) }
+
   // ── the round loop ──────────────────────────────────────────────────────────────────
   // Three things and no more: which pass we are on, who the client turned down and why, and
   // whether the round is closed.
@@ -430,21 +486,32 @@ export default function ImdListDetailPage() {
    * last, dimmed, and still present: a creator the client turned down is the reason the next
    * round is built the way it is.
    */
-  const BANDS = [
-    { key: "waiting" as const, label: "Waiting on you" },
-    { key: "cleared" as const, label: "Cleared to share" },
-    { key: "out" as const, label: "Ruled out" },
+  /* The order the work happens in, which is the order of the sheet: being worked on, sent
+     to a founder for a price, ready for a proposal, let go for this one (still ours), and
+     ruled out by a founder or the client. */
+  type BandKey = "work" | "review" | "ready" | "passed" | "out"
+  const BANDS: { key: BandKey; label: string }[] = [
+    { key: "work", label: "Working on" },
+    { key: "review", label: "Sent for review" },
+    { key: "ready", label: "Ready for a proposal" },
+    { key: "passed", label: "Not this time" },
+    { key: "out", label: "Ruled out" },
   ]
   const banded = useMemo(() => {
-    const out: Record<"waiting" | "cleared" | "out", ImdListCreator[]> =
-      { waiting: [], cleared: [], out: [] }
+    const out: Record<BandKey, ImdListCreator[]> = { work: [], review: [], ready: [], passed: [], out: [] }
     for (const c of list?.items ?? []) {
       if (c.dropped_at || c.struck_at) out.out.push(c)
-      else if (c.cleared_at) out.cleared.push(c)
-      else out.waiting.push(c)
+      else if (c.cleared_at) out.ready.push(c)
+      else if (c.talent_state === "passed") out.passed.push(c)
+      else if (c.talent_state === "shortlisted") out.review.push(c)
+      else out.work.push(c)
     }
     return out
   }, [list])
+  const bandMax = list?.brief?.budget_max ? Number(list.brief.budget_max) : null
+  const band = budgetBand(list?.brief)
+  const markedRows = (list?.items ?? []).filter(c => marked[c.id])
+  const markedCleared = markedRows.filter(c => c.cleared_at && !c.struck_at && !c.dropped_at)
   const pickedCount = Object.keys(picked).length
   const hasMore = results.length < total
 
@@ -503,8 +570,8 @@ export default function ImdListDetailPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-60">
                       {canStock && !locked && (
-                        <DropdownMenuItem onClick={() => setSoftAddOpen(true)}>
-                          <Plus className="mr-2 h-4 w-4" />Add by handle
+                        <DropdownMenuItem onClick={() => setPasteOpen(true)}>
+                          <ClipboardPaste className="mr-2 h-4 w-4" />Paste a list
                         </DropdownMenuItem>
                       )}
                       {/* One live link per roster. While one exists the control copies it
@@ -544,6 +611,23 @@ export default function ImdListDetailPage() {
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  {/* The founders' two steps, shown only when there is something to do. */}
+                  {canDestroy && !locked && banded.review.length > 0 && (
+                    <Button variant="outline" className="gap-2" onClick={() => openPrice(banded.review)}>
+                      <ShieldCheck className="h-4 w-4" />Price {banded.review.length} shortlisted
+                    </Button>
+                  )}
+                  {canStock && banded.ready.length > 0 && (
+                    <Button variant="outline" className="gap-2"
+                            onClick={() => openProposal(banded.ready.map(c => c.id))}>
+                      <FileText className="h-4 w-4" />Add to a proposal
+                    </Button>
+                  )}
+                  {canStock && !locked && (
+                    <Button variant="outline" className="gap-2" onClick={() => setPasteOpen(true)}>
+                      <ClipboardPaste className="h-4 w-4" />Paste a list
+                    </Button>
+                  )}
                   {canStock && !locked && (
                     <Button className="gap-2" onClick={() => setOpen(true)}>
                       <Plus className="h-4 w-4" />Add creators
@@ -581,10 +665,11 @@ export default function ImdListDetailPage() {
                   <div className="mt-ds-3">
                     <FieldStrip fields={[
                       { label: 'Found', value: list.items.length },
-                      { label: 'Cleared', value: clearedCount },
-                      { label: 'Waiting on you', value: awaitingCount || '—' },
+                      { label: 'For review', value: banded.review.length || '—' },
+                      { label: 'Ready', value: clearedCount || '—' },
                       { label: 'Picked', value: pickedByClient || '—' },
                       { label: 'Turned down', value: droppedCount || '—' },
+                      { label: 'Budget per creator', value: band ? band.replace(' per creator', '') : '—' },
                       {
                         label: 'Wanted by',
                         value: list.due_at
@@ -662,11 +747,24 @@ export default function ImdListDetailPage() {
                    list needs to say where it ends. Radius from the token scale. */
                 <div className="sticky top-2 z-10 flex flex-wrap items-center gap-ds-2 rounded-ds-lg border bg-background/95 p-ds-2 shadow-sm backdrop-blur">
                   <span className="text-sm font-medium">{markedIds.length} selected</span>
-                  <span className="text-xs text-muted-foreground">
-                    Cleared creators are the only ones a share link shows.
-                  </span>
-                  <div className="ml-auto flex gap-2">
+                  <div className="ml-auto flex flex-wrap justify-end gap-2">
                     <Button size="sm" variant="ghost" onClick={() => setMarked({})}>Cancel</Button>
+                    {/* Talent's own pass. Sending for review is "these are good, please
+                        price them"; not this time keeps them in the database with the reason. */}
+                    {markedRows.some(c => c.talent_state === "passed") && (
+                      <Button size="sm" variant="outline" className="gap-1.5" disabled={gateBusy}
+                              onClick={() => talentMarked("reset")}>
+                        <Undo2 className="h-3.5 w-3.5" />Back to working on
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" className="gap-1.5" disabled={gateBusy}
+                            onClick={() => setPassOpen(true)}>
+                      <CircleSlash className="h-3.5 w-3.5" />Not this time
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1.5" disabled={gateBusy}
+                            onClick={() => talentMarked("shortlist")}>
+                      <Send className="h-3.5 w-3.5" />Send for review
+                    </Button>
                     {/* Recording the client's answer is not a founder's decision, it is
                         writing down something they have already said, so anyone stocking the
                         area can do it. Striking and clearing stay leadership's. */}
@@ -680,11 +778,20 @@ export default function ImdListDetailPage() {
                                 onClick={() => setStrikeOpen(true)}>
                           <Ban className="h-3.5 w-3.5" />Take off the table
                         </Button>
-                        <Button size="sm" className="gap-1.5" disabled={gateBusy} onClick={clearMarked}>
-                          {gateBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    : <ShieldCheck className="h-3.5 w-3.5" />}
-                          Clear to share
+                        <Button size="sm" variant="outline" className="gap-1.5" disabled={gateBusy}
+                                onClick={() => setBackOpen(true)}>
+                          <Undo2 className="h-3.5 w-3.5" />Send back
                         </Button>
+                        <Button size="sm" variant="outline" className="gap-1.5" disabled={gateBusy}
+                                onClick={() => openPrice(markedRows)}>
+                          <ShieldCheck className="h-3.5 w-3.5" />Price and clear
+                        </Button>
+                        {markedCleared.length > 0 && (
+                          <Button size="sm" className="gap-1.5" disabled={gateBusy}
+                                  onClick={() => openProposal(markedCleared.map(c => c.id))}>
+                            <FileText className="h-3.5 w-3.5" />Add {markedCleared.length} to a proposal
+                          </Button>
+                        )}
                       </>
                     )}
                   </div>
@@ -716,9 +823,8 @@ export default function ImdListDetailPage() {
                         {canStock && !locked && <TableHead className="w-8" />}
                         <TableHead>Creator</TableHead>
                         <TableHead className="text-right">Followers</TableHead>
-                        <TableHead className="text-right">Engagement</TableHead>
-                        <TableHead>Country</TableHead>
-                        <TableHead>Tier</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Last time</TableHead>
                         <TableHead>State</TableHead>
                         <TableHead className="w-[8.5rem]" />
                       </TableRow>
@@ -730,14 +836,14 @@ export default function ImdListDetailPage() {
                         return (
                           <React.Fragment key={band.key}>
                             <TableRow className="hover:bg-transparent">
-                              <TableCell colSpan={canStock && !locked ? 8 : 7} className="py-0">
+                              <TableCell colSpan={canStock && !locked ? 7 : 6} className="py-0">
                                 <GroupLabel>{band.label}</GroupLabel>
                               </TableCell>
                             </TableRow>
                             {rows.map((c) => (
                               <TableRow
                                 key={c.item_id}
-                                className={`group ${c.struck_at || c.dropped_at ? "opacity-55" : ""} ${
+                                className={`group ${c.struck_at || c.dropped_at || c.talent_state === "passed" ? "opacity-55" : ""} ${
                                   marked[c.id] ? "bg-[var(--tone-info-wash)]" : ""}`}
                               >
                                 {canStock && !locked && (
@@ -760,35 +866,44 @@ export default function ImdListDetailPage() {
                                       <AvatarImage src={cdnAvatar(c.profile_image_url)} />
                                       <AvatarFallback>{(c.username || "?")[0]?.toUpperCase()}</AvatarFallback>
                                     </Avatar>
-                                    <span className="min-w-0">
-                                      <span className="block truncate text-sm font-medium">@{c.username}</span>
+                                    <button type="button" className="min-w-0 text-left"
+                                            onClick={() => setPanel({ id: c.id, username: c.username })}>
+                                      <span className="block truncate text-sm font-medium hover:underline">@{c.username}</span>
                                       <span className="block truncate text-xs text-muted-foreground">
-                                        {c.full_name}
+                                        {[c.full_name, c.country, c.tiktok_username ? "TikTok" : null,
+                                          c.youtube_handle ? "YouTube" : null].filter(Boolean).join(" · ")}
                                       </span>
-                                    </span>
+                                      {(c.relationship_tags?.length || c.passed_elsewhere_reason) ? (
+                                        <span className="block truncate text-ds-caption text-[var(--tone-good-ink)]">
+                                          {c.relationship_tags?.slice(0, 2).join(" · ")}
+                                          {c.passed_elsewhere_reason && (
+                                            <span className="text-muted-foreground">
+                                              {c.relationship_tags?.length ? " · " : ""}let go before: {c.passed_elsewhere_reason}
+                                            </span>
+                                          )}
+                                        </span>
+                                      ) : null}
+                                    </button>
                                   </span>
                                 </TableCell>
                                 <TableCell className="text-right tabular-nums">
                                   {fmt(c.followers_count)}
                                 </TableCell>
-                                <TableCell className="text-right tabular-nums">
-                                  {/* Whether we actually measured this creator decides what a
-                                      share link would show, so it sits where the measurement
-                                      would have been rather than as a badge further along. */}
-                                  {!c.analytics_status ? (
-                                    <span className="inline-flex items-center gap-1 text-muted-foreground"
-                                          title="Never analysed, so a share link shows no numbers">
-                                      <BarChart3 className="h-3 w-3" />none
-                                    </span>
-                                  ) : c.engagement_rate != null ? (
-                                    `${Number(c.engagement_rate).toFixed(1)}%`
-                                  ) : (
-                                    <span className="text-muted-foreground">–</span>
-                                  )}
+                                <TableCell className="max-w-[15rem]">
+                                  <QuoteCell listId={listId} c={c} bandMax={bandMax}
+                                             editable={canStock && !locked && !c.dropped_at}
+                                             onSaved={load} />
                                 </TableCell>
-                                <TableCell className="text-muted-foreground">{c.country || "–"}</TableCell>
-                                <TableCell className="capitalize text-muted-foreground">
-                                  {c.tier || "–"}
+                                <TableCell className="text-sm">
+                                  {c.last_agreed_aed_cents != null ? (
+                                    <span className="flex flex-col">
+                                      <span className="tabular-nums">{aed(c.last_agreed_aed_cents)}</span>
+                                      <span className="max-w-[10rem] truncate text-ds-caption text-muted-foreground"
+                                            title={c.last_agreed_context || undefined}>
+                                        {c.last_agreed_context}
+                                      </span>
+                                    </span>
+                                  ) : <span className="text-muted-foreground">–</span>}
                                 </TableCell>
                                 <TableCell>
                                   {/* Their no outranks ours: it is the one that ends the
@@ -817,10 +932,39 @@ export default function ImdListDetailPage() {
                                     <Badge>Client picked</Badge>
                                   ) : c.cleared_at ? (
                                     <Badge variant="outline" className="gap-1 border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">
-                                      <ShieldCheck className="h-3 w-3" />Cleared
+                                      <ShieldCheck className="h-3 w-3" />Ready
                                     </Badge>
+                                  ) : c.talent_state === "passed" ? (
+                                    <span className="flex flex-col gap-0.5">
+                                      <Badge variant="outline" className="w-fit gap-1 text-muted-foreground">
+                                        <CircleSlash className="h-3 w-3" />Not this time
+                                      </Badge>
+                                      {c.talent_reason && (
+                                        <span className="max-w-[14rem] truncate text-ds-caption text-muted-foreground" title={c.talent_reason}>
+                                          {c.talent_reason}
+                                        </span>
+                                      )}
+                                    </span>
+                                  ) : c.talent_state === "shortlisted" ? (
+                                    <span className="flex flex-col gap-0.5">
+                                      <Badge variant="outline" className="w-fit gap-1 border-transparent bg-[var(--tone-info-wash)]">
+                                        <Send className="h-3 w-3" />For review
+                                      </Badge>
+                                      {c.review_note && (
+                                        <span className="max-w-[14rem] truncate text-ds-caption text-[var(--tone-warn-ink)]" title={c.review_note}>
+                                          {c.review_note}
+                                        </span>
+                                      )}
+                                    </span>
                                   ) : (
-                                    <Badge variant="outline" className="text-muted-foreground">Internal</Badge>
+                                    <span className="flex flex-col gap-0.5">
+                                      <Badge variant="outline" className="w-fit text-muted-foreground">Working on</Badge>
+                                      {c.review_note && (
+                                        <span className="max-w-[14rem] truncate text-ds-caption text-[var(--tone-warn-ink)]" title={c.review_note}>
+                                          {c.review_note}
+                                        </span>
+                                      )}
+                                    </span>
                                   )}
                                 </TableCell>
                                 <TableCell>
@@ -875,6 +1019,65 @@ export default function ImdListDetailPage() {
             </>
           )}
         </div>
+
+        <PasteDialog open={pasteOpen} onOpenChange={setPasteOpen} listId={listId} onDone={load} />
+        <PriceClearDialog open={priceOpen} onOpenChange={setPriceOpen} listId={listId}
+                          rows={priceRows} onDone={() => { setMarked({}); load() }} />
+        <ToProposalDialog open={proposalOpen} onOpenChange={setProposalOpen} listId={listId}
+                          brand={list?.team_name} ids={proposalIds} onDone={() => { setMarked({}); load() }} />
+        <CreatorPanel influencerId={panel?.id ?? null} username={panel?.username}
+                      open={!!panel} onOpenChange={(o) => { if (!o) setPanel(null) }}
+                      founder={canDestroy} onChanged={load} />
+
+        <Dialog open={backOpen} onOpenChange={setBackOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send {markedIds.length} back</DialogTitle>
+              <DialogDescription>
+                They go back to the working list with your note on the row, and it shows on
+                the talent team's Today.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-1.5">
+              <Label>Your note</Label>
+              <Textarea value={backNote} rows={3}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBackNote(e.target.value)}
+                        placeholder="e.g. too expensive for this brief, find options at 3.5k to 4k" />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBackOpen(false)} disabled={gateBusy}>Cancel</Button>
+              <Button onClick={sendBack} disabled={gateBusy || !backNote.trim()}>
+                {gateBusy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Send back
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Not for this campaign. Not a rejection: they stay in the database and on the
+            roster, and the reason travels with them to the next brief. */}
+        <Dialog open={passOpen} onOpenChange={setPassOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Not this time: {markedIds.length} creator{markedIds.length === 1 ? "" : "s"}</DialogTitle>
+              <DialogDescription>
+                They stay in the database and on this roster, just not sent forward for this
+                campaign. The reason is shown wherever they come up next.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-1.5">
+              <Label>Why not for this one</Label>
+              <Textarea value={passWhy} rows={3}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPassWhy(e.target.value)}
+                        placeholder="e.g. above the budget for this brief, no barter, not the right category" />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPassOpen(false)} disabled={gateBusy}>Cancel</Button>
+              <Button onClick={() => talentMarked("pass", passWhy.trim())} disabled={gateBusy || !passWhy.trim()}>
+                {gateBusy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Not this time
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Not in the master database yet. They go to the waiting room for pricing and come
             back into this area on approval. */}

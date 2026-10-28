@@ -19,7 +19,7 @@ import { Aed } from '@/components/console/primitives'
 import type { AreaBrief } from '@/services/imdListsApi'
 import {
   briefDeliverables, deliverableLabel, compMode, barterValue,
-  USAGE_LABEL, FULFILMENT_LABEL, BUDGET_KIND_TAIL, briefGaps,
+  USAGE_LABEL, FULFILMENT_LABEL, BUDGET_KIND_TAIL, briefGaps, budgetBand,
 } from '@/lib/areaBrief'
 
 const fmtDate = (iso?: string) => {
@@ -88,7 +88,8 @@ export function BriefDetail({ brief, dueAt }: { brief?: AreaBrief | null; dueAt?
   const due = fmtDate(dueAt || undefined)
 
   const hasWants = !!(lookingFor || b.market || size || b.audience)
-  const hasOffer = !!((mode !== 'barter' && (b.client_budget || b.budget_per_creator))
+  const band = budgetBand(b)
+  const hasOffer = !!((mode !== 'barter' && (b.client_budget || b.budget_per_creator || band))
     || (mode !== 'cash' && (items.length || barter > 0 || b.fulfilment_mode)))
   const hasBack = !!(delivs.length || b.usage_rights || live || due
     || avoid.length || b.exclusivity_days)
@@ -127,6 +128,9 @@ export function BriefDetail({ brief, dueAt }: { brief?: AreaBrief | null; dueAt?
               </span>
             </span>
           </Fact>
+        ) : null}
+        {mode !== 'barter' && band ? (
+          <Fact label="Budget per creator"><span>{band}</span></Fact>
         ) : null}
         {/* Retired, and read only for the areas that already carry it. Nothing writes this
             any more: a creator's rate lives on the creator. */}

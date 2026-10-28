@@ -85,6 +85,14 @@ export interface AreaBrief {
    * ruling still carry it and still render it, so nothing already written is lost.
    */
   budget_per_creator?: number
+  /**
+   * The band talent sources inside, in AED per creator. Not the retired single figure: a
+   * range the founder sets on the brief so a list is built at the right price the first
+   * time. The Minimalist list came back "way out of budget, we need 3.5k to 4k" a day after
+   * it was built, because this was nowhere on the brief.
+   */
+  budget_min?: number
+  budget_max?: number
   barter_items?: BriefBarterItem[]
   /** How the barter reaches them. Same two words as campaigns.fulfilment_mode. */
   fulfilment_mode?: 'delivery' | 'dine_in'
@@ -195,6 +203,39 @@ export interface ImdListCreator {
   client_verdict?: 'selected' | 'rejected' | null
   client_reason?: string | null
   client_decided_at?: string | null
+  /* ── the sheet ─────────────────────────────────────────────────────────────────── */
+  /** Talent's own pass: sent to a founder, or let go for THIS campaign (still in the database). */
+  talent_state?: 'new' | 'shortlisted' | 'passed'
+  talent_reason?: string | null
+  talent_decided_at?: string | null
+  /** What they asked and what we agreed, in their currency, for this campaign. */
+  quote_asked?: number | null
+  quote_agreed?: number | null
+  quote_currency?: string | null
+  quote_asked_aed_cents?: number | null
+  quote_agreed_aed_cents?: number | null
+  quote_bundle?: string | null
+  quote_usage_monthly?: number | null
+  quote_note?: string | null
+  quoted_at?: string | null
+  /** A founder's word on the row. */
+  review_note?: string | null
+  added_by_email?: string | null
+  tiktok_username?: string | null
+  youtube_handle?: string | null
+  gender?: string | null
+  relationship_tags?: string[] | null
+  has_contact?: boolean
+  cost_reel_aed_cents?: number | null
+  sell_story_aed_cents?: number | null
+  sell_tiktok_video_aed_cents?: number | null
+  sell_youtube_short_aed_cents?: number | null
+  has_package_price?: boolean
+  /** The last price we AGREED with them on another campaign, and which one. */
+  last_agreed_aed_cents?: number | null
+  last_agreed_context?: string | null
+  /** Let go on another roster, and why. Travels with the creator. */
+  passed_elsewhere_reason?: string | null
   /** The live public link, when one has been minted. Null until an operator shares. */
   share_token?: string | null
   share_path?: string | null
@@ -243,6 +284,66 @@ export const creatorShareApi = {
     }),
 
   list: () => jfetch(`${BASE}/creator-shares`),
+}
+
+export interface PasteRow {
+  handle: string
+  state: 'new' | 'known' | 'already_here'
+  asked: number | null
+  agreed: number | null
+  currency: string | null
+  bundle: string | null
+  usage_monthly: number | null
+  asked_aed: number | null
+  agreed_aed: number | null
+  tiktok?: string | null
+  youtube?: string | null
+}
+
+export interface ReadyRow { influencer_id: string; username: string; reason: string | null; line: { type: string; quantity: number } | null }
+
+export interface CreatorHistory {
+  creator: { id: string; username: string; relationship_tags: string[]; gender: string | null; languages: string[]; internal_notes: string | null; has_contact: boolean }
+  quotes: { id: string; context: string | null; asked: number | null; agreed: number | null; currency: string; asked_aed_cents: number | null; agreed_aed_cents: number | null; bundle: string | null; usage_monthly: number | null; note: string | null; source: string; captured_at: string; captured_by_email: string | null; roster: string | null }[]
+  campaigns: { campaign: string; agreed_rate_cents: number | null; stage: string | null; added_at: string | null }[]
+  rosters: { roster: string; brand: string | null; talent_state: string; talent_reason: string | null; struck_reason: string | null; dropped_reason: string | null; client_verdict: string | null; added_at: string }[]
+  last_agreed_aed_cents: number | null
+  fx_as_of: string
+}
+
+export const rosterSheetApi = {
+  meta: (): Promise<{ data: { currencies: string[]; aed_per: Record<string, number>; fx_as_of: string; bundles: { key: string; label: string }[] } }> =>
+    jfetch(`${BASE}/roster-sheet/meta`),
+  paste: (id: string, text: string, dry_run: boolean):
+    Promise<{ data: { rows?: PasteRow[]; added?: number; quoted?: number; new?: number; already_here?: number; message?: string } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/paste`, { method: 'POST', body: JSON.stringify({ text, dry_run }) }),
+  quote: (id: string, influencerId: string, q: { asked?: number | null; agreed?: number | null; currency: string; bundle?: string | null; usage_monthly?: number | null; note?: string | null }) =>
+    jfetch(`${BASE}/imd-lists/${id}/items/${influencerId}/quote`, { method: 'PUT', body: JSON.stringify(q) }),
+  talent: (id: string, influencer_ids: string[], action: 'shortlist' | 'pass' | 'reset', reason?: string):
+    Promise<{ data: { updated: number; state: string } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/talent`, { method: 'POST', body: JSON.stringify({ influencer_ids, action, reason }) }),
+  reviewNote: (id: string, influencer_ids: string[], note: string, send_back = true) =>
+    jfetch(`${BASE}/imd-lists/${id}/review-note`, { method: 'POST', body: JSON.stringify({ influencer_ids, note, send_back }) }),
+  priceAndClear: (id: string, items: { influencer_id: string; sell_aed: number | null }[]):
+    Promise<{ data: { priced: number; cleared: number; problems: { influencer_id: string; username?: string; reason: string }[] } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/price-and-clear`, { method: 'POST', body: JSON.stringify({ items, clear: true }) }),
+  proposalCheck: (id: string, proposalId: string, influencer_ids: string[]):
+    Promise<{ data: { proposal: { id: string; title: string; status: string }; ready: ReadyRow[]; blocked: ReadyRow[] } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/proposal-check/${proposalId}`, { method: 'POST', body: JSON.stringify({ influencer_ids }) }),
+  toProposal: (id: string, proposalId: string, influencer_ids: string[], ack?: { reason: string }):
+    Promise<{ data: { added: number; blocked: ReadyRow[]; skipped_detail: { username: string; reason: string }[]; client_rejected: ClientRejection[] } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/to-proposal/${proposalId}`, {
+      method: 'POST',
+      body: JSON.stringify({ influencer_ids, acknowledge_client_rejections: !!ack, override_reason: ack?.reason }),
+    }),
+  history: (influencerId: string): Promise<{ data: CreatorHistory }> =>
+    jfetch(`${BASE}/influencers/${influencerId}/history`),
+  getContact: (influencerId: string): Promise<{ data: { contact_phone: string | null; contact_email: string | null; contact_updated_at: string | null; updated_by: string | null } }> =>
+    jfetch(`${BASE}/influencers/${influencerId}/contact`),
+  setContact: (influencerId: string, c: { phone?: string; email?: string }) =>
+    jfetch(`${BASE}/influencers/${influencerId}/contact`, { method: 'PUT', body: JSON.stringify(c) }),
+  setRelationship: (influencerId: string, r: { tags: string[]; gender?: string | null; languages?: string[] }) =>
+    jfetch(`${BASE}/influencers/${influencerId}/relationship`, { method: 'PUT', body: JSON.stringify(r) }),
 }
 
 export const imdListsApi = {

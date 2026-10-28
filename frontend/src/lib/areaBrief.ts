@@ -178,6 +178,8 @@ export function briefLine(b?: AreaBrief | null): string {
   if (mode !== 'barter' && b.budget_per_creator) {
     pay.push(`${money(Number(b.budget_per_creator))} each`)
   }
+  const band = budgetBand(b)
+  if (mode !== 'barter' && band) pay.push(band)
   if (mode !== 'cash') {
     const items = (b.barter_items || []).map(i => i.name).filter(Boolean)
     const total = barterValue(b)
@@ -229,6 +231,16 @@ export function briefLine(b?: AreaBrief | null): string {
  * sentence has to admit it. Notes and audience are not here: they help, but nobody is
  * blocked on them.
  */
+/** "AED 3,500 to 4,000 per creator". Kept word for word in step with `_band` in imd_lists_routes.py. */
+export function budgetBand(b?: AreaBrief | null): string {
+  const lo = b?.budget_min ? Number(b.budget_min) : 0
+  const hi = b?.budget_max ? Number(b.budget_max) : 0
+  if (lo && hi) return `${money(lo)} to ${Math.round(hi).toLocaleString('en-US')} per creator`
+  if (hi) return `up to ${money(hi)} per creator`
+  if (lo) return `from ${money(lo)} per creator`
+  return ''
+}
+
 export function briefGaps(b?: AreaBrief | null): string[] {
   const gaps: string[] = []
   const c = b || {}
@@ -238,6 +250,7 @@ export function briefGaps(b?: AreaBrief | null): string[] {
      accepted here even though nothing writes it any more. */
   const hasCash = !!(c.client_budget || c.budget_per_creator)
   if (mode === 'cash' && !hasCash) gaps.push("the client's budget")
+  if ((mode === 'cash' || mode === 'both') && !budgetBand(c) && !c.budget_per_creator) gaps.push('the budget per creator')
   if (mode === 'barter' && !(c.barter_items || []).length) gaps.push('what they get')
   if (mode === 'both' && !hasCash && !(c.barter_items || []).length) gaps.push("the client's budget")
   if (!briefDeliverables(c).length) gaps.push('what we need back')

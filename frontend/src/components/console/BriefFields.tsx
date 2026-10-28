@@ -197,9 +197,21 @@ export function BriefFields({ brief, onChange }: {
               </Field>
             </div>
             <p className="text-ds-caption text-muted-foreground">
-              What they told us they have. What each creator costs comes from their record in
-              the database, so it is never written here.
+              What they told us they have.
             </p>
+            {/* The band talent sources inside. Not a rate for any one creator, which still
+                comes from their record: the price range a list should be built in, so it is
+                not built at the wrong price and sent back a day later. */}
+            <div className="grid grid-cols-2 gap-ds-3">
+              <Field label="Budget per creator, from (AED)">
+                <Input type="number" placeholder="3500" value={brief.budget_min ?? ''}
+                       onChange={e => set({ budget_min: num(e.target.value) })} />
+              </Field>
+              <Field label="to (AED)">
+                <Input type="number" placeholder="4000" value={brief.budget_max ?? ''}
+                       onChange={e => set({ budget_max: num(e.target.value) })} />
+              </Field>
+            </div>
             {/* An area released before the ruling still holds a per-creator figure. It is
                 shown so nobody wonders where it went, and it cannot be edited back into
                 existence. */}
