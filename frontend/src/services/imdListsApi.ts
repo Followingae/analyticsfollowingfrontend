@@ -221,6 +221,8 @@ export interface ImdListCreator {
   /** A founder's word on the row. */
   review_note?: string | null
   added_by_email?: string | null
+  /** 'chat' when the creator answered an open call on WhatsApp. */
+  via?: string | null
   tiktok_username?: string | null
   youtube_handle?: string | null
   gender?: string | null

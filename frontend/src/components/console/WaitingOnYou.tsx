@@ -70,6 +70,8 @@ const JOB: Record<string, { label: string; icon: React.ComponentType<{ className
   request:           { label: 'Requests',              icon: ListChecks },
   roster_rates:      { label: 'Rates to record',       icon: Tag },
   review_note:       { label: 'Founder notes',         icon: AlertCircle },
+  chat_handover:     { label: 'WhatsApp to take over', icon: AlertCircle },
+  chat_new:          { label: 'New from WhatsApp',     icon: Send },
 }
 
 /** Old is a property of the wait, not of the job: one scale, so amber means one thing. */

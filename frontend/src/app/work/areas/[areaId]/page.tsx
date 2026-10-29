@@ -44,6 +44,7 @@ import { PasteDialog } from "@/components/roster/PasteDialog"
 import { PriceClearDialog } from "@/components/roster/PriceClearDialog"
 import { ToProposalDialog } from "@/components/roster/ToProposalDialog"
 import { CreatorPanel } from "@/components/roster/CreatorPanel"
+import { OpenCallPanel } from "@/components/roster/OpenCallPanel"
 import { aed } from "@/components/roster/rosterFormat"
 import { budgetBand } from "@/lib/areaBrief"
 
@@ -68,7 +69,7 @@ function fmt(n?: number | null) {
 export default function ImdListDetailPage() {
   const listId = useParams().areaId as string
   const confirmAction = useConfirm()
-  const { canExport, canDestroy, can } = useAdminAccess()
+  const { canExport, canDestroy, can, isSuperAdmin } = useAdminAccess()
   const canStock = can("influencers")
   const [list, setList] = useState<(ImdListSummary & { items: ImdListCreator[] }) | null>(null)
   // Which rows are ticked for a bulk clear or strike. Kept separate from the add-creators
@@ -739,6 +740,13 @@ export default function ImdListDetailPage() {
                 <BriefDetail brief={list.brief} dueAt={list.due_at} />
               </section>
 
+              {/* The WhatsApp open call for this roster: talent's links, the conversations,
+                  and (superadmin) the card itself. Responses land below as ordinary rows. */}
+              {list.kind === "client" && (
+                <OpenCallPanel listId={listId} brand={list.team_name}
+                               isSuperadmin={isSuperAdmin} isFounder={canDestroy} />
+              )}
+
               {/* The gate. Anyone may stock an area; only a founder decides which of them a
                   client sees, which is what lets the talent team keep adding all week
                   behind a link that is already open. */}
@@ -870,7 +878,7 @@ export default function ImdListDetailPage() {
                                             onClick={() => setPanel({ id: c.id, username: c.username })}>
                                       <span className="block truncate text-sm font-medium hover:underline">@{c.username}</span>
                                       <span className="block truncate text-xs text-muted-foreground">
-                                        {[c.full_name, c.country, c.tiktok_username ? "TikTok" : null,
+                                        {[c.via === "chat" ? "via WhatsApp" : null, c.full_name, c.country, c.tiktok_username ? "TikTok" : null,
                                           c.youtube_handle ? "YouTube" : null].filter(Boolean).join(" · ")}
                                       </span>
                                       {(c.relationship_tags?.length || c.passed_elsewhere_reason) ? (
