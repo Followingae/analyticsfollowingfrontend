@@ -22,6 +22,8 @@ export const ROUTE_MODULES: { screen: string; module: AdminModule | AdminModule[
   { screen: "staff", module: "users" },
   { screen: "users", module: "users" },
   { screen: "campaigns", module: "campaigns" },
+  // Every campaign's tracked links at once; the same people who open a campaign's Links tab.
+  { screen: "affiliate-links", module: "campaigns" },
   // Content delivery lives under /work/campaigns/{id}/content, so it is matched by the
   // `campaigns` screen above and this entry never fires. It is written down anyway because
   // the module exists and a reader looking for "where is content gated" should find the

@@ -32,6 +32,7 @@ import {
   LayoutDashboard,
   Store,
   Megaphone,
+  Link2,
   ClipboardCheck,
   Building2,
   Wrench,
@@ -214,6 +215,9 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     // Hub: all campaigns, app campaigns, production, reports, chasing.
     { url: "/work/campaigns", icon: Megaphone, badge: "chasing",
       modules: ["campaigns", "operations", "fa"] },
+    // Every campaign's tracked links at once. Set-up stays on each campaign's Links tab;
+    // this is the view across them, asked for as its own row rather than a hub tab.
+    { url: "/work/affiliate-links", icon: Link2, modules: ["campaigns"] },
     // Hub: client credits, contracting, creator payments, app balances, enrolments, sign-offs.
     { url: "/work/money", icon: Wallet, badge: "enrolments",
       modules: ["billing", "influencers"], scopes: ["leadership", "talent"] },

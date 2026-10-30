@@ -212,6 +212,65 @@ export const trackedLinksApi = {
 
 export interface SalesResult { stored: number; duplicates: number; unattributed: number }
 
+// ── The affiliate links module: every campaign at once ──────────────────────────────────
+
+export interface AffiliateTotals extends LinkTotals {
+  /** Revenue in any currency other than `currency`. Listed beside the total, never added. */
+  other_currencies: { currency: string; revenue_cents: number }[]
+  links: number
+  campaigns: number
+}
+
+export interface AffiliateCampaign {
+  id: string
+  name: string
+  status: string | null
+  client: string | null
+  links_client_visible: boolean
+  retailers: number
+  links: number
+  clicks: number
+  unique_clicks: number
+  last_click_at: string | null
+  sales: number
+  revenue_cents: number
+  currency: string
+  last_activity_at: string | null
+}
+
+export interface AffiliateCreator {
+  username: string | null
+  full_name: string | null
+  profile_pic_url: string | null
+  campaign_id: string
+  campaign_name: string
+  clicks: number
+  sales: number
+  revenue_cents: number
+}
+
+export interface AffiliateOverview {
+  totals: AffiliateTotals
+  campaigns: AffiliateCampaign[]
+  top_creators: AffiliateCreator[]
+  /** The last 30 Dubai days. Days with no clicks are absent, not zero. */
+  daily: DailyClicks[]
+}
+
+export interface SetUpCandidate {
+  id: string
+  name: string
+  status: string | null
+  client: string | null
+  has_links: boolean
+}
+
+export const affiliateLinksApi = {
+  overview: () => call<AffiliateOverview>(`${A}/affiliate-links`),
+  campaigns: (q?: string) =>
+    call<SetUpCandidate[]>(`${A}/affiliate-links/campaigns${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+}
+
 /** 1234567 cents in AED -> "AED 12,345.67". Whole amounts drop the decimals. */
 export function money(cents: number | null | undefined, currency = 'AED'): string {
   if (cents == null) return ''

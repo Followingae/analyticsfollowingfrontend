@@ -151,6 +151,11 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Campaigns',
     hint: 'Live work and where each creator has got to',
   },
+  '/work/affiliate-links': {
+    short: 'Affiliate links',
+    full: 'Affiliate links',
+    hint: 'Every campaign\'s short links, clicks and sales in one place',
+  },
   '/work/campaigns/create': {
     short: 'Campaign setup',
     full: 'Campaign setup',
