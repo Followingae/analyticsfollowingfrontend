@@ -20,8 +20,8 @@ import { cdnAvatar } from '@/lib/avatar'
 import { cn } from '@/lib/utils'
 import {
   count, money,
-  type AppClicks, type CountryClicks, type DailyClicks, type DeviceClicks, type LinkTotals,
-  type RetailerResult,
+  type AppClicks, type CountryClicks, type DailyClicks, type DeviceClicks, type FunnelStep,
+  type LinkFunnel, type LinkTotals, type RetailerResult,
 } from '@/services/trackedLinksApi'
 
 export async function copyText(text: string, what = 'Copied'): Promise<void> {
@@ -189,6 +189,57 @@ export function ClickBreakdowns({ byCountry, byDevice, byApp }: {
       <Breakdown title="Where they were" rows={country} />
       <Breakdown title="What they used" rows={device} />
       <Breakdown title="Which app they tapped from" rows={app} />
+    </div>
+  )
+}
+
+const JOURNEY: { key: FunnelStep; label: string }[] = [
+  { key: 'landing', label: 'Landed' },
+  { key: 'product_view', label: 'Viewed a product' },
+  { key: 'add_to_cart', label: 'Added to cart' },
+  { key: 'checkout', label: 'Started checkout' },
+  { key: 'purchase', label: 'Purchased' },
+]
+
+/**
+ * From the tap to the purchase, on a store running the Following pixel. Drawn only once the
+ * store has sent an event: before that every step would read 0, and 0 there means "the pixel
+ * is not on", not "nobody bought".
+ */
+export function JourneyFunnel({ funnel, uniqueClicks }: {
+  funnel: LinkFunnel | null | undefined
+  uniqueClicks: number
+}) {
+  if (!funnel?.installed) return null
+  const steps = [
+    { key: 'tapped', label: 'People who tapped', n: uniqueClicks },
+    ...JOURNEY.map((s) => ({ key: s.key, label: s.label, n: funnel.totals[s.key] || 0 })),
+  ]
+  const base = Math.max(...steps.map((s) => s.n), 1)
+  return (
+    <div className={cn(CARD, 'bg-card p-4')}>
+      <h3 className="text-[14px] font-semibold">From tap to purchase</h3>
+      <p className="text-ds-caption text-muted-foreground">What people did on the store after tapping a link</p>
+      <ol className="mt-4 space-y-3">
+        {steps.map((s, i) => {
+          const prev = i > 0 ? steps[i - 1].n : 0
+          const pct = i > 0 && prev > 0 ? Math.round((s.n / prev) * 1000) / 10 : null
+          return (
+            <li key={s.key} className="grid grid-cols-[minmax(0,9.5rem)_1fr_auto] items-center gap-3 text-[13px]">
+              <span className="truncate">{s.label}</span>
+              <div className="h-2.5 rounded-full bg-muted">
+                <div className="h-2.5 rounded-full bg-primary transition-[width]"
+                     style={{ width: `${Math.min(100, (s.n / base) * 100)}%` }} />
+              </div>
+              <span className="min-w-[6.5rem] text-right tabular-nums">
+                <span className="font-medium">{count(s.n)}</span>
+                {pct != null && <span className="ml-1.5 text-muted-foreground">{pct}%</span>}
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+      <p className="mt-3 text-ds-caption text-muted-foreground">Each % is of the step before it.</p>
     </div>
   )
 }

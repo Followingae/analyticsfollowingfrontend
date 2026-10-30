@@ -37,6 +37,25 @@ export interface RetailerResult {
   revenue_cents: number
 }
 
+/** The steps a visitor takes on a store running the Following pixel, in order. */
+export type FunnelStep = 'landing' | 'product_view' | 'add_to_cart' | 'checkout' | 'purchase'
+
+/** Distinct taps reaching each step. A step nobody reached is absent, which means 0. */
+export type FunnelCounts = Partial<Record<FunnelStep, number>>
+
+export interface LinkFunnel {
+  /** False until the store has sent a single event. Nothing about the journey is drawn then. */
+  installed: boolean
+  totals: Record<FunnelStep, number>
+  /** Ours only. */
+  last_event_at?: string | null
+}
+
+export interface PixelSnippets {
+  site_snippet: string
+  shopify_pixel: string
+}
+
 interface ReportBase {
   released: boolean
   released_at: string | null
@@ -46,6 +65,7 @@ interface ReportBase {
   by_device: DeviceClicks[]
   by_app: AppClicks[]
   by_retailer: RetailerResult[]
+  funnel?: LinkFunnel
 }
 
 export interface Destination {
@@ -76,6 +96,8 @@ export interface TrackedLink {
   sales: number
   revenue_cents: number
   short_url: string
+  /** Ours only: how far this link's visitors got on the store. */
+  funnel?: FunnelCounts
 }
 
 export interface RosterCreator {
@@ -104,6 +126,7 @@ export interface TeamLinksReport extends ReportBase {
   roster: RosterCreator[]
   conversions: Conversion[]
   postback_url: string
+  pixel?: PixelSnippets
 }
 
 export interface BrandCreatorLink {

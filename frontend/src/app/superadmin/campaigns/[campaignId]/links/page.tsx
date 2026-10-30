@@ -18,9 +18,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import {
-  ChevronDown, Copy, FileUp, Link2, Loader2, Pencil, Plus, RefreshCw, Store, Trash2, Upload,
+  ChevronDown, Code2, Copy, FileUp, Link2, Loader2, Pencil, Plus, RefreshCw, Store, Trash2, Upload,
   UserPlus, Webhook, X,
 } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,13 +39,14 @@ import { ReadState, SectionHead } from '@/components/console/surfaces'
 import { useConfirm } from '@/components/console/confirm'
 import { CARD } from '@/components/console/primitives'
 import {
-  ClickBreakdowns, CopyButton, CreatorCell, DailyClicksChart, LinksTotals, RetailerCards, copyText,
+  ClickBreakdowns, CopyButton, CreatorCell, DailyClicksChart, JourneyFunnel, LinksTotals,
+  RetailerCards, copyText,
 } from '@/components/campaigns/links/LinksResults'
 import { cn } from '@/lib/utils'
 import {
   count, money, trackedLinksApi,
-  type CodeRow, type Destination, type DestinationInput, type SaleRow, type TeamLinksReport,
-  type TrackedLink,
+  type CodeRow, type Destination, type DestinationInput, type LinkFunnel, type PixelSnippets,
+  type SaleRow, type TeamLinksReport, type TrackedLink,
 } from '@/services/trackedLinksApi'
 
 const SOURCE: Record<string, string> = {
@@ -178,6 +180,7 @@ export default function CampaignLinksPage() {
                   not be tied to a creator. They count in the totals, not against anyone.
                 </p>
               )}
+              <JourneyFunnel funnel={data.funnel} uniqueClicks={data.totals.unique_clicks} />
               <DailyClicksChart daily={data.daily} />
               {dests.length > 1 && <RetailerCards retailers={data.by_retailer} currency={currency} />}
               <ClickBreakdowns byCountry={data.by_country} byDevice={data.by_device} byApp={data.by_app} />
@@ -190,7 +193,7 @@ export default function CampaignLinksPage() {
 
           {links.length > 0 && (
             <CreatorLinks links={links} destLabel={destLabel} currency={currency} busy={busy}
-                          act={act} />
+                          act={act} journey={!!data.funnel?.installed} />
           )}
 
           {dests.length > 0 && (
@@ -203,6 +206,8 @@ export default function CampaignLinksPage() {
             <Sales campaignId={campaignId} data={data} destLabel={destLabel} busy={busy} act={act}
                    confirm={confirm} />
           )}
+
+          {dests.length > 0 && data.pixel && <StorePixel pixel={data.pixel} funnel={data.funnel} />}
 
           {dests.length > 0 && <Postback url={data.postback_url} />}
         </div>
@@ -470,12 +475,14 @@ function InlineEdit({ value, placeholder, mono, onSave }: {
   )
 }
 
-function CreatorLinks({ links, destLabel, currency, busy, act }: {
+function CreatorLinks({ links, destLabel, currency, busy, act, journey }: {
   links: TrackedLink[]
   destLabel: Record<string, string>
   currency: string
   busy: string | null
   act: Act
+  /** The store pixel is sending events, so carts and site orders mean something. */
+  journey: boolean
 }) {
   return (
     <section>
@@ -484,7 +491,7 @@ function CreatorLinks({ links, destLabel, currency, busy, act }: {
         note="Hand each creator theirs. A brand tracking link, when set, is where the link forwards; we still count the tap."
       />
       <div className={cn(CARD, 'overflow-x-auto bg-card')}>
-        <table className="w-full min-w-[1080px] text-[13px]">
+        <table className={cn('w-full text-[13px]', journey ? 'min-w-[1240px]' : 'min-w-[1080px]')}>
           <thead>
             <tr className="border-b text-left text-[12px] text-muted-foreground">
               <th className="px-4 py-2.5 font-medium">Creator</th>
@@ -496,6 +503,8 @@ function CreatorLinks({ links, destLabel, currency, busy, act }: {
               <th className="px-3 py-2.5 text-right font-medium">Unique</th>
               <th className="px-3 py-2.5 text-right font-medium">Sales</th>
               <th className="px-3 py-2.5 text-right font-medium">Revenue</th>
+              {journey && <th className="px-3 py-2.5 text-right font-medium">Carts</th>}
+              {journey && <th className="whitespace-nowrap px-3 py-2.5 text-right font-medium">Orders from site</th>}
               <th className="px-4 py-2.5 text-right font-medium">On</th>
             </tr>
           </thead>
@@ -530,6 +539,12 @@ function CreatorLinks({ links, destLabel, currency, busy, act }: {
                 <td className="px-3 py-2 text-right tabular-nums">
                   {l.revenue_cents ? money(l.revenue_cents, currency) : ''}
                 </td>
+                {journey && (
+                  <td className="px-3 py-2 text-right tabular-nums">{count(l.funnel?.add_to_cart || 0)}</td>
+                )}
+                {journey && (
+                  <td className="px-3 py-2 text-right tabular-nums">{count(l.funnel?.purchase || 0)}</td>
+                )}
                 <td className="px-4 py-2 text-right">
                   <Switch checked={!l.disabled} disabled={busy === `link-${l.id}`}
                           aria-label={l.disabled ? 'Switch this link on' : 'Switch this link off'}
@@ -1040,6 +1055,66 @@ function SaleImport({ campaignId, busy, act, onDone }: {
         </p>
       )}
     </div>
+  )
+}
+
+/* ══ Store pixel ═════════════════════════════════════════════════════════════════════════ */
+
+const fmtWhen = (iso: string) =>
+  new Date(iso).toLocaleString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+
+function SnippetBlock({ code, instruction, label }: { code: string; instruction: string; label: string }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[13px] text-muted-foreground">{instruction}</p>
+      <div className="relative rounded-ds-xl border bg-muted/30">
+        <CopyButton text={code} label="Copy" className="absolute right-1.5 top-1.5 bg-card/80" />
+        <pre aria-label={label}
+             className="max-h-[320px] overflow-auto px-3 py-2.5 pr-20 font-mono text-[12px] leading-relaxed">
+          {code}
+        </pre>
+      </div>
+    </div>
+  )
+}
+
+function StorePixel({ pixel, funnel }: { pixel: PixelSnippets; funnel: LinkFunnel | undefined }) {
+  const live = !!funnel?.installed
+  return (
+    <section>
+      <SectionHead
+        icon={Code2} title="Store pixel"
+        note="Put it on the brand's store and every tap is followed through to the purchase: landed, viewed a product, added to cart, checkout, bought."
+      />
+      <div className={cn(CARD, 'space-y-4 bg-card p-4')}>
+        <p className="flex items-center gap-2 text-[13.5px]">
+          <span className={cn('size-2 rounded-full', live ? 'bg-emerald-500' : 'bg-muted-foreground/40')} />
+          {live
+            ? <>Installed.{funnel?.last_event_at ? ` Last event ${fmtWhen(funnel.last_event_at)}.` : ''}</>
+            : 'Not yet receiving events from the store.'}
+        </p>
+        <Tabs defaultValue="site">
+          <TabsList>
+            <TabsTrigger value="site">Any website</TabsTrigger>
+            <TabsTrigger value="shopify">Shopify</TabsTrigger>
+          </TabsList>
+          <TabsContent value="site" className="pt-2">
+            <SnippetBlock
+              code={pixel.site_snippet} label="Pixel for any website"
+              instruction="Paste in the <head> of every page, then add the purchase line on the order confirmation page."
+            />
+          </TabsContent>
+          <TabsContent value="shopify" className="pt-2">
+            <SnippetBlock
+              code={pixel.shopify_pixel} label="Shopify custom pixel"
+              instruction="Shopify admin: Settings, Customer events, Add custom pixel, paste, Connect."
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </section>
   )
 }
 

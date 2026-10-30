@@ -704,7 +704,7 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
               </Button>
               <Button asChild variant="outline" className="mt-2 w-full rounded-xl">
                 <Link href={`/campaigns/${campaign.id}/links`}>
-                  <MousePointerClick className="mr-2 h-4 w-4" /> Clicks and sales
+                  <MousePointerClick className="mr-2 h-4 w-4" /> Following Track
                 </Link>
               </Button>
             </CardContent>

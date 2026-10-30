@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * Clicks and sales: which of the brand's creators sent people to buy.
+ * Following Track: which of the brand's creators sent people to buy.
  *
  * NOTHING HERE UNTIL A PERSON RELEASES IT. The server answers `{ released: false }` and nothing
  * else until a superadmin has checked the links are live and the numbers are right, the same
@@ -20,7 +20,8 @@ import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
 import { Button } from "@/components/ui/button"
 import { CARD } from "@/components/console/primitives"
 import {
-  ClickBreakdowns, CopyButton, CreatorCell, DailyClicksChart, LinksTotals, RetailerCards,
+  ClickBreakdowns, CopyButton, CreatorCell, DailyClicksChart, JourneyFunnel, LinksTotals,
+  RetailerCards,
 } from "@/components/campaigns/links/LinksResults"
 import { cn } from "@/lib/utils"
 import { count, money, trackedLinksApi, type BrandLinksReport } from "@/services/trackedLinksApi"
@@ -55,8 +56,9 @@ function ClicksAndSales({ campaignId }: { campaignId: string }) {
           <ArrowLeft className="h-3.5 w-3.5" /> Campaign
         </Button>
         <h1 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em] lg:text-[34px]">
-          Clicks and sales
+          Following Track
         </h1>
+        <p className="text-[17px] font-medium">Clicks and sales from your creators</p>
         <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
           Every creator has their own link to each retailer. Each tap is counted, and each sale
           the retailer reports back is credited to the creator who sent it.
@@ -84,6 +86,7 @@ function ClicksAndSales({ campaignId }: { campaignId: string }) {
       ) : (
         <div className="space-y-8">
           <LinksTotals totals={report.totals} />
+          <JourneyFunnel funnel={report.funnel} uniqueClicks={report.totals.unique_clicks} />
           <DailyClicksChart daily={report.daily} />
           {report.by_retailer.length > 1 && (
             <RetailerCards retailers={report.by_retailer} currency={currency} />
