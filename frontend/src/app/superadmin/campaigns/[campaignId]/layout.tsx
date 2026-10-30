@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * One campaign, one shell, five tabs.
+ * One campaign, one shell, its tabs.
  *
  * WHAT THIS REPLACED. A campaign was four sibling pages. Each loaded the campaign again for
  * itself, each carried its own "back to Campaign" button, and they sat in THREE different
@@ -94,6 +94,7 @@ export default function CampaignLayout({ children }: { children: React.ReactNode
       // goes up is wallpaper; a count that means "somebody has to answer this" gets read.
       count: head?.counts?.posts_waiting || undefined,
     },
+    { label: 'Links', href: `${base}/links` },
     // Not rendered at all unless the server says this person has the money scope.
     { label: 'Money', href: `${base}/money`, when: !!head?.can_see_money },
   ]

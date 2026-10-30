@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import {
   Camera, CheckCircle2, ChevronRight, Clock, Eye, ExternalLink, FileText, Loader2,
   MapPin, PackageCheck, PartyPopper, Sparkles, Truck, UserCheck, Users, BarChart3,
+  MousePointerClick,
   type LucideIcon,
 } from 'lucide-react'
 import { Cell, Pie, PieChart } from 'recharts'
@@ -699,6 +700,11 @@ export function CampaignJourney({ campaignId }: { campaignId: string }) {
               <Button asChild variant="outline" className="mt-2 w-full rounded-xl">
                 <Link href={`/campaigns/${campaign.id}/performance`}>
                   <BarChart3 className="mr-2 h-4 w-4" /> Results
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="mt-2 w-full rounded-xl">
+                <Link href={`/campaigns/${campaign.id}/links`}>
+                  <MousePointerClick className="mr-2 h-4 w-4" /> Clicks and sales
                 </Link>
               </Button>
             </CardContent>
