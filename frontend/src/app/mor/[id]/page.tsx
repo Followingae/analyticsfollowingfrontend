@@ -503,17 +503,30 @@ function Documents({ payment, id }: { payment: MorPayment; id: string }) {
   const e = payment.enrolment
   const signed = !!payment.agreement_signed_at || !!e?.signed_at
 
+  /* A creator paid as part of a list was invoiced as part of the list: one invoice and one
+     receipt for all of them. Offering a per-creator invoice here invited a brand to look for
+     a document that was never raised, so both rows point at the list instead. */
+  const batchHref = payment.batch_id ? `/mor/batch/${payment.batch_id}` : null
+
   const docs: {
     key: string; icon: typeof FileText; title: string; sub: string
-    href?: string | null; onClick?: () => void; pending: string
+    href?: string | null; internal?: boolean; onClick?: () => void; pending: string
   }[] = [
-    {
+    batchHref ? {
+      key: 'invoice', icon: FileText, title: 'Invoice',
+      sub: 'One invoice for the whole list. Open the list to download it.',
+      href: batchHref, internal: true, pending: '',
+    } : {
       key: 'invoice', icon: FileText, title: 'Invoice',
       sub: payment.invoice_number ? `${payment.invoice_number} · ${when(payment.invoice_at) ?? ''}` : 'Being prepared',
       href: payment.invoice_url ?? null,
       pending: 'We email it the moment it is raised.',
     },
-    {
+    batchHref ? {
+      key: 'receipt', icon: Receipt, title: 'Payment receipt',
+      sub: payment.funded_at ? `On the list, received ${when(payment.funded_at)}` : 'On the list, once it is paid',
+      href: batchHref, internal: true, pending: '',
+    } : {
       key: 'receipt', icon: Receipt, title: 'Payment receipt',
       sub: payment.funded_at ? `Received ${when(payment.funded_at)}` : 'Not paid yet',
       href: payment.receipt_url ?? null,
@@ -548,7 +561,7 @@ function Documents({ payment, id }: { payment: MorPayment; id: string }) {
           const Row: 'a' | 'button' | 'div' = d.href ? 'a' : d.onClick ? 'button' : 'div'
           return (
             <Row key={d.key}
-                 {...(d.href ? { href: d.href, target: '_blank', rel: 'noreferrer' } : {})}
+                 {...(d.href ? (d.internal ? { href: d.href } : { href: d.href, target: '_blank', rel: 'noreferrer' }) : {})}
                  {...(d.onClick ? { type: 'button' as const, onClick: d.onClick } : {})}
                  className={cn(
                    'group flex w-full items-start gap-3 py-3.5 text-left',
@@ -570,8 +583,9 @@ function Documents({ payment, id }: { payment: MorPayment; id: string }) {
                   {ready ? d.sub : d.pending}
                 </span>
               </span>
-              {ready && (
-                <Download className="mt-1 size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+              {ready && (d.internal
+                ? <ArrowRight className="mt-1 size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+                : <Download className="mt-1 size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
               )}
             </Row>
           )

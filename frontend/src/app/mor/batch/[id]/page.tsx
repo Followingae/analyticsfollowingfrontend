@@ -21,14 +21,11 @@ import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
-import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
-import { ArrowLeft, ArrowRight, CreditCard, Landmark, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, BadgeCheck, CreditCard, Download, Landmark, ReceiptText, ShieldCheck } from 'lucide-react'
 import { morPaymentsApi, aed, type MorBatch, type MorPayment } from '@/services/morPaymentsApi'
 import { cn } from '@/lib/utils'
 
@@ -98,7 +95,7 @@ function Detail() {
   }
 
   return (
-    <div className="mor-scope mx-auto w-full max-w-[1040px] px-5 py-12 sm:px-8 sm:py-16">
+    <div className="mor-scope mx-auto w-full max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
       <style>{TOKENS}</style>
 
       <Button variant="ghost" size="sm" className="-ml-2.5 gap-1.5 text-muted-foreground"
@@ -121,7 +118,7 @@ function Detail() {
       ) : (
         <>
           <header className="mt-6">
-            <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em]">
+            <h1 className="text-[34px] font-semibold leading-tight tracking-[-0.02em]">
               {batch.label || `${batch.creators} creators`}
             </h1>
             <p className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-muted-foreground">
@@ -141,32 +138,17 @@ function Detail() {
 
           <Money batch={batch} paying={paying} onPay={payByCard} />
 
-          {/* Every creator, with their own state. The point of the page. */}
-          <section className="mt-14">
-            <h2 className="text-[13px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          {/* Every creator, with their own state. Each is contracted and paid separately,
+              so they move at different times; the card says where each one has got to. */}
+          <section className="mt-12 space-y-5">
+            <h2 className="flex items-baseline gap-2 text-[15px] font-medium">
               The creators
+              <span className="text-[13px] font-normal tabular-nums text-muted-foreground">
+                {batch.payments.length}
+              </span>
             </h2>
-            <p className="mt-2.5 max-w-[62ch] text-[13px] leading-relaxed text-muted-foreground">
-              Each one is contracted and paid separately, so they will not all move at the same
-              time. Open any of them for the agreement and the payout.
-            </p>
-
-            <div className="mt-5 overflow-x-auto rounded-[14px] border border-[var(--mor-rule)]">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="pl-4">Creator</TableHead>
-                    <TableHead>What they are posting</TableHead>
-                    <TableHead>Where it has got to</TableHead>
-                    <TableHead className="text-right">Their fee</TableHead>
-                    <TableHead className="pr-4 text-right">Cost to you</TableHead>
-                    <TableHead className="w-10" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {batch.payments.map((p) => <CreatorRow key={p.id} payment={p} />)}
-                </TableBody>
-              </Table>
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {batch.payments.map((p) => <CreatorCard key={p.id} payment={p} />)}
             </div>
           </section>
 
@@ -208,7 +190,7 @@ function Money({ batch, paying, onPay }: {
 }) {
   const owed = batch.status === 'awaiting_payment'
   return (
-    <section className="mt-12 rounded-[14px] border border-[var(--mor-rule)] px-6 py-6 sm:px-8">
+    <section className="mt-10 rounded-2xl border border-black/[0.06] bg-white px-7 py-7 shadow-[0_1px_2px_rgba(0,0,0,0.03)] sm:px-9 dark:border-white/[0.08] dark:bg-white/[0.03]">
       <div className="flex flex-wrap items-start justify-between gap-8">
         <div className="min-w-0">
           <div className="text-[12.5px] text-muted-foreground">{batch.status_label}</div>
@@ -235,7 +217,7 @@ function Money({ batch, paying, onPay }: {
               {paying ? 'Opening…' : `Pay ${aed(batch.total_aed, batch.currency)}`}
             </Button>
           )}
-          {owed && batch.payment_method === 'transfer' && (
+          {owed && batch.payment_method === 'transfer' && !batch.invoice_url && (
             <div className="max-w-[280px] rounded-[10px] bg-muted/50 px-4 py-3.5">
               <div className="flex items-center gap-2 text-[13px] font-medium">
                 <Landmark className="size-4 text-muted-foreground" aria-hidden />
@@ -246,12 +228,35 @@ function Money({ batch, paying, onPay }: {
               </p>
             </div>
           )}
-          {batch.status === 'funded' && (
-            <div className="max-w-[280px] rounded-[10px] bg-muted/50 px-4 py-3.5">
-              <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-                Your payment has cleared. We are paying the creators now, each one separately,
-                and the table below moves as they go out.
-              </p>
+          {/* The list is billed ONCE, so its paperwork is the list's: one invoice, one
+              receipt. A creator's own page points back here rather than offering its own. */}
+          {(batch.invoice_url || batch.receipt_url) && (
+            <div className="flex flex-col gap-2.5">
+              {batch.invoice_url && (
+                <a href={batch.invoice_url} target="_blank" rel="noopener noreferrer"
+                   className="flex items-center gap-3 rounded-xl border border-black/[0.08] px-4 py-3 transition
+                              hover:border-black/20 dark:border-white/[0.12]">
+                  <span className="flex size-9 items-center justify-center rounded-lg bg-[#d3ff02] text-[#111]">
+                    <ReceiptText className="size-4" strokeWidth={1.75} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[14px] font-medium">Invoice{batch.invoice_number ? ` ${batch.invoice_number}` : ''}</span>
+                    <span className="block text-[12.5px] text-muted-foreground">Whole list</span>
+                  </span>
+                  <Download className="ml-6 size-4 text-muted-foreground" />
+                </a>
+              )}
+              {batch.receipt_url && (
+                <a href={batch.receipt_url} target="_blank" rel="noopener noreferrer"
+                   className="flex items-center gap-3 rounded-xl border border-black/[0.08] px-4 py-3 transition
+                              hover:border-black/20 dark:border-white/[0.12]">
+                  <span className="flex size-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+                    <BadgeCheck className="size-4" strokeWidth={1.75} />
+                  </span>
+                  <span className="text-[14px] font-medium">Receipt</span>
+                  <Download className="ml-auto size-4 text-muted-foreground" />
+                </a>
+              )}
             </div>
           )}
         </div>
@@ -286,46 +291,55 @@ const DOT: Record<string, string> = {
   cancelled: 'bg-muted-foreground/40',
 }
 
-function CreatorRow({ payment }: { payment: MorPayment }) {
+const initials = (name: string | null | undefined) =>
+  (name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+
+/* One creator on the list: who, where they have got to, what they get and what it costs you.
+   Opens the creator for their agreement and payout; the invoice is the list's, above. */
+function CreatorCard({ payment }: { payment: MorPayment }) {
   const work = payment.deliverables
     .map((d) => (d.quantity > 1 ? `${d.quantity} × ${d.what}` : d.what))
     .join(', ')
   const off = payment.status === 'cancelled'
   return (
-    <TableRow className={cn(off && 'opacity-55')}>
-      <TableCell className="pl-4">
-        <div className="text-[14px] font-medium tracking-[-0.01em]">{payment.creator_name}</div>
-        {payment.creator_handle && (
-          <div className="mt-0.5 text-[12px] text-muted-foreground">@{payment.creator_handle}</div>
-        )}
-      </TableCell>
-      <TableCell className="text-[13px] text-muted-foreground">{work || '—'}</TableCell>
-      <TableCell>
-        <span className="flex items-center gap-2 text-[13px]">
-          <span className={cn('size-[6px] shrink-0 rounded-full', DOT[payment.status])} aria-hidden />
-          {payment.status_label}
+    <Link
+      href={`/mor/${payment.id}`}
+      className={cn(
+        'group flex flex-col rounded-2xl border border-black/[0.06] bg-white p-6',
+        'shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition duration-200 hover:-translate-y-0.5',
+        'hover:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.12)] dark:border-white/[0.08] dark:bg-white/[0.03]',
+        off && 'opacity-55',
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-[14px] font-medium">
+          {initials(payment.creator_name)}
         </span>
-      </TableCell>
-      <TableCell className="text-right text-[13.5px] tabular-nums">
-        {aed(payment.creator_fee_aed, payment.currency)}
-      </TableCell>
-      <TableCell className="pr-4 text-right">
-        <div className="text-[13.5px] font-medium tabular-nums">{aed(payment.total_aed, payment.currency)}</div>
-        {payment.fee_waived && (
-          <span
-            className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold"
-            style={{ background: 'var(--mor-lime)', color: 'var(--mor-lime-ink)' }}
-          >
-            <ShieldCheck className="size-[11px]" aria-hidden />Fee waived
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-[13px] text-muted-foreground">
+          <span className={cn('size-1.5 shrink-0 rounded-full', DOT[payment.status])} aria-hidden />
+          <span className="truncate">{payment.status_label}</span>
+        </span>
+      </div>
+      <p className="mt-8 text-[28px] font-semibold leading-none tabular-nums tracking-[-0.02em]">
+        {aed(payment.total_aed, payment.currency)}
+      </p>
+      <h3 className="mt-2 truncate text-[15px]" title={work || undefined}>{payment.creator_name}</h3>
+      <div className="mt-auto flex items-center justify-between pt-8">
+        <span className="truncate text-[13px] text-muted-foreground">
+          {payment.creator_handle ? `@${payment.creator_handle}` : `Fee ${aed(payment.creator_fee_aed, payment.currency)}`}
+        </span>
+        {payment.fee_waived ? (
+          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                style={{ background: 'var(--mor-lime)', color: 'var(--mor-lime-ink)' }}>
+            <ShieldCheck className="size-3" aria-hidden />Fee waived
+          </span>
+        ) : (
+          <span className="flex size-9 items-center justify-center rounded-full border border-black/[0.08] text-foreground/70
+                           transition group-hover:border-black/20 dark:border-white/[0.12]">
+            <ArrowUpRight className="size-4" />
           </span>
         )}
-      </TableCell>
-      <TableCell className="pr-3">
-        <Link href={`/mor/${payment.id}`} aria-label={`Open ${payment.creator_name}`}
-              className="inline-flex rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-          <ArrowRight className="size-4" />
-        </Link>
-      </TableCell>
-    </TableRow>
+      </div>
+    </Link>
   )
 }

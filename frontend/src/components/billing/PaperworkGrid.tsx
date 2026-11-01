@@ -96,14 +96,6 @@ function standing(it: PaperItem): { text: string; tone: Tone } {
   return { text: it.due_date ? `Due ${day(it.due_date)}` : 'To pay', tone: 'wait' }
 }
 
-/** The one date line under the figure. */
-function when(it: PaperItem): string | null {
-  if (it.kind === 'agreement') return it.date ? `${it.status === 'signed' ? 'Signed' : 'Sent'} ${day(it.date, true)}` : null
-  if (it.kind === 'receipt') return it.date ? `Received ${day(it.date, true)}` : null
-  if (it.status === 'paid') return it.paid_at ? `Paid ${day(it.paid_at, true)}` : (it.date ? `Issued ${day(it.date, true)}` : null)
-  return it.date ? `Issued ${day(it.date, true)}` : null
-}
-
 export function usePaperwork() {
   const [items, setItems] = useState<PaperItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -136,10 +128,10 @@ export function PaperCard({ it }: { it: PaperItem }) {
   const kind = KIND[it.kind]
   const mod = MODULE[it.module] ?? MODULE.campaign
   const st = standing(it)
-  const line = when(it)
   const external = !!it.href && it.href.startsWith('/p/')
-  const ref = it.kind === 'invoice' && /^Invoice /.test(it.label) ? it.label.replace(/^Invoice /, '') : null
-  const sub = it.kind === 'invoice' && !ref ? it.label : null
+  /* Every title on a client's own account starts with their own name ("Pizza Hut × ..."),
+     which says nothing to them. The part after the × is what tells two cards apart. */
+  const title = it.title.includes(' × ') ? it.title.split(' × ').slice(1).join(' × ') : it.title
 
   const openBtn = it.href && (external
     ? <a href={it.href} target="_blank" rel="noopener noreferrer" aria-label="Open" className={iconBtn}><ArrowUpRight className="h-4 w-4" /></a>
@@ -150,37 +142,32 @@ export function PaperCard({ it }: { it: PaperItem }) {
                         shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition duration-200
                         hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.12)]
                         dark:border-white/[0.08] dark:bg-white/[0.03]">
-      {/* What it is, and what it is waiting on */}
-      <div className="flex items-start justify-between">
-        <span className={cn('flex h-11 w-11 items-center justify-center rounded-xl', kind.tile)}>
-          <kind.Icon className="h-5 w-5" strokeWidth={1.75} />
+      {/* What it is, and what it is waiting on. Nothing else above the figure. */}
+      <div className="flex items-center justify-between">
+        <span className={cn('inline-flex items-center gap-1.5 rounded-full py-1.5 pl-2.5 pr-3 text-[12px] font-medium', kind.tile)}>
+          <kind.Icon className="h-3.5 w-3.5" strokeWidth={2} />{kind.label}
         </span>
         <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
           <span className={cn('h-1.5 w-1.5 rounded-full', DOT[st.tone])} />{st.text}
         </span>
       </div>
 
-      <p className="mt-6 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-        {kind.label}{ref ? <span className="normal-case tracking-normal"> · {ref}</span> : null}
-      </p>
-      <h3 className="mt-1 truncate text-[16px] font-medium leading-snug text-foreground" title={it.title}>
-        {it.title}
-      </h3>
-      <p className="mt-0.5 flex items-center gap-1.5 truncate text-[13px] text-muted-foreground">
-        <mod.Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-        {mod.label}{sub ? ` · ${sub}` : ''}
-      </p>
-
-      {it.kind !== 'agreement' && (
-        <p className="mt-6 flex items-baseline gap-1.5 tabular-nums">
+      {it.kind !== 'agreement' ? (
+        <p className="mt-8 flex items-baseline gap-1.5 tabular-nums">
           <span className="text-[13px] font-medium text-muted-foreground">{it.currency || 'AED'}</span>
-          <span className="text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground">{figure(it.amount)}</span>
+          <span className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-foreground">{figure(it.amount)}</span>
         </p>
-      )}
+      ) : null}
+      <h3 className={cn('truncate text-foreground',
+                        it.kind === 'agreement' ? 'mt-8 text-[20px] font-semibold tracking-[-0.01em]' : 'mt-2 text-[15px]')}
+          title={it.title}>
+        {title}
+      </h3>
 
-      <div className={cn('mt-auto flex items-center justify-between border-t border-black/[0.06] pt-4 dark:border-white/[0.08]',
-                         it.kind === 'agreement' ? 'mt-8' : 'mt-6')}>
-        <span className="text-[13px] text-muted-foreground">{line}</span>
+      <div className="mt-auto flex items-center justify-between pt-8">
+        <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
+          <mod.Icon className="h-3.5 w-3.5" strokeWidth={1.75} />{mod.label}
+        </span>
         <span className="flex items-center gap-1.5">
           {it.pay_url && it.status !== 'paid' && (
             <a href={it.pay_url} target="_blank" rel="noopener noreferrer"
