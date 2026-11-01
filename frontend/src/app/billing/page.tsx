@@ -65,7 +65,7 @@ import { ChangePlanPanel } from '@/components/billing/ChangePlanPanel'
 import { ModulesPanel } from '@/components/billing/ModulesPanel'
 import { UsagePanel } from '@/components/billing/UsagePanel'
 import { CashbackPoolPanel } from '@/components/billing/CashbackPoolPanel'
-import { MoneySummary, PaperworkGrid, usePaperwork, type PaperItem } from '@/components/billing/PaperworkGrid'
+import { InvoicesView, usePaperwork, type PaperItem } from '@/components/billing/PaperworkGrid'
 
 export default function BillingPage() {
   return (
@@ -86,16 +86,11 @@ const TABS = ['invoices', 'plan', 'cashback-pool'] as const
 
 type Load = 'loading' | 'loaded' | 'empty' | 'failed'
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children, titled = true }: { children: React.ReactNode; titled?: boolean }) {
   return (
     <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-10 sm:px-8 sm:py-14">
       <div className="space-y-10">
-        <div className="space-y-2">
-          <h1 className="text-[34px] font-semibold leading-tight tracking-[-0.02em]">Billing</h1>
-          <p className="text-[15px] text-muted-foreground">
-            Every invoice from every part of Following, what is paid, and what is due.
-          </p>
-        </div>
+        {titled && <h1 className="text-[34px] font-semibold leading-tight tracking-[-0.02em]">Billing</h1>}
         {children}
       </div>
     </div>
@@ -264,9 +259,7 @@ function BillingContent() {
   const trialing = billingManager.isTrialing(status)
 
   return (
-    <Shell>
-      {/* The money first, whichever tab is open: what is owed, what is paid, what is next. */}
-      {!allPaper.loading && !allPaper.failed && <MoneySummary items={allPaper.items} />}
+    <Shell titled={false}>
 
       {trialing && trial ? (
         <TrialBanner
@@ -277,10 +270,13 @@ function BillingContent() {
         />
       ) : null}
 
-      <Tabs value={activeTab} onValueChange={goTab} className="space-y-8">
-        <TabsList>
-          <TabsTrigger value="invoices">Invoices</TabsTrigger>
-          <TabsTrigger value="plan">Plan and modules</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={goTab} className="space-y-10">
+        {/* The title and the three places, on one line. Nothing else above the money. */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-[34px] font-semibold leading-tight tracking-[-0.02em]">Billing</h1>
+        <TabsList className="h-auto rounded-full bg-white p-1 dark:bg-white/[0.05]">
+          <TabsTrigger value="invoices" className="rounded-full px-4 py-1.5 data-[state=active]:bg-[#111] data-[state=active]:text-white data-[state=active]:shadow-none dark:data-[state=active]:bg-white dark:data-[state=active]:text-[#111]">Invoices</TabsTrigger>
+          <TabsTrigger value="plan" className="rounded-full px-4 py-1.5 data-[state=active]:bg-[#111] data-[state=active]:text-white data-[state=active]:shadow-none dark:data-[state=active]:bg-white dark:data-[state=active]:text-[#111]">Plan</TabsTrigger>
           {/* The cashback tab is gated on the same thing it has always been
               gated on: an account we invoice does not see it. Stated plainly
               because `invoiced` means only "no card, we raise invoices" and
@@ -289,8 +285,9 @@ function BillingContent() {
               managed ones, and it will drift the first time a card paying
               client gets cashback. The real gate is a module or whether the
               client has merchants at all, and neither is wired yet. */}
-          {!managed && <TabsTrigger value="cashback-pool">Cashback pool</TabsTrigger>}
+          {!managed && <TabsTrigger value="cashback-pool" className="rounded-full px-4 py-1.5 data-[state=active]:bg-[#111] data-[state=active]:text-white data-[state=active]:shadow-none dark:data-[state=active]:bg-white dark:data-[state=active]:text-[#111]">Cashback pool</TabsTrigger>}
         </TabsList>
+        </div>
 
         <TabsContent value="plan" className="space-y-ds-3">
           <PlanSummaryCard
@@ -330,12 +327,7 @@ function BillingContent() {
 
         {/* 5. What have I been charged. One list, both sources, every account. */}
         <TabsContent value="invoices">
-          <PaperworkGrid
-            data={allPaper}
-            kinds={['invoice']}
-            groupBy="standing"
-            empty="No invoices yet. Everything we bill you, from any part of Following, appears here."
-          />
+          <InvoicesView data={allPaper} />
         </TabsContent>
 
         {!managed && (
