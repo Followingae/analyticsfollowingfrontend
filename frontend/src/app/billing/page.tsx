@@ -19,7 +19,10 @@
  *   4. What have I switched on, and what does it cost.       ModulesPanel
  *   5. What have I been charged.                             InvoicesPanel
  *
- * The first two are above the tabs, so they are answered whichever tab is open.
+ * November 2026: the money comes first. Above the tabs, what is owed, paid and next due;
+ * the first tab is every invoice from every module (sales links, proposals, campaigns,
+ * creator contracting, plan) as a grid, from /api/v1/client/paperwork plus Stripe's own.
+ * Questions 1 to 4 moved into the Plan tab, which is where a client goes to change them.
  *
  * Three states, kept apart, everywhere on this page: loading, empty and failed.
  * A request that did not answer is never rendered as a fact. Money that did not
@@ -56,13 +59,13 @@ import { fetchBillingStatus } from '@/services/brandBillingApi'
 
 import { TrialBanner } from '@/components/billing/TrialBanner'
 import { TrialDailyLimitsCard } from '@/components/billing/TrialDailyLimitsCard'
-import { InvoicesPanel } from '@/components/billing/InvoicesPanel'
 import { useAccountInvoices } from '@/components/billing/useAccountInvoices'
 import { PlanSummaryCard } from '@/components/billing/PlanSummaryCard'
 import { ChangePlanPanel } from '@/components/billing/ChangePlanPanel'
 import { ModulesPanel } from '@/components/billing/ModulesPanel'
 import { UsagePanel } from '@/components/billing/UsagePanel'
 import { CashbackPoolPanel } from '@/components/billing/CashbackPoolPanel'
+import { MoneySummary, PaperworkGrid, usePaperwork, type PaperItem } from '@/components/billing/PaperworkGrid'
 
 export default function BillingPage() {
   return (
@@ -77,8 +80,9 @@ export default function BillingPage() {
   )
 }
 
-/** 'plan' is kept as an alias of the first tab: it was a deep link people have. */
-const TABS = ['plan', 'invoices', 'cashback-pool'] as const
+/** Invoices first: what a client opens Billing for is what they owe and what they paid.
+ *  'plan' stays a deep link people have. */
+const TABS = ['invoices', 'plan', 'cashback-pool'] as const
 
 type Load = 'loading' | 'loaded' | 'empty' | 'failed'
 
@@ -89,7 +93,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <div className="space-y-ds-1">
           <h1 className="text-ds-title">Billing</h1>
           <p className="text-ds-body text-muted-foreground">
-            What you are on, how you pay for it, and everything we have charged you.
+            Every invoice from every part of Following, what is paid, and what is due.
           </p>
         </div>
         {children}
@@ -112,6 +116,16 @@ function BillingContent() {
   // figure at the top and the Invoices tab are the same numbers, so they are
   // the same request.
   const invoices = useAccountInvoices(!!user)
+
+  // Every module's invoices (sales links, proposals, campaigns, creator contracting, plan),
+  // plus the card-paid plan invoices only Stripe holds, as one grid.
+  const paperwork = usePaperwork()
+  const fromStripe: PaperItem[] = invoices.invoices.filter(i => i.source === 'stripe').map(i => ({
+    id: i.key, kind: 'invoice', module: 'plan', title: 'Your plan', label: i.reference ? `Invoice ${i.reference}` : i.what,
+    status: i.status === 'paid' ? 'paid' : 'unpaid', amount: i.gross, currency: i.currency,
+    date: i.dateIso, url: i.fileUrl, pay_url: i.status === 'paid' ? null : i.viewUrl, href: null,
+  }))
+  const allPaper = { ...paperwork, items: [...paperwork.items, ...fromStripe] }
 
   // Read once, here, because one field on it decides what the whole page looks
   // like. `payment.invoiced` is the ONLY correct answer to "card or invoice":
@@ -166,10 +180,10 @@ function BillingContent() {
     if (plan === 'cancelled') toast.info('Nothing was changed and nothing was charged.')
   }, [searchParams])
 
-  const tabParam = searchParams.get('tab') ?? 'plan'
-  const activeTab = (TABS as readonly string[]).includes(tabParam) ? tabParam : 'plan'
+  const tabParam = searchParams.get('tab') ?? 'invoices'
+  const activeTab = (TABS as readonly string[]).includes(tabParam) ? tabParam : 'invoices'
   const goTab = (tab: string) =>
-    router.replace(tab === 'plan' ? '/billing' : `/billing?tab=${tab}`, { scroll: false })
+    router.replace(tab === 'invoices' ? '/billing' : `/billing?tab=${tab}`, { scroll: false })
 
   const openPortal = async () => {
     try {
@@ -251,17 +265,8 @@ function BillingContent() {
 
   return (
     <Shell>
-      {/* Questions 1 and 2, above the tabs, so they are answered whichever tab
-          is open. */}
-      <PlanSummaryCard
-        status={status}
-        managed={managed}
-        invoices={invoices}
-        paymentState={paymentState}
-        graceEndsAt={modules.snapshot?.payment.grace_ends_at ?? null}
-        onOpenPortal={() => setPortalOpen(true)}
-        onSeeInvoices={() => goTab('invoices')}
-      />
+      {/* The money first, whichever tab is open: what is owed, what is paid, what is next. */}
+      {!allPaper.loading && !allPaper.failed && <MoneySummary items={allPaper.items} />}
 
       {trialing && trial ? (
         <TrialBanner
@@ -274,11 +279,8 @@ function BillingContent() {
 
       <Tabs value={activeTab} onValueChange={goTab} className="space-y-ds-3">
         <TabsList>
-          <TabsTrigger value="plan">Plan and modules</TabsTrigger>
-          {/* Invoices is for everyone. It used to be hidden from admin-managed
-              accounts, which meant the only clients we actually invoice were
-              the only ones who could not see their invoices. */}
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
+          <TabsTrigger value="plan">Plan and modules</TabsTrigger>
           {/* The cashback tab is gated on the same thing it has always been
               gated on: an account we invoice does not see it. Stated plainly
               because `invoiced` means only "no card, we raise invoices" and
@@ -291,6 +293,15 @@ function BillingContent() {
         </TabsList>
 
         <TabsContent value="plan" className="space-y-ds-3">
+          <PlanSummaryCard
+            status={status}
+            managed={managed}
+            invoices={invoices}
+            paymentState={paymentState}
+            graceEndsAt={modules.snapshot?.payment.grace_ends_at ?? null}
+            onOpenPortal={() => setPortalOpen(true)}
+            onSeeInvoices={() => goTab('invoices')}
+          />
           {/* 3. What can I move to. */}
           <ChangePlanPanel status={status} managed={managed} onChanged={() => void refresh()} />
 
@@ -319,7 +330,12 @@ function BillingContent() {
 
         {/* 5. What have I been charged. One list, both sources, every account. */}
         <TabsContent value="invoices" className="space-y-ds-3">
-          <InvoicesPanel data={invoices} />
+          <PaperworkGrid
+            data={allPaper}
+            kinds={['invoice']}
+            filterBy="module"
+            empty="No invoices yet. Everything we bill you, from any part of Following, appears here."
+          />
         </TabsContent>
 
         {!managed && (
