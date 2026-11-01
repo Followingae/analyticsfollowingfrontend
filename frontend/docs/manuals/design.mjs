@@ -100,6 +100,9 @@ const PATHS = {
   lightbulb: 'M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z',
   quote: 'M10 11H6a1 1 0 0 1-1-1V8a3 3 0 0 1 3-3M19 11h-4a1 1 0 0 1-1-1V8a3 3 0 0 1 3-3',
   layers: 'm12 2 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 17l9 5 9-5',
+  message: 'M7.9 20A9 9 0 1 0 4 16.1L2 22Z',
+  link: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
+  chart: 'M3 3v18h18M18 17V9M13 17V5M8 17v-3',
 };
 
 export function icon(name, size = 16, cls = '', stroke = 1.6) {

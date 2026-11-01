@@ -48,6 +48,8 @@ const PUBLIC = process.argv[3] === '' ? null
  * has no such folder. An environment variable would be tidier and would also never be set.
  */
 const DESKTOP = [
+  // Every Following folder moved under "Following App" on 31 Oct 2026.
+  join(homedir(), 'Desktop', 'Following App', 'Following Manuals'),
   join(homedir(), 'Desktop', 'Following Manuals'),
   join(homedir(), 'OneDrive', 'Desktop', 'Following Manuals'),
 ].find((d) => existsSync(d)) || null;
@@ -85,7 +87,7 @@ const KNOWN = new Set([
   'Admin', 'Company', 'Settings', 'Creator app',
   // The five tabs INSIDE one campaign. They are a route each but not a destination in the
   // registry, because they only exist under a campaign that is already open.
-  'Story', 'Delivery', 'Content', 'Performance',
+  'Story', 'Delivery', 'Content', 'Performance', 'Links',
 ]);
 
 /** Chips that are an instruction rather than a place: a button, a row, a thing to open. */
@@ -484,6 +486,34 @@ for (const role of ROLES) {
   // ends up reading the old one.
   if (DESKTOP) copyFileSync(join(OUT, `${name}.pdf`), join(DESKTOP, `${name}.pdf`));
 
+  console.log('printed', `${name}.pdf`);
+}
+
+// The company-wide walkthrough, printed with the manuals so it can never fall behind them.
+// Its own stylesheet carries the @page margins; the footer matches the manuals'.
+{
+  const name = 'How work moves at Following';
+  await tab.goto('file:///' + join(FE, 'docs', 'manuals', 'how-work-moves.html').replace(/\\/g, '/'),
+    { waitUntil: 'networkidle' });
+  await tab.pdf({
+    path: join(OUT, `${name}.pdf`),
+    format: 'A4',
+    printBackground: true,
+    displayHeaderFooter: true,
+    headerTemplate: '<div></div>',
+    footerTemplate:
+      `<div style="width:100%;padding:0 24mm;font:7.5pt Manrope,Arial,sans-serif;color:#9A9A9A;
+        display:flex;justify-content:space-between;padding-bottom:10mm;">
+        <span>Following &middot; How work moves</span>
+        <span class="pageNumber"></span>
+      </div>`,
+    margin: { top: '22mm', bottom: '20mm', left: '24mm', right: '24mm' },
+  });
+  if (PUBLIC) copyFileSync(join(OUT, `${name}.pdf`), join(PUBLIC, 'how-work-moves.pdf'));
+  if (DESKTOP) {
+    copyFileSync(join(OUT, `${name}.pdf`), join(DESKTOP, `${name}.pdf`));
+    copyFileSync(join(FE, 'docs', 'manuals', 'how-work-moves.html'), join(DESKTOP, `${name}.html`));
+  }
   console.log('printed', `${name}.pdf`);
 }
 

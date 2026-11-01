@@ -99,6 +99,25 @@ export const PLAYBOOKS: Playbook[] = [
         handover: 'A founder prices and clears the ones you sent, or sends some back with a note that shows on your row and on your Today. Cleared creators go onto the proposal from the roster.',
       },
       {
+        title: 'Work an open call on WhatsApp',
+        when: 'A superadmin has put an open call live on the brand’s roster.',
+        steps: [
+          'Press "Copy a DM with my link" and send it to creators on Instagram. Everyone who answers through your link is credited to you.',
+          'Our agent on the marketing number asks their price, dates and email, and offers one counter if they ask above target. You do not chase them for it.',
+          'Whoever answers lands on the roster with a quote, like a creator you priced yourself. Send the good ones for review as usual.',
+          '"Yours now" means the agent stepped back: the price is above the ceiling, or the creator is big enough that a person should talk to them. Open Conversations, reply, then "Hand back to the agent".',
+          'You can only reply within 24 hours of the creator’s last message. That is WhatsApp’s rule, not ours.',
+        ],
+      },
+      {
+        title: 'Give creators their links',
+        when: 'A campaign tracks clicks and sales, and its retailers are set up.',
+        steps: [
+          'Open the campaign, then Links. Every creator on the roster has a short link per retailer.',
+          'Press "Copy all links" and send each creator only their own. A shared link credits nobody.',
+        ],
+      },
+      {
         title: 'Book the creators the client picked',
         steps: [
           'For an app campaign, share the application link. Creators apply in the app, so their details, address and bank details arrive without you collecting them by message.',
@@ -245,7 +264,7 @@ export const PLAYBOOKS: Playbook[] = [
         title: 'Turn interest into a signed deal',
         steps: [
           'Agree the commercial shape in your own words before you send any document, so nothing in the contract is a surprise.',
-          'Ask talent for a sample list if the brand wants to see creators first, and brief them properly: market, category, budget per creator, deliverables, paid or barter. A vague ask comes back as a vague list.',
+          'If the brand wants to see creators first, ask a founder to release it to talent (Ask talent is founders only), and make sure the brief is complete: market, category, budget per creator, deliverables, paid or barter. A vague ask comes back as a vague list.',
           'Send a sample pack or a priced quote from the platform. Never a spreadsheet you built yourself, because the platform’s version hides our costs and yours does not.',
           'Get the agreement signed, and chase the purchase order early if the client needs one before they can pay.',
           'Confirm payment terms in writing: how much up front, how much on completion, and in how many days.',
@@ -314,6 +333,26 @@ export const PLAYBOOKS: Playbook[] = [
         handover: 'Cleared creators go onto a proposal from the roster, with anyone who cannot go on named and the reason shown before you press add.',
       },
       {
+        title: 'Put an open call live',
+        when: 'A roster needs more creators than talent can message one by one.',
+        steps: [
+          'On the brand’s roster, "Create an open call". Describe the brand and never name it. The target per creator and the ceiling are for the agent only and are never shown to a creator.',
+          '"Make it live". Talent then send their own links; you can also copy the story link, invite app creators, or invite on WhatsApp.',
+          'When the client has chosen, press "Tell creators how it went", so nobody is left waiting.',
+          'Invites and outcomes start a WhatsApp conversation, so they only go out once Meta has approved the message.',
+        ],
+      },
+      {
+        title: 'Run Following Track on a campaign',
+        when: 'The brand wants clicks and sales per creator.',
+        steps: [
+          'Open the campaign, then Links. Add the retailers the links send people to; every creator gets a link for each.',
+          'Send the brand the store pixel (Shopify custom pixel, or the pixel for any website). Carts, checkouts and orders then arrive by themselves.',
+          'Sales from a retailer’s own report: add one, or import a spreadsheet. Brand discount codes go under Brand’s codes so each sale is credited to the right creator.',
+          'Nothing reaches the brand until you turn on "Show the brand". Affiliate links in the sidebar shows every campaign’s links at once.',
+        ],
+      },
+      {
         title: 'Release money',
         when: 'Talent have raised it. Only leadership can release it.',
         steps: [
@@ -335,7 +374,7 @@ export const PLAYBOOKS: Playbook[] = [
         title: 'Hold the team to output',
         steps: [
           'Pipeline shows anything late in red, and who owns it. A row with no owner is the real problem, not the delay.',
-          'Pending rates is every creator nobody can sell yet. If it is growing, sourcing is running ahead of pricing and the sales team has nothing to sell.',
+          '"Price N shortlisted creators" on Today is every creator talent sent for review that nobody can sell yet. If it is growing, sourcing is running ahead of pricing and the sales team has nothing to sell.',
           'Coverage shows clients with nothing moving. A quiet client is a client about to leave.',
           'When you ask for something, put a date on it and a number in it. "More influencers" gets you two. "Seven more in Bahrain by Thursday" gets you seven.',
         ],

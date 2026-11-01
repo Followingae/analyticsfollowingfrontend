@@ -43,7 +43,7 @@ export const MASTERY = {
   /* ─────────────────────────────────────────────────────────────────────────────── */
   'talent-manager': {
     flow: ['source', 'book'],
-    flowNote: 'Business development hands you a brief before the deal closes. You hand a '
+    flowNote: 'A founder releases a brief to you before the deal closes. You hand a '
             + 'priced, booked roster to account management.',
     screen: {
       title: 'Waiting on us',
@@ -72,19 +72,20 @@ export const MASTERY = {
     story: {
       title: 'A brief on Tuesday, a roster on Thursday',
       beats: [
-        ['Tue 9am', 'A request appears: **Source creators for Minimalist**. Skincare and '
-                  + 'derm, UAE, 50k to 300k, must film in studio. Business development raised it, and the '
-                  + 'deal is not even signed yet. Press **I have this**.'],
-        ['Tue 9am', 'The roster is already open under the request. You never make one.'],
-        ['Tue', 'Start in **Lists**. Beauty UAE is 53 people and it is current, because '
-              + 'it answers itself every time you open it. Thirty of them fit.'],
-        ['Tue', 'Then the master database for the rest. Anyone genuinely new, add by handle '
-              + 'and we pull their numbers ourselves.'],
+        ['Tue 9am', 'Today shows a new brief: **Minimalist**. Skincare and derm, UAE, 50k to '
+                  + '300k, AED 3,500 to 4,000 a creator. A founder released it, and the deal '
+                  + 'is not even signed yet.'],
+        ['Tue 9am', 'The brand’s roster is already open. It is the sheet now. You never make one.'],
+        ['Tue', 'Search the master database with **Add creators**. Thirty fit. Anyone '
+              + 'genuinely new, **Paste a list** straight from your notes.'],
+        ['Tue', 'An open call is live on the roster, so you send **Copy a DM with my link** '
+              + 'to twenty more. The agent asks their price while you keep sourcing.'],
         ['Wed', 'Nobody told you to find twenty. You find enough that the client has a real '
               + 'choice, which on skincare is usually sixty before they pick fifteen.'],
-        ['Wed', 'Record what each one charges and what they would accept. Those are two '
-              + 'different numbers and only the second one is real.'],
-        ['Thu', 'Hand the roster up. Leadership clears it and the client sees it the same day.'],
+        ['Wed', '**Price** each one: what they asked, what they agreed. One asks 6,000; '
+              + '**Last time** says 3,500, and the row turns amber. You agree 3,800.'],
+        ['Thu', 'Tick the good ones, **Send for review**. The rest get **Not this time** '
+              + 'with a reason. A founder prices and clears them the same day.'],
         ['After', 'Leadership negotiates the final rate. You raise the enrolment links, and each '
                 + 'creator signs their own agreement and enters their own bank details.'],
       ],
@@ -99,7 +100,7 @@ export const MASTERY = {
       ],
       bad: [
         'Sourcing into a spreadsheet and uploading at the end. Nobody can see progress, and '
-        + 'the half you have done looks like nothing.',
+        + 'the half you have done looks like nothing. The roster is the sheet.',
         'Recording only the published rate. We then sell at a margin that does not exist.',
         'Guessing a country code on a phone number. We once sent a Saudi creator’s '
         + 'signing link to a stranger in the UAE.',
@@ -108,7 +109,7 @@ export const MASTERY = {
       ],
     },
     card: [
-      ['Open first', ['Requests. Take what is yours.',
+      ['Open first', ['Today, then the brand’s roster.',
                       'Anything late, before anything new.']],
       ['The one rule', ['If it is not on the screen it did not happen. '
                       + 'WhatsApp is not a record.']],
@@ -200,8 +201,8 @@ export const MASTERY = {
   /* ─────────────────────────────────────────────────────────────────────────────── */
   'business-development': {
     flow: ['find', 'agree'],
-    flowNote: 'You start everything. The earlier you press Ask talent, the less of the '
-            + 'client’s patience is spent waiting for names.',
+    flowNote: 'You start everything. The earlier a founder presses Ask talent, the less of the '
+            + 'client’s patience is spent waiting for names. Tell them early.',
     screen: {
       title: 'Sales',
       sub: 'Every brand we are talking to, and what happens next',
@@ -222,7 +223,7 @@ export const MASTERY = {
         ['title', 'Columns are stages. Move a deal by changing its stage on the card.'],
         ['card1', 'A brand can hold several deals. Barakat has run eighteen campaigns under one name.'],
         ['card2', '"Worth" only counts deals carrying a figure, and says how many do not.'],
-        ['row1', 'Ask talent. Press it when the deal looks real, NOT when it closes.'],
+        ['row1', 'Ask talent. A founder presses it when the deal looks real, NOT when it closes.'],
         ['row3', '"Talent sourcing" means they are already finding names for this one.'],
         ['menu', 'A deal with no next step and no date is not being worked.'],
       ],
@@ -234,8 +235,10 @@ export const MASTERY = {
                  + 'Add the brand, add the deal, stage **Met them**.'],
         ['Week 1', 'You get a budget out of them: AED 57,000. Put it on the deal. A deal '
                  + 'with no budget is not a deal yet and the board shows that honestly.'],
-        ['Week 2', 'It feels real. Do not wait. Press **Ask talent** and write what you '
-                 + 'are looking for: skincare and derm, UAE, 50k to 300k, studio capable.'],
+        ['Week 2', 'It feels real. Do not wait. Write on the deal what they are looking for: '
+                 + 'skincare and derm, UAE, 50k to 300k, studio capable. Tell a founder.'],
+        ['Week 2', 'The founder presses **Ask talent** and sets the budget per creator: '
+                 + 'AED 3,500 to 4,000.'],
         ['Week 2', 'Say WHAT, never how many. They may need to show sixty before the client '
                  + 'picks fifteen, and a number from you reads as a target.'],
         ['Week 2', 'Talent starts the same day. Two weeks ago she would have started after '
@@ -249,7 +252,7 @@ export const MASTERY = {
     },
     vs: {
       good: [
-        'Ask talent the moment a deal looks real, weeks before it closes.',
+        'Tell a founder the moment a deal looks real, so talent start weeks before it closes.',
         'Every deal has a next step and a date, or it is not being worked.',
         'The budget goes on the deal as soon as you hear it, even if it is a range.',
         'A lost deal keeps its reason. "They went with two brands only" is worth more than '
@@ -268,7 +271,7 @@ export const MASTERY = {
     card: [
       ['Open first', ['Sales. Your whole board.',
                       'To send. Anything leadership has cleared.']],
-      ['The one rule', ['Ask talent when it looks real, not when it closes.']],
+      ['The one rule', ['Get talent started when it looks real, not when it closes.']],
       ['Say what, not how many', ['A client signing fifteen may need to see hundreds.']],
       ['Never', ['Never quote off the rate card without a founder.',
                  'You see sell. You never see cost.']],
@@ -434,7 +437,10 @@ export const GLOSSARY = [
   ['Client', 'A brand that has bought something. They have an account and can log in.'],
   ['Deal', 'One conversation about money. A brand can have many, over years.'],
   ['Campaign', 'A deal that was won and opened. Real creators, real money.'],
-  ['Roster', 'The creators sourced for one client. Has rounds, a brief and an owner.'],
+  ['Roster', 'The creators sourced for one brand, for its whole life. It replaced the sheet.'],
+  ['Not this time', 'Let go for this brief only. Still in the database; the reason follows them.'],
+  ['Open call', 'A campaign card creators answer on WhatsApp. The agent collects their price.'],
+  ['Following Track', 'Short links per creator. Clicks, carts and sales, shown to the brand once released.'],
   ['List', 'A standing question: "fashion, UAE". Answers itself. Never client-specific.'],
   ['Cost', 'What we pay a creator. Founders and talent only. Never shown to a brand.'],
   ['Sell', 'What we charge a client. A creator with no sell price cannot be sold.'],
