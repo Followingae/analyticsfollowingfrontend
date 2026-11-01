@@ -5,23 +5,27 @@
  *
  * A client buys from us through five doors: a sales link before they have an account, a
  * proposal, a campaign, creator contracting, and the plan. Each door kept its paperwork in
- * its own table, so Billing showed two of them, Documents showed only signed files, and an
- * account with a sent agreement and two invoices looked empty on one page and buried on the
- * other. One read now (/api/v1/client/paperwork), every row tagged with the door it came
- * through, and both pages draw from it: Billing the money, Documents the files.
+ * its own table, so Billing showed two of them and Documents showed only signed files. One
+ * read now (/api/v1/client/paperwork), every row tagged with the door it came through, and
+ * both pages draw from it: Billing the money, Documents the files.
  *
- * Same rules as the rest of billing: a row with no file still appears and says so, money
- * that did not load is never a zero, and a failed read is never shown as "nothing".
+ * THE CARD COMES FIRST. One document per card, and the card answers three things in this
+ * order: what it is (the type, as an icon and a word), how much and for what, and what it
+ * is waiting on. Everything else is a single quiet line or an icon button. The first pass
+ * stacked two badges, a label, a date sentence and a footer sentence on every card and
+ * read as a wall of text.
+ *
+ * Same rules as the rest of billing: money that did not load is never a zero, and a failed
+ * read is never shown as "nothing".
  */
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  ArrowUpRight, CreditCard, Download, FileSignature, FileText, Link2, Megaphone, Receipt,
-  Wallet,
+  ArrowUpRight, BadgeCheck, CreditCard, Download, FileSignature, Link2, Megaphone,
+  ReceiptText, ScrollText, Wallet,
 } from 'lucide-react'
 import { LoadFailed, Loading } from '@/components/brand/primitives'
-import { Button } from '@/components/ui/button'
 import { API_CONFIG, getAuthHeaders } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { cn } from '@/lib/utils'
@@ -47,37 +51,58 @@ export interface PaperItem {
   href?: string | null
 }
 
-const MODULE: Record<PaperModule, { label: string; Icon: typeof Link2 }> = {
+export const MODULE: Record<PaperModule, { label: string; Icon: typeof Link2 }> = {
   sales_link: { label: 'Sales link', Icon: Link2 },
-  proposal: { label: 'Proposal', Icon: FileText },
+  proposal: { label: 'Proposal', Icon: ScrollText },
   campaign: { label: 'Campaign', Icon: Megaphone },
   creator_contracting: { label: 'Creator contracting', Icon: Wallet },
   plan: { label: 'Plan', Icon: CreditCard },
 }
 
-const KIND: Record<PaperKind, { label: string; plural: string; Icon: typeof Link2 }> = {
-  invoice: { label: 'Invoice', plural: 'Invoices', Icon: FileText },
-  agreement: { label: 'Agreement', plural: 'Agreements', Icon: FileSignature },
-  receipt: { label: 'Receipt', plural: 'Receipts', Icon: Receipt },
+/* The type is the first thing on the card, so each one has its own tile. */
+const KIND: Record<PaperKind, { label: string; plural: string; Icon: typeof Link2; tile: string }> = {
+  invoice: { label: 'Invoice', plural: 'Invoices', Icon: ReceiptText,
+    tile: 'bg-[#d3ff02] text-[#111]' },
+  agreement: { label: 'Agreement', plural: 'Agreements', Icon: FileSignature,
+    tile: 'bg-[#111] text-[#d3ff02] dark:bg-white dark:text-[#111]' },
+  receipt: { label: 'Receipt', plural: 'Receipts', Icon: BadgeCheck,
+    tile: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' },
 }
 
-const STATUS: Record<PaperItem['status'], { label: string; tone: string }> = {
-  paid: { label: 'Paid', tone: 'bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]' },
-  partial: { label: 'Part paid', tone: 'bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]' },
-  unpaid: { label: 'Awaiting payment', tone: 'bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]' },
-  signed: { label: 'Signed', tone: 'bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]' },
-  to_sign: { label: 'Awaiting your signature', tone: 'bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]' },
+type Tone = 'good' | 'wait' | 'late'
+const DOT: Record<Tone, string> = {
+  good: 'bg-emerald-500', wait: 'bg-amber-400', late: 'bg-rose-500',
 }
 
-const money = (n: number | null | undefined, currency = 'AED') =>
-  n == null ? '—'
-    : `${currency} ${Number(n).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const day = (iso?: string | null, withYear = false) =>
+  !iso ? null : new Date(iso).toLocaleDateString('en-GB',
+    withYear ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' })
 
-const day = (iso?: string | null) =>
-  !iso ? null : new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+const figure = (n: number | null | undefined) =>
+  n == null ? '—' : Number(n).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const isLate = (it: PaperItem) =>
   it.status === 'unpaid' && !!it.due_date && new Date(it.due_date).setHours(23, 59, 59) < Date.now()
+
+/** What the document is waiting on, in three words or fewer, with its colour. */
+function standing(it: PaperItem): { text: string; tone: Tone } {
+  if (it.kind === 'agreement') {
+    return it.status === 'signed' ? { text: 'Signed', tone: 'good' } : { text: 'To sign', tone: 'wait' }
+  }
+  if (it.kind === 'receipt') return { text: 'Received', tone: 'good' }
+  if (it.status === 'paid') return { text: 'Paid', tone: 'good' }
+  if (isLate(it)) return { text: 'Past due', tone: 'late' }
+  if (it.status === 'partial') return { text: 'Part paid', tone: 'wait' }
+  return { text: it.due_date ? `Due ${day(it.due_date)}` : 'To pay', tone: 'wait' }
+}
+
+/** The one date line under the figure. */
+function when(it: PaperItem): string | null {
+  if (it.kind === 'agreement') return it.date ? `${it.status === 'signed' ? 'Signed' : 'Sent'} ${day(it.date, true)}` : null
+  if (it.kind === 'receipt') return it.date ? `Received ${day(it.date, true)}` : null
+  if (it.status === 'paid') return it.paid_at ? `Paid ${day(it.paid_at, true)}` : (it.date ? `Issued ${day(it.date, true)}` : null)
+  return it.date ? `Issued ${day(it.date, true)}` : null
+}
 
 export function usePaperwork() {
   const [items, setItems] = useState<PaperItem[]>([])
@@ -106,148 +131,181 @@ export function usePaperwork() {
   return { items, loading, failed, onATeam, reload: load }
 }
 
-// ── The money at a glance (Billing only) ────────────────────────────────────────────────
+// ── The card ────────────────────────────────────────────────────────────────────────────
+export function PaperCard({ it }: { it: PaperItem }) {
+  const kind = KIND[it.kind]
+  const mod = MODULE[it.module] ?? MODULE.campaign
+  const st = standing(it)
+  const line = when(it)
+  const external = !!it.href && it.href.startsWith('/p/')
+  const ref = it.kind === 'invoice' && /^Invoice /.test(it.label) ? it.label.replace(/^Invoice /, '') : null
+  const sub = it.kind === 'invoice' && !ref ? it.label : null
+
+  const openBtn = it.href && (external
+    ? <a href={it.href} target="_blank" rel="noopener noreferrer" aria-label="Open" className={iconBtn}><ArrowUpRight className="h-4 w-4" /></a>
+    : <Link href={it.href} aria-label="Open" className={iconBtn}><ArrowUpRight className="h-4 w-4" /></Link>)
+
+  return (
+    <article className="group flex flex-col rounded-2xl border border-black/[0.06] bg-white p-6
+                        shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition duration-200
+                        hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.12)]
+                        dark:border-white/[0.08] dark:bg-white/[0.03]">
+      {/* What it is, and what it is waiting on */}
+      <div className="flex items-start justify-between">
+        <span className={cn('flex h-11 w-11 items-center justify-center rounded-xl', kind.tile)}>
+          <kind.Icon className="h-5 w-5" strokeWidth={1.75} />
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
+          <span className={cn('h-1.5 w-1.5 rounded-full', DOT[st.tone])} />{st.text}
+        </span>
+      </div>
+
+      <p className="mt-6 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+        {kind.label}{ref ? <span className="normal-case tracking-normal"> · {ref}</span> : null}
+      </p>
+      <h3 className="mt-1 truncate text-[16px] font-medium leading-snug text-foreground" title={it.title}>
+        {it.title}
+      </h3>
+      <p className="mt-0.5 flex items-center gap-1.5 truncate text-[13px] text-muted-foreground">
+        <mod.Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+        {mod.label}{sub ? ` · ${sub}` : ''}
+      </p>
+
+      {it.kind !== 'agreement' && (
+        <p className="mt-6 flex items-baseline gap-1.5 tabular-nums">
+          <span className="text-[13px] font-medium text-muted-foreground">{it.currency || 'AED'}</span>
+          <span className="text-[26px] font-semibold leading-none tracking-[-0.02em] text-foreground">{figure(it.amount)}</span>
+        </p>
+      )}
+
+      <div className={cn('mt-auto flex items-center justify-between border-t border-black/[0.06] pt-4 dark:border-white/[0.08]',
+                         it.kind === 'agreement' ? 'mt-8' : 'mt-6')}>
+        <span className="text-[13px] text-muted-foreground">{line}</span>
+        <span className="flex items-center gap-1.5">
+          {it.pay_url && it.status !== 'paid' && (
+            <a href={it.pay_url} target="_blank" rel="noopener noreferrer"
+               className="rounded-full bg-[#d3ff02] px-3.5 py-1.5 text-[13px] font-medium text-[#111] transition hover:brightness-95">
+              Pay
+            </a>
+          )}
+          {it.url && (
+            <a href={it.url} target="_blank" rel="noopener noreferrer"
+               aria-label={it.kind === 'agreement' && it.status === 'to_sign' ? 'Download to sign' : 'Download PDF'}
+               title={it.kind === 'agreement' && it.status === 'to_sign' ? 'Download to sign' : 'Download PDF'}
+               className={iconBtn}>
+              <Download className="h-4 w-4" />
+            </a>
+          )}
+          {openBtn}
+        </span>
+      </div>
+    </article>
+  )
+}
+
+const iconBtn = 'flex h-9 w-9 items-center justify-center rounded-full border border-black/[0.08] text-foreground/70 ' +
+  'transition hover:border-black/20 hover:text-foreground dark:border-white/[0.12] dark:hover:border-white/30'
+
+// ── The money at a glance (Billing) ─────────────────────────────────────────────────────
 export function MoneySummary({ items }: { items: PaperItem[] }) {
   const invoices = items.filter(i => i.kind === 'invoice')
-  const owed = invoices.filter(i => i.status !== 'paid')
-    .reduce((n, i) => n + Math.max((i.amount || 0) - (i.paid || 0), 0), 0)
+  const open = invoices.filter(i => i.status !== 'paid')
+  const owed = open.reduce((n, i) => n + Math.max((i.amount || 0) - (i.paid || 0), 0), 0)
   const paid = invoices.reduce((n, i) => n + (i.status === 'paid' ? (i.amount || 0) : (i.paid || 0)), 0)
-  const next = invoices.filter(i => i.status !== 'paid' && i.due_date)
+  const next = open.filter(i => i.due_date)
     .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())[0]
-  const late = invoices.filter(isLate).length
 
   const cells = [
-    { k: 'Outstanding', v: money(owed), s: late ? `${late} past due` : `${invoices.filter(i => i.status !== 'paid').length} open` },
-    { k: 'Paid to date', v: money(paid), s: `${invoices.filter(i => i.status === 'paid').length} invoices settled` },
-    { k: 'Next due', v: next ? day(next.due_date) : 'Nothing due', s: next ? `${money(next.amount)} · ${next.title}` : 'You are all square' },
+    { k: 'Outstanding', v: figure(owed), cur: true, s: `${open.length} to pay` },
+    { k: 'Paid', v: figure(paid), cur: true, s: `${invoices.length - open.length} settled` },
+    { k: 'Next due', v: next ? day(next.due_date, true)! : 'Nothing', cur: false,
+      s: next ? `AED ${figure(next.amount)}` : 'You are all square' },
   ]
   return (
-    <div className="grid overflow-hidden rounded-ds-xl border bg-card sm:grid-cols-3">
-      {cells.map((c, i) => (
-        <div key={c.k} className={cn('space-y-1 p-ds-4', i > 0 && 'border-t sm:border-l sm:border-t-0')}>
-          <p className="text-ds-overline uppercase text-muted-foreground">{c.k}</p>
-          <p className="text-[22px] font-semibold leading-tight tracking-[-0.01em] tabular-nums">{c.v}</p>
-          <p className="truncate text-ds-caption text-muted-foreground">{c.s}</p>
+    <div className="grid gap-px overflow-hidden rounded-2xl border border-black/[0.06] bg-black/[0.06]
+                    sm:grid-cols-3 dark:border-white/[0.08] dark:bg-white/[0.08]">
+      {cells.map(c => (
+        <div key={c.k} className="bg-white px-7 py-6 dark:bg-[#0b0b0d]">
+          <p className="text-[13px] text-muted-foreground">{c.k}</p>
+          <p className="mt-2 flex items-baseline gap-1.5 tabular-nums">
+            {c.cur && <span className="text-[13px] font-medium text-muted-foreground">AED</span>}
+            <span className="text-[28px] font-semibold leading-none tracking-[-0.02em]">{c.v}</span>
+          </p>
+          <p className="mt-2 text-[13px] text-muted-foreground">{c.s}</p>
         </div>
       ))}
     </div>
   )
 }
 
-// ── One card ────────────────────────────────────────────────────────────────────────────
-function PaperCard({ it }: { it: PaperItem }) {
-  const mod = MODULE[it.module] ?? MODULE.campaign
-  const st = isLate(it) ? { label: 'Past due', tone: 'bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]' } : STATUS[it.status]
-  const KindIcon = KIND[it.kind].Icon
-  const external = !!it.href && it.href.startsWith('/p/')
-  const when = it.kind === 'invoice'
-    ? (it.status === 'paid' ? (it.paid_at ? `Paid ${day(it.paid_at)}` : `Issued ${day(it.date)}`)
-      : it.due_date ? `Due ${day(it.due_date)}` : `Issued ${day(it.date)}`)
-    : it.kind === 'agreement' ? (it.status === 'signed' ? `Signed ${day(it.date)}` : `Sent ${day(it.date)}`)
-      : `Received ${day(it.date)}`
-
+// ── A titled group of cards ─────────────────────────────────────────────────────────────
+function Section({ title, items }: { title: string; items: PaperItem[] }) {
+  if (!items.length) return null
   return (
-    <div className="group flex flex-col rounded-ds-xl border bg-card p-ds-4 transition hover:border-foreground/20 hover:shadow-sm">
-      <div className="flex items-start justify-between gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-ds-full bg-muted px-2.5 py-1 text-ds-caption text-muted-foreground">
-          <mod.Icon className="h-3.5 w-3.5" />{mod.label}
-        </span>
-        <span className={cn('shrink-0 rounded-ds-full px-2.5 py-1 text-ds-caption font-medium', st.tone)}>{st.label}</span>
+    <section className="space-y-5">
+      <h2 className="flex items-baseline gap-2 text-[15px] font-medium text-foreground">
+        {title}<span className="text-[13px] font-normal text-muted-foreground tabular-nums">{items.length}</span>
+      </h2>
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {items.map(it => <PaperCard key={it.id} it={it} />)}
       </div>
-
-      <div className="mt-ds-3 flex items-start gap-ds-2">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-ds-lg bg-muted">
-          <KindIcon className="h-4 w-4 text-muted-foreground" />
-        </span>
-        <div className="min-w-0">
-          <p className="truncate font-medium">{it.title}</p>
-          <p className="truncate text-ds-body-sm text-muted-foreground">{it.label}</p>
-        </div>
-      </div>
-
-      {it.kind !== 'agreement' && (
-        <p className="mt-ds-3 text-[22px] font-semibold tracking-[-0.01em] tabular-nums">
-          {money(it.amount, it.currency)}
-        </p>
-      )}
-      <p className={cn('text-ds-caption text-muted-foreground', it.kind === 'agreement' && 'mt-ds-3')}>{when}</p>
-
-      <div className="mt-auto flex flex-wrap items-center gap-2 pt-ds-4">
-        {it.url ? (
-          <Button size="sm" variant="outline" className="gap-1.5" asChild>
-            <a href={it.url} target="_blank" rel="noopener noreferrer">
-              <Download className="h-3.5 w-3.5" />{it.kind === 'agreement' && it.status === 'to_sign' ? 'Download to sign' : 'Open PDF'}
-            </a>
-          </Button>
-        ) : (
-          <span className="text-ds-caption text-muted-foreground">The file is on its way</span>
-        )}
-        {it.pay_url && it.status !== 'paid' && (
-          <Button size="sm" className="gap-1.5" asChild>
-            <a href={it.pay_url} target="_blank" rel="noopener noreferrer">Pay now</a>
-          </Button>
-        )}
-        {it.href && (
-          <Button size="sm" variant="ghost" className="ml-auto gap-1 text-muted-foreground" asChild>
-            {external
-              ? <a href={it.href} target="_blank" rel="noopener noreferrer">Open<ArrowUpRight className="h-3.5 w-3.5" /></a>
-              : <Link href={it.href}>Open<ArrowUpRight className="h-3.5 w-3.5" /></Link>}
-          </Button>
-        )}
-      </div>
-    </div>
+    </section>
   )
 }
 
-// ── The grid, with its filter ───────────────────────────────────────────────────────────
+// ── The page body: a quiet filter, then sections ────────────────────────────────────────
 export function PaperworkGrid({
-  data, kinds, filterBy, empty,
+  data, kinds, groupBy, empty,
 }: {
   data: ReturnType<typeof usePaperwork>
   kinds: PaperKind[]
-  /** Billing filters by where the money came from; Documents by what the file is. */
-  filterBy: 'module' | 'kind'
+  /** Billing groups by what is owed; Documents by what the file is. */
+  groupBy: 'standing' | 'kind'
   empty: string
 }) {
-  const [pick, setPick] = useState<string>('all')
+  const [pick, setPick] = useState<PaperModule | 'all'>('all')
   const mine = useMemo(() => data.items.filter(i => kinds.includes(i.kind)), [data.items, kinds])
-
-  const chips = useMemo(() => {
-    const keys = filterBy === 'module'
-      ? (Object.keys(MODULE) as PaperModule[]).filter(m => mine.some(i => i.module === m))
-      : kinds.filter(k => mine.some(i => i.kind === k))
-    return keys.map(k => ({
-      key: k,
-      label: filterBy === 'module' ? MODULE[k as PaperModule].label : KIND[k as PaperKind].plural,
-      n: mine.filter(i => (filterBy === 'module' ? i.module : i.kind) === k).length,
-    }))
-  }, [mine, filterBy, kinds])
+  const modules = useMemo(
+    () => (Object.keys(MODULE) as PaperModule[]).filter(m => mine.some(i => i.module === m)), [mine])
 
   if (data.loading) return <Loading rows={3} />
   if (data.failed) return <LoadFailed what="your paperwork" onRetry={data.reload} />
-
-  const shown = pick === 'all' ? mine : mine.filter(i => (filterBy === 'module' ? i.module : i.kind) === pick)
-
   if (!mine.length) {
-    return <p className="rounded-ds-xl border border-dashed p-ds-5 text-center text-ds-body-sm text-muted-foreground">{empty}</p>
+    return (
+      <div className="rounded-2xl border border-dashed border-black/[0.1] px-6 py-16 text-center dark:border-white/[0.12]">
+        <p className="text-[15px] text-muted-foreground">{empty}</p>
+      </div>
+    )
   }
 
+  const shown = pick === 'all' ? mine : mine.filter(i => i.module === pick)
+  const sections = groupBy === 'standing'
+    ? [
+        { title: 'To pay', items: shown.filter(i => i.status !== 'paid') },
+        { title: 'Paid', items: shown.filter(i => i.status === 'paid') },
+      ]
+    : kinds.map(k => ({ title: KIND[k].plural, items: shown.filter(i => i.kind === k) }))
+
   return (
-    <div className="space-y-ds-3">
-      {chips.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {[{ key: 'all', label: 'All', n: mine.length }, ...chips].map(c => (
-            <button key={c.key} onClick={() => setPick(c.key)}
-              className={cn('inline-flex items-center gap-1.5 rounded-ds-full border px-3 py-1.5 text-ds-body-sm transition',
-                pick === c.key ? 'border-foreground bg-foreground text-background' : 'bg-card hover:border-foreground/30')}>
-              {c.label}<span className={cn('tabular-nums', pick === c.key ? 'opacity-70' : 'text-muted-foreground')}>{c.n}</span>
-            </button>
-          ))}
+    <div className="space-y-12">
+      {modules.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1 rounded-full border border-black/[0.06] bg-white p-1 sm:w-fit
+                        dark:border-white/[0.08] dark:bg-white/[0.03]">
+          {(['all', ...modules] as const).map(m => {
+            const on = pick === m
+            const n = m === 'all' ? mine.length : mine.filter(i => i.module === m).length
+            return (
+              <button key={m} onClick={() => setPick(m)}
+                className={cn('rounded-full px-4 py-1.5 text-[13px] transition',
+                  on ? 'bg-[#111] text-white dark:bg-white dark:text-[#111]' : 'text-muted-foreground hover:text-foreground')}>
+                {m === 'all' ? 'All' : MODULE[m].label}
+                <span className={cn('ml-1.5 tabular-nums', on ? 'opacity-60' : 'opacity-70')}>{n}</span>
+              </button>
+            )
+          })}
         </div>
       )}
-      <div className="grid gap-ds-3 sm:grid-cols-2 xl:grid-cols-3">
-        {shown.map(it => <PaperCard key={it.id} it={it} />)}
-      </div>
+      {sections.map(s => <Section key={s.title} title={s.title} items={s.items} />)}
     </div>
   )
 }

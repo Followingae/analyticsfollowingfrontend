@@ -88,11 +88,11 @@ type Load = 'loading' | 'loaded' | 'empty' | 'failed'
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-5xl flex-1 p-ds-4 sm:p-ds-5">
-      <div className="space-y-ds-4">
-        <div className="space-y-ds-1">
-          <h1 className="text-ds-title">Billing</h1>
-          <p className="text-ds-body text-muted-foreground">
+    <div className="mx-auto w-full max-w-6xl flex-1 px-5 py-10 sm:px-8 sm:py-14">
+      <div className="space-y-10">
+        <div className="space-y-2">
+          <h1 className="text-[34px] font-semibold leading-tight tracking-[-0.02em]">Billing</h1>
+          <p className="text-[15px] text-muted-foreground">
             Every invoice from every part of Following, what is paid, and what is due.
           </p>
         </div>
@@ -277,7 +277,7 @@ function BillingContent() {
         />
       ) : null}
 
-      <Tabs value={activeTab} onValueChange={goTab} className="space-y-ds-3">
+      <Tabs value={activeTab} onValueChange={goTab} className="space-y-8">
         <TabsList>
           <TabsTrigger value="invoices">Invoices</TabsTrigger>
           <TabsTrigger value="plan">Plan and modules</TabsTrigger>
@@ -329,11 +329,11 @@ function BillingContent() {
         </TabsContent>
 
         {/* 5. What have I been charged. One list, both sources, every account. */}
-        <TabsContent value="invoices" className="space-y-ds-3">
+        <TabsContent value="invoices">
           <PaperworkGrid
             data={allPaper}
             kinds={['invoice']}
-            filterBy="module"
+            groupBy="standing"
             empty="No invoices yet. Everything we bill you, from any part of Following, appears here."
           />
         </TabsContent>
