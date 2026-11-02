@@ -10,7 +10,7 @@
 import * as React from "react"
 import { useCallback, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { Copy, Loader2, MessageCircle, Pencil, Plus, Send, Smartphone, X } from "lucide-react"
+import { Copy, LayoutGrid, Loader2, MessageCircle, Pencil, Plus, Send, Smartphone, X } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,12 +20,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { openCallsApi, type OpenCall } from "@/services/openCallsApi"
 import { ConversationsSheet } from "./ConversationsSheet"
+import { ApplicantsBoard } from "./ApplicantsBoard"
+import { CampaignAlertDialog } from "./AlertDialog"
+import { EMPTY_SCREENING, ScreeningEditor } from "./ScreeningEditor"
 
 type Draft = Partial<OpenCall> & { faq: { q: string; a: string }[] }
 
-const EMPTY: Draft = { title: "", brand_descriptor: "", pitch: "", comp_mode: "paid", deliverables: "", location: "",
+const EMPTY: Draft = { title: "", brand_descriptor: "", pitch: "", comp_mode: "barter", deliverables: "", location: "",
                        dates: "", image_url: "", barter_offer: "", target_aed: null, ceiling_aed: null,
-                       max_counters: 1, handover_followers: 500000, faq: [], status: "live" }
+                       max_counters: 1, handover_followers: 500000, faq: [], status: "live",
+                       looking_for: "", screening: EMPTY_SCREENING }
 
 export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
   listId: string; brand?: string | null; isSuperadmin: boolean; isFounder: boolean
@@ -37,6 +41,8 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
   const [draft, setDraft] = useState<Draft>(EMPTY)
   const [busy, setBusy] = useState(false)
   const [chats, setChats] = useState(false)
+  const [board, setBoard] = useState(false)
+  const [alertOpen, setAlertOpen] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -45,7 +51,10 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
     } catch { /* the roster still works without it */ } finally { setLoaded(true) }
   }, [listId])
   useEffect(() => { load() }, [load])
-  useEffect(() => { if (params?.get("chats") === "1") setChats(true) }, [params])
+  useEffect(() => {
+    if (params?.get("chats") === "1") setChats(true)
+    if (params?.get("applicants") === "1") setBoard(true)
+  }, [params])
 
   const set = (p: Partial<Draft>) => setDraft(d => ({ ...d, ...p }))
 
@@ -136,14 +145,22 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
           <div className="whitespace-pre-line rounded-ds-lg bg-[var(--tone-neutral-wash)] p-ds-3 text-sm">{oc.card}</div>
           <div className="flex flex-col gap-ds-2 md:w-56">
             <div className="grid grid-cols-3 gap-1 text-center">
-              {[["Answered", oc.counts.done], ["In chat", oc.counts.talking], ["Yours now", oc.counts.handover]].map(([l, n]) => (
+              {[["To review", oc.counts.to_review ?? oc.counts.done], ["In chat", oc.counts.talking], ["Yours now", oc.counts.handover]].map(([l, n]) => (
                 <div key={l as string} className="rounded-ds-lg border py-1.5">
                   <div className="text-base font-semibold tabular-nums">{n as number}</div>
                   <div className="text-ds-caption text-muted-foreground">{l as string}</div>
                 </div>
               ))}
             </div>
-            <Button size="sm" className="gap-1.5" onClick={() => myLink(true)} disabled={oc.status !== "live"}>
+            <Button size="sm" className="gap-1.5 bg-[#d3ff02] text-[#111] hover:bg-[#c4ef00]" onClick={() => setBoard(true)}>
+              <LayoutGrid className="h-3.5 w-3.5" />Applicants
+            </Button>
+            {isSuperadmin && oc.comp_mode !== "paid" && (
+              <Button size="sm" variant="outline" className="gap-1.5" disabled={oc.status !== "live"} onClick={() => setAlertOpen(true)}>
+                <Send className="h-3.5 w-3.5" />Send the alert{oc.counts.alerted ? ` (${oc.counts.alerted})` : ""}
+              </Button>
+            )}
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => myLink(true)} disabled={oc.status !== "live"}>
               <Copy className="h-3.5 w-3.5" />Copy a DM with my link
             </Button>
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => myLink(false)} disabled={oc.status !== "live"}>
@@ -160,11 +177,9 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
                 <Button size="sm" variant="ghost" className="gap-1.5" disabled={busy || oc.status !== "live"} onClick={() => invite("app")}>
                   <Smartphone className="h-3.5 w-3.5" />Invite app creators
                 </Button>
-                <Button size="sm" variant="ghost" className="gap-1.5" disabled={busy || oc.status !== "live"} onClick={() => invite("whatsapp")}>
-                  <Send className="h-3.5 w-3.5" />Invite on WhatsApp
-                </Button>
                 <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => {
-                  setDraft({ ...EMPTY, ...oc, faq: oc.faq || [] }); setEdit(true)
+                  setDraft({ ...EMPTY, ...oc, faq: oc.faq || [], screening: oc.screening || EMPTY_SCREENING,
+                             looking_for: oc.looking_for || "" }); setEdit(true)
                 }}>
                   <Pencil className="h-3.5 w-3.5" />Edit
                 </Button>
@@ -183,7 +198,7 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
       )}
 
       <Dialog open={edit} onOpenChange={setEdit}>
-        <DialogContent className="w-[95vw] sm:max-w-2xl">
+        <DialogContent className="w-[95vw] sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{oc ? "Edit the open call" : "Create an open call"}</DialogTitle>
             <DialogDescription>
@@ -220,6 +235,14 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
               {draft.comp_mode !== "paid" && (
                 <F label="What they get"><Input value={draft.barter_offer || ""} onChange={e => set({ barter_offer: e.target.value })} placeholder="a meal for two" /></F>
               )}
+            </div>
+            <F label="Who we are looking for">
+              <Input value={draft.looking_for || ""} onChange={e => set({ looking_for: e.target.value })}
+                     placeholder="younger lifestyle creators, all genders" />
+            </F>
+            <div className="flex flex-col gap-1">
+              <Label className="text-ds-caption">What the agent checks</Label>
+              <ScreeningEditor value={draft.screening || EMPTY_SCREENING} onChange={sc => set({ screening: sc })} />
             </div>
             <F label="Picture (optional, a link to an image)"><Input value={draft.image_url || ""} onChange={e => set({ image_url: e.target.value })} placeholder="https://cdn.following.ae/..." /></F>
             {draft.comp_mode !== "barter" && (
@@ -259,6 +282,9 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
       </Dialog>
 
       {oc && <ConversationsSheet openCallId={oc.id} open={chats} onOpenChange={setChats} founder={isFounder} onChanged={load} />}
+      {oc && <ApplicantsBoard openCallId={oc.id} open={board} onOpenChange={setBoard} brand={brand}
+                              onChats={() => { setBoard(false); setChats(true) }} onChanged={load} />}
+      {oc && isSuperadmin && <CampaignAlertDialog openCallId={oc.id} open={alertOpen} onOpenChange={setAlertOpen} onSent={load} />}
     </section>
   )
 }

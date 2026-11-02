@@ -39,13 +39,63 @@ export interface OpenCall {
   handover_followers?: number
   faq: { q: string; a: string }[]
   status: 'draft' | 'live' | 'closed'
+  looking_for?: string | null
+  screening: Screening
   number: string
   story_link: string
   my_code: string | null
   my_link: string | null
-  counts: { total: number; done: number; talking: number; handover: number; declined: number }
+  counts: { total: number; done: number; talking: number; handover: number; declined: number
+            to_review?: number; approved?: number; screened_out?: number; alerted?: number }
   card: string
   can_edit: boolean
+}
+
+export interface Slot { id: string; label: string; capacity: number | null; taken?: number }
+export interface ScreenQuestion { id: string; q: string; must: boolean }
+export interface Screening {
+  city: string | null
+  where: 'based' | 'based_or_visit' | 'anywhere'
+  slots: Slot[]
+  questions: ScreenQuestion[]
+  min_followers: number | null
+}
+
+export interface AlertInfo {
+  text: string
+  template_sid: string | null
+  approved: boolean
+  barter: boolean
+  live: boolean
+  tags: { tag: string; n: number }[]
+  contacts: number
+  sent: number
+  queued: number
+  failed: number
+}
+
+export interface Applicant {
+  id: string
+  state: OpenCallConversation['state']
+  handle: string | null
+  phone: string | null
+  email: string | null
+  answers: { based_in?: string; in_city?: boolean; can_visit?: boolean; slot?: string; slot_letter?: string; q?: Record<string, string> }
+  fit: 'fits' | 'screened_out' | 'unsure' | null
+  fit_reasons: string[]
+  review: 'approved' | 'passed' | null
+  reviewed_at: string | null
+  proposal_id: string | null
+  declined_reason: string | null
+  handover_reason: string | null
+  updated_at: string
+  influencer_id: string | null
+  window_open: boolean
+  followers: number | null
+  avatar: string | null
+  name: string | null
+  last_message: string | null
+  slot: string | null
 }
 
 export interface OpenCallConversation {
@@ -86,6 +136,15 @@ export const openCallsApi = {
     jfetch(`${BASE}/open-call-conversations/${cid}/hand-back`, { method: 'POST', body: '{}' }),
   outcomes: (id: string): Promise<{ data: { sent: string[]; not_sent: string[] } }> =>
     jfetch(`${BASE}/open-calls/${id}/outcomes`, { method: 'POST', body: '{}' }),
+  alert: (id: string): Promise<{ data: AlertInfo }> => jfetch(`${BASE}/open-calls/${id}/alert`),
+  sendAlert: (id: string, body: { to: 'test'; phone: string } | { to: 'contacts'; tags?: string[] }):
+    Promise<{ data: { queued: number } }> =>
+    jfetch(`${BASE}/open-calls/${id}/alert`, { method: 'POST', body: JSON.stringify(body) }),
+  applicants: (id: string): Promise<{ data: { applicants: Applicant[]; can_approve: boolean; screening: Screening; slots: Slot[] } }> =>
+    jfetch(`${BASE}/open-calls/${id}/applicants`),
+  review: (id: string, body: { action: 'approve' | 'pass'; conversation_ids: string[]; proposal_id?: string; reason?: string }):
+    Promise<{ data: { added?: number; passed?: number; blocked?: { username: string; reason: string }[]; no_handle: number } }> =>
+    jfetch(`${BASE}/open-calls/${id}/review`, { method: 'POST', body: JSON.stringify(body) }),
   invite: (id: string, channel: 'app' | 'whatsapp', opts: { min_followers?: number; from_list_id?: string } = {}):
     Promise<{ data: { channel: string; invited: number } }> =>
     jfetch(`${BASE}/open-calls/${id}/invite`, { method: 'POST', body: JSON.stringify({ channel, ...opts }) }),
