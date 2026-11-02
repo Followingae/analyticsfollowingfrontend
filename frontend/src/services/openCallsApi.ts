@@ -40,6 +40,8 @@ export interface OpenCall {
   faq: { q: string; a: string }[]
   status: 'draft' | 'live' | 'closed'
   looking_for?: string | null
+  ask_rate?: boolean
+  fee_note?: string | null
   screening: Screening
   number: string
   story_link: string
@@ -136,6 +138,8 @@ export const openCallsApi = {
     jfetch(`${BASE}/open-call-conversations/${cid}/hand-back`, { method: 'POST', body: '{}' }),
   outcomes: (id: string): Promise<{ data: { sent: string[]; not_sent: string[] } }> =>
     jfetch(`${BASE}/open-calls/${id}/outcomes`, { method: 'POST', body: '{}' }),
+  suggest: (listId: string): Promise<{ data: { draft: Partial<OpenCall> & { faq: { q: string; a: string }[] }; drafted_by_ai: boolean } }> =>
+    jfetch(`${BASE}/imd-lists/${listId}/open-call/suggest`, { method: 'POST', body: '{}' }),
   alert: (id: string): Promise<{ data: AlertInfo }> => jfetch(`${BASE}/open-calls/${id}/alert`),
   sendAlert: (id: string, body: { to: 'test'; phone: string } | { to: 'contacts'; tags?: string[] }):
     Promise<{ data: { queued: number } }> =>

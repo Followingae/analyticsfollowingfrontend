@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { openCallsApi, type OpenCall } from "@/services/openCallsApi"
@@ -58,6 +59,30 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
   }, [params])
 
   const set = (p: Partial<Draft>) => setDraft(d => ({ ...d, ...p }))
+
+  // ScoutAI drafts the open call from the roster's brief: facts copied as they are, the
+  // words written for creators. A superadmin checks it before it goes live.
+  const [drafting, setDrafting] = useState(false)
+  const [drafted, setDrafted] = useState(false)
+  const draftFromBrief = async (keep?: Draft) => {
+    setDrafting(true)
+    try {
+      const r = await openCallsApi.suggest(listId)
+      const d = r.data.draft
+      setDraft(prev => {
+        const base = keep || prev
+        const pick = <T,>(v: T | null | undefined, cur: T) => (v === null || v === undefined || v === "" ? cur : v)
+        return {
+          ...base,
+          ...Object.fromEntries(Object.entries(d).filter(([, v]) => v !== null && v !== undefined && v !== "")),
+          screening: { ...(base.screening || EMPTY_SCREENING), ...(d.screening || {}),
+                       slots: (base.screening?.slots?.length ? base.screening.slots : d.screening?.slots) || [] },
+          faq: pick(d.faq?.length ? d.faq : null, base.faq),
+        } as Draft
+      })
+      setDrafted(r.data.drafted_by_ai)
+    } catch (e) { toast.error((e as Error).message || "Could not draft from the brief") } finally { setDrafting(false) }
+  }
 
   const save = async () => {
     setBusy(true)
@@ -131,7 +156,7 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
           {oc && <span className={`ml-1 rounded-ds-full px-2 py-0.5 normal-case ${oc.status === "live" ? "bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]" : "bg-[var(--tone-neutral-wash)]"}`}>{oc.status === "live" ? "Live" : oc.status === "closed" ? "Closed" : "Draft"}</span>}
         </p>
         {!oc && isSuperadmin && (
-          <Button size="sm" className="gap-1.5" onClick={() => { setDraft(EMPTY); setEdit(true) }}>
+          <Button size="sm" className="gap-1.5" onClick={() => { setDraft(EMPTY); setDrafted(false); setEdit(true); draftFromBrief(EMPTY) }}>
             <Plus className="h-3.5 w-3.5" />Create an open call
           </Button>
         )}
@@ -207,7 +232,18 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
               The budget and ceiling are only for the agent and are never shown.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex max-h-[62vh] flex-col gap-ds-3 overflow-y-auto pr-1">
+          <div className="flex items-center gap-ds-3 rounded-ds-lg bg-[var(--tone-neutral-wash)] px-ds-3 py-ds-2">
+            <ScoutAvatar size={36} state={drafting ? "working" : "default"} />
+            <p className="flex-1 text-sm">
+              {drafting ? "ScoutAI is drafting this from the roster’s brief…"
+                : drafted ? "Drafted by ScoutAI from the brief. Check every line before it goes live."
+                : "ScoutAI can draft this from the roster’s brief."}
+            </p>
+            <Button size="sm" variant="outline" disabled={drafting} onClick={() => draftFromBrief()}>
+              {drafting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : drafted ? "Redraft" : "Draft from the brief"}
+            </Button>
+          </div>
+          <div className={`flex max-h-[58vh] flex-col gap-ds-3 overflow-y-auto pr-1 transition-opacity ${drafting ? "pointer-events-none opacity-40" : ""}`}>
             <div className="grid gap-ds-3 sm:grid-cols-2">
               <F label="Title"><Input value={draft.title || ""} onChange={e => set({ title: e.target.value })} placeholder="Winter menu launch" /></F>
               <F label="The brand, described">
@@ -247,6 +283,24 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
             </div>
             <F label="Picture (optional, a link to an image)"><Input value={draft.image_url || ""} onChange={e => set({ image_url: e.target.value })} placeholder="https://cdn.following.ae/..." /></F>
             {draft.comp_mode !== "barter" && (
+              <div className="flex flex-col gap-ds-2 rounded-ds-lg border p-ds-3">
+                <label className="flex items-center justify-between gap-ds-3 text-sm font-medium">
+                  Ask creators for their rate
+                  <Switch checked={draft.ask_rate !== false} onCheckedChange={(v: boolean) => set({ ask_rate: v })} />
+                </label>
+                {draft.ask_rate === false && (
+                  <>
+                    <p className="text-ds-caption text-muted-foreground">
+                      ScoutAI states the fee and never asks a rate, so a small top-up on the product does not turn into a negotiation.
+                    </p>
+                    <F label="The fee, as creators read it">
+                      <Input value={draft.fee_note || ""} onChange={e => set({ fee_note: e.target.value })} placeholder="AED 150 on top" />
+                    </F>
+                  </>
+                )}
+              </div>
+            )}
+            {draft.comp_mode !== "barter" && draft.ask_rate !== false && (
               <div className="rounded-ds-lg bg-[var(--tone-neutral-wash)] p-ds-3">
                 <p className="mb-ds-2 text-ds-caption text-muted-foreground">
                   How the agent negotiates. At or under the target it accepts. Above it, it counters once, gently.
