@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { adminProposalApi } from "@/services/adminProposalMasterApi"
 import { openCallsApi, type Applicant, type Screening, type Slot } from "@/services/openCallsApi"
+import { ScoutAvatar } from "./ScoutAvatar"
 
 type Filter = "review" | "fits" | "unsure" | "out" | "approved" | "passed" | "chatting"
 
@@ -244,9 +245,12 @@ export function ApplicantsBoard({ openCallId, open, onOpenChange, brand, onChats
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-5xl">
-        <SheetHeader>
-          <SheetTitle className="text-2xl">Applicants</SheetTitle>
-          <SheetDescription>Everyone who answered on WhatsApp, against this campaign’s rules.</SheetDescription>
+        <SheetHeader className="flex-row items-center gap-ds-3 space-y-0">
+          <ScoutAvatar size={56} interactive />
+          <div>
+            <SheetTitle className="text-2xl">Applicants</SheetTitle>
+            <SheetDescription>Everyone ScoutAI spoke to, against this campaign’s rules.</SheetDescription>
+          </div>
         </SheetHeader>
 
         {!data ? (

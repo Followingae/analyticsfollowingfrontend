@@ -23,6 +23,7 @@ import { ConversationsSheet } from "./ConversationsSheet"
 import { ApplicantsBoard } from "./ApplicantsBoard"
 import { CampaignAlertDialog } from "./AlertDialog"
 import { EMPTY_SCREENING, ScreeningEditor } from "./ScreeningEditor"
+import { ScoutAvatar } from "./ScoutAvatar"
 
 type Draft = Partial<OpenCall> & { faq: { q: string; a: string }[] }
 
@@ -126,7 +127,7 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
     <section className="flex flex-col gap-ds-3 border-t pt-ds-3">
       <div className="flex flex-wrap items-center justify-between gap-ds-2">
         <p className="flex items-center gap-1.5 text-ds-overline uppercase text-muted-foreground">
-          <MessageCircle className="h-3.5 w-3.5" />Open call on WhatsApp
+          <ScoutAvatar size={30} state={oc?.status === "live" ? "default" : "sleeping"} />ScoutAI on WhatsApp
           {oc && <span className={`ml-1 rounded-ds-full px-2 py-0.5 normal-case ${oc.status === "live" ? "bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]" : "bg-[var(--tone-neutral-wash)]"}`}>{oc.status === "live" ? "Live" : oc.status === "closed" ? "Closed" : "Draft"}</span>}
         </p>
         {!oc && isSuperadmin && (
