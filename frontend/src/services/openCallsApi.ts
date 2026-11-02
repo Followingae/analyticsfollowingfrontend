@@ -85,7 +85,8 @@ export interface Applicant {
   phone: string | null
   email: string | null
   answers: { based_in?: string; in_city?: boolean; can_visit?: boolean; slot?: string; slot_letter?: string
-             q?: Record<string, string>; nationality?: string; nationality_match?: boolean | null }
+             q?: Record<string, string>; nationality?: string; nationality_match?: boolean | null
+             ack?: boolean; ack_at?: string }
   fit: 'fits' | 'screened_out' | 'unsure' | null
   fit_reasons: string[]
   review: 'shortlisted' | 'approved' | 'passed' | null

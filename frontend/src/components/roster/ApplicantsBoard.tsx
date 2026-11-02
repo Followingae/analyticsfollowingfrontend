@@ -106,6 +106,12 @@ function ApplicantCard({ a, s, picked, onPick, canApprove, onApprove, onPass, on
             <CalendarClock className="h-3 w-3" />{a.slot}
           </span>
         )}
+        {a.answers.ack && (
+          <span className="inline-flex items-center gap-1 rounded-ds-full bg-[var(--tone-good-wash)] px-2.5 py-1 text-xs text-[var(--tone-good-ink)]"
+                title={a.answers.ack_at ? `Agreed ${new Date(a.answers.ack_at).toLocaleString("en-GB")}` : undefined}>
+            <Check className="h-3 w-3" />Agreed to terms
+          </span>
+        )}
         {nat && (
           <span className={`inline-flex items-center gap-1 rounded-ds-full px-2.5 py-1 text-xs ${a.answers.nationality_match
             ? "bg-[#d3ff02] text-[#111]" : "bg-[var(--tone-neutral-wash)]"}`}>
