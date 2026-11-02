@@ -61,6 +61,8 @@ export interface Screening {
   slots: Slot[]
   questions: ScreenQuestion[]
   min_followers: number | null
+  ask_nationality?: boolean
+  nationality_targets?: string[]
 }
 
 export interface AlertInfo {
@@ -82,10 +84,14 @@ export interface Applicant {
   handle: string | null
   phone: string | null
   email: string | null
-  answers: { based_in?: string; in_city?: boolean; can_visit?: boolean; slot?: string; slot_letter?: string; q?: Record<string, string> }
+  answers: { based_in?: string; in_city?: boolean; can_visit?: boolean; slot?: string; slot_letter?: string
+             q?: Record<string, string>; nationality?: string; nationality_match?: boolean | null }
   fit: 'fits' | 'screened_out' | 'unsure' | null
   fit_reasons: string[]
-  review: 'approved' | 'passed' | null
+  review: 'shortlisted' | 'approved' | 'passed' | null
+  analytics_status: string | null
+  engagement_rate: number | null
+  saved_nationality: string | null
   reviewed_at: string | null
   proposal_id: string | null
   declined_reason: string | null
@@ -144,10 +150,11 @@ export const openCallsApi = {
   sendAlert: (id: string, body: { to: 'test'; phone: string } | { to: 'contacts'; tags?: string[] }):
     Promise<{ data: { queued: number } }> =>
     jfetch(`${BASE}/open-calls/${id}/alert`, { method: 'POST', body: JSON.stringify(body) }),
-  applicants: (id: string): Promise<{ data: { applicants: Applicant[]; can_approve: boolean; screening: Screening; slots: Slot[] } }> =>
+  applicants: (id: string): Promise<{ data: { applicants: Applicant[]; can_approve: boolean; can_shortlist: boolean; screening: Screening; slots: Slot[] } }> =>
     jfetch(`${BASE}/open-calls/${id}/applicants`),
-  review: (id: string, body: { action: 'approve' | 'pass'; conversation_ids: string[]; proposal_id?: string; reason?: string }):
-    Promise<{ data: { added?: number; passed?: number; blocked?: { username: string; reason: string }[]; no_handle: number } }> =>
+  review: (id: string, body: { action: 'shortlist' | 'approve' | 'pass'; conversation_ids: string[]; proposal_id?: string; reason?: string }):
+    Promise<{ data: { added?: number; passed?: number; shortlisted?: number; analytics_started?: number
+                      blocked?: { username: string; reason: string }[]; no_handle: number } }> =>
     jfetch(`${BASE}/open-calls/${id}/review`, { method: 'POST', body: JSON.stringify(body) }),
   invite: (id: string, channel: 'app' | 'whatsapp', opts: { min_followers?: number; from_list_id?: string } = {}):
     Promise<{ data: { channel: string; invited: number } }> =>

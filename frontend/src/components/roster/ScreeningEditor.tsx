@@ -6,13 +6,14 @@
  * campaign by a superadmin; the agent asks for each and screens against it.
  */
 import * as React from "react"
-import { CalendarClock, MapPin, MessageCircleQuestion, Plus, Users, X } from "lucide-react"
+import { CalendarClock, Flag, MapPin, MessageCircleQuestion, Plus, Users, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import type { Screening } from "@/services/openCallsApi"
 
-export const EMPTY_SCREENING: Screening = { city: "", where: "anywhere", slots: [], questions: [], min_followers: null }
+export const EMPTY_SCREENING: Screening = { city: "", where: "anywhere", slots: [], questions: [], min_followers: null,
+                                            ask_nationality: false, nationality_targets: [] }
 
 const WHERE: { id: Screening["where"]; label: string }[] = [
   { id: "based", label: "Based there" },
@@ -95,6 +96,35 @@ export function ScreeningEditor({ value, onChange }: { value: Screening; onChang
                 onClick={() => set({ questions: [...s.questions, { id: newId("q"), q: "", must: false }] })}>
           <Plus className="h-3.5 w-3.5" />Add a question
         </Button>
+      </Block>
+
+      <Block icon={Flag} title="Nationality">
+        <label className="flex items-center justify-between gap-ds-3 text-sm">
+          Ask every creator their nationality
+          <Switch checked={!!s.ask_nationality} onCheckedChange={(v: boolean) => set({ ask_nationality: v })} />
+        </label>
+        {s.ask_nationality && (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Asked of everyone, the same way. Nobody is turned away for it in the chat: it is saved on the
+              creator, and you filter on it at review.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {["Arab", "European", "GCC", "Emirati"].map(t => {
+                const on = (s.nationality_targets || []).includes(t)
+                return (
+                  <button key={t} type="button"
+                          onClick={() => set({ nationality_targets: on ? (s.nationality_targets || []).filter(x => x !== t)
+                                                                         : [...(s.nationality_targets || []), t] })}
+                          className={`rounded-ds-full border px-3 py-1.5 text-xs transition ${on
+                            ? "border-foreground bg-foreground text-background" : "hover:border-foreground/40"}`}>
+                    {t}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
       </Block>
 
       <Block icon={Users} title="At least this many followers">

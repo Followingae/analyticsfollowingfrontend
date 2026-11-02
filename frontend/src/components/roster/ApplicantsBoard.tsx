@@ -8,7 +8,7 @@
  */
 import * as React from "react"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { CalendarClock, Check, CircleSlash, Loader2, MapPin, MessageCircle, Search, X } from "lucide-react"
+import { BarChart3, CalendarClock, Check, CircleSlash, Flag, Loader2, MapPin, MessageCircle, Search, Star, X } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,12 +19,13 @@ import { adminProposalApi } from "@/services/adminProposalMasterApi"
 import { openCallsApi, type Applicant, type Screening, type Slot } from "@/services/openCallsApi"
 import { ScoutAvatar } from "./ScoutAvatar"
 
-type Filter = "review" | "fits" | "unsure" | "out" | "approved" | "passed" | "chatting"
+type Filter = "review" | "fits" | "unsure" | "out" | "shortlisted" | "approved" | "passed" | "chatting"
 
 const FILTERS: { id: Filter; label: string; test: (a: Applicant) => boolean }[] = [
   { id: "review", label: "To review", test: a => !a.review && a.fit !== "screened_out" && ["done", "handover", "human"].includes(a.state) },
   { id: "fits", label: "Fits", test: a => a.fit === "fits" && !a.review },
   { id: "unsure", label: "Check", test: a => a.fit === "unsure" && !a.review },
+  { id: "shortlisted", label: "Shortlisted", test: a => a.review === "shortlisted" },
   { id: "chatting", label: "Still chatting", test: a => ["collecting", "countered"].includes(a.state) },
   { id: "approved", label: "On the proposal", test: a => a.review === "approved" },
   { id: "passed", label: "Not this time", test: a => a.review === "passed" },
@@ -57,16 +58,20 @@ function Avatar({ a }: { a: Applicant }) {
   )
 }
 
-function ApplicantCard({ a, s, picked, onPick, canApprove, onApprove, onPass }: {
+function ApplicantCard({ a, s, picked, onPick, canApprove, onApprove, onPass, onShortlist }: {
   a: Applicant; s: Screening; picked: boolean; onPick: () => void; canApprove: boolean
-  onApprove: () => void; onPass: () => void
+  onApprove: () => void; onPass: () => void; onShortlist: () => void
 }) {
+  const nat = a.answers.nationality || a.saved_nationality
+  const analysed = ["completed", "complete"].includes(a.analytics_status || "")
+  const analysing = ["queued", "processing", "running"].includes(a.analytics_status || "")
+  const open = !a.review || a.review === "shortlisted"
   const fit = a.fit ? FIT[a.fit] : null
   const where = a.answers.in_city === true ? (s.city || a.answers.based_in)
     : a.answers.based_in ? `${a.answers.based_in}${a.answers.can_visit ? " · will visit" : a.answers.can_visit === false ? " · can’t visit" : ""}` : null
   return (
     <div className={`group relative flex flex-col gap-ds-3 rounded-ds-xl border bg-background p-ds-4 transition ${picked ? "border-foreground" : "hover:border-foreground/25"}`}>
-      {canApprove && !a.review && a.influencer_id && (
+      {open && a.influencer_id && a.fit !== "screened_out" && (
         <Checkbox checked={picked} onCheckedChange={onPick} className="absolute right-ds-3 top-ds-3" aria-label="Select" />
       )}
       <div className="flex items-center gap-ds-3">
@@ -78,6 +83,7 @@ function ApplicantCard({ a, s, picked, onPick, canApprove, onApprove, onPass }: 
           ) : <span className="text-sm font-semibold text-muted-foreground">No handle yet</span>}
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             {fit && <><i className={`h-1.5 w-1.5 rounded-full ${fit.dot}`} />{fit.label}</>}
+            {a.review === "shortlisted" && <><Star className="h-3 w-3" />Shortlisted</>}
             {a.review === "approved" && <><Check className="h-3 w-3" />On the proposal</>}
             {a.review === "passed" && <><CircleSlash className="h-3 w-3" />Not this time</>}
             {!fit && !a.review && (a.state === "collecting" ? "Still chatting" : a.state === "declined" ? "Not interested" : "")}
@@ -100,6 +106,18 @@ function ApplicantCard({ a, s, picked, onPick, canApprove, onApprove, onPass }: 
             <CalendarClock className="h-3 w-3" />{a.slot}
           </span>
         )}
+        {nat && (
+          <span className={`inline-flex items-center gap-1 rounded-ds-full px-2.5 py-1 text-xs ${a.answers.nationality_match
+            ? "bg-[#d3ff02] text-[#111]" : "bg-[var(--tone-neutral-wash)]"}`}>
+            <Flag className="h-3 w-3" />{nat}
+          </span>
+        )}
+        {(analysed || analysing) && (
+          <span className="inline-flex items-center gap-1 rounded-ds-full bg-[var(--tone-neutral-wash)] px-2.5 py-1 text-xs">
+            <BarChart3 className="h-3 w-3" />
+            {analysing ? "Analysing…" : a.engagement_rate != null ? `${Number(a.engagement_rate).toFixed(1)}% engagement` : "Analysed"}
+          </span>
+        )}
         {s.questions.map(q => {
           const v = a.answers.q?.[q.id]
           if (!v) return null
@@ -118,12 +136,20 @@ function ApplicantCard({ a, s, picked, onPick, canApprove, onApprove, onPass }: 
         <p className="text-xs text-muted-foreground">{a.fit_reasons.filter(r => /not|under|cannot|No to/.test(r)).join(" · ")}</p>
       )}
 
-      {canApprove && !a.review && a.influencer_id && a.fit !== "screened_out" && ["done", "handover", "human"].includes(a.state) && (
+      {open && a.influencer_id && a.fit !== "screened_out" && ["done", "handover", "human"].includes(a.state) && (
         <div className="mt-auto flex gap-ds-2 pt-1">
-          <Button size="sm" className="flex-1 gap-1.5 rounded-ds-full bg-[#d3ff02] text-[#111] hover:bg-[#c4ef00]" onClick={onApprove}>
-            <Check className="h-3.5 w-3.5" />Approve
-          </Button>
-          <Button size="sm" variant="ghost" className="gap-1.5 rounded-ds-full" onClick={onPass}>Not this time</Button>
+          {!a.review ? (
+            <Button size="sm" className="flex-1 gap-1.5 rounded-ds-full bg-[#d3ff02] text-[#111] hover:bg-[#c4ef00]" onClick={onShortlist}>
+              <Star className="h-3.5 w-3.5" />Shortlist
+            </Button>
+          ) : canApprove ? (
+            <Button size="sm" className="flex-1 gap-1.5 rounded-ds-full bg-[#111] text-white hover:bg-black" onClick={onApprove}>
+              <Check className="h-3.5 w-3.5" />Add to proposal
+            </Button>
+          ) : (
+            <span className="flex-1 self-center text-xs text-muted-foreground">Waiting for a founder</span>
+          )}
+          {canApprove && <Button size="sm" variant="ghost" className="gap-1.5 rounded-ds-full" onClick={onPass}>Not this time</Button>}
         </div>
       )}
     </div>
@@ -204,8 +230,9 @@ export function ApplicantsBoard({ openCallId, open, onOpenChange, brand, onChats
   openCallId: string; open: boolean; onOpenChange: (o: boolean) => void; brand?: string | null
   onChats: () => void; onChanged?: () => void
 }) {
-  const [data, setData] = useState<{ applicants: Applicant[]; can_approve: boolean; screening: Screening; slots: Slot[] } | null>(null)
+  const [data, setData] = useState<{ applicants: Applicant[]; can_approve: boolean; can_shortlist: boolean; screening: Screening; slots: Slot[] } | null>(null)
   const [filter, setFilter] = useState<Filter>("review")
+  const [onlyMatch, setOnlyMatch] = useState(false)
   const [picked, setPicked] = useState<Record<string, boolean>>({})
   const [approving, setApproving] = useState<string[] | null>(null)
   const [busy, setBusy] = useState(false)
@@ -216,9 +243,26 @@ export function ApplicantsBoard({ openCallId, open, onOpenChange, brand, onChats
   }, [openCallId])
   useEffect(() => { if (open) { setPicked({}); load() } }, [open, load])
 
-  const counts = useMemo(() => Object.fromEntries(FILTERS.map(f => [f.id, (data?.applicants || []).filter(f.test).length])), [data])
-  const shown = useMemo(() => (data?.applicants || []).filter(FILTERS.find(f => f.id === filter)!.test), [data, filter])
+  const targets = data?.screening.nationality_targets || []
+  const pool = useMemo(() => (data?.applicants || []).filter(a => !onlyMatch || a.answers.nationality_match === true),
+                       [data, onlyMatch])
+  const counts = useMemo(() => Object.fromEntries(FILTERS.map(f => [f.id, pool.filter(f.test).length])), [pool])
+  const shown = useMemo(() => pool.filter(FILTERS.find(f => f.id === filter)!.test), [pool, filter])
   const ids = Object.keys(picked).filter(k => picked[k])
+  const pickedRows = (data?.applicants || []).filter(a => picked[a.id])
+  const toShortlist = pickedRows.filter(a => !a.review).map(a => a.id)
+  const toApprove = pickedRows.filter(a => a.review === "shortlisted").map(a => a.id)
+
+  const shortlist = async (cids: string[]) => {
+    setBusy(true)
+    try {
+      const r = await openCallsApi.review(openCallId, { action: "shortlist", conversation_ids: cids })
+      toast.success(`${r.data.shortlisted} shortlisted`, {
+        description: r.data.analytics_started ? `Analytics started for ${r.data.analytics_started}. Their numbers fill in as each one finishes.` : undefined,
+      })
+      setPicked({}); load(); onChanged?.()
+    } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
+  }
 
   const pass = async (cids: string[]) => {
     setBusy(true)
@@ -267,6 +311,13 @@ export function ApplicantsBoard({ openCallId, open, onOpenChange, brand, onChats
                   {f.label} <span className="ml-0.5 tabular-nums opacity-60">{counts[f.id]}</span>
                 </button>
               ))}
+              {targets.length > 0 && (
+                <button type="button" onClick={() => setOnlyMatch(m => !m)}
+                        className={`ml-ds-2 inline-flex items-center gap-1.5 rounded-ds-full border px-3 py-1.5 text-xs transition ${onlyMatch
+                          ? "border-[#111] bg-[#d3ff02] text-[#111]" : "hover:border-foreground/40"}`}>
+                  <Flag className="h-3 w-3" />Matches the brief ({targets.join(", ")})
+                </button>
+              )}
               <Button size="sm" variant="ghost" className="ml-auto gap-1.5" onClick={onChats}>
                 <MessageCircle className="h-3.5 w-3.5" />Conversations
               </Button>
@@ -279,7 +330,8 @@ export function ApplicantsBoard({ openCallId, open, onOpenChange, brand, onChats
                 {shown.map(a => (
                   <ApplicantCard key={a.id} a={a} s={data.screening} canApprove={data.can_approve}
                                  picked={!!picked[a.id]} onPick={() => setPicked(p => ({ ...p, [a.id]: !p[a.id] }))}
-                                 onApprove={() => setApproving([a.id])} onPass={() => pass([a.id])} />
+                                 onApprove={() => setApproving([a.id])} onPass={() => pass([a.id])}
+                                 onShortlist={() => shortlist([a.id])} />
                 ))}
               </div>
             )}
@@ -289,11 +341,21 @@ export function ApplicantsBoard({ openCallId, open, onOpenChange, brand, onChats
         {ids.length > 0 && (
           <div className="fixed bottom-ds-4 right-ds-4 z-50 flex items-center gap-ds-2 rounded-ds-full border bg-background/95 py-1.5 pl-4 pr-1.5 shadow-lg backdrop-blur">
             <span className="text-sm font-medium tabular-nums">{ids.length} selected</span>
-            <Button size="sm" variant="ghost" className="rounded-ds-full" disabled={busy} onClick={() => pass(ids)}>Not this time</Button>
-            <Button size="sm" className="gap-1.5 rounded-ds-full bg-[#d3ff02] text-[#111] hover:bg-[#c4ef00]" disabled={busy}
-                    onClick={() => setApproving(ids)}>
-              <Check className="h-3.5 w-3.5" />Approve {ids.length}
-            </Button>
+            {data?.can_approve && (
+              <Button size="sm" variant="ghost" className="rounded-ds-full" disabled={busy} onClick={() => pass(ids)}>Not this time</Button>
+            )}
+            {toShortlist.length > 0 && (
+              <Button size="sm" className="gap-1.5 rounded-ds-full bg-[#d3ff02] text-[#111] hover:bg-[#c4ef00]" disabled={busy}
+                      onClick={() => shortlist(toShortlist)}>
+                <Star className="h-3.5 w-3.5" />Shortlist {toShortlist.length}
+              </Button>
+            )}
+            {data?.can_approve && toApprove.length > 0 && (
+              <Button size="sm" className="gap-1.5 rounded-ds-full bg-[#111] text-white hover:bg-black" disabled={busy}
+                      onClick={() => setApproving(toApprove)}>
+                <Check className="h-3.5 w-3.5" />Add {toApprove.length} to proposal
+              </Button>
+            )}
           </div>
         )}
 
