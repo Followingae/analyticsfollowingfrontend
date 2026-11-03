@@ -140,7 +140,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       : []),
     // Ungated. Everybody has a role and the manual describes all of them, so putting it
     // behind the permissions it explains would be a closed loop.
-    { title: "The manual", url: "/work/guide", icon: BookOpen },
+    { title: "Guide", url: "/work/guide", icon: BookOpen },
   ]
 
   /**
