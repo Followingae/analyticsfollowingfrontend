@@ -98,6 +98,62 @@ export interface NetworkQuery {
   page_size?: number
 }
 
+/** A creator as the per-roster outreach shows them (network match or a proposed new creator). */
+export interface ScoutCreator {
+  username: string
+  full_name: string | null
+  avatar: string | null
+  followers: number | null
+  engagement_rate: number | null
+  city: string | null
+  categories: string[]
+  summary: string | null
+}
+
+export interface ScoutCriteria {
+  cities: string[]
+  min_followers: number | null
+  max_followers: number | null
+  categories: string[]
+  languages: string[]
+}
+
+export interface ScoutWorker {
+  online: boolean
+  last_seen: string | null
+  state: string | null
+  ig_username: string | null
+  paused: boolean
+  daily_cap: number
+  sent_today: number
+  queue: number
+  warning: { kind: string; text: string; at: string } | null
+}
+
+export type DmStatus = 'proposed' | 'approved' | 'sending' | 'sent' | 'replied' | 'skipped' | 'failed'
+
+export interface ScoutOutreachItem extends ScoutCreator {
+  id: string
+  status: DmStatus
+  message: string | null
+  sent_at: string | null
+  replied_at: string | null
+  reply_text: string | null
+  error: string | null
+}
+
+export interface ScoutRosterPlan {
+  open_call: { id: string; code: string; title: string; status: string; comp_mode: string } | null
+  criteria: ScoutCriteria
+  criteria_options: { cities: string[]; categories: string[]; languages: string[] }
+  contacts: { matching: number; already_alerted: number; to_send: number; sample: ScoutCreator[] }
+  template_approved: boolean
+  dm_message_preview: string | null
+  dm: { proposed: number; approved: number; sent: number; replied: number; skipped: number; failed: number }
+  sourcing: { running: boolean; last_note: string | null }
+  worker: ScoutWorker
+}
+
 export const scoutApi = {
   overview: (): Promise<{ data: ScoutOverview }> => jfetch(`${BASE}/scout/overview`),
   events: (after?: number, listId?: string): Promise<{ data: { events: ScoutEvent[] } }> => {
@@ -125,4 +181,21 @@ export const scoutApi = {
   },
   addToDatabase: (usernames: string[]): Promise<{ data: { added: string[]; already_in_database: string[]; failed: { username: string; reason: string }[] } }> =>
     jfetch(`${BASE}/creator-network/add-to-database`, { method: 'POST', body: JSON.stringify({ usernames }) }),
+
+  // Per-roster outreach: the network on WhatsApp and new creators by Instagram DM.
+  plan: (listId: string): Promise<{ data: ScoutRosterPlan }> => jfetch(`${BASE}/scout/roster/${listId}/plan`),
+  setCriteria: (listId: string, criteria: ScoutCriteria): Promise<{ data: { matching: number; to_send: number } }> =>
+    jfetch(`${BASE}/scout/roster/${listId}/criteria`, { method: 'POST', body: JSON.stringify({ criteria }) }),
+  sendWhatsApp: (listId: string): Promise<{ data: { queued: number } }> =>
+    jfetch(`${BASE}/scout/roster/${listId}/whatsapp`, { method: 'POST', body: JSON.stringify({}) }),
+  source: (listId: string, body: { lookalikes: boolean; hashtags: string[]; max_new: number }): Promise<{ data: { started: boolean } }> =>
+    jfetch(`${BASE}/scout/roster/${listId}/source`, { method: 'POST', body: JSON.stringify(body) }),
+  outreach: (listId: string, status: 'proposed' | 'approved' | 'sent' | 'replied' | 'all' = 'all'):
+    Promise<{ data: { items: ScoutOutreachItem[] } }> =>
+    jfetch(`${BASE}/scout/roster/${listId}/outreach?status=${status}`),
+  decide: (ids: string[], decision: 'approve' | 'skip'): Promise<{ data: { updated: number } }> =>
+    jfetch(`${BASE}/scout/outreach/decide`, { method: 'POST', body: JSON.stringify({ ids, decision }) }),
+  worker: (): Promise<{ data: ScoutWorker }> => jfetch(`${BASE}/scout/worker`),
+  setWorker: (body: { paused?: boolean; daily_cap?: number }): Promise<{ data?: ScoutWorker }> =>
+    jfetch(`${BASE}/scout/worker`, { method: 'POST', body: JSON.stringify(body) }),
 }

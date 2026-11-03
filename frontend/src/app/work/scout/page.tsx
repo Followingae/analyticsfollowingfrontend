@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ScoutAvatar } from "@/components/roster/ScoutAvatar"
 import { NetworkBrowser } from "@/components/scout/NetworkBrowser"
+import { ScoutBotCard } from "@/components/scout/ScoutBotCard"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { imdListsApi, type ImdListSummary } from "@/services/imdListsApi"
 import { scoutApi, type ScoutEvent, type ScoutGoal, type ScoutOverview } from "@/services/scoutApi"
@@ -255,6 +256,8 @@ export default function ScoutPage() {
             ))}
           </div>
         </section>
+
+        <ScoutBotCard canEdit={canDestroy} />
 
         <section className="grid gap-4 md:grid-cols-3">
           {[["Creator database", data?.network.database, Database], ["Found by light analytics", data?.network.light_only, Sparkles],

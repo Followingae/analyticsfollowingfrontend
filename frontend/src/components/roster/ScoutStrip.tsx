@@ -3,7 +3,8 @@
 /**
  * ScoutOutreach on a roster: the goal in RELEVANT applicants (4x what the brief needs), the
  * funnel from found to relevant, and its latest steps, live. Founders start it and run
- * another round when a round is done.
+ * another round when a round is done. Below: the two outreach lanes (network on WhatsApp,
+ * new creators by Instagram DM).
  */
 import * as React from "react"
 import { useCallback, useEffect, useState } from "react"
@@ -13,6 +14,7 @@ import { Loader2, RotateCcw, Target } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { scoutApi } from "@/services/scoutApi"
+import { ScoutOutreachLanes } from "./ScoutOutreachLanes"
 
 type Data = Awaited<ReturnType<typeof scoutApi.roster>>["data"]
 
@@ -85,6 +87,7 @@ export function ScoutStrip({ listId, canEdit }: { listId: string; canEdit: boole
           ))}
         </div>
       )}
+      <ScoutOutreachLanes listId={listId} canEdit={canEdit} />
     </div>
   )
 }
