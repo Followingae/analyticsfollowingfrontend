@@ -57,6 +57,9 @@ type State = {
   total: number
   unsettled: string[]
   can_open_campaign: boolean
+  show_panel?: boolean
+  campaign_id?: string | null
+  awaiting_campaign?: number
 }
 
 const aed = (n?: number | null) =>
@@ -103,7 +106,9 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
     return { cost, missing, margin: sell - cost, pct: sell ? ((sell - cost) / sell) * 100 : null }
   }, [state, draft])
 
-  if (!state || state.status !== 'client_confirmed') return null
+  /* Shown once the client has confirmed, and also on a proposal re-opened for more before
+     its confirmed creators had their campaign: they still need costs, links and a campaign. */
+  if (!state || !(state.show_panel ?? state.status === 'client_confirmed')) return null
 
   const save = async () => {
     setSaving(true)
