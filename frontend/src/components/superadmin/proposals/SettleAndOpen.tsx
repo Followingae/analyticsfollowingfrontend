@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, Loader2, PlayCircle, Send, Wallet } from 'lucide-react'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -262,6 +263,15 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
             <Badge variant="outline" className="self-center text-xs">
               {state.settled} of {state.total} costs saved
             </Badge>
+          )}
+          {/* Links are sent here and tracked in Enrolments: the two used to be strangers. */}
+          <Button variant="ghost" asChild>
+            <Link href={`/work/enrolments?proposal=${proposalId}`}>See its enrolments</Link>
+          </Button>
+          {state.campaign_id && (
+            <Button variant="ghost" asChild>
+              <Link href={`/work/campaigns/${state.campaign_id}`}>Open its campaign</Link>
+            </Button>
           )}
         </div>
       </CardContent>

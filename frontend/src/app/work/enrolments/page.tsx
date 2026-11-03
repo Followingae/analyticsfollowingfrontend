@@ -29,6 +29,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Button } from "@/components/ui/button"
@@ -155,17 +156,19 @@ function EnrolmentsPage() {
   /* Null until somebody picks one, so the opening view can still follow the data the way
      the tabs' `defaultValue` did: straight to the approval queue when there is one. */
   const [picked, setPicked] = useState<View | null>(null)
+  // Opened from a proposal's "See its enrolments": only that proposal's creators.
+  const proposalId = useSearchParams()?.get("proposal") || undefined
 
   const load = useCallback(async () => {
     setLoading(true); setErr(null)
     try {
-      setRows(await enrolmentApi.list())
+      setRows(await enrolmentApi.list(proposalId ? { proposal_id: proposalId } : undefined))
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not load enrolments.")
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [proposalId])
 
   useEffect(() => { load() }, [load])
 
@@ -389,7 +392,9 @@ function EnrolmentsPage() {
           hub's header and its tabs: "we cannot pay her yet" and the reason why are no longer
           two screens apart. */}
       <CampaignsHubHeader
-        note="Once a brand confirms a creator, this is the paperwork: the agreement they sign, the details they give us, and where their money and their product go."
+        note={proposalId
+          ? <>Showing one proposal&apos;s creators. <Link href="/work/enrolments" className="underline">Show all</Link></>
+          : "Once a brand confirms a creator, this is the paperwork: the agreement they sign, the details they give us, and where their money and their product go."}
         action={
         <div className="flex items-center gap-2">
           <div className="relative">

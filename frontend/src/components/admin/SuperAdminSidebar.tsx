@@ -114,8 +114,6 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   // talent manager opens a sidebar with five items in it instead of twenty.
   const overviewItems = [
     { title: "Today", url: "/work/today", icon: ListChecks },
-    // Every brief end to end: where each creator is, what needs you, what is moving by itself.
-    { title: "Jobs", url: "/work/jobs", icon: Briefcase },
     // Everything waiting on a decision from this person, wherever it came from. Ungated on
     // purpose: the page shows only the queues the viewer's role can act on, and for someone
     // with none it says so rather than hiding.

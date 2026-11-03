@@ -97,7 +97,7 @@ export interface JobDetail {
   you_are: Viewer
 }
 
-export type NeedsMeItem = JobPerson & { job_id: string; job: string; brand: string | null }
+export type NeedsMeItem = JobPerson & { job_id: string; job: string; brand: string | null; campaign_id?: string | null }
 export interface NeedsMeGroup { action: string; who: Who; items: NeedsMeItem[] }
 export interface NeedsMeData { groups: NeedsMeGroup[]; total: number; you_are: Viewer }
 

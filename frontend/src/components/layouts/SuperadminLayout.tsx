@@ -49,13 +49,16 @@ export function SuperadminLayout({
         <GlobalCommandPalette />
         {/* One handler for the whole console. Press ? to see what it does. */}
         <KeyboardShortcuts />
-        <SidebarInset>
+        {/* min-w-0 all the way down: a flex item will not shrink below its content, so one
+            wide table stretched the whole page and the screen scrolled sideways. Wide tables
+            now scroll inside their own box; the page itself never does. */}
+        <SidebarInset className="min-w-0">
           <SiteHeader />
           {/* The ground the cards sit on. Soft rather than white: the panels are white, and
               a white page under white cards leaves them with no edge at all. Two faint tints
               keep it from reading as flat grey. */}
-          <div className="console-ground flex flex-1 flex-col">
-            <div className="@container/main flex flex-1 flex-col gap-7 p-4 md:p-7">
+          <div className="console-ground flex min-w-0 flex-1 flex-col">
+            <div className="@container/main flex min-w-0 flex-1 flex-col gap-7 p-4 md:p-7">
               <ModuleRouteGuard>{children}</ModuleRouteGuard>
             </div>
           </div>

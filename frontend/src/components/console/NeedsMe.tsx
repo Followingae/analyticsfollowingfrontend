@@ -57,7 +57,7 @@ function GroupRow({ g }: { g: NeedsMeGroup }) {
   const first = g.items[0]
   // Every item in one brief: the pile link can point at that brief's roster as a whole.
   const oneJob = g.items.every(it => it.job_id === first.job_id)
-  const href = oneJob ? pileHref(g.action, g.items, first.job_id) : actionHref(first, first.job_id)
+  const href = oneJob ? pileHref(g.action, g.items, first.job_id, first.campaign_id) : actionHref(first, first.job_id, first.campaign_id)
 
   return (
     <div className="rounded-2xl transition-colors hover:bg-muted/40">
@@ -85,7 +85,7 @@ function GroupRow({ g }: { g: NeedsMeGroup }) {
             <ul className="flex flex-col gap-0.5 pb-2 pl-2 pr-2 sm:pl-4">
               {g.items.map(it => (
                 <li key={`${it.job_id}-${it.username}`}>
-                  <Link href={actionHref(it, it.job_id)}
+                  <Link href={actionHref(it, it.job_id, it.campaign_id)}
                         className="flex min-w-0 items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-background">
                     <Face src={it.avatar} name={it.username} size={28} />
                     <span className="min-w-0 flex-1">

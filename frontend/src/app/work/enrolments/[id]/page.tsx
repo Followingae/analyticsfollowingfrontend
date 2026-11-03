@@ -332,9 +332,20 @@ function Detail() {
                 {status && <StatusChip status={status} />}
               </div>
               {name && handle && <p className="truncate text-sm text-muted-foreground">{name}</p>}
-              <p className="mt-0.5 text-sm">
-                <span className="font-medium">{str(L.brand_display_name)}</span>
-                {has(L.campaign_display_name) && <span className="text-muted-foreground"> · {str(L.campaign_display_name)}</span>}
+              {/* Each name opens where it lives: an enrolment was a dead end, papering a booking
+                  you could not get back to. */}
+              <p className="mt-0.5 flex flex-wrap items-center gap-x-1 text-sm">
+                {has(L.team_id)
+                  ? <Link href={`/work/brands/${str(L.team_id)}`} className="font-medium hover:underline">{str(L.brand_display_name)}</Link>
+                  : <span className="font-medium">{str(L.brand_display_name)}</span>}
+                {has(L.campaign_display_name) && (
+                  <span className="text-muted-foreground"> · {has(L.campaign_id)
+                    ? <Link href={`/work/campaigns/${str(L.campaign_id)}`} className="hover:text-foreground hover:underline">{str(L.campaign_display_name)}</Link>
+                    : str(L.campaign_display_name)}</span>
+                )}
+                {has(L.proposal_id) && (
+                  <span className="text-muted-foreground"> · <Link href={`/work/proposals/${str(L.proposal_id)}`} className="hover:text-foreground hover:underline">Proposal</Link></span>
+                )}
               </p>
             </div>
           </div>

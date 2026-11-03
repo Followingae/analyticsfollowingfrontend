@@ -212,7 +212,7 @@ export default function ReviewQueuePage() {
     setBusy(true)
     try {
       await creatorIntakeApi.captureCost(costing.id, { cost_pricing: payload, note: costNote })
-      toast.success(`@${costing.username}: cost saved, a founder can price them now`)
+      toast.success(`@${costing.username}: cost saved. Now waiting for a founder's sell price`)
       setCosting(null); setAmounts({}); setCostNote(''); load()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not save the cost')
@@ -227,7 +227,18 @@ export default function ReviewQueuePage() {
     setBusy(true)
     try {
       await creatorIntakeApi.approve(pricing.id, { sell_pricing: payload })
-      toast.success(`@${pricing.username} is live in the master database`)
+      // Say where they went. Priced for a roster means they are back on it, Ready to add to a
+      // proposal; the founder used to price someone and lose them.
+      const roster = pricing.sourced_for_list_id
+      toast.success(
+        roster
+          ? `@${pricing.username} priced. Back on ${pricing.sourced_for || 'the roster'} as Ready`
+          : `@${pricing.username} priced and live in the database`,
+        roster ? {
+          duration: 8000,
+          action: { label: 'Open roster', onClick: () => { window.location.href = `/work/areas/${roster}` } },
+        } : undefined,
+      )
       setPricing(null); setAmounts({}); load()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not approve')
