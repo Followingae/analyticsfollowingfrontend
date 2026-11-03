@@ -3,7 +3,12 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
-import { ConsoleNav } from "@/components/console/ConsoleNav"
+import { ConsoleNav, type ConsoleNavItem } from "@/components/console/ConsoleNav"
+import type { HubTab } from "@/components/console/Hub"
+import { clientsTabs } from "@/components/console/ClientsHubHeader"
+import { creatorsTabs } from "@/components/console/CreatorsHubHeader"
+import { campaignsTabs } from "@/components/console/CampaignsHubHeader"
+import { moneyTabs } from "@/components/console/MoneyHubHeader"
 import { NavUser } from "@/components/nav-user"
 import { Skeleton } from "@/components/ui/skeleton"
 import { shortName } from "@/lib/destinations"
@@ -54,8 +59,8 @@ import {
 
 export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, isLoading } = useEnhancedAuth()
-  const { can, isSuperAdmin, canSeeCost, staffRole, isFullAccessStaff, loading: accessLoading } =
-    useAdminAccess()
+  const access = useAdminAccess()
+  const { can, isSuperAdmin, staffRole, isFullAccessStaff, loading: accessLoading } = access
   const pathname = usePathname() || ""
 
   // What is waiting behind each entry. One call, keyed by the menu's own keys, so a bubble
@@ -179,6 +184,15 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     badge?: string
     modules?: string[]
     scopes?: string[]
+    /**
+     * A hub's screens, already filtered for this viewer by the hub's own definition (the
+     * same list the hub header owns), so the menu and the hub cannot drift. Two or more
+     * makes the entry a parent with a submenu; exactly one makes it a plain link to that
+     * screen; none leaves it a plain link to `url`.
+     */
+    tabs?: HubTab[]
+    /** Which of the badge's counts belongs to which screen, so the number shows where it lives. */
+    subBadges?: Record<string, string>
   }
 
   // ── FIVE. Not fifteen. ───────────────────────────────────────────────────────────────
@@ -197,6 +211,12 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   // same URL it always had, and still one keystroke away in Command-K.
   //
   // Nothing was deleted. Nothing moved house. The menu stopped repeating itself.
+  //
+  // SUBMENUS, NOT TABS (2026-11-03). The owner asked for the hubs' tab rows to become sidebar
+  // submenus: "rather than so many tabs on our screens". So Clients, Creators, Campaigns and
+  // Money each open here into exactly the screens their tab row used to carry, in the same
+  // order, behind the same gates (the lists come from the hub headers themselves), and the
+  // screens no longer draw the row. Still one name per destination, still nothing removed.
   const WORK: Entry[] = [
     // The day's work, across every brand at once. First because it is the one screen a
     // talent manager should be able to live in.
@@ -210,28 +230,62 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     // place now: the module grant. What they may READ about a client is a different question
     // and is still answered by field_policy on the server.
     { url: "/work/clients", icon: Building2, badge: "proposals",
-      modules: ["clients", "proposals"] },
+      modules: ["clients", "proposals"],
+      tabs: clientsTabs(access), subBadges: { "/work/proposals": "proposals" } },
     // Hub: creators and rates, pending rates, analysed, rosters, coverage, app creators.
-    { url: "/work/influencers", icon: Users2, badge: "needs-price", modules: ["influencers"] },
+    // Pending rates carries the same unpriced count the hub's tab carried, read from the
+    // badge call this menu already makes rather than a second request on every page.
+    { url: "/work/influencers", icon: Users2, badge: "needs-price", modules: ["influencers"],
+      tabs: creatorsTabs(access, badges["needs-price"] || undefined) },
     // ScoutOutreach: the outreach teammate. Its goals, its live work, everyone it has found.
     { url: "/work/scout", icon: Radar, modules: ["influencers"], scopes: ["leadership", "talent"] },
     // Hub: all campaigns, app campaigns, production, reports, chasing.
     // Enrolments are a Campaigns tab now, so their "needs attention" count rides here too.
     { url: "/work/campaigns", icon: Megaphone, badge: "chasing+enrolments",
-      modules: ["campaigns", "operations", "fa"] },
+      modules: ["campaigns", "operations", "fa"],
+      tabs: campaignsTabs(access),
+      subBadges: { "/work/chasing": "chasing", "/work/enrolments": "enrolments" } },
     // Every campaign's tracked links at once. Set-up stays on each campaign's Links tab;
     // this is the view across them, asked for as its own row rather than a hub tab.
     { url: "/work/affiliate-links", icon: Link2, modules: ["campaigns"] },
     // Hub: client credits, contracting, creator payments, app balances, enrolments, sign-offs.
     { url: "/work/money", icon: Wallet,
-      modules: ["billing", "influencers"], scopes: ["leadership", "talent"] },
+      modules: ["billing", "influencers"], scopes: ["leadership", "talent"],
+      tabs: moneyTabs(access) },
   ]
 
-  const managementItems = accessLoading ? [] : WORK.filter(allowed).map(e => ({
-    title: "", url: e.url, icon: e.icon,
+  // Names are set here rather than by `named()` below, because a hub that has shrunk to one
+  // screen for this viewer links to that screen and must still be called by the hub's name.
+  const managementItems: ConsoleNavItem[] = accessLoading ? [] : WORK.filter(allowed).map(e => {
     // "a+b" sums two counts onto one row (Campaigns carries chasing and enrolments).
-    ...(e.badge ? { badge: e.badge.split("+").reduce((n, k) => n + (badges[k] || 0), 0) || undefined } : {}),
-  }))
+    const badge = e.badge
+      ? e.badge.split("+").reduce((n, k) => n + (badges[k] || 0), 0) || undefined
+      : undefined
+    const base = { title: shortName(e.url), icon: e.icon, badge }
+    const tabs = e.tabs ?? []
+    if (tabs.length === 0) return { ...base, url: e.url }
+    if (tabs.length === 1) return { ...base, url: tabs[0].href }
+    return {
+      ...base,
+      url: e.url,
+      // The hub's name opens the screen it always opened, when this viewer may open it;
+      // otherwise the first screen they can (the same rule as /work/money's own router).
+      landing: tabs.some(t => t.href === e.url) ? e.url : tabs[0].href,
+      items: tabs.map(t => {
+        const key = e.subBadges?.[t.href]
+        return {
+          title: t.label ?? shortName(t.href),
+          url: t.href,
+          badge: t.count ?? (key ? badges[key] || undefined : undefined),
+        }
+      }),
+    }
+  })
+
+  // Every screen the Work list now reaches, parents and children alike.
+  const workUrls = new Set(
+    managementItems.flatMap(i => [i.url, ...(i.items ?? []).map(s => s.url)]),
+  )
 
   /**
    * Admin: three collapsed parents and the guide.
@@ -249,12 +303,15 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       ]
     : []
 
+  // App campaigns, App users and Reliability are also hub screens (Campaigns, Creators). Now
+  // that hubs list their screens here too, a screen this viewer can already reach under its
+  // hub is not listed a second time under Creator app: one name, one place, one highlight.
   const appChildren = !accessLoading && can("fa") && (isSuperAdmin || !accountOnly)
     ? [
         "/work/fa/campaigns", "/work/fa/merchants", "/work/fa/members",
         "/work/fa/reliability", "/work/fa/activity", "/work/fa/ad-banners",
         "/work/fa/notifications",
-      ].map(url => ({ title: shortName(url), url }))
+      ].filter(url => !workUrls.has(url)).map(url => ({ title: shortName(url), url }))
     : []
 
   const settingsChildren = [
@@ -296,7 +353,6 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     items.map((i) => ({ ...i, title: shortName(i.url) || i.title }))
 
   const overviewNamed = named(overviewItems)
-  const managementNamed = named(managementItems)
 
   const activeUrl = React.useMemo(() => {
     // Sub-items came from campaignItems, which is permanently empty — so a nested page like
@@ -305,6 +361,9 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     const urls = [
       ...overviewItems,
       ...managementItems,
+      // A hub's screens. Without them, /work/proposals/123 would match nothing under Clients
+      // and the group you are standing in would stay shut.
+      ...managementItems.flatMap((i) => i.items ?? []),
       ...systemItems,
       // Admin's three parents are categories, not destinations: their urls are anchors and
       // the real screens are their children. Leaving the children out here meant every page
@@ -385,7 +444,7 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
           <SidebarGroup>
             <SidebarGroupLabel>Work</SidebarGroupLabel>
             <SidebarGroupContent>
-              <ConsoleNav items={managementNamed} activeUrl={activeUrl} />
+              <ConsoleNav items={managementItems} activeUrl={activeUrl} />
             </SidebarGroupContent>
           </SidebarGroup>
         )}

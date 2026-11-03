@@ -9,7 +9,8 @@
  * of a client — looked at from a few angles: who we hold, who is waiting on a price, how we
  * are covered, who is on the app, and who actually delivers.
  *
- * So this header is the hub, and it is inserted at the top of the screens that already exist
+ * Those angles are the Creators submenu in the sidebar (a tab row here until 2026-11-03).
+ * This header is the hub's title and button, and it is inserted at the top of the screens that already exist
  * rather than replacing them. Each screen keeps its own URL, its own body and its own
  * behaviour; what changes is that you can now get from any one of them to the others without
  * going back to a menu.
@@ -25,10 +26,32 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Hub, type HubTab } from './Hub'
+import { Hub, visibleTabs, type HubTab, type TabAccess } from './Hub'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
-import { creatorIntakeApi } from '@/services/creatorIntakeApi'
 import { cn } from '@/lib/utils'
+
+/**
+ * The screens of the Creators hub, filtered for one viewer. The sidebar lists these as the
+ * Creators submenu; defined here so the hub and the menu cannot drift.
+ *
+ * `waiting` is how many creators are sitting unpriced for THIS viewer (the sidebar passes the
+ * `needs-price` count it already has, which is the same lane the review queue counts: cost
+ * for talent, sell for leadership). It rides on Pending rates.
+ */
+export function creatorsTabs(access: TabAccess, waiting?: number): HubTab[] {
+  return visibleTabs([
+    { href: '/work/influencers', module: 'influencers' },
+    { href: '/work/influencers/review', module: 'influencers', count: waiting },
+    { label: 'Analysed', href: '/work/influencers/analyzed', module: 'influencers' },
+    // Standing lists sit BEFORE rosters: a roster is sourced for one client and a list is
+    // the roster you source it from.
+    { href: '/work/lists', module: 'influencers' },
+    { href: '/work/areas', module: 'influencers' },
+    { href: '/work/coverage', module: 'influencers' },
+    { href: '/work/fa/members', module: 'fa' },
+    { href: '/work/fa/reliability', module: 'fa' },
+  ], access)
+}
 
 export function CreatorsHubHeader({ className, bare, hideAction }: {
   className?: string
@@ -40,42 +63,9 @@ export function CreatorsHubHeader({ className, bare, hideAction }: {
 }) {
   const router = useRouter()
   const { can, loading } = useAdminAccess()
-  // How many creators are sitting unpriced. Superadmin-only endpoint: for everyone else it
-  // refuses, and a tab simply carries no number rather than the page failing.
-  const [waiting, setWaiting] = React.useState<number | undefined>(undefined)
-
-  // `can` is a fresh closure on every render, so the effect depends on the answer rather than
-  // the function — otherwise the count would be re-fetched on each re-render.
-  const mayHoldRates = !loading && can('influencers')
-
-  React.useEffect(() => {
-    if (!mayHoldRates) return
-    let active = true
-    Promise.allSettled([creatorIntakeApi.reviewQueue()]).then(([r]) => {
-      if (!active || r.status !== 'fulfilled') return
-      const d = r.value?.data
-      const n = typeof d?.count === 'number' ? d.count : d?.items?.length
-      if (typeof n === 'number') setWaiting(n)
-    })
-    return () => { active = false }
-  }, [mayHoldRates])
-
-  const tabs: HubTab[] = [
-    { href: '/work/influencers', module: 'influencers' },
-    { href: '/work/influencers/review', module: 'influencers', count: waiting },
-    { label: 'Analysed', href: '/work/influencers/analyzed', module: 'influencers' },
-    // Standing lists sit BEFORE rosters: a roster is sourced for one client and a list is
-    // the roster you source it from.
-    { href: '/work/lists', module: 'influencers' },
-    { href: '/work/areas', module: 'influencers' },
-    { href: '/work/coverage', module: 'influencers' },
-    { href: '/work/fa/members', module: 'fa' },
-    { href: '/work/fa/reliability', module: 'fa' },
-  ]
 
   // The `bare` screens print their own title and their own buttons, so there is no title bar
-  // here to hang this on; they keep the tab row only, and the button lives on every screen
-  // that uses the full header.
+  // here to hang this on, and the button lives on every screen that uses the full header.
   const action = !loading && !bare && !hideAction && can('influencers') ? (
     <Button className="gap-2" onClick={() => router.push('/work/influencers/add')}>
       <Plus className="h-4 w-4" />
@@ -83,12 +73,15 @@ export function CreatorsHubHeader({ className, bare, hideAction }: {
     </Button>
   ) : undefined
 
+  // The hub's screens are the sidebar's Creators submenu now, so a bare header has nothing
+  // left to draw and must not leave an empty block in the page's spacing.
+  if (bare) return null
+
   return (
     <div className={cn('mb-8', className)}>
       <Hub
         title="Creators"
         sub="Everyone we can book: who we hold rates for, who still needs a price, where we are thin, and who actually delivers."
-        tabs={tabs}
         action={action}
         bare={bare}
       >

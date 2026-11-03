@@ -5,7 +5,8 @@
  *
  * Four screens already existed for work in flight: the campaign list, the app's own
  * campaigns, the production board and the client reports. They were four sidebar entries,
- * so nobody could see that they are four views of one thing. This header makes them tabs of
+ * so nobody could see that they are four views of one thing. They are the Campaigns submenu
+ * in the sidebar now (a tab row here until 2026-11-03), and this header gives them the title of
  * one destination and leaves each page's body exactly as it was.
  *
  * On the first tab it also draws the pipeline, because the honest complaint was "I cannot
@@ -24,7 +25,7 @@ import { cn } from '@/lib/utils'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { useAdminAccess, type AdminModule } from '@/hooks/useAdminAccess'
-import { Hub, type HubTab } from '@/components/console/Hub'
+import { Hub, visibleTabs, type HubTab, type TabAccess } from '@/components/console/Hub'
 import { Panel } from '@/components/console/primitives'
 
 const TABS: HubTab[] = [
@@ -36,6 +37,21 @@ const TABS: HubTab[] = [
      question across every brand at once; this is the view from inside one. */
   { href: '/work/chasing', module: 'campaigns' },
 ]
+
+/**
+ * The screens of the Campaigns hub, filtered for one viewer. The sidebar lists these as the
+ * Campaigns submenu; defined here so the hub and the menu cannot drift.
+ */
+export function campaignsTabs(access: TabAccess): HubTab[] {
+  /* Enrolments live with campaigns (Zain, 2026-11-03): a creator is enrolled because they
+     are booked on one. It sat under Money, two hubs away from the booking it papers. The
+     fee is on it, so it is shown to those who may see cost. */
+  return visibleTabs([
+    ...TABS.slice(0, 1),
+    { href: '/work/enrolments', module: 'influencers' as AdminModule, when: access.canSeeCost },
+    ...TABS.slice(1),
+  ], access)
+}
 
 type Counts = {
   opportunity: number | null
@@ -184,30 +200,21 @@ function StageStrip() {
  */
 export function CampaignsHubHeader({ action, note, bare }: {
   action?: React.ReactNode
-  /** Tabs only, no hub title: for a screen that keeps its own heading and buttons. */
+  /** No hub title: for a screen that keeps its own heading and buttons. */
   bare?: boolean
   /** The sentence explaining THIS tab. The hub's own sub explains the destination, so a
       screen joining the hub keeps what it used to say rather than losing it. */
   note?: React.ReactNode
 }) {
   const pathname = usePathname() || ''
-  const { canSeeCost, loading } = useAdminAccess()
-  // The list of everything is the only place the pipeline belongs; the other tabs are
+  // The list of everything is the only place the pipeline belongs; the other screens are
   // already inside one stage.
   const onAllCampaigns = pathname === '/work/campaigns' || pathname === '/superadmin/campaigns'
-  /* Enrolments live with campaigns (Zain, 2026-11-03): a creator is enrolled because they
-     are booked on one. It sat under Money, two hubs away from the booking it papers. The
-     fee is on it, so it is shown to those who may see cost. */
-  const tabs = !loading && canSeeCost
-    ? [...TABS.slice(0, 1), { href: '/work/enrolments', module: 'influencers' as AdminModule }, ...TABS.slice(1)]
-    : TABS
 
   return (
     <Hub
       title="Campaigns"
-      /* The old sub listed the four tabs that are drawn immediately beneath it. */
       sub="Everything we are delivering."
-      tabs={tabs}
       action={action}
       bare={bare}
     >

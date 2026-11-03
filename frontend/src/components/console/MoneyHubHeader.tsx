@@ -5,7 +5,7 @@
  *
  * Three screens were living in three different corners of the nav — client revenue, what we
  * owe creators, and the balances sitting in creator wallets. They are one job seen from three
- * sides, so they become one hub with three tabs. The pages themselves are untouched; this is
+ * sides, so they become one hub, listed as the Money submenu in the sidebar. The pages themselves are untouched; this is
  * only the header they now share, which is what lets a screen join a hub without a rewrite.
  *
  * The gate here is deliberately stricter than the module gate. `can('influencers')` is about
@@ -16,13 +16,19 @@
  * answer 403 — and stops the tab strip itself hinting at a number they may not have.
  */
 import * as React from 'react'
-import { Hub, type HubTab } from './Hub'
+import { Hub, visibleTabs, type HubTab, type TabAccess } from './Hub'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
 
-/** The tabs of the money hub, filtered for one viewer. Shared with /work/money's router. */
+/** The screens of the money hub, filtered for one viewer. Shared with /work/money's router
+    and with the sidebar, which lists them as the Money submenu. */
 export function useMoneyTabs(): HubTab[] {
-  const { can, canSeeCost, canSeeMargin, loading } = useAdminAccess()
-  const all: HubTab[] = [
+  return moneyTabs(useAdminAccess())
+}
+
+/** The same list, for a caller that already holds the viewer's access (the sidebar). */
+export function moneyTabs(access: TabAccess): HubTab[] {
+  const { canSeeCost, canSeeMargin } = access
+  return visibleTabs([
     /* "Client invoices" is what this tab promised and what the screen behind it cannot
        deliver: the billing endpoints serve the credit wallet ledger, not invoices. Client
        invoice money lives on the campaign timeline, against the instalment it settles. The
@@ -55,9 +61,7 @@ export function useMoneyTabs(): HubTab[] {
        which proposal had it. */
     { href: '/work/negotiations', when: canSeeMargin },
     { href: '/work/approvals', when: canSeeMargin },
-  ]
-  if (loading) return []
-  return all.filter(t => (t.module ? can(t.module) : true) && t.when !== false)
+  ], access)
 }
 
 export function MoneyHubHeader({
@@ -69,12 +73,12 @@ export function MoneyHubHeader({
   title?: string
   sub?: string
   action?: React.ReactNode
-  /** Tabs only, no hub title: for a screen that keeps its own heading and buttons. */
+  /** No hub title: for a screen that keeps its own heading and buttons. */
   bare?: boolean
 }) {
-  const tabs = useMoneyTabs()
+  // The hub's screens are the sidebar's Money submenu now; the header keeps the title.
   return (
-    <Hub title={title} sub={sub} tabs={tabs} action={action} bare={bare}>
+    <Hub title={title} sub={sub} action={action} bare={bare}>
       {null}
     </Hub>
   )

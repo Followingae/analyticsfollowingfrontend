@@ -5,7 +5,8 @@
  *
  * Screens built at different times read as different places: the clients we bill, the ones
  * who have gone quiet, and the quotes we have out. They are one job — who we sell to, and
- * what we have quoted them — so they get one header and one tab row.
+ * what we have quoted them — so they get one header, and their screens are listed together
+ * as the Clients submenu in the sidebar (they were a tab row here until 2026-11-03).
  *
  * A fourth tab, sourcing rounds, has been retired. Brand rosters (under Creators) replaced
  * it and the table behind it is empty in production, so it was a tab that led to nothing.
@@ -18,8 +19,14 @@ import { Building2, FileText, PhoneOff } from 'lucide-react'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
-import { Hub, type HubTab } from './Hub'
+import { Hub, visibleTabs, type HubTab, type TabAccess } from './Hub'
 import { Stat, StatGrid } from './primitives'
+
+/** The screens of the Clients hub, filtered for one viewer. The sidebar lists these as the
+    Clients submenu; defined here so the hub and the menu cannot drift. */
+export function clientsTabs(access: TabAccess): HubTab[] {
+  return visibleTabs(TABS, access)
+}
 
 const TABS: HubTab[] = [
   // Sales comes FIRST because it is where a client starts. The hub used to open on
@@ -110,7 +117,7 @@ export function ClientsHubHeader({
   bare,
 }: {
   action?: React.ReactNode
-  /** Tabs only, no hub title: for a screen that keeps its own heading and buttons. */
+  /** No hub title: for a screen that keeps its own heading and buttons. */
   bare?: boolean
   showStats?: boolean
   note?: React.ReactNode
@@ -121,7 +128,6 @@ export function ClientsHubHeader({
     <Hub
       title="Clients"
       sub="Who we sell to, and what we have quoted them. Clients are on the books, brands are the earlier conversations, and proposals are the quotes sitting with them."
-      tabs={TABS}
       action={action}
       bare={bare}
     >

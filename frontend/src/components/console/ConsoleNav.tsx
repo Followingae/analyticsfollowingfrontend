@@ -28,6 +28,18 @@
  *
  * Nothing is ever unreachable at either width, and no row is ever a dead control.
  *
+ * HUBS ARE PARENTS TOO (2026-11-03).
+ *
+ * Clients, Creators, Campaigns and Money used to draw a row of tabs across the top of each of
+ * their screens. Those screens are listed here now, as the hub's submenu. A hub parent differs
+ * from a category parent (Company, Settings) in one way: it is also a PLACE, so its name is a
+ * link to the hub's landing screen and the chevron beside it is what opens and closes the list.
+ * A category's whole row is the toggle, because there is nowhere for it to go.
+ *
+ * At icon width a hub is the same dropdown a category is, listing every screen under it, so
+ * collapsing the sidebar never costs a screen. The hub's badge rides on the parent (a dot at
+ * icon width), and a screen with something waiting on it carries its own number.
+ *
  * TWO SMALLER RULES WORTH KEEPING.
  *
  *   A badge is a demand, not a record count. It renders only above zero, and at icon width,
@@ -46,6 +58,7 @@ import { usePathname } from "next/navigation"
 import { ChevronRight, type LucideIcon } from "lucide-react"
 import {
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -68,13 +81,25 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
+export interface ConsoleNavSubItem {
+  title: string
+  url: string
+  /** Something waiting on this one screen. 0 draws nothing. */
+  badge?: number
+}
+
 export interface ConsoleNavItem {
   title: string
   url: string
   icon?: LucideIcon
   /** How many things are waiting behind this entry. A demand, not a record count. 0 draws nothing. */
   badge?: number
-  items?: { title: string; url: string }[]
+  items?: ConsoleNavSubItem[]
+  /**
+   * Set on a HUB parent: the screen its name opens. A category parent (Company, Settings)
+   * has none, because it is not a place, and its whole row opens the list instead.
+   */
+  landing?: string
 }
 
 /** Prefix-aware fallback, used only when the sidebar has not pre-resolved the active url. */
@@ -114,6 +139,108 @@ function Badge({ n, label, collapsed }: { n: number; label: string; collapsed: b
   )
 }
 
+/** A sub-item's count: quieter than the parent's, because the parent already carries it. */
+function SubCount({ n }: { n?: number }) {
+  if (!n || n <= 0) return null
+  return (
+    <>
+      <span
+        aria-hidden
+        className="ml-auto rounded-md bg-sidebar-accent px-1.5 text-[11px] font-medium
+                   tabular-nums text-sidebar-accent-foreground"
+      >
+        {n}
+      </span>
+      <span className="sr-only">{`${n} waiting`}</span>
+    </>
+  )
+}
+
+/** The list under a parent, shared by hubs and categories. */
+function SubList({ items, activeOf }: {
+  items: ConsoleNavSubItem[]
+  activeOf: (url: string) => boolean
+}) {
+  return (
+    <SidebarMenuSub>
+      {items.map((sub) => (
+        <SidebarMenuSubItem key={sub.url}>
+          <SidebarMenuSubButton asChild isActive={activeOf(sub.url)}>
+            <Link href={sub.url}>
+              <span className="truncate">{sub.title}</span>
+              <SubCount n={sub.badge} />
+            </Link>
+          </SidebarMenuSubButton>
+        </SidebarMenuSubItem>
+      ))}
+    </SidebarMenuSub>
+  )
+}
+
+/**
+ * A parent, expanded. Open when the screen you are on is one of its children, so you are
+ * never looking at a closed group that contains you; otherwise closed until asked.
+ */
+function ParentGroup({ item, activeOf }: {
+  item: ConsoleNavItem
+  activeOf: (url: string) => boolean
+}) {
+  const children = item.items ?? []
+  const isSubActive = children.some((s) => activeOf(s.url))
+  const [open, setOpen] = React.useState(isSubActive)
+
+  // Arriving on one of its screens some other way (Command-K, a link inside a page) opens it.
+  React.useEffect(() => { if (isSubActive) setOpen(true) }, [isSubActive])
+
+  if (item.landing) {
+    const landing = item.landing
+    return (
+      <Collapsible asChild open={open} onOpenChange={setOpen} className="group/collapsible">
+        <SidebarMenuItem>
+          <SidebarMenuButton tooltip={item.title} asChild className="rounded-xl">
+            <Link href={landing} onClick={() => setOpen(true)}>
+              {item.icon && <item.icon className="size-4" />}
+              <span>{item.title}</span>
+              <Badge n={item.badge ?? 0} label={item.title} collapsed={false} />
+            </Link>
+          </SidebarMenuButton>
+          <CollapsibleTrigger asChild>
+            <SidebarMenuAction
+              aria-label={open ? `Close ${item.title}` : `Open ${item.title}`}
+              className="transition-transform duration-200 data-[state=open]:rotate-90"
+            >
+              <ChevronRight />
+            </SidebarMenuAction>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <SubList items={children} activeOf={activeOf} />
+          </CollapsibleContent>
+        </SidebarMenuItem>
+      </Collapsible>
+    )
+  }
+
+  return (
+    <Collapsible asChild open={open} onOpenChange={setOpen} className="group/collapsible">
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton tooltip={item.title} className="rounded-xl">
+            {item.icon && <item.icon className="size-4" />}
+            <span>{item.title}</span>
+            <ChevronRight
+              className="ml-auto size-4 transition-transform duration-200
+                         group-data-[state=open]/collapsible:rotate-90"
+            />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SubList items={children} activeOf={activeOf} />
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  )
+}
+
 export function ConsoleNav({
   items,
   activeUrl,
@@ -144,10 +271,11 @@ export function ConsoleNav({
           const children = item.items!
           const isSubActive = children.some((s) => activeOf(s.url))
 
-          // Collapsed: a dropdown, because the inline submenu is hidden at this width.
+          // Collapsed: a dropdown, because the inline submenu is hidden at this width. It
+          // lists every child, so collapsing the sidebar never costs a screen.
           if (collapsed) {
             return (
-              <SidebarMenuItem key={item.title}>
+              <SidebarMenuItem key={item.title} className="relative">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuButton
@@ -157,6 +285,7 @@ export function ConsoleNav({
                     >
                       {item.icon && <item.icon className="size-4" />}
                       <span>{item.title}</span>
+                      <Badge n={item.badge ?? 0} label={item.title} collapsed />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent side="right" align="start" className="min-w-44">
@@ -165,7 +294,12 @@ export function ConsoleNav({
                     {children.map((sub) => (
                       <DropdownMenuItem key={sub.url} asChild>
                         <Link href={sub.url} className={cn(activeOf(sub.url) && "font-medium")}>
-                          {sub.title}
+                          <span>{sub.title}</span>
+                          {!!sub.badge && sub.badge > 0 && (
+                            <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+                              {sub.badge}
+                            </span>
+                          )}
                         </Link>
                       </DropdownMenuItem>
                     ))}
@@ -175,42 +309,8 @@ export function ConsoleNav({
             )
           }
 
-          // Expanded: the inline collapsible, open when one of its children is the screen
-          // you are on, so you are never looking at a closed group that contains you.
-          return (
-            <Collapsible
-              key={item.title}
-              asChild
-              defaultOpen={isSubActive}
-              className="group/collapsible"
-            >
-              <SidebarMenuItem>
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title} className="rounded-xl">
-                    {item.icon && <item.icon className="size-4" />}
-                    <span>{item.title}</span>
-                    <ChevronRight
-                      className="ml-auto size-4 transition-transform duration-200
-                                 group-data-[state=open]/collapsible:rotate-90"
-                    />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenuSub>
-                    {children.map((sub) => (
-                      <SidebarMenuSubItem key={sub.url}>
-                        <SidebarMenuSubButton asChild isActive={activeOf(sub.url)}>
-                          <Link href={sub.url}>
-                            <span>{sub.title}</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
-          )
+          // Expanded: the inline collapsible.
+          return <ParentGroup key={item.title} item={item} activeOf={activeOf} />
         }
 
         /* ── A leaf ───────────────────────────────────────────────────────────────────── */
