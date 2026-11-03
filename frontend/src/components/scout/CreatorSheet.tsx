@@ -29,8 +29,8 @@ type Item = { key: string; at: string | null; sortAt?: string | null; icon: Reac
 function creatorEventText(e: ScoutCreatorDetail["events"][number]): string {
   switch (e.kind) {
     case "found": return `Found${e.channel ? ` via ${e.channel}` : ""}`
-    case "light_analysed": return "Light analytics run"
-    case "added_to_database": return "Added to the database, main analytics started"
+    case "light_analysed": return "Checked by Scout"
+    case "added_to_database": return "Added to the database"
     default: return eventText(e)
   }
 }

@@ -128,6 +128,24 @@ export interface ScoutWorker {
   sent_today: number
   queue: number
   warning: { kind: string; text: string; at: string } | null
+  target_cap?: number
+  accounts?: number
+  bots?: ScoutBot[]
+}
+
+/** One desktop bot = one Instagram account. */
+export interface ScoutBot {
+  id: string
+  label: string | null
+  ig_username: string | null
+  state: string | null
+  online: boolean
+  last_seen: string | null
+  paused: boolean
+  warning: { kind: string; text: string; at: string } | null
+  sent_today: number
+  cap_today: number
+  daily_cap: number
 }
 
 export type DmStatus = 'proposed' | 'approved' | 'sending' | 'sent' | 'replied' | 'skipped' | 'failed'
@@ -254,8 +272,13 @@ export const scoutApi = {
   decide: (ids: string[], decision: 'approve' | 'skip'): Promise<{ data: { updated: number } }> =>
     jfetch(`${BASE}/scout/outreach/decide`, { method: 'POST', body: JSON.stringify({ ids, decision }) }),
   worker: (): Promise<{ data: ScoutWorker }> => jfetch(`${BASE}/scout/worker`),
-  setWorker: (body: { paused?: boolean; daily_cap?: number }): Promise<{ data?: ScoutWorker }> =>
+  setWorker: (body: { paused?: boolean; daily_cap?: number; bot_id?: string }): Promise<{ data?: ScoutWorker }> =>
     jfetch(`${BASE}/scout/worker`, { method: 'POST', body: JSON.stringify(body) }),
+  /** A new bot account; the token is shown once. */
+  addWorker: (label?: string): Promise<{ data: { id: string; token: string } }> =>
+    jfetch(`${BASE}/scout/workers`, { method: 'POST', body: JSON.stringify(label ? { label } : {}) }),
+  suggest: (listId: string): Promise<{ data: { hashtags: string[]; lookalikes: boolean; max_new: number } }> =>
+    jfetch(`${BASE}/scout/roster/${listId}/suggest`),
 
   // The connected circle: filter, DM, track every step, open any creator.
   campaigns: (): Promise<{ data: ScoutCampaignsData }> => jfetch(`${BASE}/scout/campaigns`),

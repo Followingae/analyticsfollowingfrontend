@@ -69,7 +69,7 @@ function CreatorCard({ c, picked, onPick, canPick, onOpen }: {
           <div className="mt-1 flex flex-wrap gap-1">
             <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] ${c.stage === "database"
               ? "bg-foreground text-background" : "bg-[#d3ff02] text-[#111]"}`}>
-              {c.stage === "database" ? <><Database className="h-3 w-3" />Database</> : <><Sparkles className="h-3 w-3" />Light</>}
+              {c.stage === "database" ? <><Database className="h-3 w-3" />Database</> : <><Sparkles className="h-3 w-3" />Found by Scout</>}
             </span>
             {c.on_app && <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px]">
               <Smartphone className="h-3 w-3" />On app</span>}
@@ -158,7 +158,7 @@ export function NetworkBrowser({ defaultSegment = "all", canAdd, compactHeader, 
       <div className="flex flex-col gap-3 rounded-2xl border bg-background p-4">
         <div className="flex flex-wrap items-center gap-2">
           {([["all", "All creators", segments ? segments.database + segments.light : null], ["database", "Database", segments?.database],
-             ["light", "Light analytics", segments?.light], ["app", "App creators", segments?.app]] as const).map(([k, label, n]) => (
+             ["light", "Found by Scout", segments?.light], ["app", "App creators", segments?.app]] as const).map(([k, label, n]) => (
             <Chip key={k} on={q.segment === k} onClick={() => set({ segment: k })}>
               {label}{n != null && <span className="ml-1 opacity-60 tabular-nums">{Number(n).toLocaleString()}</span>}
             </Chip>

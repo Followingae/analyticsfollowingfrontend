@@ -5,7 +5,7 @@ export function eventText(e: ScoutEvent): string {
   const h = e.username ? `@${e.username}` : ""
   switch (e.kind) {
     case "found": return `Found ${h}${e.channel ? ` via ${e.channel}` : ""}`
-    case "light_analysed": return `Light analytics on ${h}`
+    case "light_analysed": return `Checked ${h}`
     case "contacted": return `Messaged ${h}${e.channel ? ` on ${e.channel}` : ""}`
     case "replied": return `${h} replied`
     case "applied": return `${h} applied${e.detail?.campaign ? ` to ${e.detail.campaign}` : ""}`

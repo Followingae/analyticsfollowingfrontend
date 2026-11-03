@@ -33,7 +33,7 @@ export function workerLabel(w: ScoutWorker): string {
   if (tone === "warning") return w.warning!.text
   if (tone === "offline") return "Bot offline"
   if (tone === "paused") return "Paused"
-  return `${w.ig_username ? `Sending from @${w.ig_username}` : "Bot online"} · ${w.sent_today} of ${w.daily_cap} today`
+  return `${w.ig_username ? `@${w.ig_username}` : "Bot"} · ${w.sent_today} of ${w.daily_cap} today`
 }
 
 export function WorkerPill({ w, className = "" }: { w: ScoutWorker; className?: string }) {
