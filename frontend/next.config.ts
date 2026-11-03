@@ -141,7 +141,7 @@ const nextConfig: NextConfig = {
           // `payouts` is the payout-runs screen: the list, one run, and the three steps the
           // bank file goes through. Real pages under src/app/work/payouts, so it is excluded
           // here or /work/payouts is rewritten to a /superadmin/payouts that does not exist.
-          source: '/work/:path((?!areas|brands|chasing|coverage|creators|enrolments|goals|guide|inbox|manual|money|payables|payouts|pipeline|sourcing|team|today).*)',
+          source: '/work/:path((?!areas|brands|chasing|coverage|creators|enrolments|goals|guide|inbox|manual|money|payables|payouts|pipeline|scout|sourcing|team|today).*)',
           destination: '/superadmin/:path*',
         },
       ],

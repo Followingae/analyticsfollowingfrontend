@@ -35,6 +35,7 @@ const ROUTE_TITLES: Record<string, string> = {
   "/work/today": "Today",
   "/work/brands": "Brands",
   "/work/coverage": "Coverage",
+  "/work/scout": "ScoutOutreach",
   "/work/goals": "Goals",
   "/work/payables": "Creator payments",
   "/work/team": "Creator team",

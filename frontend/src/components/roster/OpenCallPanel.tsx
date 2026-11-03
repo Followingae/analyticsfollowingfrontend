@@ -25,6 +25,7 @@ import { ApplicantsBoard } from "./ApplicantsBoard"
 import { CampaignAlertDialog } from "./AlertDialog"
 import { EMPTY_SCREENING, ScreeningEditor } from "./ScreeningEditor"
 import { ScoutAvatar } from "./ScoutAvatar"
+import { ScoutStrip } from "./ScoutStrip"
 
 type Draft = Partial<OpenCall> & { faq: { q: string; a: string }[] }
 
@@ -167,6 +168,8 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
           A campaign card the talent team sends creators to. The chat collects their price, dates and email and puts them on this roster.
         </p>
       ) : (
+        <>
+        {oc.status === "live" && <ScoutStrip listId={listId} canEdit={isFounder} />}
         <div className="grid gap-ds-3 md:grid-cols-[1fr_auto]">
           <div className="whitespace-pre-line rounded-ds-lg bg-[var(--tone-neutral-wash)] p-ds-3 text-sm">{oc.card}</div>
           <div className="flex flex-col gap-ds-2 md:w-56">
@@ -221,6 +224,7 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
             )}
           </div>
         </div>
+        </>
       )}
 
       <Dialog open={edit} onOpenChange={setEdit}>

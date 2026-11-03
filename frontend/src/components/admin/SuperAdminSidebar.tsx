@@ -33,6 +33,7 @@ import {
   Store,
   Megaphone,
   Link2,
+  Radar,
   ClipboardCheck,
   Building2,
   Wrench,
@@ -212,6 +213,8 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
       modules: ["clients", "proposals"] },
     // Hub: creators and rates, pending rates, analysed, rosters, coverage, app creators.
     { url: "/work/influencers", icon: Users2, badge: "needs-price", modules: ["influencers"] },
+    // ScoutOutreach: the outreach teammate. Its goals, its live work, everyone it has found.
+    { url: "/work/scout", icon: Radar, modules: ["influencers"], scopes: ["leadership", "talent"] },
     // Hub: all campaigns, app campaigns, production, reports, chasing.
     { url: "/work/campaigns", icon: Megaphone, badge: "chasing",
       modules: ["campaigns", "operations", "fa"] },
