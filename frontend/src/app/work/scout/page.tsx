@@ -18,6 +18,7 @@ import { CampaignList } from "@/components/scout/CampaignList"
 import { CampaignView, GeneralView } from "@/components/scout/CampaignView"
 import { CreatorSheet } from "@/components/scout/CreatorSheet"
 import { NetworkBrowser } from "@/components/scout/NetworkBrowser"
+import { ScoutActivity } from "@/components/scout/ScoutActivity"
 import { ScoutHeader } from "@/components/scout/ScoutHeader"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { scoutApi, type ScoutCampaignsData } from "@/services/scoutApi"
@@ -77,6 +78,7 @@ function ScoutPage() {
     <SuperadminLayout>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 pb-24">
         <ScoutHeader canEdit={canDestroy} campaigns={working} week={week} />
+        <ScoutActivity onOpenList={id => openList(id)} />
 
         <Tabs value={tab} onValueChange={(v: string) => setParams({ tab: v === "campaigns" ? null : v, list: null })} className="gap-6">
           <TabsList className="h-10 rounded-full p-1">

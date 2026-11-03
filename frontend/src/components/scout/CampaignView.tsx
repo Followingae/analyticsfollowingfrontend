@@ -1,27 +1,24 @@
 "use client"
 
 /**
- * One campaign in ScoutOutreach, top to bottom: 1. who fits, 2. reach out (the WhatsApp
- * network and new creators by Instagram DM), 3. progress, everyone reached and where they are.
+ * One campaign in ScoutOutreach, top to bottom: 1. who fits, 2. reach out (runs itself: the
+ * WhatsApp alert to the network, and new creators found, checked and DMed by the bot),
+ * 3. progress, everyone reached and where they are.
  */
 import * as React from "react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { AnimatePresence, motion } from "motion/react"
-import { ArrowLeft, ArrowUpRight, Check, Globe, Hash, Instagram, Loader2, MessageCircle, Search, Send, X } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, Check, Clock, Globe, Instagram, Loader2, MessageCircle, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
 import {
   scoutApi, type ScoutCampaign, type ScoutCampaignsData, type ScoutCriteria, type ScoutOutreachItem, type ScoutRosterPlan,
 } from "@/services/scoutApi"
 import { Bar, LiveDot } from "./CampaignList"
 import { PeopleTable } from "./PeopleTable"
-import { ChipGroup, Face, FollowerRange, ProposedCard, Scanning, criteriaSentence, langName } from "./outreachParts"
-
-const lime = "rounded-full bg-[#d3ff02] text-[#111] hover:bg-[#c4ef00]"
+import { WorkerPill, compact } from "./WorkerPill"
+import { ChipGroup, Face, FollowerRange, Scanning, criteriaSentence, langName } from "./outreachParts"
 
 function Back({ onBack }: { onBack: () => void }) {
   return (
@@ -44,12 +41,24 @@ function Section({ n, title, action, children }: { n?: number; title: string; ac
   )
 }
 
-function Card({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function Card({ icon, title, aside, children }: { icon: React.ReactNode; title: string; aside?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl border bg-background p-5">
-      <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">{icon}{title}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">{icon}{title}</p>
+        {aside && <div className="ml-auto min-w-0">{aside}</div>}
+      </div>
       {children}
     </div>
+  )
+}
+
+function Pulse() {
+  return (
+    <span className="relative flex h-2 w-2 shrink-0">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#c8f000] opacity-70" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-[#9bd400]" />
+    </span>
   )
 }
 
@@ -100,229 +109,124 @@ function WhoFits({ listId, plan, canEdit, onSaved }: { listId: string; plan: Sco
   )
 }
 
-/* ------------------------------------------------------------ 2. reach out */
+/* ------------------------------------------------------------ 2. reach out (automatic) */
 
-function WhatsAppCard({ listId, plan, canEdit, onSent }: { listId: string; plan: ScoutRosterPlan; canEdit: boolean; onSent: () => void }) {
-  const [confirming, setConfirming] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const { matching, already_alerted, to_send, sample } = plan.contacts
-  const reason = plan.open_call?.status !== "live" ? "Open call is not live"
-    : !plan.template_approved ? "Alert template waiting for Meta" : null
-  const send = async () => {
-    setBusy(true)
-    try {
-      const r = await scoutApi.sendWhatsApp(listId)
-      toast.success(`Alert going out to ${r.data.queued} creators`)
-      setConfirming(false); onSent()
-    } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
-  }
+function WhatsAppCard({ plan }: { plan: ScoutRosterPlan }) {
+  const { matching, already_alerted, to_send } = plan.contacts
+  const live = plan.open_call?.status === "live"
   return (
     <Card icon={<MessageCircle className="h-4 w-4" />} title="Your WhatsApp network">
-      {to_send > 0 ? (
-        <>
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="text-4xl font-semibold tabular-nums tracking-tight">{to_send.toLocaleString()}</p>
-              <p className="text-sm text-muted-foreground">{to_send === 1 ? "creator" : "creators"} not yet alerted</p>
-            </div>
-            {sample.length > 0 && (
-              <div className="flex -space-x-2.5">
-                {sample.slice(0, 5).map(s => <Face key={s.username} c={s} size={32} ring />)}
-              </div>
-            )}
-          </div>
-          {canEdit && (
-            <div className="mt-auto flex flex-col gap-1.5">
-              <AnimatePresence mode="wait" initial={false}>
-                {confirming ? (
-                  <motion.div key="c" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium">Send to {to_send.toLocaleString()} now?</span>
-                    <Button size="sm" className={`gap-1.5 px-4 ${lime}`} disabled={busy} onClick={send}>
-                      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}Yes
-                    </Button>
-                    <Button size="sm" variant="ghost" className="rounded-full" disabled={busy} onClick={() => setConfirming(false)}>Cancel</Button>
-                  </motion.div>
-                ) : (
-                  <motion.div key="s" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                    <Button className={`gap-2 px-6 ${lime}`} disabled={!!reason} onClick={() => setConfirming(true)}>
-                      <Send className="h-4 w-4" />Send to {to_send.toLocaleString()}
-                    </Button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              {reason && <p className="text-xs text-muted-foreground">{reason}</p>}
-            </div>
-          )}
-        </>
+      <div>
+        <p className="text-4xl font-semibold tabular-nums tracking-tight">{already_alerted.toLocaleString()}</p>
+        <p className="text-sm text-muted-foreground">alerted on WhatsApp</p>
+      </div>
+      {!live ? (
+        <p className="flex items-center gap-2 text-sm text-muted-foreground"><Clock className="h-4 w-4" />Starts when the open call is live</p>
+      ) : !plan.template_approved ? (
+        <p className="flex items-start gap-2 text-sm text-amber-800"><Clock className="mt-0.5 h-4 w-4 shrink-0" />Waiting for Meta to approve the message, it sends itself once approved</p>
+      ) : to_send > 0 ? (
+        <p className="flex items-center gap-2 text-sm"><Pulse /><span><span className="font-semibold tabular-nums">{to_send.toLocaleString()}</span> more going out automatically</span></p>
       ) : matching > 0 ? (
-        <div>
-          <p className="text-xl font-semibold">Everyone who fits has the alert</p>
-          <p className="text-sm text-muted-foreground">{(already_alerted || matching).toLocaleString()} alerted</p>
-        </div>
-      ) : (
-        <div>
-          <p className="text-4xl font-semibold tabular-nums tracking-tight">0</p>
-          <p className="text-sm text-muted-foreground">in your network fit</p>
-        </div>
-      )}
+        <p className="flex items-center gap-2 text-sm text-muted-foreground"><Check className="h-4 w-4 text-emerald-600" />Everyone who fits has the alert</p>
+      ) : null}
     </Card>
   )
 }
 
-type Search = { hashtags: string[]; lookalikes: boolean; max_new: number }
+type SearchPlan = { hashtags: string[]; lookalikes: boolean; max_new: number }
 
-function searchSentence(s: Search) {
+function searchSentence(s: SearchPlan) {
   const tags = s.hashtags.map(t => `#${t}`)
-  if (!tags.length) return s.lookalikes ? "Scout will search look-alikes of creators who fit" : ""
+  if (!tags.length) return s.lookalikes ? "Searching look-alikes of creators who fit" : ""
   const head = tags.length <= 2 ? tags.join(" and ") : `${tags.slice(0, 2).join(", ")} and ${tags.length - 2} more`
-  return `Scout will search ${head}${s.lookalikes ? ", plus look-alikes" : ""}`
-}
-
-function SearchEditor({ s, onChange }: { s: Search; onChange: (s: Search) => void }) {
-  const [draft, setDraft] = useState("")
-  const add = (v: string) => {
-    const next = v.split(/[\s,]+/).map(t => t.replace(/^#+/, "").toLowerCase()).filter(Boolean)
-    if (next.length) onChange({ ...s, hashtags: Array.from(new Set([...s.hashtags, ...next])) })
-    setDraft("")
-  }
-  return (
-    <div className="flex flex-col gap-3 rounded-xl border p-3">
-      <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border px-2 py-1.5 focus-within:border-foreground/40">
-        <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-        {s.hashtags.map(t => (
-          <span key={t} className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs">
-            #{t}
-            <button type="button" aria-label={`Remove ${t}`} onClick={() => onChange({ ...s, hashtags: s.hashtags.filter(x => x !== t) })}>
-              <X className="h-3 w-3" /></button>
-          </span>
-        ))}
-        <input value={draft} placeholder={s.hashtags.length ? "" : "Add hashtags"}
-               onChange={e => { const v = e.target.value; if (/[\s,]$/.test(v)) add(v); else setDraft(v) }}
-               onKeyDown={e => {
-                 if (e.key === "Enter") { e.preventDefault(); add(draft) }
-                 if (e.key === "Backspace" && !draft && s.hashtags.length) onChange({ ...s, hashtags: s.hashtags.slice(0, -1) })
-               }}
-               onBlur={() => draft.trim() && add(draft)}
-               className="min-w-[6rem] flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
-      </div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-        <label className="flex items-center gap-2">
-          <Switch checked={s.lookalikes} onCheckedChange={(v: boolean) => onChange({ ...s, lookalikes: v })} />Look-alikes
-        </label>
-        <label className="flex items-center gap-2">
-          Up to
-          <Input inputMode="numeric" value={String(s.max_new || "")} aria-label="Most new creators"
-                 onChange={e => onChange({ ...s, max_new: Number(e.target.value.replace(/\D/g, "").slice(0, 4)) || 0 })}
-                 className="h-8 w-20 rounded-full text-center tabular-nums" />
-          new
-        </label>
-      </div>
-    </div>
-  )
+  return `Searching ${head}${s.lookalikes ? ", plus look-alikes" : ""}`
 }
 
 function DmCard({ listId, plan, canEdit, onStarted }: { listId: string; plan: ScoutRosterPlan; canEdit: boolean; onStarted: () => void }) {
-  const [s, setS] = useState<Search | null>(null)
-  const [changing, setChanging] = useState(false)
+  const [s, setS] = useState<SearchPlan | null>(null)
   const [busy, setBusy] = useState(false)
   useEffect(() => {
-    scoutApi.suggest(listId).then(r => setS(r.data)).catch(() => setS({ hashtags: [], lookalikes: true, max_new: 200 }))
+    scoutApi.suggest(listId).then(r => setS(r.data)).catch(() => setS(null))
   }, [listId])
   const { dm, sourcing } = plan
-  const find = async () => {
-    if (!s) return
+  const again = async () => {
     setBusy(true)
     try {
-      await scoutApi.source(listId, { lookalikes: s.lookalikes, hashtags: s.hashtags, max_new: s.max_new || 200 })
+      await scoutApi.source(listId, { lookalikes: s?.lookalikes ?? true, hashtags: s?.hashtags ?? [], max_new: s?.max_new || 200 })
       toast.success("Scout is searching")
-      setChanging(false); onStarted()
+      onStarted()
     } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
   }
-  const extra = [[dm.replied, "replied"], [dm.approved, "waiting to send"]].filter(([v]) => (v as number) > 0)
-    .map(([v, l]) => `${(v as number).toLocaleString()} ${l}`).join(" · ")
   const sentence = s ? searchSentence(s) : ""
+  const small: [number, string][] = [[dm.approved, "waiting"], [dm.replied, "replied"]]
 
   return (
-    <Card icon={<Instagram className="h-4 w-4" />} title="New creators by Instagram DM">
-      <div>
-        <p className="text-4xl font-semibold tabular-nums tracking-tight">{dm.sent.toLocaleString()}</p>
-        <p className="text-sm text-muted-foreground">DMs sent{extra ? ` · ${extra}` : ""}</p>
-      </div>
-      {sourcing.running ? <Scanning note={sourcing.last_note} /> : canEdit && s && (
-        <div className="mt-auto flex flex-col gap-3">
-          {sentence && (
-            <p className="text-sm text-muted-foreground">
-              {sentence}{" "}
-              <button type="button" onClick={() => setChanging(c => !c)} className="text-foreground underline-offset-2 hover:underline">
-                {changing ? "Done" : "Change"}</button>
-            </p>
-          )}
-          {(changing || !sentence) && <SearchEditor s={s} onChange={setS} />}
-          <Button className={`gap-2 self-start px-6 ${lime}`} disabled={busy || (!s.lookalikes && s.hashtags.length === 0)} onClick={find}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}Find new creators
-          </Button>
+    <Card icon={<Instagram className="h-4 w-4" />} title="New creators by Instagram DM" aside={<WorkerPill w={plan.worker} />}>
+      <div className="flex items-end gap-6">
+        <div>
+          <p className="text-4xl font-semibold tabular-nums tracking-tight">{dm.sent.toLocaleString()}</p>
+          <p className="text-sm text-muted-foreground">DMs sent</p>
         </div>
+        {small.map(([v, l]) => (
+          <div key={l}>
+            <p className="text-xl font-semibold tabular-nums">{v.toLocaleString()}</p>
+            <p className="text-sm text-muted-foreground">{l}</p>
+          </div>
+        ))}
+      </div>
+      {sourcing.running && <Scanning note={sourcing.last_note} />}
+      {(sentence || canEdit) && (
+        <p className="text-sm text-muted-foreground">
+          {sentence}
+          {canEdit && !sourcing.running && (
+            <button type="button" disabled={busy} onClick={again}
+                    className={`${sentence ? "ml-2 " : ""}inline-flex items-center gap-1 text-foreground underline-offset-2 hover:underline disabled:opacity-50`}>
+              {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}Search again now
+            </button>
+          )}
+        </p>
       )}
     </Card>
   )
 }
 
-const SHOW = 30
+const UP_NEXT = 8
 
-function Found({ listId, plan, canEdit, onChanged, onOpen }: {
-  listId: string; plan: ScoutRosterPlan; canEdit: boolean; onChanged: () => void; onOpen: (u: string) => void
-}) {
+function UpNext({ listId, plan, onOpen }: { listId: string; plan: ScoutRosterPlan; onOpen: (u: string) => void }) {
   const [items, setItems] = useState<ScoutOutreachItem[]>([])
-  const [picked, setPicked] = useState<Record<string, boolean>>({})
   const [all, setAll] = useState(false)
-  const [busy, setBusy] = useState<"approve" | "skip" | null>(null)
-  const sig = `${plan.dm.proposed}|${plan.dm.approved}|${plan.dm.skipped}`
+  const sig = `${plan.dm.approved}|${plan.dm.sent}`
   const load = useCallback(async () => {
-    try { setItems((await scoutApi.outreach(listId, "proposed")).data.items || []) } catch { /* next change */ }
+    try { setItems((await scoutApi.outreach(listId, "approved")).data.items || []) } catch { /* next change */ }
   }, [listId])
   useEffect(() => { load() }, [load, sig])
-  const proposed = useMemo(() => items.filter(i => i.status === "proposed"), [items])
-  const ids = useMemo(() => proposed.filter(p => picked[p.id]).map(p => p.id), [proposed, picked])
-  const allPicked = proposed.length > 0 && ids.length === proposed.length
-
-  const decide = async (d: "approve" | "skip") => {
-    setBusy(d)
-    try {
-      const r = await scoutApi.decide(ids, d)
-      toast.success(d === "approve" ? `${r.data.updated} approved` : `${r.data.updated} skipped`)
-      setPicked({}); await load(); onChanged()
-    } catch (e) { toast.error((e as Error).message) } finally { setBusy(null) }
-  }
-  if (proposed.length === 0) return null
-
+  const queued = items.filter(i => i.status === "approved" || i.status === "sending")
+  if (queued.length === 0) return null
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border bg-background p-5">
-      <div className="flex flex-wrap items-center gap-3">
-        {canEdit && <Checkbox checked={allPicked} aria-label="Select all"
-                              onCheckedChange={() => setPicked(allPicked ? {} : Object.fromEntries(proposed.map(p => [p.id, true])))} />}
-        <p className="font-semibold"><span className="tabular-nums">{proposed.length.toLocaleString()}</span> new creators found</p>
-        {canEdit && (
-          <div className="ml-auto flex gap-1.5">
-            <Button size="sm" variant="ghost" className="rounded-full" disabled={!ids.length || !!busy} onClick={() => decide("skip")}>
-              {busy === "skip" && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}Skip</Button>
-            <Button size="sm" className={`gap-1.5 px-4 ${lime}`} disabled={!ids.length || !!busy} onClick={() => decide("approve")}>
-              {busy === "approve" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}Approve{ids.length ? ` ${ids.length}` : ""}
-            </Button>
-          </div>
-        )}
-      </div>
-      <div className="grid max-h-[560px] gap-2 overflow-y-auto pr-1 md:grid-cols-2">
+    <div className="flex flex-col gap-2 rounded-2xl border bg-background p-5">
+      <p className="text-sm font-semibold">Up next <span className="font-normal tabular-nums text-muted-foreground">{queued.length.toLocaleString()}</span></p>
+      <div className="flex flex-col">
         <AnimatePresence initial={false}>
-          {(all ? proposed : proposed.slice(0, SHOW)).map(c => (
-            <ProposedCard key={c.id} c={c} canEdit={canEdit} picked={!!picked[c.id]}
-                          onPick={() => setPicked(p => ({ ...p, [c.id]: !p[c.id] }))} onOpen={() => onOpen(c.username)} />
+          {(all ? queued : queued.slice(0, UP_NEXT)).map(c => (
+            <motion.button key={c.id} type="button" layout initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                           onClick={() => c.username && onOpen(c.username)}
+                           className="flex items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-muted/40">
+              <Face c={c} size={32} />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline gap-2 text-sm">
+                  <span className="truncate font-medium">{c.username ? `@${c.username}` : c.full_name}</span>
+                  {c.followers != null && <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{compact(c.followers)}</span>}
+                  {c.status === "sending" && <span className="shrink-0 text-xs text-muted-foreground">sending now</span>}
+                </span>
+                {c.fit_reason && <span className="block truncate text-xs text-muted-foreground">{c.fit_reason}</span>}
+              </span>
+            </motion.button>
           ))}
         </AnimatePresence>
       </div>
-      {!all && proposed.length > SHOW && (
-        <Button variant="outline" size="sm" className="self-center rounded-full" onClick={() => setAll(true)}>Show all {proposed.length}</Button>
+      {!all && queued.length > UP_NEXT && (
+        <Button variant="ghost" size="sm" className="self-start rounded-full" onClick={() => setAll(true)}>Show all {queued.length}</Button>
       )}
-      <p className="text-xs text-muted-foreground">The bot sends approved DMs at human pace, about {plan.worker.daily_cap} today.</p>
     </div>
   )
 }
@@ -375,10 +279,10 @@ export function CampaignView({ listId, campaign, canEdit, onBack, onOpen }: {
           <WhoFits listId={listId} plan={plan} canEdit={canEdit} onSaved={load} />
           <Section n={2} title="Reach out">
             <div className="grid items-stretch gap-4 md:grid-cols-2">
-              <WhatsAppCard listId={listId} plan={plan} canEdit={canEdit} onSent={load} />
+              <WhatsAppCard plan={plan} />
               <DmCard listId={listId} plan={plan} canEdit={canEdit} onStarted={load} />
             </div>
-            <Found listId={listId} plan={plan} canEdit={canEdit} onChanged={load} onOpen={onOpen} />
+            <UpNext listId={listId} plan={plan} onOpen={onOpen} />
           </Section>
           <Section n={3} title="Progress">
             <PeopleTable listId={listId} mode="campaign" onOpen={onOpen} />

@@ -158,6 +158,20 @@ export interface ScoutOutreachItem extends ScoutCreator {
   replied_at: string | null
   reply_text: string | null
   error: string | null
+  /** Why the AI fit check passed them (autopilot). */
+  fit_reason?: string | null
+}
+
+/** What ScoutOutreach is doing right now. Everything on the live bar comes from here. */
+export interface ScoutActivity {
+  running: { id: string; kind: 'search' | 'check' | string; label: string; phase: string | null; done: number; total: number | null
+             started_at: string; list_id: string | null; list_name: string | null }[]
+  recent: { id: string; kind: string; label: string; status: 'done' | 'failed'; note: string | null; cost_usd: number | null
+            finished_at: string; list_name: string | null }[]
+  whatsapp_sending: { list_name: string | null; list_id: string; sent: number; waiting: number; failed: number; total: number }[]
+  dm: { online: boolean; paused: boolean; sent_today: number; cap_today: number; queue: number; next_send_at: string | null
+        state: string | null; warning: { kind?: string; text: string; at?: string } | string | null }
+  todo: { kind: 'attention' | 'dm' | 'search' | string; label: string; list_id?: string | null }[]
 }
 
 export interface ScoutRosterPlan {
@@ -277,6 +291,7 @@ export const scoutApi = {
   /** A new bot account; the token is shown once. */
   addWorker: (label?: string): Promise<{ data: { id: string; token: string } }> =>
     jfetch(`${BASE}/scout/workers`, { method: 'POST', body: JSON.stringify(label ? { label } : {}) }),
+  activity: (): Promise<{ data: ScoutActivity }> => jfetch(`${BASE}/scout/activity`),
   suggest: (listId: string): Promise<{ data: { hashtags: string[]; lookalikes: boolean; max_new: number } }> =>
     jfetch(`${BASE}/scout/roster/${listId}/suggest`),
 
