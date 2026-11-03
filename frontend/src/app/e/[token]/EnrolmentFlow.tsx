@@ -58,6 +58,12 @@ interface Submitted {
   passport_status?: string | null
   passport_rejected_reason?: string | null
   address_line2?: string | null
+  address_kind?: string | null
+  address_property?: string | null
+  address_unit?: string | null
+  address_floor?: string | null
+  address_building?: string | null
+  address_company?: string | null
   address_state?: string | null
   address_postcode?: string | null
   address_line?: string | null
@@ -96,6 +102,8 @@ interface Payload {
   agreement_body?: string
   steps?: StepKey[]
   wants_address?: boolean
+  /** Links from 2026-11-03: Home or Office, villa or apartment, number, floor, building. */
+  address_v2?: boolean
   ready_to_submit?: boolean
   completed_count?: number
   step_count?: number
@@ -299,6 +307,24 @@ const Row = ({ icon, label, children, last, error }: {
         textAlign: 'right', lineHeight: 1.4, animation: 'eFade .22s ease both',
       }}>{error}</div>
     )}
+  </div>
+)
+
+/** Two choices side by side, in the form's own dark style: Home | Office, Villa | Apartment. */
+const Seg = ({ value, options, onChange }: {
+  value: string; options: [string, string][]; onChange: (v: string) => void
+}) => (
+  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+    {options.map(([k, label]) => {
+      const on = value === k
+      return (
+        <button key={k} type="button" onClick={() => onChange(k)} style={{
+          padding: '6px 12px', borderRadius: 999, fontSize: 13.5, fontWeight: 700, fontFamily: 'inherit',
+          border: on ? '1px solid #fff' : '1px solid #2E2E34', background: on ? '#fff' : 'transparent',
+          color: on ? '#0B0B0D' : '#C9C9CF', cursor: 'pointer',
+        }}>{label}</button>
+      )
+    })}
   </div>
 )
 
@@ -1196,7 +1222,12 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
     phone: sub.address_phone || sub.mobile || '',
     lat: sub.address_lat ?? null, lng: sub.address_lng ?? null,
     maps: sub.address_maps_url || '', source: null as string | null,
+    kind: (sub.address_kind || '') as '' | 'home' | 'office',
+    prop: (sub.address_property || '') as '' | 'villa' | 'apartment',
+    unit: sub.address_unit || '', floor: sub.address_floor || '',
+    building: sub.address_building || '', company: sub.address_company || '',
   })
+  const v2 = wantsAddress && !!d.address_v2
   const [trn, setTrn] = useState(sub.tax_number || '')
   const [stage, setStage] = useState<'form' | 'code'>('form')
   const [code, setCode] = useState('')
@@ -1219,6 +1250,12 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
     // No silent default any more. The old code wrote "United Arab Emirates" on submit
     // whatever was on screen, so an address in Cairo was filed as Emirati.
     country: !wantsAddress ? null : !addr.country ? 'Which country do you live in?' : null,
+    kind: !v2 ? null : !addr.kind ? 'Home or office?' : null,
+    prop: !v2 || addr.kind !== 'home' ? null : !addr.prop ? 'Villa or apartment?' : null,
+    unit: !v2 || !addr.kind ? null : !addr.unit.trim()
+      ? (addr.kind === 'office' ? 'Your office number.' : addr.prop === 'villa' ? 'Your villa number.' : 'Your apartment number.') : null,
+    building: !v2 || !addr.kind || addr.prop === 'villa' ? null : !addr.building.trim() ? 'The building name.' : null,
+    company: !v2 || addr.kind !== 'office' ? null : !addr.company.trim() ? 'The company name, for the courier.' : null,
   }
   const errs = {
     name: vName(name),
@@ -1258,6 +1295,7 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
               errs={addrErrs}
               trn={trn}
               onTrn={setTrn}
+              v2={v2}
             />
           )}
 
@@ -1281,6 +1319,14 @@ function StepEmail({ d, sub, post, busy, err, onDone }: {
                 address_lat: addr.lat, address_lng: addr.lng,
                 address_maps_url: addr.maps.trim() || null,
                 address_pin_source: addr.lat != null ? 'browser' : (addr.maps.trim() ? 'link' : null),
+                ...(v2 ? {
+                  address_kind: addr.kind || null,
+                  address_property: addr.kind === 'home' ? (addr.prop || null) : null,
+                  address_unit: addr.unit.trim() || null,
+                  address_floor: addr.prop === 'villa' ? null : (addr.floor.trim() || null),
+                  address_building: addr.building.trim() || null,
+                  address_company: addr.kind === 'office' ? (addr.company.trim() || null) : null,
+                } : {}),
               } : {}),
             })
             if (r.ok) { setSentTo(email.trim().toLowerCase()); setStage('code'); setShow(false) }
@@ -1767,18 +1813,23 @@ function StepBank({ sub, post, busy, err, onDone }: {
  * which made the accurate route the effortful one and left typing as the path of least
  * resistance. Where the map cannot load at all, the typed fields stand on their own.
  */
-function DeliveryBlock({ brand, value, onChange, show, errs, trn, onTrn }: {
+function DeliveryBlock({ brand, value, onChange, show, errs, trn, onTrn, v2 }: {
   brand?: string | null
   value: {
     line: string; line2: string; city: string; state: string; postcode: string
     country: string; phone: string
     lat: number | null; lng: number | null; maps: string; source: string | null
+    kind: '' | 'home' | 'office'; prop: '' | 'villa' | 'apartment'
+    unit: string; floor: string; building: string; company: string
   }
   onChange: (patch: Partial<typeof value>) => void
   show: boolean
-  errs: { line: string | null; city: string | null; phone: string | null; country: string | null }
+  errs: { line: string | null; city: string | null; phone: string | null; country: string | null
+    kind?: string | null; prop?: string | null; unit?: string | null; building?: string | null; company?: string | null }
   trn: string
   onTrn: (v: string) => void
+  /** The structured address: Home or Office first, then the door the courier knocks on. */
+  v2?: boolean
 }) {
   const [noMap, setNoMap] = useState(!mapsAvailable())
   // The typed fields are prefilled from the pin only until the creator edits them. After
@@ -1833,12 +1884,49 @@ function DeliveryBlock({ brand, value, onChange, show, errs, trn, onTrn }: {
             aria-label="Country you live in"
           />
         </Row>
-        <Row icon={I.pin} label="Address" error={show ? errs.line : null}>
-          <input style={inputStyle} value={value.line} onChange={(e) => edit({ line: e.target.value })} placeholder="Building, street" />
+        {v2 && (
+          <Row icon={I.pin} label="This is my" error={show ? errs.kind || null : null}>
+            <Seg value={value.kind} options={[['home', 'Home'], ['office', 'Office']]}
+                 onChange={(k) => edit({ kind: k as 'home' | 'office', prop: k === 'office' ? '' : value.prop })} />
+          </Row>
+        )}
+        {v2 && value.kind === 'home' && (
+          <Row icon={I.pin} label="Home is a" error={show ? errs.prop || null : null}>
+            <Seg value={value.prop} options={[['villa', 'Villa'], ['apartment', 'Apartment']]}
+                 onChange={(k) => edit({ prop: k as 'villa' | 'apartment' })} />
+          </Row>
+        )}
+        {v2 && value.kind === 'office' && (
+          <Row icon={I.pin} label="Company" error={show ? errs.company || null : null}>
+            <input style={inputStyle} value={value.company} onChange={(e) => edit({ company: e.target.value })} placeholder="Company name" />
+          </Row>
+        )}
+        {v2 && value.kind && (value.kind === 'office' || value.prop) && (
+          <>
+            <Row icon={I.pin} label={value.kind === 'office' ? 'Office no.' : value.prop === 'villa' ? 'Villa no.' : 'Apartment no.'}
+                 error={show ? errs.unit || null : null}>
+              <input style={inputStyle} value={value.unit} onChange={(e) => edit({ unit: e.target.value })}
+                     placeholder={value.prop === 'villa' ? '27' : '1204'} />
+            </Row>
+            {value.prop !== 'villa' && (
+              <Row icon={I.pin} label="Floor">
+                <input style={inputStyle} value={value.floor} onChange={(e) => edit({ floor: e.target.value })} placeholder="Optional" />
+              </Row>
+            )}
+            <Row icon={I.pin} label={value.prop === 'villa' ? 'Community' : 'Building'} error={show ? errs.building || null : null}>
+              <input style={inputStyle} value={value.building} onChange={(e) => edit({ building: e.target.value })}
+                     placeholder={value.prop === 'villa' ? 'Optional, e.g. Arabian Ranches' : 'Building name'} />
+            </Row>
+          </>
+        )}
+        <Row icon={I.pin} label={v2 ? 'Street, area' : 'Address'} error={show ? errs.line : null}>
+          <input style={inputStyle} value={value.line} onChange={(e) => edit({ line: e.target.value })} placeholder={v2 ? 'Street, area' : 'Building, street'} />
         </Row>
-        <Row icon={I.pin} label="Apartment">
-          <input style={inputStyle} value={value.line2} onChange={(e) => edit({ line2: e.target.value })} placeholder="Flat, floor, optional" />
-        </Row>
+        {!v2 && (
+          <Row icon={I.pin} label="Apartment">
+            <input style={inputStyle} value={value.line2} onChange={(e) => edit({ line2: e.target.value })} placeholder="Flat, floor, optional" />
+          </Row>
+        )}
         <Row icon={I.city} label="City" error={show ? errs.city : null}>
           <input style={inputStyle} value={value.city} onChange={(e) => edit({ city: e.target.value })} placeholder="Dubai" />
         </Row>

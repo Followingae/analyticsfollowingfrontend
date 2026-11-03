@@ -186,7 +186,8 @@ const SHOWN_SUB = new Set([
   "agreement_sha256", "bank_holder", "bank_swift", "bank_country", "bank_last4", "bank_status", "bank_confirmed_at",
   "bank_rejected_reason", "bank_iban_present", "address_line", "address_line2", "address_city", "address_state",
   "address_postcode", "address_country", "address_phone", "address_lat", "address_lng", "address_maps_url",
-  "address_pin_source", "passport_filename", "passport_uploaded_at", "passport_status", "passport_rejected_reason",
+  "address_pin_source", "address_kind", "address_property", "address_unit", "address_floor", "address_building",
+  "address_company", "passport_filename", "passport_uploaded_at", "passport_status", "passport_rejected_reason",
   "tax_number", "payout_collect_city", "completed_at", "inflink_influencer_id", "id", "link_id", "avatar_url",
 ])
 const HIDDEN = /(^id$|token|_id$|password|secret|signature_svg|iban$)/
@@ -294,7 +295,11 @@ function Detail() {
 
   /* ---------------- address */
   const cityLine = [str(S.address_city), str(S.address_state), str(S.address_postcode)].filter(Boolean).join(", ")
-  const addressLines = [str(S.address_line), str(S.address_line2), cityLine, str(S.address_country)].filter(Boolean)
+  // Home or office, and what kind of home: the courier's first question. The door number,
+  // floor and building are already composed into line 2.
+  const kindLine = [S.address_kind === "office" ? "Office" : S.address_kind === "home" ? "Home" : "",
+    S.address_property === "villa" ? "Villa" : S.address_property === "apartment" ? "Apartment" : ""].filter(Boolean).join(" · ")
+  const addressLines = [kindLine, str(S.address_line2), str(S.address_line), cityLine, str(S.address_country)].filter(Boolean)
   const mapsUrl = str(S.address_maps_url)
     || (has(S.address_lat) && has(S.address_lng) ? `https://maps.google.com/?q=${S.address_lat},${S.address_lng}` : "")
 
