@@ -11,10 +11,10 @@ import * as React from "react"
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { AnimatePresence, motion } from "motion/react"
-import { ArrowRight, ChevronRight, Instagram, Loader2, MessageCircle, Radar, RotateCcw, ScanSearch, Target } from "lucide-react"
+import { ArrowRight, ChevronRight, Instagram, Loader2, RotateCcw, Target } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Progress, clock } from "@/components/scout/ScoutActivity"
+import { CountdownRing, JobTrack, WaTrack } from "@/components/scout/ScoutActivity"
 import { scoutApi, type ScoutActivity, type ScoutCampaign } from "@/services/scoutApi"
 
 const visible = () => typeof document === "undefined" || !document.hidden
@@ -53,35 +53,6 @@ function Funnel({ c }: { c: ScoutCampaign }) {
           </div>
         </React.Fragment>
       ))}
-    </div>
-  )
-}
-
-function Countdown({ at }: { at: string }) {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [])
-  const ms = new Date(at).getTime() - now
-  return <span className="tabular-nums">{ms > 0 ? `next DM in ${clock(ms)}` : "next DM any moment"}</span>
-}
-
-function LiveLine({ icon, title, phase, right, done, total }: {
-  icon: React.ReactNode; title: string; phase?: string | null; right?: string | null; done?: number; total?: number | null
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <div className="flex min-w-0 items-center gap-2 text-xs">
-        <span className="shrink-0 text-muted-foreground">{icon}</span>
-        <span className="min-w-0 flex-1 truncate font-medium" title={title}>{title}</span>
-        {right && <span className="shrink-0 whitespace-nowrap text-right tabular-nums text-muted-foreground">{right}</span>}
-      </div>
-      {phase && (
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.p key={phase} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.2 }} title={phase}
-                    className="min-w-0 truncate pl-[22px] text-xs text-muted-foreground">{phase}</motion.p>
-        </AnimatePresence>
-      )}
-      {done !== undefined && <Progress done={done} total={total ?? null} />}
     </div>
   )
 }
@@ -163,34 +134,26 @@ export function ScoutStrip({ listId, canEdit }: { listId: string; canEdit: boole
       )}
 
       {hasLive && (
-        <div className="flex min-w-0 flex-col gap-2.5 border-t px-4 py-3">
+        <div className="flex min-w-0 flex-col gap-1.5 border-t px-4 py-2.5">
           <AnimatePresence initial={false}>
             {jobs.map(j => (
               <motion.div key={j.id} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                <LiveLine icon={j.kind === "check" ? <ScanSearch className="h-3.5 w-3.5" /> : <Radar className="h-3.5 w-3.5" />}
-                          title={j.label} phase={j.phase} done={j.done} total={j.total}
-                          right={j.total ? `${j.done.toLocaleString()} / ${j.total.toLocaleString()}` : null} />
+                <JobTrack j={j} compact />
               </motion.div>
             ))}
             {wa.map(w => (
               <motion.div key={`wa-${w.list_id}`} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                <LiveLine icon={<MessageCircle className="h-3.5 w-3.5" />} title="WhatsApp alert" done={w.sent} total={w.total}
-                          phase={w.failed ? `${w.failed.toLocaleString()} failed` : null}
-                          right={`${w.sent.toLocaleString()} of ${w.total.toLocaleString()} sent`} />
+                <WaTrack w={w} compact />
               </motion.div>
             ))}
           </AnimatePresence>
           {dmWaiting > 0 && a && (
-            <p className="flex items-center gap-2 text-xs">
+            <div className="flex min-w-0 items-center gap-2 py-1 text-xs">
               <Instagram className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span><span className="font-medium tabular-nums">{dmWaiting.toLocaleString()}</span> DMs waiting</span>
-              {(dmState || a.dm.next_send_at) && <>
-                <span className="text-muted-foreground">·</span>
-                <span className={dmState ? "text-amber-700" : "text-muted-foreground"}>
-                  {dmState || <Countdown at={a.dm.next_send_at!} />}
-                </span>
-              </>}
-            </p>
+              <span className="rounded-full bg-muted px-2 py-0.5 tabular-nums"><span className="font-semibold">{dmWaiting.toLocaleString()}</span> DMs waiting</span>
+              {dmState ? <span className="text-amber-700">{dmState}</span>
+                : a.dm.next_send_at ? <CountdownRing at={a.dm.next_send_at} size={16} /> : null}
+            </div>
           )}
           {idle && otherTodo && <p className="min-w-0 break-words text-xs text-muted-foreground [overflow-wrap:anywhere] line-clamp-2">{otherTodo.label}</p>}
         </div>
