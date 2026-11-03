@@ -38,6 +38,7 @@ export type ServerNotificationType =
   | 'creator_submitted'
   | 'credit_purchase'
   | 'desk_message_received'
+  | 'enrolment_link_ready'
   | 'fa_application'
   | 'fa_content_approved'
   | 'fa_content_edit_requested'
@@ -111,6 +112,7 @@ export const NOTIFICATION_CATEGORIES = {
     'creator_cost_captured',
     'creator_rejected',
     'creator_submitted',
+    'enrolment_link_ready',
     'waiting_room_backlog',
   ],
   sourcing: [
@@ -251,6 +253,7 @@ export const EVENT_LABEL: Partial<Record<ServerNotificationType, string>> = {
   creator_submitted: "Creators added to the waiting room",
   credit_purchase: "Credits added / subscription active",
   desk_message_received: "Something came in on the Desk",
+  enrolment_link_ready: "Enrolment link ready to send",
   fa_application: "New campaign application (team)",
   fa_content_approved: "Content approved (team)",
   fa_content_edit_requested: "An edit was requested on content (team)",
