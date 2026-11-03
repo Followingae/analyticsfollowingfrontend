@@ -29,6 +29,12 @@ export interface Job {
   steps: string[]
   /** Who it goes to when you are done. */
   handover?: string
+  /**
+   * Talent and leadership only (ScoutOutreach, ScoutAI, enrolments). Hidden from account
+   * management and business development even inside the other-roles accordion, because
+   * those tools are not theirs to work. See `seesTalentChapters`.
+   */
+  restricted?: boolean
 }
 
 export interface Playbook {
@@ -90,24 +96,52 @@ export const PLAYBOOKS: Playbook[] = [
           'Work on the brand’s roster. It is your sheet: handle, price, last time, state, notes. Do not start a new spreadsheet, and do not email one.',
           'Search the master database before you open Instagram. We already know hundreds of creators with prices on them, and the old master sheet now lives there too, every price kept with its date.',
           'Paste a list straight from a sheet, or one handle per line. Prices are read as you wrote them, "Standard: 2000 QAR Negotiated: 1000 QAR" included. Anyone new goes to the waiting room without running analytics.',
+          'Every row says its next step and carries one button for it: "Needs a rate" (Add rate), "Rate in, send for review" (Send for review), "Ready" (Add to proposal), "Client picked" (Book). Skip means not for this campaign, and the "…" menu holds everything else.',
           'Record both numbers on the row: what they asked and what you agreed, in their currency, and what it buys (a reel, a reel also on TikTok, full scope). The platform works out the AED.',
           'Check "Last time" before you agree. If they are asking well above what they agreed with us before, the row tells you.',
           'Keep inside the budget per creator on the brief. A price above it turns amber as you type it.',
           'Send the good ones for review. That tells the founders "these are good, please price them" and it appears on their Today. Do not email the list.',
-          'Let the rest go with "Not this time" and a reason. They stay in the database, and the reason follows them to the next brief.',
+          'Skip the rest, with a reason if you have one. They stay in the database, and the reason follows them to the next brief.',
         ],
-        handover: 'A founder prices and clears the ones you sent, or sends some back with a note that shows on your row and on your Today. Cleared creators go onto the proposal from the roster.',
+        handover: 'A founder presses Price on the ones you sent, or sends some back with a note that shows on your row and on your Today. A priced creator comes back onto the roster as Ready, and goes onto the proposal from there.',
+      },
+      {
+        title: 'Work alongside ScoutOutreach and ScoutAI',
+        when: 'Every roster with outreach running. It is explained in full in its own chapter below.',
+        restricted: true,
+        steps: [
+          'Keep sourcing your own creators. ScoutOutreach adds to your roster, it does not replace you.',
+          'Glance at the live bar on ScoutOutreach: DMs sent today and the job it is on now.',
+          '"ScoutOutreach asked for their rate" and "ScoutAI is getting their rate" need nothing from you. The rate lands on the row by itself.',
+          'Say yes or no on the creators it finds. Your decisions teach its screening on that campaign.',
+          'If ScoutOutreach says the bot is stopped and needs a person, sign in to Instagram on the bot PC and press Resume.',
+        ],
+        handover: 'Creators with a rate are sent for review like any other. A founder prices them.',
       },
       {
         title: 'Work an open call on WhatsApp',
         when: 'A superadmin has put an open call live on the brand’s roster.',
+        restricted: true,
         steps: [
           'Press "Copy a DM with my link" and send it to creators on Instagram. Everyone who answers through your link is credited to you.',
-          'Our agent on the marketing number asks their price, dates and email, and offers one counter if they ask above target. You do not chase them for it.',
-          'Whoever answers lands on the roster with a quote, like a creator you priced yourself. Send the good ones for review as usual.',
-          '"Yours now" means the agent stepped back: the price is above the ceiling, or the creator is big enough that a person should talk to them. Open Conversations, reply, then "Hand back to the agent".',
+          'ScoutAI, on the marketing number, explains the brief, asks the screening questions and their rate, and can counter within the rules set for that campaign. You do not chase them for it.',
+          'Whoever answers lands on the roster with a quote, shown as "ScoutAI (WhatsApp)". Send the good ones for review as usual.',
+          '"Yours now" means ScoutAI stepped back: the price is above the ceiling, or the creator is big enough that a person should talk to them. Open Conversations, reply, then "Hand back to the agent".',
           'You can only reply within 24 hours of the creator’s last message. That is WhatsApp’s rule, not ours.',
         ],
+      },
+      {
+        title: 'Send the enrolment link',
+        when: 'A founder has created an enrolment for a booked creator. You are told on the bell and by email.',
+        restricted: true,
+        steps: [
+          'The bell and the email both say "Send @creator their enrolment link", with the link inside.',
+          'Send it to the creator on WhatsApp the same day. A link is personal: never post it anywhere public.',
+          'The creator verifies their email, gives their details and address, signs, uploads their passport and gives their bank details.',
+          'Chase anybody who has not finished. Campaigns, then Enrolments, shows who is where.',
+          'If a passport is sent back, tell the creator. Their passport step is open again and they will not know otherwise.',
+        ],
+        handover: 'Once signed, payments move to Payables and Payout runs. Only founders release money.',
       },
       {
         title: 'Give creators their links',
@@ -327,7 +361,8 @@ export const PLAYBOOKS: Playbook[] = [
           'Remove what fails and say which one failed and why, in one line each. "Based in Florida, not UAE" teaches. "Not suitable" does not.',
           'Where a rate is too high, say the number you will pay. "Offer max 1,000" ends it in one message.',
           'If the list is thin, say how many more and by when. A review without a deadline is read as optional.',
-          'Do it on the roster, not by email: select the rows and "Send back" with your note, or "Price and clear" the ones that pass. Each sell price is for what that creator’s quote covers, and the margin shows as you type.',
+          'Do it on the roster, not by email: rows "Waiting for a founder to price" carry a Price button. Select the rows and "Send back" with your note, or price the ones that pass. Each sell price is for what that creator’s quote covers, and the margin shows as you type.',
+          'A priced creator goes back onto their roster as Ready, and the confirmation says so with an Open roster button.',
           'Put a budget per creator on every brief before sourcing starts. It is what stops a list being built at the wrong price.',
         ],
         handover: 'Cleared creators go onto a proposal from the roster, with anyone who cannot go on named and the reason shown before you press add.',
@@ -341,6 +376,31 @@ export const PLAYBOOKS: Playbook[] = [
           'When the client has chosen, press "Tell creators how it went", so nobody is left waiting.',
           'Invites and outcomes start a WhatsApp conversation, so they only go out once Meta has approved the message.',
         ],
+      },
+      {
+        title: 'Point ScoutOutreach at a brief',
+        when: 'A roster is open and the client needs more creators than talent can reach by hand.',
+        restricted: true,
+        steps: [
+          'ScoutOutreach works per roster. Open the campaign on ScoutOutreach and set "Who fits": location, follower range and language. The brief does the rest.',
+          'It checks every 10 minutes and plans its own searches when a campaign’s DM queue is under 60: at most once every 3 hours per campaign, 6 a day across all campaigns, and 12 per campaign in total, then it stops and says so. It does not search while every DM account is resting.',
+          'Say yes or no on what it finds. The screening follows the team’s decisions on that campaign.',
+          'Creators it reaches land on the roster with a rate. Price them like any other.',
+          'If the bot is stopped because Instagram logged it out or asked for a check, somebody signs in on the bot PC and presses Resume.',
+        ],
+      },
+      {
+        title: 'Set up an enrolment',
+        when: 'A client has confirmed creators on a proposal. Only the superadmin can do this.',
+        restricted: true,
+        steps: [
+          'Settle each confirmed creator’s real cost on the proposal. That is the only thing a link waits for.',
+          'Create the link: "Send link" on the proposal’s panel, or from Campaigns, then Enrolments.',
+          'Talent is told on the bell and by email, with the link, and sends it to the creator on WhatsApp.',
+          'A payee confirms itself when the bank account is in the creator’s own signed name, a passport is uploaded and it is not a company account. Otherwise you confirm it, with the reason shown.',
+          'A passport the system could not match comes to you: "Looks right", or "Send back" to reopen the creator’s passport step.',
+        ],
+        handover: 'Signed creators flow into Payables and Payout runs, where you release the money.',
       },
       {
         title: 'Run Following Track on a campaign',

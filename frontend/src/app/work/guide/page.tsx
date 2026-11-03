@@ -28,6 +28,7 @@ import Link from 'next/link'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { useAdminAccess } from '@/hooks/useAdminAccess'
 import { PLAYBOOKS, playbookFor, type Playbook } from '@/components/console/rolePlaybooks'
+import { EnrolmentGuide, ScoutGuide, seesTalentChapters } from '@/components/console/GuideTalentSections'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { PageHead, CARD } from '@/components/console/primitives'
 import { shortName } from '@/lib/destinations'
@@ -41,7 +42,7 @@ import {
   Mail,
   Search, ArrowUpRight, Users2, Coins, Database, Map, Megaphone, ClipboardCheck, Hand,
   FileSignature, Banknote, BarChart3, Building2, FileText, Send, Inbox, ListChecks,
-  ShieldCheck, Store, Activity, Bell, Wrench, MailCheck, MessageCircle, Users,
+  ShieldCheck, Store, Activity, Bell, Wrench, MailCheck, MessageCircle, Users, Radar,
 } from 'lucide-react'
 
 type Entry = {
@@ -57,6 +58,9 @@ type Entry = {
   /** A screen only the superadmin can open. Described to nobody else: a manual entry for a
       screen that answers 403 is worse than no entry, because it reads as a missing grant. */
   superadminOnly?: boolean
+  /** Talent and leadership only: ScoutOutreach and the like. Never described to account
+      management or business development, for the same reason as `superadminOnly`. */
+  restricted?: boolean
 }
 
 type Section = {
@@ -81,7 +85,7 @@ const SECTIONS: Section[] = [
       {
         title: 'Today', href: '/work/today', icon: ListChecks,
         what: 'Your home screen, and it is different for each role.',
-        why: 'It shows the work your job is actually made of rather than a company-wide feed. If it is empty, you genuinely have nothing waiting.',
+        why: 'It shows the work your job is actually made of rather than a company-wide feed. "Needs you" sits at the top: everything across every live brief that is waiting on you, one row each. If it is empty, you genuinely have nothing waiting.',
         also: ['home', 'dashboard'],
       },
       {
@@ -143,8 +147,14 @@ const SECTIONS: Section[] = [
       {
         title: 'Brand rosters', href: '/work/areas', icon: Database,
         what: 'What a client asked us to source, who we found, who they turned down, and which round we are on.',
-        why: 'This is the whole supply job in one place. It replaced sourcing rounds, which no longer exist.',
-        also: ['areas', 'sourcing', 'rounds', 'lists'],
+        why: 'This is the whole supply job in one place. It replaced sourcing rounds, which no longer exist. Every row says its next step and carries one button for it, such as Add rate, Send for review, Add to proposal or Book, plus Skip (not for this campaign) and a "…" menu for everything else. The source tabs split the roster by where each creator came from: your sheet, the database, ScoutOutreach or ScoutAI (WhatsApp).',
+        also: ['areas', 'sourcing', 'rounds', 'lists', 'next step', 'skip', 'add rate', 'send for review', 'source'],
+      },
+      {
+        title: 'ScoutOutreach', href: '/work/scout', icon: Radar, restricted: true,
+        what: 'Your outreach teammate. It finds creators who fit each brief, DMs them on Instagram or alerts them on WhatsApp, and ScoutAI collects their rate onto the roster.',
+        why: 'The live bar shows ScoutAI, the DMs sent today and the job it is on now. It runs itself and rests itself when Instagram slows it down. The one time it needs a person is when Instagram logs the account out or asks for a check: sign in on the bot PC, then press Resume here. The full chapter is near the top of this guide.',
+        also: ['scout', 'scoutai', 'outreach', 'dm', 'instagram', 'bot', 'resume', 'open call', 'whatsapp', 'ai'],
       },
       {
         title: "Where we're thin", href: '/work/coverage', icon: Map,
@@ -176,9 +186,9 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'Enrolments', href: '/work/enrolments', icon: FileSignature,
-        what: 'The paperwork after a client confirms a creator: the link they sign, the details they give us, and where their product goes.',
-        why: 'A creator only appears here once leadership has settled their cost. That is the only thing a link waits for, not the campaign: the moment a cost is saved on the confirmed proposal you can send the agreement, which is usually weeks before the campaign opens. Raising the link, sending it and chasing it is yours. New link is for a creator with no proposal at all, a direct or agency booking: leadership only, because the fee is typed rather than fetched, and it can be tagged to a campaign later so the payments join it.',
-        also: ['agreement', 'sign', 'bank details', 'contract', 'inflink'],
+        what: 'The paperwork that lets us pay a booked creator: agreement, details, address, passport and bank. A tab under Campaigns.',
+        why: 'Only the superadmin sets one up: after a client confirms, a founder settles each creator’s real cost on the proposal and creates the link, from the proposal’s "Send link" or from here. That cost is the only thing a link waits for, not the campaign. Talent is then told on the bell and by email, with the link, and sends it to the creator on WhatsApp the same day; chasing it is talent’s too. Each record shows everything and links to its brand, campaign and proposal, and has "Looks right" and "Send back" for the passport. New link is for a creator with no proposal at all, a direct booking: the fee is typed rather than fetched, and it can be tagged to a campaign later so the payments join it.',
+        also: ['agreement', 'sign', 'bank details', 'contract', 'inflink', 'passport', 'iban', 'enrolment link', 'send link', 'payee'],
       },
       {
         title: 'My target', href: '/work/goals', icon: BarChart3,
@@ -195,7 +205,7 @@ const SECTIONS: Section[] = [
       {
         title: 'Sales', href: '/work/sales', icon: Megaphone,
         what: 'Your board. Every brand we are talking to, grouped by what stage the conversation is at.',
-        why: 'This replaces the spreadsheet. It is one row per DEAL, grouped under the brand, because a client who has run eighteen campaigns cannot be described by a single stage: they are live on one and negotiating the next. The button that matters is Ask talent. Press it the moment a deal looks real rather than when it closes, because sourcing takes days and the client expects names the moment they say yes. It raises a request and opens a roster with your brief on it.',
+        why: 'This replaces the spreadsheet. It is one row per DEAL, grouped under the brand, because a client who has run eighteen campaigns cannot be described by a single stage: they are live on one and negotiating the next. The button that matters is Ask talent. Press it the moment a deal looks real rather than when it closes, because sourcing takes days and the client expects names the moment they say yes. It raises a request and opens a roster with your brief on it. Opening a deal opens the brand record, where everything about that brand lives.',
         also: ['crm', 'deals', 'outreach', 'pipeline', 'prospects', 'spreadsheet'],
       },
       {
@@ -439,7 +449,8 @@ function namedTitle(e: Entry): string {
  * PDFs that went stale the day they were exported, so it is now written once, next to the
  * product, and the PDF is generated from the same words.
  */
-function PlaybookBody({ p }: { p: Playbook }) {
+function PlaybookBody({ p, showRestricted }: { p: Playbook; showRestricted: boolean }) {
+  const jobs = p.jobs.filter((j) => showRestricted || !j.restricted)
   return (
     <div className="space-y-7">
       <p className="reading-width text-[15px] leading-relaxed">{p.oneLine}</p>
@@ -471,7 +482,7 @@ function PlaybookBody({ p }: { p: Playbook }) {
 
       <div className="space-y-4">
         <h3 className="text-[15px] font-medium">Your jobs, step by step</h3>
-        {p.jobs.map((job) => (
+        {jobs.map((job) => (
           <div key={job.title} className={`${CARD} space-y-3 bg-card p-5`}>
             <div className="space-y-1">
               <h4 className="text-[15px] font-semibold tracking-[-0.01em]">{job.title}</h4>
@@ -518,7 +529,9 @@ function PlaybookBody({ p }: { p: Playbook }) {
 
 export default function GuidePage() {
   const [q, setQ] = useState('')
-  const { staffRole, isSuperAdmin, loading } = useAdminAccess()
+  const { staffRole, isSuperAdmin, isFullAccessStaff, loading } = useAdminAccess()
+  /* ScoutOutreach, ScoutAI and enrolments: superadmin, the co-founder and talent only. */
+  const talentChapters = !loading && seesTalentChapters({ isSuperAdmin, isFullAccessStaff, staffRole })
 
   /* The viewer's own playbook, and everybody else's underneath it. A role nobody recognises
      gets the list rather than nothing, because covering for somebody is the common case. */
@@ -532,7 +545,8 @@ export default function GuidePage() {
     /* Visibility first, search second. Filtering only on search would leave a superadmin
        screen described to everybody until somebody typed, which is the whole failure. */
     const visible = SECTIONS
-      .map((s) => ({ ...s, entries: s.entries.filter((e) => !e.superadminOnly || isSuperAdmin) }))
+      .map((s) => ({ ...s, entries: s.entries.filter((e) =>
+        (!e.superadminOnly || isSuperAdmin) && (!e.restricted || talentChapters)) }))
       .filter((s) => s.entries.length > 0)
     if (!needle) return visible
     return visible
@@ -546,7 +560,7 @@ export default function GuidePage() {
         ),
       }))
       .filter((s) => s.entries.length > 0)
-  }, [q, isSuperAdmin])
+  }, [q, isSuperAdmin, talentChapters])
 
   return (
     <SuperadminLayout>
@@ -615,7 +629,7 @@ export default function GuidePage() {
               </div>
             </div>
 
-            <PlaybookBody p={mine} />
+            <PlaybookBody p={mine} showRestricted={talentChapters} />
 
             {others.length > 0 && (
               <div className="space-y-2 pt-2">
@@ -630,7 +644,7 @@ export default function GuidePage() {
                         {p.label}
                       </AccordionTrigger>
                       <AccordionContent className="pt-1">
-                        <PlaybookBody p={p} />
+                        <PlaybookBody p={p} showRestricted={talentChapters} />
                       </AccordionContent>
                     </AccordionItem>
                   ))}
@@ -638,6 +652,17 @@ export default function GuidePage() {
               </div>
             )}
           </section>
+        )}
+
+        {/* ── ScoutOutreach, ScoutAI and enrolments ─────────────────────────────────────
+            Their own chapters, drawn as flows, for the three seats that work them. Account
+            management and business development never see them (nor the matching jobs in the
+            accordion above), because neither tool is theirs. */}
+        {!q && talentChapters && (
+          <>
+            <div className="border-t pt-8"><ScoutGuide /></div>
+            <div className="border-t pt-8"><EnrolmentGuide /></div>
+          </>
         )}
 
         {/* ── How to read a screen ────────────────────────────────────────────────────────

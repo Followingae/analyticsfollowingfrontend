@@ -24,9 +24,9 @@ import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { CSS, icon } from '../docs/manuals/design.mjs';
+import { CSS, icon, INK, LIME, MUTED, LINE, PAPER, WASH } from '../docs/manuals/design.mjs';
 import { ADMIN, MENU, ROLES, TABS } from '../docs/manuals/roles.mjs';
-import { FLOW, GLOSSARY, MASTERY } from '../docs/manuals/mastery.mjs';
+import { ENROL, FLOW, GLOSSARY, MASTERY, SCOUT } from '../docs/manuals/mastery.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FE = resolve(HERE, '..');
@@ -59,7 +59,11 @@ const destSrc = readFileSync(join(FE, 'src', 'lib', 'destinations.ts'), 'utf8');
 const DEST = {};
 for (const m of destSrc.matchAll(/'(\/[^']+)':\s*\{([\s\S]*?)\n\s*\},/g)) {
   const [, path, body] = m;
-  const field = (k) => (body.match(new RegExp(`${k}:\\s*'([^']*)'`)) || [])[1] ?? null;
+  // Escaped quotes allowed: "Every campaign\'s short links" used to print as "Every campaign\".
+  const field = (k) => {
+    const v = (body.match(new RegExp(`${k}:\\s*'((?:[^'\\\\]|\\\\.)*)'`)) || [])[1];
+    return v == null ? null : v.replace(/\\(.)/g, '$1');
+  };
   DEST[path] = { short: field('short'), full: field('full'), hint: field('hint') };
 }
 if (Object.keys(DEST).length < 40) {
@@ -246,8 +250,8 @@ const goodAndBad = (vs) => `
     </div>
   </div>`;
 
-const glossary = () => `
-  <div class="gloss">${GLOSSARY.map(([w, d]) => `
+const glossary = (slug) => `
+  <div class="gloss">${GLOSSARY.filter(([, , only]) => !only || only.includes(slug)).map(([w, d]) => `
     <div class="t"><div class="w">${esc(w)}</div><div class="d">${esc(d)}</div></div>`)
     .join('')}
   </div>`;
@@ -316,8 +320,214 @@ const jobCard = (job, n, role) => `
     ${job.next ? `<div class="next">${icon('check', 13)}<span><b>Next:</b> ${md(job.next)}</span></div>` : ''}
   </div>`;
 
+/* ══ Two chapters for three seats: ScoutOutreach with ScoutAI, and enrolments ═════════════
+   Data in docs/manuals/mastery.mjs (SCOUT, ENROL). Printed only where `for` names the seat. */
+
+/**
+ * A swimlane, drawn as SVG in millimetres so it lands on the page at exactly the size it was
+ * drawn. Each step sits in the lane of whoever does it; a lane marked `machine` is lime, so
+ * the work that happens without a person is visible at a glance. Connectors run straight
+ * down when the next step sits under the last one, and elbow across lanes when it does not.
+ *
+ * Text in SVG does not wrap, so every caption is written as its own short lines in the data.
+ */
+function swimlane(ch) {
+  const W = 162, H0 = 10, TOP = 3.2, RH = 12.7, BH = 10.9, PX = 1.5;
+  const L = ch.lanes.length, LW = W / L;
+  const rows = Math.max(...ch.steps.map((s) => s.row)) + 1;
+  const H = H0 + TOP + rows * RH;
+  const box = {};
+  let n = 0;
+  for (const s of ch.steps) {
+    const span = s.span || 1;
+    const lanesOf = ch.lanes.slice(s.lane, s.lane + span);
+    box[s.id] = {
+      x: s.lane * LW + PX, y: H0 + TOP + s.row * RH, w: span * LW - 2 * PX, h: BH, s,
+      n: s.extra ? null : ++n,
+      machine: lanesOf.every((l) => l.machine),
+      mixed: span > 1 && lanesOf.some((l) => l.machine) && !lanesOf.every((l) => l.machine),
+    };
+  }
+  const lanes = ch.lanes.map((l, i) => `
+    <rect x="${i * LW}" y="0" width="${LW}" height="${H}" fill="${i % 2 ? PAPER : '#fafafa'}"/>
+    ${l.machine ? `<rect x="${i * LW + 2.4}" y="3.9" width="3.6" height="2.2" fill="${LIME}"/>` : ''}
+    <text x="${i * LW + (l.machine ? 7.4 : 2.4)}" y="6.1" font-size="2.35" font-weight="700"
+      letter-spacing=".45" fill="${INK}">${esc(l.name.toUpperCase())}</text>
+    ${i ? `<line x1="${i * LW}" y1="0" x2="${i * LW}" y2="${H}" stroke="${LINE}" stroke-width=".25"/>` : ''}`).join('');
+  const links = ch.links.map(([a, b]) => {
+    const A = box[a], B = box[b];
+    const sx = A.x + A.w / 2, sy = A.y + A.h, tx = B.x + B.w / 2, ty = B.y - 0.6;
+    const dashed = A.s.extra ? ' stroke-dasharray="1.2 1"' : '';
+    let d;
+    if (sx > B.x + 2 && sx < B.x + B.w - 2) d = `M${sx} ${sy} V${ty}`;
+    else if (tx > A.x + 2 && tx < A.x + A.w - 2) d = `M${tx} ${sy} V${ty}`;
+    else { const my = sy + (B.y - sy) / 2; d = `M${sx} ${sy} V${my} H${tx} V${ty}`; }
+    return `<path d="${d}" fill="none" stroke="${INK}" stroke-width=".3"${dashed}
+      marker-end="url(#ah)"/>`;
+  }).join('');
+  const boxes = Object.values(box).map((b) => {
+    const ink = b.machine ? 'rgba(17,17,17,.72)' : MUTED;
+    const fill = b.machine ? LIME : PAPER;
+    const stroke = b.machine ? 'none' : INK;
+    const num = b.n ? String(b.n).padStart(2, '0') : '+';
+    return `
+    <g>
+      <rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="${fill}"
+        stroke="${stroke}" stroke-width=".3"${b.s.extra ? ' stroke-dasharray="1.2 1"' : ''}/>
+      ${b.mixed ? `<rect x="${b.x}" y="${b.y}" width="1.8" height="${b.h}" fill="${LIME}"/>` : ''}
+      <text x="${b.x + 2.6}" y="${b.y + 4.1}" font-size="2.25" font-weight="800" fill="${ink}">${num}</text>
+      <text x="${b.x + 7}" y="${b.y + 4.2}" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="${INK}">${esc(b.s.t)}</text>
+      ${b.s.c.map((line, i) => `<text x="${b.x + 2.6}" y="${b.y + 7.3 + i * 2.65}" font-size="2.45"
+        fill="${ink}">${esc(line)}</text>`).join('')}
+    </g>`;
+  }).join('');
+  return `
+  <svg class="lanes" viewBox="0 0 ${W} ${H}" width="${W}mm" height="${H}mm"
+    xmlns="http://www.w3.org/2000/svg" font-family="Manrope, Arial, sans-serif">
+    <defs><marker id="ah" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="2.2" markerHeight="2.2"
+      markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0 6 3 0 6Z" fill="${INK}"/></marker></defs>
+    ${lanes}
+    <line x1="0" y1="${H0}" x2="${W}" y2="${H0}" stroke="${INK}" stroke-width=".35"/>
+    ${links}
+    ${boxes}
+  </svg>`;
+}
+
+const laneKey = (machineLabel, extra) => `
+  <div class="lkey">
+    <span><i class="sw lime"></i>${esc(machineLabel)}</span>
+    <span><i class="sw out"></i>A person does this</span>
+    ${extra ? `<span><i class="sw dash"></i>${esc(extra)}</span>` : ''}
+  </div>`;
+
+const bullets = (items) => `<ul class="bl">${items.map((i) => `<li>${md(i)}</li>`).join('')}</ul>`;
+
+const yours = (items, title = 'Your part', strip = '') => `
+  <div class="yours">
+    <div class="hh">${icon('check', 15)} ${esc(title)}</div>
+    ${strip}
+    <ol class="steps">${items.map((s) => `<li>${md(s)}</li>`).join('')}</ol>
+  </div>`;
+
+/** The ScoutOutreach chapter: three pages. The flow, how each one works, and the roster. */
+function scoutChapter(role, op) {
+  const S = SCOUT;
+  return `
+  <section>
+    ${op}
+    <h2>${serifLast(S.title)}</h2>
+    <p class="sub tight">${esc(S.sub)}</p>
+    ${swimlane(S)}
+    ${laneKey('Runs itself', 'Your own outreach, beside it')}
+    <div class="hh">${icon('moon', 15)} When Instagram slows it down, it rests by itself</div>
+    <div class="rest">${S.rests.map((r) => `<span class="r">${esc(r)}</span>`).join(`<span class="sep">${icon('chevron', 11)}</span>`)}
+      <span class="sep">${icon('chevron', 11)}</span><span class="r go">Carries on</span></div>
+    <div class="callout"><b>The one time it needs a person.</b> If Instagram logs the account
+      out or asks for a check, the bot stops and says so on ScoutOutreach. Somebody signs in to
+      Instagram on that office PC, then presses <b>Resume</b>.</div>
+  </section>
+
+  <section>
+    <div class="cont">${esc(S.title)}, continued</div>
+    <h2 class="h2s">How <em>each one</em> works</h2>
+    <div class="two">
+      <div class="panel">
+        <div class="hh">${icon('radar', 15)} ScoutOutreach finds them</div>
+        ${bullets(S.outreach)}
+      </div>
+      <div class="panel">
+        <div class="hh">${icon('message', 15)} ScoutAI talks on WhatsApp</div>
+        ${bullets(S.ai)}
+      </div>
+    </div>
+    <div class="hh gap">${icon('clock', 15)} Its pace, so the account stays safe</div>
+    <div class="stats">${S.pace.map(([b, t]) => `
+      <div class="stat"><div class="b">${esc(b)}</div><div class="s">${esc(t)}</div></div>`).join('')}
+    </div>
+  </section>
+
+  <section>
+    <div class="cont">${esc(S.title)}, continued</div>
+    <h2 class="h2s">What <em>the roster</em> tells you</h2>
+    <p class="sub tight">Every row says its next step and carries one button for it, plus
+      <strong>Skip</strong> and a <strong>&hellip;</strong> menu. Skip means not for this
+      campaign; the creator stays in the database.</p>
+    <table class="says">
+      <thead><tr><th>The row says</th><th>Button</th><th>Who moves it</th></tr></thead>
+      <tbody>${S.roster.map(([says, btn, who]) => `
+        <tr><td class="w">${esc(says)}</td>
+          <td>${btn === 'Nothing' ? '<span class="none">Nothing to press</span>' : `<span class="btn">${esc(btn)}</span>`}</td>
+          <td class="m">${esc(who)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="srcs"><span class="lbl">Source tabs</span>${S.sources.map(([n, w]) => `
+      <span class="src"><b>${esc(n)}</b> ${esc(w)}</span>`).join('')}</div>
+    ${yours(S.yours[role.slug], 'Your part', pathStrip(['ScoutOutreach'], `${role.title} / Scout`))}
+  </section>`;
+}
+
+/** The enrolment chapter: the flow, then what the creator does and who checks what. */
+function enrolChapter(role, op) {
+  const E = ENROL;
+  return `
+  <section>
+    ${op}
+    <h2>${serifLast(E.title)}</h2>
+    <p class="sub tight">${esc(E.sub)}</p>
+    ${swimlane(E)}
+    ${laneKey('The platform does this')}
+    <div class="where">${E.where.map(([w, t]) => `
+      <div class="wr"><div class="w">${esc(w)}</div><div class="t">${md(t)}</div></div>`).join('')}
+    </div>
+    <p class="note warn">${icon('ban', 13)} A link is personal. Never post one in a group,
+      a story or anywhere public.</p>
+  </section>
+
+  <section>
+    <div class="cont">${esc(E.title)}, continued</div>
+    <h2 class="h2s">What <em>the creator</em> does</h2>
+    <div class="cre">${E.creator.map(([k, t], i) => `
+      <div class="cs"><div class="k"><span class="n">${i + 1}</span>${esc(k)}</div>
+        <div class="t">${md(t)}</div></div>`).join('')}
+    </div>
+    <div class="two gap">
+      <div class="panel">
+        <div class="hh">${icon('banknote', 15)} The payee confirms itself when</div>
+        ${bullets(E.payee)}
+      </div>
+      <div class="panel">
+        <div class="hh">${icon('shield', 15)} Passports</div>
+        ${bullets(E.passport)}
+      </div>
+    </div>
+    ${yours(E.yours[role.slug], 'Your part', pathStrip(['Campaigns', 'Enrolments'], `${role.title} / Enrolments`))}
+  </section>`;
+}
+
 function page(role) {
   const m = MASTERY[role.slug];
+  const scoutOn = SCOUT.for.includes(role.slug);
+  const enrolOn = ENROL.for.includes(role.slug);
+  /* The contents and the section numbers come from one list, so adding a chapter for some
+     seats renumbers everything after it instead of leaving two sections called 06. */
+  const toc = [
+    ['day', 'How a day goes', 'Your day'],
+    m && ['flow', 'Where your work sits', 'The whole flow'],
+    m && ['screen', 'The screen you will live in', 'Your screen'],
+    ['menu', 'Where things live', 'The menu'],
+    ['jobs', 'What you actually do', 'Your jobs'],
+    scoutOn && ['scout', 'ScoutOutreach and ScoutAI', 'ScoutOutreach'],
+    enrolOn && ['enrol', 'Enrolments', 'Enrolments'],
+    m && ['story', 'A real one, start to finish', 'A real one'],
+    m && ['vs', 'Right and wrong', 'Right and wrong'],
+    ['words', 'Words we use', 'Vocabulary'],
+    ['rules', 'Rules that cost money', 'The hard rules'],
+  ].filter(Boolean);
+  const op = (key) => {
+    const i = toc.findIndex(([k]) => k === key);
+    return opener(`${String(i + 1).padStart(2, '0')} \u00b7 ${toc[i][2]}`);
+  };
   const today = new Date().toLocaleDateString('en-GB',
     { day: 'numeric', month: 'long', year: 'numeric' });
   return `<!doctype html>
@@ -333,17 +543,7 @@ function page(role) {
     <div class="brand"><span class="dot"></span>Following</div>
     <div class="contents">
       <div class="lbl">Inside</div>
-      <ol>
-        <li>How a day goes</li>
-        <li>Where your work sits</li>
-        <li>The screen you will live in</li>
-        <li>Where things live</li>
-        <li>What you actually do</li>
-        <li>A real one, start to finish</li>
-        <li>Right and wrong</li>
-        <li>Words we use</li>
-        <li>Rules that cost money</li>
-      </ol>
+      <ol>${toc.map(([, t]) => `<li>${esc(t)}</li>`).join('')}</ol>
     </div>
     <div class="mid">
       <div class="kicker">${esc(role.kicker)}</div>
@@ -361,21 +561,21 @@ function page(role) {
   </div>
 
   <section class="fill">
-    ${opener('01 \u00b7 Your day')}
+    ${op('day')}
     <h2>${serifLast('How a day goes')}</h2>
     <p class="sub">Three moments. Everything else finds you.</p>
     ${dayTimeline(role.day)}
   </section>
 
   ${m ? `<section class="fill">
-    ${opener('02 \u00b7 The whole flow')}
+    ${op('flow')}
     <h2>${serifLast('Where your work sits')}</h2>
     <p class="sub">${esc(m.flowNote)}</p>
     ${flowRibbon(m.flow)}
   </section>` : ''}
 
   ${m ? `<section class="page-break">
-    ${opener('03 \u00b7 Your screen')}
+    ${op('screen')}
     <h2>${serifLast('The screen you will live in')}</h2>
     <p class="sub">Drawn, not photographed, so it stays true when a button moves.
       The numbers are explained underneath.</p>
@@ -383,28 +583,31 @@ function page(role) {
   </section>` : ''}
 
   <section class="fill">
-    ${opener('04 \u00b7 The menu')}
+    ${op('menu')}
     <h2>${serifLast('Where things live')}</h2>
     <p class="sub">The menu down the left of the screen. This is all of it.</p>
     ${menuMap(role.slug)}
   </section>
 
   <section class="page-break">
-    ${opener('05 \u00b7 Your jobs')}
+    ${op('jobs')}
     <h2>${serifLast('What you actually do')}</h2>
     <p class="sub">In order. The strip on each card is what to click, as you click it.</p>
     ${role.jobs.map((j, i) => jobCard(j, i + 1, role.title)).join('')}
   </section>
 
+  ${scoutOn ? scoutChapter(role, op('scout')) : ''}
+  ${enrolOn ? enrolChapter(role, op('enrol')) : ''}
+
   ${m ? `<section class="page-break">
-    ${opener('06 \u00b7 A real one')}
+    ${op('story')}
     <h2>${serifLast(m.story.title)}</h2>
     <p class="sub">One job, followed the whole way, with the real numbers.</p>
     ${workedExample(m.story)}
   </section>` : ''}
 
   ${m ? `<section class="fill">
-    ${opener('07 \u00b7 Right and wrong')}
+    ${op('vs')}
     <h2>${serifLast('What good looks like')}</h2>
     <p class="sub">Everything on the right has actually happened here and cost us
       something.</p>
@@ -412,15 +615,15 @@ function page(role) {
   </section>` : ''}
 
   <section class="page-break">
-    ${opener('08 \u00b7 Vocabulary')}
+    ${op('words')}
     <h2>${serifLast('Words we use')}</h2>
     <p class="sub">They mean something specific. A roster is not a list, and cost is not
       sell.</p>
-    ${glossary()}
+    ${glossary(role.slug)}
   </section>
 
   <section class="fill">
-    ${opener('09 \u00b7 The hard rules')}
+    ${op('rules')}
     <h2>${serifLast('Rules that cost money')}</h2>
     <p class="sub">Each one has already cost us something.</p>
     <div class="rules"><ul>

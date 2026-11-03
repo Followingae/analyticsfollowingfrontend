@@ -56,7 +56,7 @@ em, .ser { font-family: "Playfair Display", Georgia, serif; font-style: italic;
 .cover .contents .lbl { font-size: 8.6pt; letter-spacing: .24em; text-transform: uppercase;
   font-weight: 700; color: #9c9ca4; margin-bottom: 5mm; }
 .cover .contents ol { margin: 0; padding: 0; list-style: none; counter-reset: c;
-  columns: 2; column-gap: 12mm; max-width: 112mm; }
+  columns: 2; column-gap: 12mm; max-width: 134mm; }
 .cover .contents li { counter-increment: c; font-size: 10pt; line-height: 1.9;
   color: #666666; display: flex; gap: 10px; break-inside: avoid; }
 .cover .contents li::before { content: counter(c, decimal-leading-zero);
@@ -357,6 +357,87 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   font-size: 9pt; color: #9c9ca4; display: flex;
   justify-content: space-between; letter-spacing: .04em; }
 
+/* ── The two seat-only chapters ───────────────────────────────────────────────────────
+   A swimlane drawn in SVG at its true size in mm, then panels, a stat strip, a table and a
+   "your part" box. Every box is square and lime is only ever a field or a rule. */
+.lanes { display: block; width: 100%; height: auto; border: 1px solid #111111;
+  break-inside: avoid; margin: 0 0 4mm; }
+.lkey { display: flex; flex-wrap: wrap; gap: 3mm 7mm; font-size: 8.8pt; color: #666666;
+  margin: 0 0 7mm; }
+.lkey span { display: inline-flex; align-items: center; gap: 7px; }
+.lkey .sw { width: 14px; height: 10px; flex: none; display: inline-block; }
+.lkey .sw.lime { background: #d3ff02; }
+.lkey .sw.out { border: 1px solid #111111; background: #ffffff; }
+.lkey .sw.dash { border: 1px dashed #111111; background: #ffffff; }
+.cont { font-size: 8pt; letter-spacing: .22em; text-transform: uppercase; font-weight: 700;
+  color: #9c9ca4; margin: 0 0 5mm; display: flex; align-items: center; gap: 10px; }
+.cont::before { content: ''; width: 18px; height: 8px; background: #d3ff02; flex: none; }
+h2.h2s { font-size: 24pt; margin-bottom: 6mm; max-width: none; }
+.sub.tight { margin-bottom: 6mm; }
+.hh { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 11.5pt;
+  letter-spacing: -.025em; margin: 0 0 3.5mm; break-after: avoid; }
+.hh.gap { margin-top: 8mm; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+.two.gap { margin-top: 7mm; }
+.panel { border: 1px solid rgba(0,0,0,0.10); border-top: 4px solid #d3ff02; padding: 5mm 5.5mm;
+  break-inside: avoid; }
+ul.bl { margin: 0; padding: 0; list-style: none; }
+ul.bl li { position: relative; padding-left: 14px; font-size: 9pt; line-height: 1.5;
+  margin-bottom: 2mm; }
+ul.bl li:last-child { margin-bottom: 0; }
+ul.bl li::before { content: ''; position: absolute; left: 0; top: .55em; width: 6px;
+  height: 6px; background: #d3ff02; box-shadow: 0 0 0 .6px #111111; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #111111;
+  break-inside: avoid; }
+.stat { padding: 4mm 4mm; border-right: 1px solid rgba(0,0,0,0.10); border-bottom: 1px solid rgba(0,0,0,0.10); }
+.stat:nth-child(4n) { border-right: 0; }
+.stat:nth-last-child(-n+4) { border-bottom: 0; }
+.stat .b { font-size: 15pt; font-weight: 700; letter-spacing: -.04em; line-height: 1.05;
+  white-space: nowrap; }
+.stat .s { font-size: 8.4pt; color: #666666; line-height: 1.45; margin-top: 1.5mm; }
+table.says { width: 100%; border-collapse: collapse; font-size: 9.2pt; break-inside: avoid;
+  border: 1px solid #111111; }
+table.says th { text-align: left; font-size: 7.2pt; letter-spacing: .16em;
+  text-transform: uppercase; color: #666666; font-weight: 700; padding: 2.4mm 3.5mm;
+  background: #f5f5f5; border-bottom: 1px solid rgba(0,0,0,0.10); }
+table.says td { padding: 1.9mm 3.5mm; border-bottom: 1px solid rgba(0,0,0,0.10); vertical-align: middle; }
+table.says tr:last-child td { border-bottom: 0; }
+table.says .w { font-weight: 700; }
+table.says .m { color: #666666; }
+table.says .btn { display: inline-block; border: 1px solid #111111; padding: .4mm 2.4mm;
+  font-size: 8.2pt; font-weight: 700; white-space: nowrap; }
+table.says .none { color: #9c9ca4; font-size: 8.6pt; }
+.srcs { display: flex; flex-wrap: wrap; align-items: center; gap: 2mm 3mm; margin-top: 4mm;
+  font-size: 8.6pt; }
+.srcs .lbl { font-size: 7.2pt; letter-spacing: .18em; text-transform: uppercase;
+  font-weight: 700; color: #666666; margin-right: 1mm; }
+.srcs .src { border: 1px solid rgba(0,0,0,0.10); padding: .6mm 2.4mm; color: #666666; }
+.srcs .src b { color: #111111; }
+.rest { display: flex; flex-wrap: wrap; align-items: center; gap: 2mm; }
+.rest .r { border: 1px solid #111111; padding: 1.6mm 3.6mm; font-weight: 700; font-size: 9.2pt;
+  letter-spacing: -.01em; }
+.rest .r.go { background: #d3ff02; border-color: #d3ff02; }
+.rest .sep { color: #9c9ca4; display: flex; }
+.callout { border: 1px solid #111111; border-left: 6mm solid #d3ff02; padding: 4mm 6mm;
+  margin-top: 5mm; font-size: 9.8pt; line-height: 1.6; break-inside: avoid; }
+.yours { border: 1px solid rgba(0,0,0,0.10); border-left: 5px solid #d3ff02; padding: 6mm 8mm 3mm;
+  margin-top: 6mm; break-inside: avoid; }
+.yours .path { margin-bottom: 4mm; }
+.cre { border-top: 1px solid #111111; }
+.cre .cs { display: flex; gap: 6mm; padding: 3.2mm 0; border-bottom: 1px solid rgba(0,0,0,0.10);
+  break-inside: avoid; }
+.cre .k { width: 34mm; flex: none; font-weight: 700; font-size: 10.4pt; display: flex;
+  align-items: center; gap: 9px; letter-spacing: -.02em; align-self: flex-start; }
+.cre .k .n { width: 18px; height: 18px; background: #d3ff02; display: flex;
+  align-items: center; justify-content: center; font-size: 8pt; font-weight: 800; flex: none; }
+.cre .t { font-size: 9.6pt; line-height: 1.6; padding-top: .1em; }
+.where { margin-top: 2mm; border: 1px solid #111111; break-inside: avoid; }
+.where .wr { display: flex; gap: 6mm; padding: 3mm 5mm; border-bottom: 1px solid rgba(0,0,0,0.10); }
+.where .wr:last-child { border-bottom: 0; }
+.where .w { width: 50mm; flex: none; font-weight: 700; font-size: 9.4pt; }
+.where .t { font-size: 9.2pt; color: #666666; }
+.note.warn { display: flex; align-items: center; gap: 8px; margin-top: 5mm; color: #111111; }
+
 /* ── Small print ────────────────────────────────────────────────────────────────────── */
 .note { font-size: 9.4pt; color: #666666; max-width: 56ch; }
 /* The closing note qualifies the rules above it, so it rides on their page. It used to be
@@ -370,17 +451,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="brand"><span class="dot"></span>Following</div>
     <div class="contents">
       <div class="lbl">Inside</div>
-      <ol>
-        <li>How a day goes</li>
-        <li>Where your work sits</li>
-        <li>The screen you will live in</li>
-        <li>Where things live</li>
-        <li>What you actually do</li>
-        <li>A real one, start to finish</li>
-        <li>Right and wrong</li>
-        <li>Words we use</li>
-        <li>Rules that cost money</li>
-      </ol>
+      <ol><li>How a day goes</li><li>Where your work sits</li><li>The screen you will live in</li><li>Where things live</li><li>What you actually do</li><li>A real one, start to finish</li><li>Right and wrong</li><li>Words we use</li><li>Rules that cost money</li></ol>
     </div>
     <div class="mid">
       <div class="kicker">Role manual</div>
@@ -391,7 +462,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     </div>
     <div class="foot">
       <div><div class="who">Following FZC</div>Internal, not for clients</div>
-      <div>1 November 2026</div>
+      <div>3 November 2026</div>
     </div>
   </div>
 
@@ -610,13 +681,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
         <span class="nm"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Affiliate links</span>
-        <span class="ds">Every campaign\</span>
-      </div>
-      <div class="row">
-        <span class="nm"><svg class="ic" width="14" height="14"
-    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>Finance</span>
-        <span class="ds">In, out, and committed but unpaid</span>
+        <span class="ds">Every campaign's short links, clicks and sales in one place</span>
       </div>
   </div>
   </section>
@@ -727,6 +792,9 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   </div>
   </section>
 
+  
+  
+
   <section class="page-break">
     <div class="opener"><span class="n">06 · A real one</span>
   <span class="bar"></span></div>
@@ -786,7 +854,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="t"><div class="w">Deal</div><div class="d">One conversation about money. A brand can have many, over years.</div></div>
     <div class="t"><div class="w">Campaign</div><div class="d">A deal that was won and opened. Real creators, real money.</div></div>
     <div class="t"><div class="w">Roster</div><div class="d">The creators sourced for one brand, for its whole life. It replaced the sheet.</div></div>
-    <div class="t"><div class="w">Not this time</div><div class="d">Let go for this brief only. Still in the database; the reason follows them.</div></div>
+    <div class="t"><div class="w">Skip</div><div class="d">Not for this campaign. Still in the database; the reason follows them.</div></div>
     <div class="t"><div class="w">Open call</div><div class="d">A campaign card creators answer on WhatsApp. The agent collects their price.</div></div>
     <div class="t"><div class="w">Following Track</div><div class="d">Short links per creator. Clicks, carts and sales, shown to the brand once released.</div></div>
     <div class="t"><div class="w">List</div><div class="d">A standing question: "fashion, UAE". Answers itself. Never client-specific.</div></div>
@@ -797,7 +865,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="t"><div class="w">Request</div><div class="d">Something somebody is waiting on, with an owner and a date.</div></div>
     <div class="t"><div class="w">Proposal</div><div class="d">A priced roster sent to a client to choose from.</div></div>
     <div class="t"><div class="w">Share link</div><div class="d">A /p/ link a client opens without logging in. Mint it, then send it.</div></div>
-    <div class="t"><div class="w">Enrolment link</div><div class="d">How a creator signs. They enter their own bank details; nobody types a fee.</div></div>
+    <div class="t"><div class="w">Enrolment link</div><div class="d">A founder creates it, talent sends it, the creator signs and gives their own bank.</div></div>
     <div class="t"><div class="w">The ladder</div><div class="d">The rungs a booked creator climbs: briefed, content in, posted, paid.</div></div>
     <div class="t"><div class="w">Held</div><div class="d">Stopped until a founder answers. Nothing has happened yet.</div></div>
   </div>

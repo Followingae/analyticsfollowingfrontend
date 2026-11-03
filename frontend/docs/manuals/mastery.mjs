@@ -78,16 +78,18 @@ export const MASTERY = {
         ['Tue 9am', 'The brand’s roster is already open. It is the sheet now. You never make one.'],
         ['Tue', 'Search the master database with **Add creators**. Thirty fit. Anyone '
               + 'genuinely new, **Paste a list** straight from your notes.'],
-        ['Tue', 'An open call is live on the roster, so you send **Copy a DM with my link** '
-              + 'to twenty more. The agent asks their price while you keep sourcing.'],
+        ['Tue', 'ScoutOutreach is running on the roster too. By lunch it has DMed forty '
+              + 'skincare creators; ScoutAI is asking their rates on WhatsApp while you keep sourcing.'],
         ['Wed', 'Nobody told you to find twenty. You find enough that the client has a real '
               + 'choice, which on skincare is usually sixty before they pick fifteen.'],
-        ['Wed', '**Price** each one: what they asked, what they agreed. One asks 6,000; '
-              + '**Last time** says 3,500, and the row turns amber. You agree 3,800.'],
-        ['Thu', 'Tick the good ones, **Send for review**. The rest get **Not this time** '
-              + 'with a reason. A founder prices and clears them the same day.'],
-        ['After', 'Leadership negotiates the final rate. You raise the enrolment links, and each '
-                + 'creator signs their own agreement and enters their own bank details.'],
+        ['Wed', '**Add rate** on each of yours: what they asked, what they agreed. One asks 6,000; '
+                + '**Last time** says 3,500, and the row turns amber. You agree 3,800.'],
+        ['Wed', 'Eleven rows now read **Rate in, send for review**: ScoutAI brought those '
+              + 'rates in by itself.'],
+        ['Thu', 'Tick the good ones, **Send for review**. The rest get **Skip** '
+              + 'with a reason. A founder presses **Price** the same day; they come back **Ready**.'],
+        ['After', 'The client confirms. A founder settles the real cost and creates each enrolment '
+                + 'link. The bell and an email tell you, and you send each one on WhatsApp that day.'],
       ],
     },
     vs: {
@@ -96,6 +98,7 @@ export const MASTERY = {
         'A price is recorded as two numbers: what they ask, what they agreed.',
         'A creator you cannot place in a country is still worth adding; say so in the note.',
         'When a brief is missing market, category or budget, you ask before you start.',
+        'An enrolment link reaches the creator the same day the bell tells you.',
         'You take a request the moment you start it, so nobody duplicates your work.',
       ],
       bad: [
@@ -322,8 +325,8 @@ export const MASTERY = {
                 + 'before you commit it.'],
         ['Done', 'Thirteen rates agreed, the campaign opens with a real margin instead of '
                + 'acquiring one later.'],
-        ['Then', 'Talent raises the enrolment links. Each creator signs their own agreement '
-               + 'and enters their own bank details. Nobody types a fee.'],
+        ['Then', 'The superadmin creates the enrolment links and talent sends them. Each creator '
+               + 'signs their own agreement and enters their own bank details. Nobody types a fee.'],
       ],
     },
     vs: {
@@ -430,6 +433,178 @@ export const MASTERY = {
   },
 };
 
+/* ════════════════════════════════════════════════════════════════════════════════════
+   TWO CHAPTERS FOR THREE SEATS: ScoutOutreach with ScoutAI, and enrolments.
+
+   Printed in the talent, co-founder and founder manuals only (`for`). Account management
+   and business development never see them, in print or in the product, because neither
+   tool is theirs to work. The in-product guide carries the same chapters in
+   `src/components/console/GuideTalentSections.tsx`; change both.
+
+   `lanes` and `steps` draw a swimlane: each step sits in the lane of whoever does it, so
+   "whose turn is it" is answered by where a box is, before anybody reads it. A lane marked
+   `machine` is drawn on lime: that work happens without a person.
+   ════════════════════════════════════════════════════════════════════════════════════ */
+export const SCOUT_SEATS = ['talent-manager', 'co-founder', 'founder-ceo'];
+
+export const SCOUT = {
+  for: SCOUT_SEATS,
+  title: 'ScoutOutreach and ScoutAI',
+  sub: 'ScoutOutreach finds creators who fit a brief and reaches them. ScoutAI talks to the '
+     + 'ones who answer and puts their rate on the roster. Talent keeps sourcing beside them.',
+  lanes: [
+    { name: 'ScoutOutreach', machine: true },
+    { name: 'ScoutAI', machine: true },
+    { name: 'Talent' },
+    { name: 'A founder' },
+  ],
+  // [lane, row, title, caption lines, span]
+  steps: [
+    { id: 'find', lane: 0, row: 0, t: 'Find', c: ['AI plans searches: words,', 'places, hashtags'] },
+    { id: 'own', extra: true, lane: 2, row: 0, t: 'Your own creators', c: ['By handle, or paste', 'a sheet. Same roster'] },
+    { id: 'screen', lane: 0, row: 1, t: 'Screen', c: ['Range, recent posts,', 'real creator, the brief'] },
+    { id: 'dm', lane: 0, row: 2, t: 'DM or WhatsApp', c: ['Instagram DM with a', 'tracked link, or alert'] },
+    { id: 'chat', lane: 1, row: 3, t: 'ScoutAI chat', c: ['Brief, questions,', 'their rate, a counter'] },
+    { id: 'rate', lane: 1, row: 4, span: 2, t: 'Rate on the roster', c: ['ScoutAI files it, or talent adds it.', 'Then Send for review'] },
+    { id: 'price', lane: 3, row: 5, t: 'Founder prices', c: ['Price on the row.', 'Margin as they type'] },
+    { id: 'ready', lane: 2, row: 6, t: 'Ready', c: ['Back on its roster,', 'ready to sell'] },
+    { id: 'prop', lane: 2, row: 7, t: 'Proposal', c: ['Add to proposal.', 'Client picked: Book'] },
+  ],
+  links: [['find', 'screen'], ['screen', 'dm'], ['dm', 'chat'], ['chat', 'rate'], ['own', 'rate'],
+          ['rate', 'price'], ['price', 'ready'], ['ready', 'prop']],
+  outreach: [
+    'One roster, one brief: location, follower range, language.',
+    'Lives at **ScoutOutreach** in the menu, with a live bar: ScoutAI, DMs today, the job it is on. Each roster shows its own strip too.',
+    'Screens on follower range, a post in the last 60 days, a real creator and not a business, not clearly based elsewhere.',
+    'Then an AI reads each one against the brief, following the team’s own yes and no on that campaign. Every pass has a written reason.',
+    'A hashtag search reads the 40 most recent posts from up to 4 hashtags. Light analytics on each creator costs about $0.008.',
+    'The DM bot sends from the company’s Instagram, in Chrome on an office PC. The tracked link opens WhatsApp straight into that campaign’s ScoutAI chat.',
+    'WhatsApp alerts go to creators in our network, on Meta-approved templates: barter or paid. A paid campaign is never called barter.',
+  ],
+  ai: [
+    'A campaign can run an open call with a code, like **OC-D7F4E**.',
+    'ScoutAI answers on WhatsApp, in English. It explains the brief and asks the screening questions set for the campaign.',
+    'For paid work it asks their rate, and can counter within that campaign’s negotiation rules.',
+    'Creators answer with tap buttons or in their own words.',
+    'It adds them to the roster with their rate. A decline or a poor fit is recorded with the reason.',
+    'Its chats are kept on the Desk and never ring the team’s bell.',
+  ],
+  pace: [
+    ['10 min', 'It checks every campaign, but never searches while every DM account rests'],
+    ['Under 60', 'In a campaign’s DM queue before it searches for more'],
+    ['3 hours', 'At least, between two searches on one campaign'],
+    ['6 a day', 'Searches at most, across all campaigns'],
+    ['12', 'Searches per campaign in total, then it stops and says so'],
+    ['40 a day', 'DMs to start, rising by 15 a day to the cap'],
+    ['60 to 120 s', 'Between one DM and the next. Campaigns take turns'],
+    ['14 days', 'Before anybody is DMed again'],
+  ],
+  rests: ['20 minutes', '1 hour', '3 hours', '10am tomorrow'],
+  roster: [
+    ['Needs a rate', 'Add rate', 'Talent'],
+    ['ScoutOutreach asked for their rate', 'Nothing', 'It lands by itself'],
+    ['ScoutAI is getting their rate', 'Nothing', 'It lands by itself'],
+    ['Rate in, send for review', 'Send for review', 'Talent'],
+    ['Waiting for a founder to price', 'Price', 'A founder'],
+    ['Ready', 'Add to proposal', 'Talent'],
+    ['On the proposal’s name', 'Open', 'The client'],
+    ['Client picked', 'Book', 'Talent'],
+  ],
+  sources: [['ScoutOutreach', 'found by ScoutOutreach'], ['ScoutAI (WhatsApp)', 'arrived in a chat'],
+            ['Your sheet', 'pasted in by the team'], ['Database', 'from the master database']],
+  yours: {
+    'talent-manager': [
+      'Keep adding your own creators, by handle or by pasting a sheet.',
+      'Glance at the live bar on **ScoutOutreach** during the day.',
+      'Work each row from its next step. Rows ScoutOutreach or ScoutAI are working need nothing from you.',
+      'Say yes or no on what it finds. That teaches the screening.',
+      'Bot stopped and needs a person: sign in on the bot PC, then **Resume**.',
+    ],
+    'co-founder': [
+      'Set **Who fits** on each campaign: location, follower range, language.',
+      'Say yes or no on what it finds. The screening learns from it.',
+      'Price what talent sends for review. It goes back to the roster as **Ready**.',
+      'Bot stopped and needs a person: somebody signs in on the bot PC, then **Resume**.',
+    ],
+    'founder-ceo': [
+      'Set **Who fits** on each campaign: location, follower range, language.',
+      'Say yes or no on what it finds. The screening learns from it.',
+      'Price what talent sends for review. It goes back to the roster as **Ready**.',
+      'Bot stopped and needs a person: somebody signs in on the bot PC, then **Resume**.',
+    ],
+  },
+};
+
+export const ENROL = {
+  for: SCOUT_SEATS,
+  title: 'Enrolments, start to finish',
+  sub: 'The paperwork that lets us pay a booked creator: agreement, details, address, passport '
+     + 'and bank. Only the superadmin sets one up. Talent sends it and sees it through.',
+  lanes: [
+    { name: 'Client' },
+    { name: 'A founder' },
+    { name: 'Platform', machine: true },
+    { name: 'Talent' },
+    { name: 'Creator' },
+  ],
+  steps: [
+    { id: 'yes', lane: 0, row: 0, t: 'Confirms', c: ['Picks creators', 'on the proposal'] },
+    { id: 'cost', lane: 1, row: 1, t: 'Settles cost', c: ['What we really', 'pay each one'] },
+    { id: 'link', lane: 1, row: 2, t: 'Creates link', c: ['Send link on the', 'proposal panel'] },
+    { id: 'tell', lane: 2, row: 3, t: 'Tells talent', c: ['On the bell', 'and by email'] },
+    { id: 'send', lane: 3, row: 4, t: 'Sends it', c: ['On WhatsApp,', 'the same day'] },
+    { id: 'fill', lane: 4, row: 5, t: 'Fills it in', c: ['Code, details,', 'sign, passport, bank'] },
+    { id: 'check', lane: 2, row: 6, t: 'Payee check', c: ['Own name, passport,', 'not a company'] },
+    { id: 'pay', lane: 1, row: 7, t: 'Releases pay', c: ['Payables, then', 'Payout runs'] },
+  ],
+  links: [['yes', 'cost'], ['cost', 'link'], ['link', 'tell'], ['tell', 'send'], ['send', 'fill'],
+          ['fill', 'check'], ['check', 'pay']],
+  creator: [
+    ['Email', 'Verifies their email with a code.'],
+    ['Details', 'Name, contact and address. New links ask **Home** or **Office**. A home is a villa or an apartment: number, floor, building or community. An office has the company name.'],
+    ['Agreement', 'Reads and signs it.'],
+    ['Passport', 'Uploads it. The system reads the name and the expiry.'],
+    ['Bank', 'Gives an IBAN, or for an exchange-house payout, the city they collect in.'],
+  ],
+  payee: [
+    'The bank account is in the creator’s own signed name. A shortened surname still counts.',
+    'A passport is uploaded.',
+    'It is not a company account.',
+    'Anything else comes to a person, with the reason shown.',
+  ],
+  passport: [
+    'The system checks the name and the expiry date.',
+    'A mismatch comes to a person, on the enrolment record.',
+    '**Looks right** accepts it. **Send back** reopens the creator’s passport step.',
+    'After a send back, talent tells the creator. They will not know otherwise.',
+  ],
+  where: [
+    ['Campaigns, then Enrolments', 'Every enrolment. Each record links to its brand, campaign and proposal.'],
+    ['The proposal panel', '**Send link** for each creator, and **See its enrolments** for just that proposal.'],
+    ['Finance: Payables, Payout runs', 'Where the money goes next. Only founders release it.'],
+  ],
+  yours: {
+    'talent-manager': [
+      'The bell and an email say **Send @creator their enrolment link**. The link is inside.',
+      'Send it on WhatsApp the same day. Never post a link anywhere public.',
+      'Chase anyone who has not finished. Campaigns, then Enrolments, shows who is where.',
+      'Answer their questions about the form. Money questions go to a founder.',
+    ],
+    'co-founder': [
+      'You do not create links; the superadmin does. You keep them moving.',
+      'Check passports that did not match: **Looks right** or **Send back**.',
+      'Confirm a payee that did not confirm itself, reading the reason first.',
+      'Release payments in Payables and Payout runs.',
+    ],
+    'founder-ceo': [
+      'Settle each confirmed creator’s real cost on the proposal first.',
+      'Create the link: **Send link** on the proposal panel, or from Enrolments.',
+      'Check passports that did not match, and payees that did not confirm themselves.',
+      'Release payments in Payables and Payout runs.',
+    ],
+  },
+};
+
 /* The words that mean something specific here. Printed in every manual, because the
    confusion is the same for everybody and it is always vocabulary. */
 export const GLOSSARY = [
@@ -438,8 +613,10 @@ export const GLOSSARY = [
   ['Deal', 'One conversation about money. A brand can have many, over years.'],
   ['Campaign', 'A deal that was won and opened. Real creators, real money.'],
   ['Roster', 'The creators sourced for one brand, for its whole life. It replaced the sheet.'],
-  ['Not this time', 'Let go for this brief only. Still in the database; the reason follows them.'],
+  ['Skip', 'Not for this campaign. Still in the database; the reason follows them.'],
   ['Open call', 'A campaign card creators answer on WhatsApp. The agent collects their price.'],
+  ['ScoutOutreach', 'Finds creators for a brief, screens them, and DMs them on Instagram.', SCOUT_SEATS],
+  ['ScoutAI', 'Talks to creators on WhatsApp and puts their rate on the roster.', SCOUT_SEATS],
   ['Following Track', 'Short links per creator. Clicks, carts and sales, shown to the brand once released.'],
   ['List', 'A standing question: "fashion, UAE". Answers itself. Never client-specific.'],
   ['Cost', 'What we pay a creator. Founders and talent only. Never shown to a brand.'],
@@ -449,7 +626,7 @@ export const GLOSSARY = [
   ['Request', 'Something somebody is waiting on, with an owner and a date.'],
   ['Proposal', 'A priced roster sent to a client to choose from.'],
   ['Share link', 'A /p/ link a client opens without logging in. Mint it, then send it.'],
-  ['Enrolment link', 'How a creator signs. They enter their own bank details; nobody types a fee.'],
+  ['Enrolment link', 'A founder creates it, talent sends it, the creator signs and gives their own bank.'],
   ['The ladder', 'The rungs a booked creator climbs: briefed, content in, posted, paid.'],
   ['Held', 'Stopped until a founder answers. Nothing has happened yet.'],
 ];

@@ -56,7 +56,7 @@ em, .ser { font-family: "Playfair Display", Georgia, serif; font-style: italic;
 .cover .contents .lbl { font-size: 8.6pt; letter-spacing: .24em; text-transform: uppercase;
   font-weight: 700; color: #9c9ca4; margin-bottom: 5mm; }
 .cover .contents ol { margin: 0; padding: 0; list-style: none; counter-reset: c;
-  columns: 2; column-gap: 12mm; max-width: 112mm; }
+  columns: 2; column-gap: 12mm; max-width: 134mm; }
 .cover .contents li { counter-increment: c; font-size: 10pt; line-height: 1.9;
   color: #666666; display: flex; gap: 10px; break-inside: avoid; }
 .cover .contents li::before { content: counter(c, decimal-leading-zero);
@@ -357,6 +357,87 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   font-size: 9pt; color: #9c9ca4; display: flex;
   justify-content: space-between; letter-spacing: .04em; }
 
+/* ── The two seat-only chapters ───────────────────────────────────────────────────────
+   A swimlane drawn in SVG at its true size in mm, then panels, a stat strip, a table and a
+   "your part" box. Every box is square and lime is only ever a field or a rule. */
+.lanes { display: block; width: 100%; height: auto; border: 1px solid #111111;
+  break-inside: avoid; margin: 0 0 4mm; }
+.lkey { display: flex; flex-wrap: wrap; gap: 3mm 7mm; font-size: 8.8pt; color: #666666;
+  margin: 0 0 7mm; }
+.lkey span { display: inline-flex; align-items: center; gap: 7px; }
+.lkey .sw { width: 14px; height: 10px; flex: none; display: inline-block; }
+.lkey .sw.lime { background: #d3ff02; }
+.lkey .sw.out { border: 1px solid #111111; background: #ffffff; }
+.lkey .sw.dash { border: 1px dashed #111111; background: #ffffff; }
+.cont { font-size: 8pt; letter-spacing: .22em; text-transform: uppercase; font-weight: 700;
+  color: #9c9ca4; margin: 0 0 5mm; display: flex; align-items: center; gap: 10px; }
+.cont::before { content: ''; width: 18px; height: 8px; background: #d3ff02; flex: none; }
+h2.h2s { font-size: 24pt; margin-bottom: 6mm; max-width: none; }
+.sub.tight { margin-bottom: 6mm; }
+.hh { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 11.5pt;
+  letter-spacing: -.025em; margin: 0 0 3.5mm; break-after: avoid; }
+.hh.gap { margin-top: 8mm; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+.two.gap { margin-top: 7mm; }
+.panel { border: 1px solid rgba(0,0,0,0.10); border-top: 4px solid #d3ff02; padding: 5mm 5.5mm;
+  break-inside: avoid; }
+ul.bl { margin: 0; padding: 0; list-style: none; }
+ul.bl li { position: relative; padding-left: 14px; font-size: 9pt; line-height: 1.5;
+  margin-bottom: 2mm; }
+ul.bl li:last-child { margin-bottom: 0; }
+ul.bl li::before { content: ''; position: absolute; left: 0; top: .55em; width: 6px;
+  height: 6px; background: #d3ff02; box-shadow: 0 0 0 .6px #111111; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #111111;
+  break-inside: avoid; }
+.stat { padding: 4mm 4mm; border-right: 1px solid rgba(0,0,0,0.10); border-bottom: 1px solid rgba(0,0,0,0.10); }
+.stat:nth-child(4n) { border-right: 0; }
+.stat:nth-last-child(-n+4) { border-bottom: 0; }
+.stat .b { font-size: 15pt; font-weight: 700; letter-spacing: -.04em; line-height: 1.05;
+  white-space: nowrap; }
+.stat .s { font-size: 8.4pt; color: #666666; line-height: 1.45; margin-top: 1.5mm; }
+table.says { width: 100%; border-collapse: collapse; font-size: 9.2pt; break-inside: avoid;
+  border: 1px solid #111111; }
+table.says th { text-align: left; font-size: 7.2pt; letter-spacing: .16em;
+  text-transform: uppercase; color: #666666; font-weight: 700; padding: 2.4mm 3.5mm;
+  background: #f5f5f5; border-bottom: 1px solid rgba(0,0,0,0.10); }
+table.says td { padding: 1.9mm 3.5mm; border-bottom: 1px solid rgba(0,0,0,0.10); vertical-align: middle; }
+table.says tr:last-child td { border-bottom: 0; }
+table.says .w { font-weight: 700; }
+table.says .m { color: #666666; }
+table.says .btn { display: inline-block; border: 1px solid #111111; padding: .4mm 2.4mm;
+  font-size: 8.2pt; font-weight: 700; white-space: nowrap; }
+table.says .none { color: #9c9ca4; font-size: 8.6pt; }
+.srcs { display: flex; flex-wrap: wrap; align-items: center; gap: 2mm 3mm; margin-top: 4mm;
+  font-size: 8.6pt; }
+.srcs .lbl { font-size: 7.2pt; letter-spacing: .18em; text-transform: uppercase;
+  font-weight: 700; color: #666666; margin-right: 1mm; }
+.srcs .src { border: 1px solid rgba(0,0,0,0.10); padding: .6mm 2.4mm; color: #666666; }
+.srcs .src b { color: #111111; }
+.rest { display: flex; flex-wrap: wrap; align-items: center; gap: 2mm; }
+.rest .r { border: 1px solid #111111; padding: 1.6mm 3.6mm; font-weight: 700; font-size: 9.2pt;
+  letter-spacing: -.01em; }
+.rest .r.go { background: #d3ff02; border-color: #d3ff02; }
+.rest .sep { color: #9c9ca4; display: flex; }
+.callout { border: 1px solid #111111; border-left: 6mm solid #d3ff02; padding: 4mm 6mm;
+  margin-top: 5mm; font-size: 9.8pt; line-height: 1.6; break-inside: avoid; }
+.yours { border: 1px solid rgba(0,0,0,0.10); border-left: 5px solid #d3ff02; padding: 6mm 8mm 3mm;
+  margin-top: 6mm; break-inside: avoid; }
+.yours .path { margin-bottom: 4mm; }
+.cre { border-top: 1px solid #111111; }
+.cre .cs { display: flex; gap: 6mm; padding: 3.2mm 0; border-bottom: 1px solid rgba(0,0,0,0.10);
+  break-inside: avoid; }
+.cre .k { width: 34mm; flex: none; font-weight: 700; font-size: 10.4pt; display: flex;
+  align-items: center; gap: 9px; letter-spacing: -.02em; align-self: flex-start; }
+.cre .k .n { width: 18px; height: 18px; background: #d3ff02; display: flex;
+  align-items: center; justify-content: center; font-size: 8pt; font-weight: 800; flex: none; }
+.cre .t { font-size: 9.6pt; line-height: 1.6; padding-top: .1em; }
+.where { margin-top: 2mm; border: 1px solid #111111; break-inside: avoid; }
+.where .wr { display: flex; gap: 6mm; padding: 3mm 5mm; border-bottom: 1px solid rgba(0,0,0,0.10); }
+.where .wr:last-child { border-bottom: 0; }
+.where .w { width: 50mm; flex: none; font-weight: 700; font-size: 9.4pt; }
+.where .t { font-size: 9.2pt; color: #666666; }
+.note.warn { display: flex; align-items: center; gap: 8px; margin-top: 5mm; color: #111111; }
+
 /* ── Small print ────────────────────────────────────────────────────────────────────── */
 .note { font-size: 9.4pt; color: #666666; max-width: 56ch; }
 /* The closing note qualifies the rules above it, so it rides on their page. It used to be
@@ -370,17 +451,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="brand"><span class="dot"></span>Following</div>
     <div class="contents">
       <div class="lbl">Inside</div>
-      <ol>
-        <li>How a day goes</li>
-        <li>Where your work sits</li>
-        <li>The screen you will live in</li>
-        <li>Where things live</li>
-        <li>What you actually do</li>
-        <li>A real one, start to finish</li>
-        <li>Right and wrong</li>
-        <li>Words we use</li>
-        <li>Rules that cost money</li>
-      </ol>
+      <ol><li>How a day goes</li><li>Where your work sits</li><li>The screen you will live in</li><li>Where things live</li><li>What you actually do</li><li>ScoutOutreach and ScoutAI</li><li>Enrolments</li><li>A real one, start to finish</li><li>Right and wrong</li><li>Words we use</li><li>Rules that cost money</li></ol>
     </div>
     <div class="mid">
       <div class="kicker">Role manual</div>
@@ -391,7 +462,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     </div>
     <div class="foot">
       <div><div class="who">Following FZC</div>Internal, not for clients</div>
-      <div>1 November 2026</div>
+      <div>3 November 2026</div>
     </div>
   </div>
 
@@ -602,6 +673,12 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
       <div class="row">
         <span class="nm"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M19.07 4.93A10 10 0 0 0 6.99 3.34M4 6h.01M2.29 9.62A10 10 0 1 0 21.31 8.35M16.24 7.76A6 6 0 1 0 8.23 16.67M12 18h.01M17.99 11.66A6 6 0 0 1 15.77 16.67M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM13.41 10.59l5.66-5.66"/></svg>ScoutOutreach</span>
+        <span class="ds">Your outreach teammate: its goals, its live work and everyone it has found</span>
+      </div>
+      <div class="row">
+        <span class="nm"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3ZM11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Campaigns</span>
         <span class="ds">Live work and where each creator has got to</span>
       </div>
@@ -609,7 +686,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
         <span class="nm"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Affiliate links</span>
-        <span class="ds">Every campaign\</span>
+        <span class="ds">Every campaign's short links, clicks and sales in one place</span>
       </div>
       <div class="row">
         <span class="nm"><svg class="ic" width="14" height="14"
@@ -637,7 +714,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="path"><span class="lbl">Go to</span><span class="chip start">Creators</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Rosters</span></div>
-    <ol class="steps"><li>A founder releases the brand. It reaches you on <strong>Today</strong> with the brief.</li><li>The brand’s roster is already open. It replaces the campaign sheet.</li><li>Search the master database first with <strong>Add creators</strong>.</li><li>Anyone new: <strong>Paste a list</strong>, rows from a sheet or one handle per line.</li><li>Nobody tells you how many to find. A client signing fifteen may need to see hundreds.</li></ol>
+    <ol class="steps"><li>A founder releases the brand. It reaches you on <strong>Today</strong> with the brief.</li><li>The brand’s roster is already open. It replaces the campaign sheet.</li><li>Search the master database first with <strong>Add creators</strong>.</li><li>Anyone new: <strong>Paste a list</strong>, rows from a sheet or one handle per line.</li><li>ScoutOutreach adds creators to the same roster. Its rows say so in the source tabs.</li><li>Nobody tells you how many to find. A client signing fifteen may need to see hundreds.</li></ol>
     <div class="next"><svg class="ic" width="13" height="13"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> You price each one on the same roster, then send the good ones for review.</span></div>
@@ -655,10 +732,10 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Rosters</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open the brand’s roster</span></div>
-    <ol class="steps"><li>Press <strong>Price</strong> on a row. Record what they asked and what you agreed.</li><li>Their currency, and what it buys: reel, reel also on TikTok, full scope.</li><li>Read <strong>Last time</strong> first. Amber means over budget or well above last time.</li><li>Tick the good ones and press <strong>Send for review</strong>.</li><li>The rest: <strong>Not this time</strong>, with a reason. They stay in the database.</li></ol>
+    <ol class="steps"><li>Each row says its next step and has one button. <strong>Needs a rate</strong> means <strong>Add rate</strong>.</li><li>Record what they asked and what you agreed, in their currency, and what it buys.</li><li>Read <strong>Last time</strong> first. Amber means over budget or well above last time.</li><li><strong>Rate in, send for review</strong> means press <strong>Send for review</strong>. Tick several to send at once.</li><li>The rest: <strong>Skip</strong>, with a reason if you have one. They stay in the database.</li><li>Everything else on a row is in its <strong>…</strong> menu.</li></ol>
     <div class="next"><svg class="ic" width="13" height="13"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> A founder sets sell prices and clears them, or sends some back with a note.</span></div>
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> A founder presses <strong>Price</strong> on each. Priced creators come back to the roster as <strong>Ready</strong>.</span></div>
   </div>
   <div class="job">
     <div class="top">
@@ -673,7 +750,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Rosters</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open the brand’s roster</span></div>
-    <ol class="steps"><li>Press <strong>Copy a DM with my link</strong> and send it to creators on Instagram.</li><li>Our WhatsApp agent asks their price, dates and email for you.</li><li>Whoever answers lands on the roster with a quote, credited to you.</li><li><strong>Yours now</strong> means a person should talk to them. Open <strong>Conversations</strong>.</li><li>Reply, then press <strong>Hand back to the agent</strong> when you are done.</li></ol>
+    <ol class="steps"><li>Press <strong>Copy a DM with my link</strong> and send it to creators on Instagram.</li><li>ScoutAI, on WhatsApp, explains the brief and asks their rate for you.</li><li>Whoever answers lands on the roster with a quote, credited to you.</li><li><strong>Yours now</strong> means a person should talk to them. Open <strong>Conversations</strong>.</li><li>Reply, then press <strong>Hand back to the agent</strong> when you are done.</li></ol>
     <div class="next"><svg class="ic" width="13" height="13"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> They go up for review like any creator you priced yourself.</span></div>
@@ -682,21 +759,35 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="top">
       <span class="badge">4</span>
       <div>
-        <h3>Sign a creator</h3>
-        <div class="when">Once the client has picked them and the campaign is confirmed.</div>
+        <h3>Work beside ScoutOutreach</h3>
+        <div class="when">Every day a roster has outreach running. Its chapter follows these jobs.</div>
       </div>
     </div>
-    <div class="path"><span class="lbl">Go to</span><span class="chip start">Finance</span><span class="sep"><svg class="ic" width="11" height="11"
-    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Enrolments</span></div>
-    <ol class="steps"><li>Create the enrolment. The creator gets their own signing link.</li><li>They fill in their details and bank information themselves.</li><li>Never type a creator’s bank details for them.</li><li>Chase anyone who has not signed. The screen shows who.</li></ol>
+    <div class="path"><span class="lbl">Go to</span><span class="chip start">ScoutOutreach</span></div>
+    <ol class="steps"><li>Keep sourcing your own creators. It adds to your roster, it does not replace you.</li><li>Glance at the live bar: DMs sent today and the job it is on now.</li><li>Rows that say ScoutOutreach or ScoutAI is getting the rate need nothing from you.</li><li>Say yes or no on what it finds. That teaches its screening for the campaign.</li><li>Stopped and needs a person: sign in on the bot PC, then press <strong>Resume</strong>.</li></ol>
     <div class="next"><svg class="ic" width="13" height="13"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> A founder approves the payment once the work is delivered.</span></div>
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> Rates land on the roster by themselves. You send them for review.</span></div>
   </div>
   <div class="job">
     <div class="top">
       <span class="badge">5</span>
+      <div>
+        <h3>Send the enrolment link</h3>
+        <div class="when">When the bell and an email say "Send @creator their enrolment link".</div>
+      </div>
+    </div>
+    <div class="path"><span class="lbl">Go to</span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Enrolments</span></div>
+    <ol class="steps"><li>A founder created it. The link is inside the bell and the email.</li><li>Send it to the creator on WhatsApp the same day. It is personal.</li><li>They fill in their details, sign, upload their passport and give their bank.</li><li>Never type a creator’s bank details for them.</li><li>Chase anyone who has not finished. The screen shows who is where.</li></ol>
+    <div class="next"><svg class="ic" width="13" height="13"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> Signed creators move to Payables. A founder releases the money.</span></div>
+  </div>
+  <div class="job">
+    <div class="top">
+      <span class="badge">6</span>
       <div>
         <h3>Get the content in</h3>
         <div class="when">From the agreed date until the post is live.</div>
@@ -712,7 +803,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   </div>
   <div class="job">
     <div class="top">
-      <span class="badge">6</span>
+      <span class="badge">7</span>
       <div>
         <h3>Give each creator their link</h3>
         <div class="when">On a campaign that sells, once its retailers are set up.</div>
@@ -730,8 +821,450 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   </div>
   </section>
 
+  
+  <section>
+    <div class="opener"><span class="n">06 · ScoutOutreach</span>
+  <span class="bar"></span></div>
+    <h2>ScoutOutreach and <em>ScoutAI</em></h2>
+    <p class="sub tight">ScoutOutreach finds creators who fit a brief and reaches them. ScoutAI talks to the ones who answer and puts their rate on the roster. Talent keeps sourcing beside them.</p>
+    
+  <svg class="lanes" viewBox="0 0 162 114.8" width="162mm" height="114.8mm"
+    xmlns="http://www.w3.org/2000/svg" font-family="Manrope, Arial, sans-serif">
+    <defs><marker id="ah" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="2.2" markerHeight="2.2"
+      markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#111111"/></marker></defs>
+    
+    <rect x="0" y="0" width="40.5" height="114.8" fill="#fafafa"/>
+    <rect x="2.4" y="3.9" width="3.6" height="2.2" fill="#d3ff02"/>
+    <text x="7.4" y="6.1" font-size="2.35" font-weight="700"
+      letter-spacing=".45" fill="#111111">SCOUTOUTREACH</text>
+    
+    <rect x="40.5" y="0" width="40.5" height="114.8" fill="#ffffff"/>
+    <rect x="42.9" y="3.9" width="3.6" height="2.2" fill="#d3ff02"/>
+    <text x="47.9" y="6.1" font-size="2.35" font-weight="700"
+      letter-spacing=".45" fill="#111111">SCOUTAI</text>
+    <line x1="40.5" y1="0" x2="40.5" y2="114.8" stroke="rgba(0,0,0,0.10)" stroke-width=".25"/>
+    <rect x="81" y="0" width="40.5" height="114.8" fill="#fafafa"/>
+    
+    <text x="83.4" y="6.1" font-size="2.35" font-weight="700"
+      letter-spacing=".45" fill="#111111">TALENT</text>
+    <line x1="81" y1="0" x2="81" y2="114.8" stroke="rgba(0,0,0,0.10)" stroke-width=".25"/>
+    <rect x="121.5" y="0" width="40.5" height="114.8" fill="#ffffff"/>
+    
+    <text x="123.9" y="6.1" font-size="2.35" font-weight="700"
+      letter-spacing=".45" fill="#111111">A FOUNDER</text>
+    <line x1="121.5" y1="0" x2="121.5" y2="114.8" stroke="rgba(0,0,0,0.10)" stroke-width=".25"/>
+    <line x1="0" y1="10" x2="162" y2="10" stroke="#111111" stroke-width=".35"/>
+    <path d="M20.25 24.1 V25.299999999999997" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/><path d="M20.25 36.8 V37.99999999999999" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/><path d="M20.25 49.49999999999999 V50.39999999999999 H60.75 V50.699999999999996" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/><path d="M60.75 62.199999999999996 V63.4" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/><path d="M101.25 24.1 V63.4" fill="none" stroke="#111111" stroke-width=".3" stroke-dasharray="1.2 1"
+      marker-end="url(#ah)"/><path d="M81 74.9 V75.80000000000001 H141.75 V76.10000000000001" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/><path d="M141.75 87.60000000000001 V88.5 H101.25 V88.8" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/><path d="M101.25 100.3 V101.5" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/>
+    
+    <g>
+      <rect x="1.5" y="13.2" width="37.5" height="10.9" fill="#d3ff02"
+        stroke="none" stroke-width=".3"/>
+      
+      <text x="4.1" y="17.299999999999997" font-size="2.25" font-weight="800" fill="rgba(17,17,17,.72)">01</text>
+      <text x="8.5" y="17.4" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Find</text>
+      <text x="4.1" y="20.5" font-size="2.45"
+        fill="rgba(17,17,17,.72)">AI plans searches: words,</text><text x="4.1" y="23.15" font-size="2.45"
+        fill="rgba(17,17,17,.72)">places, hashtags</text>
+    </g>
+    <g>
+      <rect x="82.5" y="13.2" width="37.5" height="10.9" fill="#ffffff"
+        stroke="#111111" stroke-width=".3" stroke-dasharray="1.2 1"/>
+      
+      <text x="85.1" y="17.299999999999997" font-size="2.25" font-weight="800" fill="#666666">+</text>
+      <text x="89.5" y="17.4" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Your own creators</text>
+      <text x="85.1" y="20.5" font-size="2.45"
+        fill="#666666">By handle, or paste</text><text x="85.1" y="23.15" font-size="2.45"
+        fill="#666666">a sheet. Same roster</text>
+    </g>
+    <g>
+      <rect x="1.5" y="25.9" width="37.5" height="10.9" fill="#d3ff02"
+        stroke="none" stroke-width=".3"/>
+      
+      <text x="4.1" y="30" font-size="2.25" font-weight="800" fill="rgba(17,17,17,.72)">02</text>
+      <text x="8.5" y="30.099999999999998" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Screen</text>
+      <text x="4.1" y="33.199999999999996" font-size="2.45"
+        fill="rgba(17,17,17,.72)">Range, recent posts,</text><text x="4.1" y="35.849999999999994" font-size="2.45"
+        fill="rgba(17,17,17,.72)">real creator, the brief</text>
+    </g>
+    <g>
+      <rect x="1.5" y="38.599999999999994" width="37.5" height="10.9" fill="#d3ff02"
+        stroke="none" stroke-width=".3"/>
+      
+      <text x="4.1" y="42.699999999999996" font-size="2.25" font-weight="800" fill="rgba(17,17,17,.72)">03</text>
+      <text x="8.5" y="42.8" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">DM or WhatsApp</text>
+      <text x="4.1" y="45.89999999999999" font-size="2.45"
+        fill="rgba(17,17,17,.72)">Instagram DM with a</text><text x="4.1" y="48.54999999999999" font-size="2.45"
+        fill="rgba(17,17,17,.72)">tracked link, or alert</text>
+    </g>
+    <g>
+      <rect x="42" y="51.3" width="37.5" height="10.9" fill="#d3ff02"
+        stroke="none" stroke-width=".3"/>
+      
+      <text x="44.6" y="55.4" font-size="2.25" font-weight="800" fill="rgba(17,17,17,.72)">04</text>
+      <text x="49" y="55.5" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">ScoutAI chat</text>
+      <text x="44.6" y="58.599999999999994" font-size="2.45"
+        fill="rgba(17,17,17,.72)">Brief, questions,</text><text x="44.6" y="61.24999999999999" font-size="2.45"
+        fill="rgba(17,17,17,.72)">their rate, a counter</text>
+    </g>
+    <g>
+      <rect x="42" y="64" width="78" height="10.9" fill="#ffffff"
+        stroke="#111111" stroke-width=".3"/>
+      <rect x="42" y="64" width="1.8" height="10.9" fill="#d3ff02"/>
+      <text x="44.6" y="68.1" font-size="2.25" font-weight="800" fill="#666666">05</text>
+      <text x="49" y="68.2" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Rate on the roster</text>
+      <text x="44.6" y="71.3" font-size="2.45"
+        fill="#666666">ScoutAI files it, or talent adds it.</text><text x="44.6" y="73.95" font-size="2.45"
+        fill="#666666">Then Send for review</text>
+    </g>
+    <g>
+      <rect x="123" y="76.7" width="37.5" height="10.9" fill="#ffffff"
+        stroke="#111111" stroke-width=".3"/>
+      
+      <text x="125.6" y="80.8" font-size="2.25" font-weight="800" fill="#666666">06</text>
+      <text x="130" y="80.9" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Founder prices</text>
+      <text x="125.6" y="84" font-size="2.45"
+        fill="#666666">Price on the row.</text><text x="125.6" y="86.65" font-size="2.45"
+        fill="#666666">Margin as they type</text>
+    </g>
+    <g>
+      <rect x="82.5" y="89.39999999999999" width="37.5" height="10.9" fill="#ffffff"
+        stroke="#111111" stroke-width=".3"/>
+      
+      <text x="85.1" y="93.49999999999999" font-size="2.25" font-weight="800" fill="#666666">07</text>
+      <text x="89.5" y="93.6" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Ready</text>
+      <text x="85.1" y="96.69999999999999" font-size="2.45"
+        fill="#666666">Back on its roster,</text><text x="85.1" y="99.35" font-size="2.45"
+        fill="#666666">ready to sell</text>
+    </g>
+    <g>
+      <rect x="82.5" y="102.1" width="37.5" height="10.9" fill="#ffffff"
+        stroke="#111111" stroke-width=".3"/>
+      
+      <text x="85.1" y="106.19999999999999" font-size="2.25" font-weight="800" fill="#666666">08</text>
+      <text x="89.5" y="106.3" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Proposal</text>
+      <text x="85.1" y="109.39999999999999" font-size="2.45"
+        fill="#666666">Add to proposal.</text><text x="85.1" y="112.05" font-size="2.45"
+        fill="#666666">Client picked: Book</text>
+    </g>
+  </svg>
+    
+  <div class="lkey">
+    <span><i class="sw lime"></i>Runs itself</span>
+    <span><i class="sw out"></i>A person does this</span>
+    <span><i class="sw dash"></i>Your own outreach, beside it</span>
+  </div>
+    <div class="hh"><svg class="ic" width="15" height="15"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg> When Instagram slows it down, it rests by itself</div>
+    <div class="rest"><span class="r">20 minutes</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="r">1 hour</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="r">3 hours</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="r">10am tomorrow</span>
+      <span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="r go">Carries on</span></div>
+    <div class="callout"><b>The one time it needs a person.</b> If Instagram logs the account
+      out or asks for a check, the bot stops and says so on ScoutOutreach. Somebody signs in to
+      Instagram on that office PC, then presses <b>Resume</b>.</div>
+  </section>
+
+  <section>
+    <div class="cont">ScoutOutreach and ScoutAI, continued</div>
+    <h2 class="h2s">How <em>each one</em> works</h2>
+    <div class="two">
+      <div class="panel">
+        <div class="hh"><svg class="ic" width="15" height="15"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M19.07 4.93A10 10 0 0 0 6.99 3.34M4 6h.01M2.29 9.62A10 10 0 1 0 21.31 8.35M16.24 7.76A6 6 0 1 0 8.23 16.67M12 18h.01M17.99 11.66A6 6 0 0 1 15.77 16.67M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM13.41 10.59l5.66-5.66"/></svg> ScoutOutreach finds them</div>
+        <ul class="bl"><li>One roster, one brief: location, follower range, language.</li><li>Lives at <strong>ScoutOutreach</strong> in the menu, with a live bar: ScoutAI, DMs today, the job it is on. Each roster shows its own strip too.</li><li>Screens on follower range, a post in the last 60 days, a real creator and not a business, not clearly based elsewhere.</li><li>Then an AI reads each one against the brief, following the team’s own yes and no on that campaign. Every pass has a written reason.</li><li>A hashtag search reads the 40 most recent posts from up to 4 hashtags. Light analytics on each creator costs about $0.008.</li><li>The DM bot sends from the company’s Instagram, in Chrome on an office PC. The tracked link opens WhatsApp straight into that campaign’s ScoutAI chat.</li><li>WhatsApp alerts go to creators in our network, on Meta-approved templates: barter or paid. A paid campaign is never called barter.</li></ul>
+      </div>
+      <div class="panel">
+        <div class="hh"><svg class="ic" width="15" height="15"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg> ScoutAI talks on WhatsApp</div>
+        <ul class="bl"><li>A campaign can run an open call with a code, like <strong>OC-D7F4E</strong>.</li><li>ScoutAI answers on WhatsApp, in English. It explains the brief and asks the screening questions set for the campaign.</li><li>For paid work it asks their rate, and can counter within that campaign’s negotiation rules.</li><li>Creators answer with tap buttons or in their own words.</li><li>It adds them to the roster with their rate. A decline or a poor fit is recorded with the reason.</li><li>Its chats are kept on the Desk and never ring the team’s bell.</li></ul>
+      </div>
+    </div>
+    <div class="hh gap"><svg class="ic" width="15" height="15"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg> Its pace, so the account stays safe</div>
+    <div class="stats">
+      <div class="stat"><div class="b">10 min</div><div class="s">It checks every campaign, but never searches while every DM account rests</div></div>
+      <div class="stat"><div class="b">Under 60</div><div class="s">In a campaign’s DM queue before it searches for more</div></div>
+      <div class="stat"><div class="b">3 hours</div><div class="s">At least, between two searches on one campaign</div></div>
+      <div class="stat"><div class="b">6 a day</div><div class="s">Searches at most, across all campaigns</div></div>
+      <div class="stat"><div class="b">12</div><div class="s">Searches per campaign in total, then it stops and says so</div></div>
+      <div class="stat"><div class="b">40 a day</div><div class="s">DMs to start, rising by 15 a day to the cap</div></div>
+      <div class="stat"><div class="b">60 to 120 s</div><div class="s">Between one DM and the next. Campaigns take turns</div></div>
+      <div class="stat"><div class="b">14 days</div><div class="s">Before anybody is DMed again</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="cont">ScoutOutreach and ScoutAI, continued</div>
+    <h2 class="h2s">What <em>the roster</em> tells you</h2>
+    <p class="sub tight">Every row says its next step and carries one button for it, plus
+      <strong>Skip</strong> and a <strong>&hellip;</strong> menu. Skip means not for this
+      campaign; the creator stays in the database.</p>
+    <table class="says">
+      <thead><tr><th>The row says</th><th>Button</th><th>Who moves it</th></tr></thead>
+      <tbody>
+        <tr><td class="w">Needs a rate</td>
+          <td><span class="btn">Add rate</span></td>
+          <td class="m">Talent</td></tr>
+        <tr><td class="w">ScoutOutreach asked for their rate</td>
+          <td><span class="none">Nothing to press</span></td>
+          <td class="m">It lands by itself</td></tr>
+        <tr><td class="w">ScoutAI is getting their rate</td>
+          <td><span class="none">Nothing to press</span></td>
+          <td class="m">It lands by itself</td></tr>
+        <tr><td class="w">Rate in, send for review</td>
+          <td><span class="btn">Send for review</span></td>
+          <td class="m">Talent</td></tr>
+        <tr><td class="w">Waiting for a founder to price</td>
+          <td><span class="btn">Price</span></td>
+          <td class="m">A founder</td></tr>
+        <tr><td class="w">Ready</td>
+          <td><span class="btn">Add to proposal</span></td>
+          <td class="m">Talent</td></tr>
+        <tr><td class="w">On the proposal’s name</td>
+          <td><span class="btn">Open</span></td>
+          <td class="m">The client</td></tr>
+        <tr><td class="w">Client picked</td>
+          <td><span class="btn">Book</span></td>
+          <td class="m">Talent</td></tr>
+      </tbody>
+    </table>
+    <div class="srcs"><span class="lbl">Source tabs</span>
+      <span class="src"><b>ScoutOutreach</b> found by ScoutOutreach</span>
+      <span class="src"><b>ScoutAI (WhatsApp)</b> arrived in a chat</span>
+      <span class="src"><b>Your sheet</b> pasted in by the team</span>
+      <span class="src"><b>Database</b> from the master database</span></div>
+    
+  <div class="yours">
+    <div class="hh"><svg class="ic" width="15" height="15"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Your part</div>
+    <div class="path"><span class="lbl">Go to</span><span class="chip start">ScoutOutreach</span></div>
+    <ol class="steps"><li>Keep adding your own creators, by handle or by pasting a sheet.</li><li>Glance at the live bar on <strong>ScoutOutreach</strong> during the day.</li><li>Work each row from its next step. Rows ScoutOutreach or ScoutAI are working need nothing from you.</li><li>Say yes or no on what it finds. That teaches the screening.</li><li>Bot stopped and needs a person: sign in on the bot PC, then <strong>Resume</strong>.</li></ol>
+  </div>
+  </section>
+  
+  <section>
+    <div class="opener"><span class="n">07 · Enrolments</span>
+  <span class="bar"></span></div>
+    <h2>Enrolments, start to <em>finish</em></h2>
+    <p class="sub tight">The paperwork that lets us pay a booked creator: agreement, details, address, passport and bank. Only the superadmin sets one up. Talent sends it and sees it through.</p>
+    
+  <svg class="lanes" viewBox="0 0 162 114.8" width="162mm" height="114.8mm"
+    xmlns="http://www.w3.org/2000/svg" font-family="Manrope, Arial, sans-serif">
+    <defs><marker id="ah" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="2.2" markerHeight="2.2"
+      markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0 6 3 0 6Z" fill="#111111"/></marker></defs>
+    
+    <rect x="0" y="0" width="32.4" height="114.8" fill="#fafafa"/>
+    
+    <text x="2.4" y="6.1" font-size="2.35" font-weight="700"
+      letter-spacing=".45" fill="#111111">CLIENT</text>
+    
+    <rect x="32.4" y="0" width="32.4" height="114.8" fill="#ffffff"/>
+    
+    <text x="34.8" y="6.1" font-size="2.35" font-weight="700"
+      letter-spacing=".45" fill="#111111">A FOUNDER</text>
+    <line x1="32.4" y1="0" x2="32.4" y2="114.8" stroke="rgba(0,0,0,0.10)" stroke-width=".25"/>
+    <rect x="64.8" y="0" width="32.4" height="114.8" fill="#fafafa"/>
+    <rect x="67.2" y="3.9" width="3.6" height="2.2" fill="#d3ff02"/>
+    <text x="72.2" y="6.1" font-size="2.35" font-weight="700"
+      letter-spacing=".45" fill="#111111">PLATFORM</text>
+    <line x1="64.8" y1="0" x2="64.8" y2="114.8" stroke="rgba(0,0,0,0.10)" stroke-width=".25"/>
+    <rect x="97.19999999999999" y="0" width="32.4" height="114.8" fill="#ffffff"/>
+    
+    <text x="99.6" y="6.1" font-size="2.35" font-weight="700"
+      letter-spacing=".45" fill="#111111">TALENT</text>
+    <line x1="97.19999999999999" y1="0" x2="97.19999999999999" y2="114.8" stroke="rgba(0,0,0,0.10)" stroke-width=".25"/>
+    <rect x="129.6" y="0" width="32.4" height="114.8" fill="#fafafa"/>
+    
+    <text x="132" y="6.1" font-size="2.35" font-weight="700"
+      letter-spacing=".45" fill="#111111">CREATOR</text>
+    <line x1="129.6" y1="0" x2="129.6" y2="114.8" stroke="rgba(0,0,0,0.10)" stroke-width=".25"/>
+    <line x1="0" y1="10" x2="162" y2="10" stroke="#111111" stroke-width=".35"/>
+    <path d="M16.2 24.1 V25 H48.599999999999994 V25.299999999999997" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/><path d="M48.599999999999994 36.8 V37.99999999999999" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/><path d="M48.599999999999994 49.49999999999999 V50.39999999999999 H81 V50.699999999999996" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/><path d="M81 62.199999999999996 V63.099999999999994 H113.39999999999999 V63.4" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/><path d="M113.39999999999999 74.9 V75.80000000000001 H145.79999999999998 V76.10000000000001" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/><path d="M145.79999999999998 87.60000000000001 V88.5 H81 V88.8" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/><path d="M81 100.3 V101.19999999999999 H48.599999999999994 V101.5" fill="none" stroke="#111111" stroke-width=".3"
+      marker-end="url(#ah)"/>
+    
+    <g>
+      <rect x="1.5" y="13.2" width="29.4" height="10.9" fill="#ffffff"
+        stroke="#111111" stroke-width=".3"/>
+      
+      <text x="4.1" y="17.299999999999997" font-size="2.25" font-weight="800" fill="#666666">01</text>
+      <text x="8.5" y="17.4" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Confirms</text>
+      <text x="4.1" y="20.5" font-size="2.45"
+        fill="#666666">Picks creators</text><text x="4.1" y="23.15" font-size="2.45"
+        fill="#666666">on the proposal</text>
+    </g>
+    <g>
+      <rect x="33.9" y="25.9" width="29.4" height="10.9" fill="#ffffff"
+        stroke="#111111" stroke-width=".3"/>
+      
+      <text x="36.5" y="30" font-size="2.25" font-weight="800" fill="#666666">02</text>
+      <text x="40.9" y="30.099999999999998" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Settles cost</text>
+      <text x="36.5" y="33.199999999999996" font-size="2.45"
+        fill="#666666">What we really</text><text x="36.5" y="35.849999999999994" font-size="2.45"
+        fill="#666666">pay each one</text>
+    </g>
+    <g>
+      <rect x="33.9" y="38.599999999999994" width="29.4" height="10.9" fill="#ffffff"
+        stroke="#111111" stroke-width=".3"/>
+      
+      <text x="36.5" y="42.699999999999996" font-size="2.25" font-weight="800" fill="#666666">03</text>
+      <text x="40.9" y="42.8" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Creates link</text>
+      <text x="36.5" y="45.89999999999999" font-size="2.45"
+        fill="#666666">Send link on the</text><text x="36.5" y="48.54999999999999" font-size="2.45"
+        fill="#666666">proposal panel</text>
+    </g>
+    <g>
+      <rect x="66.3" y="51.3" width="29.4" height="10.9" fill="#d3ff02"
+        stroke="none" stroke-width=".3"/>
+      
+      <text x="68.89999999999999" y="55.4" font-size="2.25" font-weight="800" fill="rgba(17,17,17,.72)">04</text>
+      <text x="73.3" y="55.5" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Tells talent</text>
+      <text x="68.89999999999999" y="58.599999999999994" font-size="2.45"
+        fill="rgba(17,17,17,.72)">On the bell</text><text x="68.89999999999999" y="61.24999999999999" font-size="2.45"
+        fill="rgba(17,17,17,.72)">and by email</text>
+    </g>
+    <g>
+      <rect x="98.69999999999999" y="64" width="29.4" height="10.9" fill="#ffffff"
+        stroke="#111111" stroke-width=".3"/>
+      
+      <text x="101.29999999999998" y="68.1" font-size="2.25" font-weight="800" fill="#666666">05</text>
+      <text x="105.69999999999999" y="68.2" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Sends it</text>
+      <text x="101.29999999999998" y="71.3" font-size="2.45"
+        fill="#666666">On WhatsApp,</text><text x="101.29999999999998" y="73.95" font-size="2.45"
+        fill="#666666">the same day</text>
+    </g>
+    <g>
+      <rect x="131.1" y="76.7" width="29.4" height="10.9" fill="#ffffff"
+        stroke="#111111" stroke-width=".3"/>
+      
+      <text x="133.7" y="80.8" font-size="2.25" font-weight="800" fill="#666666">06</text>
+      <text x="138.1" y="80.9" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Fills it in</text>
+      <text x="133.7" y="84" font-size="2.45"
+        fill="#666666">Code, details,</text><text x="133.7" y="86.65" font-size="2.45"
+        fill="#666666">sign, passport, bank</text>
+    </g>
+    <g>
+      <rect x="66.3" y="89.39999999999999" width="29.4" height="10.9" fill="#d3ff02"
+        stroke="none" stroke-width=".3"/>
+      
+      <text x="68.89999999999999" y="93.49999999999999" font-size="2.25" font-weight="800" fill="rgba(17,17,17,.72)">07</text>
+      <text x="73.3" y="93.6" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Payee check</text>
+      <text x="68.89999999999999" y="96.69999999999999" font-size="2.45"
+        fill="rgba(17,17,17,.72)">Own name, passport,</text><text x="68.89999999999999" y="99.35" font-size="2.45"
+        fill="rgba(17,17,17,.72)">not a company</text>
+    </g>
+    <g>
+      <rect x="33.9" y="102.1" width="29.4" height="10.9" fill="#ffffff"
+        stroke="#111111" stroke-width=".3"/>
+      
+      <text x="36.5" y="106.19999999999999" font-size="2.25" font-weight="800" fill="#666666">08</text>
+      <text x="40.9" y="106.3" font-size="3.15" font-weight="700"
+        letter-spacing="-.06" fill="#111111">Releases pay</text>
+      <text x="36.5" y="109.39999999999999" font-size="2.45"
+        fill="#666666">Payables, then</text><text x="36.5" y="112.05" font-size="2.45"
+        fill="#666666">Payout runs</text>
+    </g>
+  </svg>
+    
+  <div class="lkey">
+    <span><i class="sw lime"></i>The platform does this</span>
+    <span><i class="sw out"></i>A person does this</span>
+    
+  </div>
+    <div class="where">
+      <div class="wr"><div class="w">Campaigns, then Enrolments</div><div class="t">Every enrolment. Each record links to its brand, campaign and proposal.</div></div>
+      <div class="wr"><div class="w">The proposal panel</div><div class="t"><strong>Send link</strong> for each creator, and <strong>See its enrolments</strong> for just that proposal.</div></div>
+      <div class="wr"><div class="w">Finance: Payables, Payout runs</div><div class="t">Where the money goes next. Only founders release it.</div></div>
+    </div>
+    <p class="note warn"><svg class="ic" width="13" height="13"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg> A link is personal. Never post one in a group,
+      a story or anywhere public.</p>
+  </section>
+
+  <section>
+    <div class="cont">Enrolments, start to finish, continued</div>
+    <h2 class="h2s">What <em>the creator</em> does</h2>
+    <div class="cre">
+      <div class="cs"><div class="k"><span class="n">1</span>Email</div>
+        <div class="t">Verifies their email with a code.</div></div>
+      <div class="cs"><div class="k"><span class="n">2</span>Details</div>
+        <div class="t">Name, contact and address. New links ask <strong>Home</strong> or <strong>Office</strong>. A home is a villa or an apartment: number, floor, building or community. An office has the company name.</div></div>
+      <div class="cs"><div class="k"><span class="n">3</span>Agreement</div>
+        <div class="t">Reads and signs it.</div></div>
+      <div class="cs"><div class="k"><span class="n">4</span>Passport</div>
+        <div class="t">Uploads it. The system reads the name and the expiry.</div></div>
+      <div class="cs"><div class="k"><span class="n">5</span>Bank</div>
+        <div class="t">Gives an IBAN, or for an exchange-house payout, the city they collect in.</div></div>
+    </div>
+    <div class="two gap">
+      <div class="panel">
+        <div class="hh"><svg class="ic" width="15" height="15"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 6h20v12H2zM6 12h.01M18 12h.01"/></svg> The payee confirms itself when</div>
+        <ul class="bl"><li>The bank account is in the creator’s own signed name. A shortened surname still counts.</li><li>A passport is uploaded.</li><li>It is not a company account.</li><li>Anything else comes to a person, with the reason shown.</li></ul>
+      </div>
+      <div class="panel">
+        <div class="hh"><svg class="ic" width="15" height="15"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1Z"/></svg> Passports</div>
+        <ul class="bl"><li>The system checks the name and the expiry date.</li><li>A mismatch comes to a person, on the enrolment record.</li><li><strong>Looks right</strong> accepts it. <strong>Send back</strong> reopens the creator’s passport step.</li><li>After a send back, talent tells the creator. They will not know otherwise.</li></ul>
+      </div>
+    </div>
+    
+  <div class="yours">
+    <div class="hh"><svg class="ic" width="15" height="15"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Your part</div>
+    <div class="path"><span class="lbl">Go to</span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Enrolments</span></div>
+    <ol class="steps"><li>The bell and an email say <strong>Send @creator their enrolment link</strong>. The link is inside.</li><li>Send it on WhatsApp the same day. Never post a link anywhere public.</li><li>Chase anyone who has not finished. Campaigns, then Enrolments, shows who is where.</li><li>Answer their questions about the form. Money questions go to a founder.</li></ol>
+  </div>
+  </section>
+
   <section class="page-break">
-    <div class="opener"><span class="n">06 · A real one</span>
+    <div class="opener"><span class="n">08 · A real one</span>
   <span class="bar"></span></div>
     <h2>A brief on Tuesday, a roster on <em>Thursday</em></h2>
     <p class="sub">One job, followed the whole way, with the real numbers.</p>
@@ -745,17 +1278,18 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
       <div class="beat"><div class="t">Tue 9am</div><div class="x">Today shows a new brief: <strong>Minimalist</strong>. Skincare and derm, UAE, 50k to 300k, AED 3,500 to 4,000 a creator. A founder released it, and the deal is not even signed yet.</div></div>
       <div class="beat"><div class="t">Tue 9am</div><div class="x">The brand’s roster is already open. It is the sheet now. You never make one.</div></div>
       <div class="beat"><div class="t">Tue</div><div class="x">Search the master database with <strong>Add creators</strong>. Thirty fit. Anyone genuinely new, <strong>Paste a list</strong> straight from your notes.</div></div>
-      <div class="beat"><div class="t">Tue</div><div class="x">An open call is live on the roster, so you send <strong>Copy a DM with my link</strong> to twenty more. The agent asks their price while you keep sourcing.</div></div>
+      <div class="beat"><div class="t">Tue</div><div class="x">ScoutOutreach is running on the roster too. By lunch it has DMed forty skincare creators; ScoutAI is asking their rates on WhatsApp while you keep sourcing.</div></div>
       <div class="beat"><div class="t">Wed</div><div class="x">Nobody told you to find twenty. You find enough that the client has a real choice, which on skincare is usually sixty before they pick fifteen.</div></div>
-      <div class="beat"><div class="t">Wed</div><div class="x"><strong>Price</strong> each one: what they asked, what they agreed. One asks 6,000; <strong>Last time</strong> says 3,500, and the row turns amber. You agree 3,800.</div></div>
-      <div class="beat"><div class="t">Thu</div><div class="x">Tick the good ones, <strong>Send for review</strong>. The rest get <strong>Not this time</strong> with a reason. A founder prices and clears them the same day.</div></div>
-      <div class="beat"><div class="t">After</div><div class="x">Leadership negotiates the final rate. You raise the enrolment links, and each creator signs their own agreement and enters their own bank details.</div></div>
+      <div class="beat"><div class="t">Wed</div><div class="x"><strong>Add rate</strong> on each of yours: what they asked, what they agreed. One asks 6,000; <strong>Last time</strong> says 3,500, and the row turns amber. You agree 3,800.</div></div>
+      <div class="beat"><div class="t">Wed</div><div class="x">Eleven rows now read <strong>Rate in, send for review</strong>: ScoutAI brought those rates in by itself.</div></div>
+      <div class="beat"><div class="t">Thu</div><div class="x">Tick the good ones, <strong>Send for review</strong>. The rest get <strong>Skip</strong> with a reason. A founder presses <strong>Price</strong> the same day; they come back <strong>Ready</strong>.</div></div>
+      <div class="beat"><div class="t">After</div><div class="x">The client confirms. A founder settles the real cost and creates each enrolment link. The bell and an email tell you, and you send each one on WhatsApp that day.</div></div>
     </div>
   </div>
   </section>
 
   <section class="fill">
-    <div class="opener"><span class="n">07 · Right and wrong</span>
+    <div class="opener"><span class="n">09 · Right and wrong</span>
   <span class="bar"></span></div>
     <h2>What good looks <em>like</em></h2>
     <p class="sub">Everything on the right has actually happened here and cost us
@@ -766,7 +1300,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
       <div class="ttl"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> What good looks like</div>
-      <ul><li>Everything you find goes on the roster, the same hour you find it.</li><li>A price is recorded as two numbers: what they ask, what they agreed.</li><li>A creator you cannot place in a country is still worth adding; say so in the note.</li><li>When a brief is missing market, category or budget, you ask before you start.</li><li>You take a request the moment you start it, so nobody duplicates your work.</li></ul>
+      <ul><li>Everything you find goes on the roster, the same hour you find it.</li><li>A price is recorded as two numbers: what they ask, what they agreed.</li><li>A creator you cannot place in a country is still worth adding; say so in the note.</li><li>When a brief is missing market, category or budget, you ask before you start.</li><li>An enrolment link reaches the creator the same day the bell tells you.</li><li>You take a request the moment you start it, so nobody duplicates your work.</li></ul>
     </div>
     <div class="col bad">
       <div class="ttl"><svg class="ic" width="14" height="14"
@@ -778,7 +1312,7 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   </section>
 
   <section class="page-break">
-    <div class="opener"><span class="n">08 · Vocabulary</span>
+    <div class="opener"><span class="n">10 · Vocabulary</span>
   <span class="bar"></span></div>
     <h2>Words we <em>use</em></h2>
     <p class="sub">They mean something specific. A roster is not a list, and cost is not
@@ -790,8 +1324,10 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="t"><div class="w">Deal</div><div class="d">One conversation about money. A brand can have many, over years.</div></div>
     <div class="t"><div class="w">Campaign</div><div class="d">A deal that was won and opened. Real creators, real money.</div></div>
     <div class="t"><div class="w">Roster</div><div class="d">The creators sourced for one brand, for its whole life. It replaced the sheet.</div></div>
-    <div class="t"><div class="w">Not this time</div><div class="d">Let go for this brief only. Still in the database; the reason follows them.</div></div>
+    <div class="t"><div class="w">Skip</div><div class="d">Not for this campaign. Still in the database; the reason follows them.</div></div>
     <div class="t"><div class="w">Open call</div><div class="d">A campaign card creators answer on WhatsApp. The agent collects their price.</div></div>
+    <div class="t"><div class="w">ScoutOutreach</div><div class="d">Finds creators for a brief, screens them, and DMs them on Instagram.</div></div>
+    <div class="t"><div class="w">ScoutAI</div><div class="d">Talks to creators on WhatsApp and puts their rate on the roster.</div></div>
     <div class="t"><div class="w">Following Track</div><div class="d">Short links per creator. Clicks, carts and sales, shown to the brand once released.</div></div>
     <div class="t"><div class="w">List</div><div class="d">A standing question: "fashion, UAE". Answers itself. Never client-specific.</div></div>
     <div class="t"><div class="w">Cost</div><div class="d">What we pay a creator. Founders and talent only. Never shown to a brand.</div></div>
@@ -801,14 +1337,14 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     <div class="t"><div class="w">Request</div><div class="d">Something somebody is waiting on, with an owner and a date.</div></div>
     <div class="t"><div class="w">Proposal</div><div class="d">A priced roster sent to a client to choose from.</div></div>
     <div class="t"><div class="w">Share link</div><div class="d">A /p/ link a client opens without logging in. Mint it, then send it.</div></div>
-    <div class="t"><div class="w">Enrolment link</div><div class="d">How a creator signs. They enter their own bank details; nobody types a fee.</div></div>
+    <div class="t"><div class="w">Enrolment link</div><div class="d">A founder creates it, talent sends it, the creator signs and gives their own bank.</div></div>
     <div class="t"><div class="w">The ladder</div><div class="d">The rungs a booked creator climbs: briefed, content in, posted, paid.</div></div>
     <div class="t"><div class="w">Held</div><div class="d">Stopped until a founder answers. Nothing has happened yet.</div></div>
   </div>
   </section>
 
   <section class="fill">
-    <div class="opener"><span class="n">09 · The hard rules</span>
+    <div class="opener"><span class="n">11 · The hard rules</span>
   <span class="bar"></span></div>
     <h2>Rules that cost <em>money</em></h2>
     <p class="sub">Each one has already cost us something.</p>
@@ -817,7 +1353,9 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>A creator with no price cannot be sold. Record it on the roster or they do not exist to us.</span></li><li><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>Not this time is not a no. Give the reason; it follows them to the next brief.</span></li><li><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>Skip is not a no. Give the reason; it follows them to the next brief.</span></li><li><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>An enrolment link is personal. Never post one in a group or anywhere public.</span></li><li><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>Never guess a creator’s country code. We once sent a Saudi creator’s signing link to a stranger.</span></li><li><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"

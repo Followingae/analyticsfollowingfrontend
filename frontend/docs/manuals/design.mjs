@@ -103,6 +103,7 @@ const PATHS = {
   message: 'M7.9 20A9 9 0 1 0 4 16.1L2 22Z',
   link: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
   chart: 'M3 3v18h18M18 17V9M13 17V5M8 17v-3',
+  radar: 'M19.07 4.93A10 10 0 0 0 6.99 3.34M4 6h.01M2.29 9.62A10 10 0 1 0 21.31 8.35M16.24 7.76A6 6 0 1 0 8.23 16.67M12 18h.01M17.99 11.66A6 6 0 0 1 15.77 16.67M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM13.41 10.59l5.66-5.66',
 };
 
 export function icon(name, size = 16, cls = '', stroke = 1.6) {
@@ -164,7 +165,7 @@ em, .ser { font-family: "Playfair Display", Georgia, serif; font-style: italic;
 .cover .contents .lbl { font-size: 8.6pt; letter-spacing: .24em; text-transform: uppercase;
   font-weight: 700; color: ${FAINT}; margin-bottom: 5mm; }
 .cover .contents ol { margin: 0; padding: 0; list-style: none; counter-reset: c;
-  columns: 2; column-gap: 12mm; max-width: 112mm; }
+  columns: 2; column-gap: 12mm; max-width: 134mm; }
 .cover .contents li { counter-increment: c; font-size: 10pt; line-height: 1.9;
   color: ${MUTED}; display: flex; gap: 10px; break-inside: avoid; }
 .cover .contents li::before { content: counter(c, decimal-leading-zero);
@@ -464,6 +465,87 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 .qr .foot { margin-top: auto; border-top: 1px solid ${LINE}; padding-top: 5mm;
   font-size: 9pt; color: ${FAINT}; display: flex;
   justify-content: space-between; letter-spacing: .04em; }
+
+/* ── The two seat-only chapters ───────────────────────────────────────────────────────
+   A swimlane drawn in SVG at its true size in mm, then panels, a stat strip, a table and a
+   "your part" box. Every box is square and lime is only ever a field or a rule. */
+.lanes { display: block; width: 100%; height: auto; border: 1px solid ${INK};
+  break-inside: avoid; margin: 0 0 4mm; }
+.lkey { display: flex; flex-wrap: wrap; gap: 3mm 7mm; font-size: 8.8pt; color: ${MUTED};
+  margin: 0 0 7mm; }
+.lkey span { display: inline-flex; align-items: center; gap: 7px; }
+.lkey .sw { width: 14px; height: 10px; flex: none; display: inline-block; }
+.lkey .sw.lime { background: ${LIME}; }
+.lkey .sw.out { border: 1px solid ${INK}; background: ${PAPER}; }
+.lkey .sw.dash { border: 1px dashed ${INK}; background: ${PAPER}; }
+.cont { font-size: 8pt; letter-spacing: .22em; text-transform: uppercase; font-weight: 700;
+  color: ${FAINT}; margin: 0 0 5mm; display: flex; align-items: center; gap: 10px; }
+.cont::before { content: ''; width: 18px; height: 8px; background: ${LIME}; flex: none; }
+h2.h2s { font-size: 24pt; margin-bottom: 6mm; max-width: none; }
+.sub.tight { margin-bottom: 6mm; }
+.hh { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 11.5pt;
+  letter-spacing: -.025em; margin: 0 0 3.5mm; break-after: avoid; }
+.hh.gap { margin-top: 8mm; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+.two.gap { margin-top: 7mm; }
+.panel { border: 1px solid ${LINE}; border-top: 4px solid ${LIME}; padding: 5mm 5.5mm;
+  break-inside: avoid; }
+ul.bl { margin: 0; padding: 0; list-style: none; }
+ul.bl li { position: relative; padding-left: 14px; font-size: 9pt; line-height: 1.5;
+  margin-bottom: 2mm; }
+ul.bl li:last-child { margin-bottom: 0; }
+ul.bl li::before { content: ''; position: absolute; left: 0; top: .55em; width: 6px;
+  height: 6px; background: ${LIME}; box-shadow: 0 0 0 .6px ${INK}; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid ${INK};
+  break-inside: avoid; }
+.stat { padding: 4mm 4mm; border-right: 1px solid ${LINE}; border-bottom: 1px solid ${LINE}; }
+.stat:nth-child(4n) { border-right: 0; }
+.stat:nth-last-child(-n+4) { border-bottom: 0; }
+.stat .b { font-size: 15pt; font-weight: 700; letter-spacing: -.04em; line-height: 1.05;
+  white-space: nowrap; }
+.stat .s { font-size: 8.4pt; color: ${MUTED}; line-height: 1.45; margin-top: 1.5mm; }
+table.says { width: 100%; border-collapse: collapse; font-size: 9.2pt; break-inside: avoid;
+  border: 1px solid ${INK}; }
+table.says th { text-align: left; font-size: 7.2pt; letter-spacing: .16em;
+  text-transform: uppercase; color: ${MUTED}; font-weight: 700; padding: 2.4mm 3.5mm;
+  background: ${WASH}; border-bottom: 1px solid ${LINE}; }
+table.says td { padding: 1.9mm 3.5mm; border-bottom: 1px solid ${LINE}; vertical-align: middle; }
+table.says tr:last-child td { border-bottom: 0; }
+table.says .w { font-weight: 700; }
+table.says .m { color: ${MUTED}; }
+table.says .btn { display: inline-block; border: 1px solid ${INK}; padding: .4mm 2.4mm;
+  font-size: 8.2pt; font-weight: 700; white-space: nowrap; }
+table.says .none { color: ${FAINT}; font-size: 8.6pt; }
+.srcs { display: flex; flex-wrap: wrap; align-items: center; gap: 2mm 3mm; margin-top: 4mm;
+  font-size: 8.6pt; }
+.srcs .lbl { font-size: 7.2pt; letter-spacing: .18em; text-transform: uppercase;
+  font-weight: 700; color: ${MUTED}; margin-right: 1mm; }
+.srcs .src { border: 1px solid ${LINE}; padding: .6mm 2.4mm; color: ${MUTED}; }
+.srcs .src b { color: ${INK}; }
+.rest { display: flex; flex-wrap: wrap; align-items: center; gap: 2mm; }
+.rest .r { border: 1px solid ${INK}; padding: 1.6mm 3.6mm; font-weight: 700; font-size: 9.2pt;
+  letter-spacing: -.01em; }
+.rest .r.go { background: ${LIME}; border-color: ${LIME}; }
+.rest .sep { color: ${FAINT}; display: flex; }
+.callout { border: 1px solid ${INK}; border-left: 6mm solid ${LIME}; padding: 4mm 6mm;
+  margin-top: 5mm; font-size: 9.8pt; line-height: 1.6; break-inside: avoid; }
+.yours { border: 1px solid ${LINE}; border-left: 5px solid ${LIME}; padding: 6mm 8mm 3mm;
+  margin-top: 6mm; break-inside: avoid; }
+.yours .path { margin-bottom: 4mm; }
+.cre { border-top: 1px solid ${INK}; }
+.cre .cs { display: flex; gap: 6mm; padding: 3.2mm 0; border-bottom: 1px solid ${LINE};
+  break-inside: avoid; }
+.cre .k { width: 34mm; flex: none; font-weight: 700; font-size: 10.4pt; display: flex;
+  align-items: center; gap: 9px; letter-spacing: -.02em; align-self: flex-start; }
+.cre .k .n { width: 18px; height: 18px; background: ${LIME}; display: flex;
+  align-items: center; justify-content: center; font-size: 8pt; font-weight: 800; flex: none; }
+.cre .t { font-size: 9.6pt; line-height: 1.6; padding-top: .1em; }
+.where { margin-top: 2mm; border: 1px solid ${INK}; break-inside: avoid; }
+.where .wr { display: flex; gap: 6mm; padding: 3mm 5mm; border-bottom: 1px solid ${LINE}; }
+.where .wr:last-child { border-bottom: 0; }
+.where .w { width: 50mm; flex: none; font-weight: 700; font-size: 9.4pt; }
+.where .t { font-size: 9.2pt; color: ${MUTED}; }
+.note.warn { display: flex; align-items: center; gap: 8px; margin-top: 5mm; color: ${INK}; }
 
 /* ── Small print ────────────────────────────────────────────────────────────────────── */
 .note { font-size: 9.4pt; color: ${MUTED}; max-width: 56ch; }
