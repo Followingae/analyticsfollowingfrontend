@@ -8,11 +8,11 @@
 import * as React from "react"
 import { useCallback, useEffect, useState } from "react"
 import { AnimatePresence, motion } from "motion/react"
-import { AlertTriangle, ArrowRight, Check, Instagram, MessageCircle, Radar, ScanSearch, X } from "lucide-react"
+import { AlertTriangle, ArrowRight, Check, Instagram, MessageCircle, Radar, RotateCcw, ScanSearch, X } from "lucide-react"
 import { scoutApi, type ScoutActivity as Activity } from "@/services/scoutApi"
 import { ago } from "./WorkerPill"
 
-function Progress({ done, total }: { done: number; total: number | null }) {
+export function Progress({ done, total }: { done: number; total: number | null }) {
   if (!total) {
     return (
       <div className="relative h-1.5 overflow-hidden rounded-full bg-muted">
@@ -29,24 +29,33 @@ function Progress({ done, total }: { done: number; total: number | null }) {
   )
 }
 
+/** The campaign name, unless the label already says it. */
+export function subUnlessIn(label: string, sub: string | null | undefined) {
+  if (!sub) return null
+  return label.toLowerCase().includes(sub.toLowerCase()) ? null : sub
+}
+
+const wrap = "min-w-0 break-words [overflow-wrap:anywhere]"
+
 function Row({ icon, title, sub, right, phase, children }: {
   icon: React.ReactNode; title: string; sub?: string | null; right?: React.ReactNode; phase?: string | null; children?: React.ReactNode
 }) {
+  const s = subUnlessIn(title, sub)
   return (
-    <motion.div layout initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex gap-3">
+    <motion.div layout="position" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex min-w-0 gap-3">
       <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">{icon}</span>
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <div className="flex items-baseline gap-2">
-          <p className="min-w-0 truncate text-sm font-medium">{title}{sub && <span className="font-normal text-muted-foreground"> · {sub}</span>}</p>
-          {right && <span className="ml-auto shrink-0 text-xs tabular-nums text-muted-foreground">{right}</span>}
+        <div className="flex min-w-0 items-start gap-3">
+          <p className={`${wrap} line-clamp-2 flex-1 text-sm font-medium`}>
+            {title}{s && <span className="font-normal text-muted-foreground"> · {s}</span>}
+          </p>
+          {right && <span className="shrink-0 whitespace-nowrap pt-0.5 text-right text-xs tabular-nums text-muted-foreground">{right}</span>}
         </div>
         {phase && (
-          <div className="h-4 overflow-hidden">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.p key={phase} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.2 }} className="truncate text-xs text-muted-foreground">{phase}</motion.p>
-            </AnimatePresence>
-          </div>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.p key={phase} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.2 }} className={`${wrap} line-clamp-2 text-xs text-muted-foreground`}>{phase}</motion.p>
+          </AnimatePresence>
         )}
         {children}
       </div>
@@ -54,7 +63,21 @@ function Row({ icon, title, sub, right, phase, children }: {
   )
 }
 
-function clock(ms: number) {
+type Recent = Activity["recent"][number]
+const RESTARTED = "Stopped (the server restarted)"
+
+/** Identical consecutive finished jobs (same label, status and note) become one row with ×N. */
+function groupRecent(rs: Recent[]): { r: Recent; n: number }[] {
+  const out: { r: Recent; n: number }[] = []
+  for (const r of rs) {
+    const last = out[out.length - 1]
+    if (last && last.r.label === r.label && last.r.status === r.status && (last.r.note || "") === (r.note || "")) last.n++
+    else out.push({ r, n: 1 })
+  }
+  return out
+}
+
+export function clock(ms: number) {
   const s = Math.max(0, Math.round(ms / 1000))
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
   return h ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}` : `${m}:${String(sec).padStart(2, "0")}`
@@ -72,8 +95,8 @@ function DmRow({ dm }: { dm: Activity["dm"] }) {
     <Row icon={<Instagram className="h-4 w-4" />} title="Instagram DMs" sub={dm.queue ? `${dm.queue.toLocaleString()} queued` : null}
          right={`${dm.sent_today.toLocaleString()} of ${dm.cap_today.toLocaleString()} today`}>
       {dm.cap_today > 0 && <Progress done={dm.sent_today} total={dm.cap_today} />}
-      {status && <p className={`text-xs tabular-nums ${!dm.online ? "text-muted-foreground" : dm.paused ? "text-amber-700" : "text-foreground"}`}>{status}</p>}
-      {warning && <p className="flex items-start gap-1.5 text-xs text-red-700"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{warning}</p>}
+      {status && <p className={`${wrap} text-xs tabular-nums ${!dm.online ? "text-muted-foreground" : dm.paused ? "text-amber-700" : "text-foreground"}`}>{status}</p>}
+      {warning && <p className="flex min-w-0 items-start gap-1.5 text-xs text-red-700"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className={`${wrap} line-clamp-3`}>{warning}</span></p>}
     </Row>
   )
 }
@@ -91,11 +114,11 @@ export function ScoutActivity({ onOpenList }: { onOpenList: (listId: string) => 
   const dmBusy = a.dm.online && !a.dm.paused && a.dm.queue > 0
   const working = a.running.length > 0 || a.whatsapp_sending.length > 0 || dmBusy
   const todo = [...a.todo].sort((x, y) => (x.kind === "attention" ? 0 : 1) - (y.kind === "attention" ? 0 : 1))
-  const recent = a.recent.slice(0, 3)
+  const recent = groupRecent(a.recent).slice(0, 3)
   const showNow = working || dmWarning
 
   return (
-    <section className="flex flex-col gap-5 rounded-2xl border bg-background p-5">
+    <section className="flex min-w-0 flex-col gap-5 rounded-2xl border bg-background p-4 sm:p-5">
       <div className="flex items-center gap-2.5">
         {working ? (
           <span className="relative flex h-2.5 w-2.5">
@@ -106,9 +129,9 @@ export function ScoutActivity({ onOpenList }: { onOpenList: (listId: string) => 
         <p className="font-semibold">{working ? "Scout is working" : "Idle"}</p>
       </div>
 
-      <div className={`grid gap-6 ${showNow && (todo.length || recent.length) ? "lg:grid-cols-[1.3fr_1fr]" : ""}`}>
+      <div className={`grid min-w-0 grid-cols-1 gap-6 ${showNow && (todo.length || recent.length) ? "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]" : ""}`}>
         {showNow && (
-          <div className="flex flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
             <AnimatePresence initial={false}>
               {a.running.map(j => (
                 <Row key={j.id} icon={j.kind === "check" ? <ScanSearch className="h-4 w-4" /> : <Radar className="h-4 w-4" />}
@@ -130,22 +153,22 @@ export function ScoutActivity({ onOpenList }: { onOpenList: (listId: string) => 
         )}
 
         {(todo.length > 0 || recent.length > 0) && (
-          <div className="flex flex-col gap-5">
+          <div className="flex min-w-0 flex-col gap-5">
             {todo.length > 0 && (
-              <div className="flex flex-col gap-1.5">
+              <div className="flex min-w-0 flex-col gap-1.5">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Next up</p>
                 {todo.map((t, i) => {
                   const attention = t.kind === "attention"
                   const body = (
                     <>
-                      {attention ? <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                        : t.kind === "dm" ? <Instagram className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        : <Radar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
-                      <span className="min-w-0 flex-1 truncate">{t.label}</span>
-                      {t.list_id && <ArrowRight className="h-3.5 w-3.5 shrink-0 opacity-50" />}
+                      {attention ? <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        : t.kind === "dm" ? <Instagram className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        : <Radar className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
+                      <span className={`${wrap} line-clamp-2 flex-1`}>{t.label}</span>
+                      {t.list_id && <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-50" />}
                     </>
                   )
-                  const cls = `flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm ${attention ? "bg-amber-50 text-amber-900" : ""}`
+                  const cls = `flex w-full min-w-0 items-start gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm ${attention ? "bg-amber-50 text-amber-900" : ""}`
                   return t.list_id
                     ? <button key={i} type="button" onClick={() => onOpenList(t.list_id!)} className={`${cls} transition-colors hover:bg-muted/50`}>{body}</button>
                     : <div key={i} className={cls}>{body}</div>
@@ -153,20 +176,30 @@ export function ScoutActivity({ onOpenList }: { onOpenList: (listId: string) => 
               </div>
             )}
             {recent.length > 0 && (
-              <div className="flex flex-col gap-2">
+              <div className="flex min-w-0 flex-col gap-2.5">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Just finished</p>
-                {recent.map(r => (
-                  <div key={r.id} className="flex gap-2.5 text-sm">
-                    {r.status === "failed" ? <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-600" /> : <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate">{r.label}{r.list_name && <span className="text-muted-foreground"> · {r.list_name}</span>}</p>
-                      {r.note && <p className="truncate text-xs text-muted-foreground">{r.note}</p>}
+                {recent.map(({ r, n }) => {
+                  const restarted = r.status === "failed" && (r.note || "").startsWith(RESTARTED)
+                  const s = subUnlessIn(r.label, r.list_name)
+                  return (
+                    <div key={r.id} className="grid min-w-0 grid-cols-[14px_minmax(0,1fr)_auto_2.75rem] items-start gap-x-2.5 text-sm">
+                      {r.status !== "failed" ? <Check className="mt-0.5 h-3.5 w-3.5 text-emerald-600" />
+                        : restarted ? <RotateCcw className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
+                        : <X className="mt-0.5 h-3.5 w-3.5 text-red-600" />}
+                      <div className="min-w-0">
+                        <p className={`${wrap} line-clamp-2 ${restarted ? "text-muted-foreground" : ""}`}>
+                          {r.label}{s && <span className="text-muted-foreground"> · {s}</span>}
+                          {n > 1 && <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-[11px] tabular-nums text-muted-foreground">×{n}</span>}
+                        </p>
+                        {r.note && <p className={`${wrap} line-clamp-2 text-xs text-muted-foreground`}>{r.note}</p>}
+                      </div>
+                      <span className="whitespace-nowrap text-right text-xs tabular-nums text-muted-foreground">
+                        {r.cost_usd != null && Number(r.cost_usd) > 0 ? `$${Number(r.cost_usd).toFixed(2)}` : ""}
+                      </span>
+                      <span className="text-right text-xs tabular-nums text-muted-foreground">{ago(r.finished_at)}</span>
                     </div>
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {r.cost_usd != null ? `$${Number(r.cost_usd).toFixed(2)} · ` : ""}{ago(r.finished_at)}
-                    </span>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
