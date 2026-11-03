@@ -545,8 +545,28 @@ function Detail() {
                   catch (e) { toast.error(e instanceof Error ? e.message : "Could not open the passport") }
                 }}>View passport</Button>
               ) : undefined}>
+          {/* "pending" read as stuck. It means nobody has looked yet, and the verdict is
+              given right here now, not on another screen. */}
           <KV k="Status" always v={has(S.passport_status) ? (
-            <span className={/reject/.test(pStatus) ? "text-red-700" : /pending|review/.test(pStatus) ? "text-amber-700" : ""}>{words(S.passport_status)}</span>
+            <span className="flex flex-wrap items-center gap-2">
+              <span className={/reject/.test(pStatus) ? "text-red-700" : /pending|review/.test(pStatus) ? "text-amber-700" : "text-emerald-700"}>
+                {/pending|review/.test(pStatus) ? "Not checked yet" : /reject/.test(pStatus) ? "Sent back" : "Checked"}
+              </span>
+              {/pending|review/.test(pStatus) && (
+                <>
+                  <Button size="sm" className="h-7 px-2.5 text-xs" onClick={async () => {
+                    try { await enrolmentApi.passportVerdict(id, true); toast.success("Passport checked"); load() }
+                    catch (e) { toast.error(e instanceof Error ? e.message : "Could not save that") }
+                  }}>Looks right</Button>
+                  <Button size="sm" variant="ghost" className="h-7 px-2.5 text-xs" onClick={async () => {
+                    const note = window.prompt("What is wrong with it? They will see this.")
+                    if (!note?.trim()) return
+                    try { await enrolmentApi.passportVerdict(id, false, note.trim()); toast.success("Sent back. Their passport step is open again"); load() }
+                    catch (e) { toast.error(e instanceof Error ? e.message : "Could not save that") }
+                  }}>Send back</Button>
+                </>
+              )}
+            </span>
           ) : has(S.passport_uploaded_at) ? "Uploaded" : ""} />
           <KV k="File" v={str(S.passport_filename)} />
           <KV k="Uploaded" v={at(S.passport_uploaded_at)} />
