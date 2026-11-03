@@ -72,6 +72,8 @@ type Row = ImdListCreator & {
   proposal_id?: string | null; proposal_title?: string | null; on_proposal?: boolean | null; proposal_selected?: boolean | null
   /** ScoutOutreach's DM for this roster: proposed/approved/sending/sent/replied/failed/skipped. */
   dm_status?: string | null
+  /** Was on one of this client's earlier proposals, e.g. "UAE Campaign (Aug 2026, confirmed)". */
+  earlier_proposal?: string | null
 }
 
 /** A quiet Skip for one row. The reason is optional and never blocks. */
@@ -1038,6 +1040,11 @@ export default function ImdListDetailPage() {
                                             title={[c.full_name, c.country, c.tiktok_username ? "TikTok" : null, c.youtube_handle ? "YouTube" : null].filter(Boolean).join(" · ")}>
                                         {[fmt(c.followers_count), originOf(c)].filter(Boolean).join(" · ")}
                                       </span>
+                                      {(c as Row).earlier_proposal && (
+                                        <span className="block truncate text-ds-caption text-[var(--tone-info-ink)]">
+                                          Was on {(c as Row).earlier_proposal}
+                                        </span>
+                                      )}
                                       {(c.relationship_tags?.length || c.passed_elsewhere_reason) ? (
                                         <span className="block truncate text-ds-caption text-[var(--tone-good-ink)]">
                                           {c.relationship_tags?.slice(0, 2).join(" · ")}
