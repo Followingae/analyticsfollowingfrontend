@@ -32,7 +32,7 @@ import Link from "next/link"
 import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { Button } from "@/components/ui/button"
-import { MoneyHubHeader } from "@/components/console/MoneyHubHeader"
+import { CampaignsHubHeader } from "@/components/console/CampaignsHubHeader"
 import { Input } from "@/components/ui/input"
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -388,9 +388,8 @@ function EnrolmentsPage() {
           the sidebar listed on its own. It is one of the money jobs, so it wears the money
           hub's header and its tabs: "we cannot pay her yet" and the reason why are no longer
           two screens apart. */}
-      <MoneyHubHeader
-        title="Enrolments"
-        sub="Once a brand confirms a creator, this is the paperwork: the agreement they sign, the details they give us, and where their money and their product go."
+      <CampaignsHubHeader
+        note="Once a brand confirms a creator, this is the paperwork: the agreement they sign, the details they give us, and where their money and their product go."
         action={
         <div className="flex items-center gap-2">
           <div className="relative">

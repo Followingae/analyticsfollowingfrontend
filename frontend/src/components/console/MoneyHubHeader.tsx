@@ -40,10 +40,8 @@ export function useMoneyTabs(): HubTab[] {
     // Cost, not just creators — see the note above.
     { href: '/work/payables', module: 'influencers', when: canSeeCost },
     { label: 'Creator app balances', href: '/work/fa/wallets', module: 'fa', when: canSeeCost },
-    /* The paperwork a payment depends on: what a creator signed and the bank details they
-       gave us. It sat in the nav as its own thing, so "we cannot pay her yet" and the reason
-       why were two screens apart. */
-    { href: '/work/enrolments', module: 'influencers', when: canSeeCost },
+    /* Enrolments moved to the Campaigns hub (2026-11-03): they are the paperwork for a
+       booking. Creator payments stay here, and each one links back to its enrolment. */
     /* The founders' desk: prices to set, creators to release, payments to approve. Every
        action on it moves money, which is why it is here and not a destination of its own.
        Leadership only, by the same test that gates margin. */

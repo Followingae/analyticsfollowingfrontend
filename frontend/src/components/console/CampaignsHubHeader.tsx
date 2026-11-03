@@ -189,16 +189,23 @@ export function CampaignsHubHeader({ action, note }: {
   note?: React.ReactNode
 }) {
   const pathname = usePathname() || ''
+  const { canSeeCost, loading } = useAdminAccess()
   // The list of everything is the only place the pipeline belongs; the other tabs are
   // already inside one stage.
   const onAllCampaigns = pathname === '/work/campaigns' || pathname === '/superadmin/campaigns'
+  /* Enrolments live with campaigns (Zain, 2026-11-03): a creator is enrolled because they
+     are booked on one. It sat under Money, two hubs away from the booking it papers. The
+     fee is on it, so it is shown to those who may see cost. */
+  const tabs = !loading && canSeeCost
+    ? [...TABS.slice(0, 1), { href: '/work/enrolments', module: 'influencers' as AdminModule }, ...TABS.slice(1)]
+    : TABS
 
   return (
     <Hub
       title="Campaigns"
       /* The old sub listed the four tabs that are drawn immediately beneath it. */
       sub="Everything we are delivering."
-      tabs={TABS}
+      tabs={tabs}
       action={action}
     >
       {note && <p className="max-w-3xl text-sm text-muted-foreground">{note}</p>}

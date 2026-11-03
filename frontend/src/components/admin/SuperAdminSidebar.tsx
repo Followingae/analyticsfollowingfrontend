@@ -216,19 +216,21 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
     // ScoutOutreach: the outreach teammate. Its goals, its live work, everyone it has found.
     { url: "/work/scout", icon: Radar, modules: ["influencers"], scopes: ["leadership", "talent"] },
     // Hub: all campaigns, app campaigns, production, reports, chasing.
-    { url: "/work/campaigns", icon: Megaphone, badge: "chasing",
+    // Enrolments are a Campaigns tab now, so their "needs attention" count rides here too.
+    { url: "/work/campaigns", icon: Megaphone, badge: "chasing+enrolments",
       modules: ["campaigns", "operations", "fa"] },
     // Every campaign's tracked links at once. Set-up stays on each campaign's Links tab;
     // this is the view across them, asked for as its own row rather than a hub tab.
     { url: "/work/affiliate-links", icon: Link2, modules: ["campaigns"] },
     // Hub: client credits, contracting, creator payments, app balances, enrolments, sign-offs.
-    { url: "/work/money", icon: Wallet, badge: "enrolments",
+    { url: "/work/money", icon: Wallet,
       modules: ["billing", "influencers"], scopes: ["leadership", "talent"] },
   ]
 
   const managementItems = accessLoading ? [] : WORK.filter(allowed).map(e => ({
     title: "", url: e.url, icon: e.icon,
-    ...(e.badge ? { badge: badges[e.badge] } : {}),
+    // "a+b" sums two counts onto one row (Campaigns carries chasing and enrolments).
+    ...(e.badge ? { badge: e.badge.split("+").reduce((n, k) => n + (badges[k] || 0), 0) || undefined } : {}),
   }))
 
   /**
