@@ -8,21 +8,27 @@
  * goals and start light analytics; everyone on the talent side can watch it work.
  */
 import * as React from "react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { AnimatePresence, motion } from "motion/react"
-import { CheckCircle2, Database, Loader2, Pause, Play, Plus, Sparkles, Target, Users, Wand2 } from "lucide-react"
+import { ArrowRight, CheckCircle2, Database, Loader2, Pause, Play, Plus, Send, Sparkles, Target, Users, Wand2 } from "lucide-react"
 import { toast } from "sonner"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { ScoutAvatar } from "@/components/roster/ScoutAvatar"
+import { CampaignsTable } from "@/components/scout/CampaignsTable"
+import { CreatorSheet } from "@/components/scout/CreatorSheet"
 import { NetworkBrowser } from "@/components/scout/NetworkBrowser"
+import { PeopleTable } from "@/components/scout/PeopleTable"
 import { ScoutBotCard } from "@/components/scout/ScoutBotCard"
+import { eventText } from "@/components/scout/scoutText"
 import { useAdminAccess } from "@/hooks/useAdminAccess"
 import { imdListsApi, type ImdListSummary } from "@/services/imdListsApi"
-import { scoutApi, type ScoutEvent, type ScoutGoal, type ScoutOverview } from "@/services/scoutApi"
+import { scoutApi, type ScoutCampaignsData, type ScoutEvent, type ScoutGoal, type ScoutOverview } from "@/services/scoutApi"
 
 const CATS = ["food", "beauty", "lifestyle", "fashion", "family", "fitness", "travel", "tech", "luxury", "automotive", "entertainment"]
 const MARKETS: [string, string][] = [["AE", "UAE"], ["SA", "Saudi Arabia"], ["QA", "Qatar"], ["KW", "Kuwait"], ["BH", "Bahrain"], ["OM", "Oman"]]
@@ -32,21 +38,10 @@ function ago(t: string) {
   return s < 60 ? `${s}s` : s < 3600 ? `${Math.round(s / 60)}m` : s < 86400 ? `${Math.round(s / 3600)}h` : `${Math.round(s / 86400)}d`
 }
 
-function eventText(e: ScoutEvent): string {
-  const h = e.username ? `@${e.username}` : ""
-  switch (e.kind) {
-    case "found": return `Found ${h}${e.channel ? ` via ${e.channel}` : ""}`
-    case "light_analysed": return `Light analytics on ${h}`
-    case "contacted": return `Messaged ${h}${e.channel ? ` on ${e.channel}` : ""}`
-    case "replied": return `${h} replied`
-    case "applied": return `${h} applied${e.detail?.campaign ? ` to ${e.detail.campaign}` : ""}`
-    case "relevant": return `${h} is a relevant applicant${e.detail?.campaign ? ` for ${e.detail.campaign}` : ""}`
-    case "added_to_database": return `${h} added to the database (main analytics started)`
-    case "goal_met": return e.detail?.text || "Goal met"
-    case "warning": return e.detail?.text || "Warning"
-    default: return e.detail?.text || e.kind
-  }
-}
+type Tab = "overview" | "campaigns" | "general" | "network"
+const TABS: Tab[] = ["overview", "campaigns", "general", "network"]
+
+const GENERAL_STEPS: [string, string][] = [["contacted", "Contacted"], ["clicked", "Clicked"], ["joined_app", "Joined app"], ["in_database", "In database"]]
 
 function Ring({ value, target, size = 92 }: { value: number; target: number; size?: number }) {
   const pct = Math.min(1, target ? value / target : 0)
@@ -195,8 +190,67 @@ function LightLauncher({ contacts, onStarted }: { contacts: number | null; onSta
   )
 }
 
-export default function ScoutPage() {
+function GeneralFunnel({ g }: { g: ScoutCampaignsData["general"] }) {
+  const values: Record<string, number> = g.funnel
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border bg-background p-5 md:flex-row md:items-center">
+      <div className="flex flex-1 flex-wrap items-center gap-2 md:flex-nowrap">
+        {GENERAL_STEPS.map(([k, l], i) => (
+          <React.Fragment key={k}>
+            {i > 0 && <ArrowRight className="hidden h-4 w-4 shrink-0 text-muted-foreground md:block" />}
+            <div className="min-w-[120px] flex-1 rounded-xl bg-muted/40 px-4 py-3">
+              <motion.p key={values[k]} initial={{ opacity: 0.4, y: 3 }} animate={{ opacity: 1, y: 0 }}
+                        className="text-2xl font-semibold tabular-nums">{(values[k] || 0).toLocaleString()}</motion.p>
+              <p className="text-xs text-muted-foreground">{l}</p>
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
+      {g.queue > 0 && (
+        <div className="flex items-center gap-2 text-sm md:border-l md:pl-5">
+          <Send className="h-4 w-4 text-muted-foreground" />
+          <span><span className="font-semibold tabular-nums">{g.queue.toLocaleString()}</span> <span className="text-muted-foreground">waiting for the bot</span></span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function ScoutPageWrapper() {
+  return <Suspense fallback={null}><ScoutPage /></Suspense>
+}
+
+function ScoutPage() {
   const { canDestroy } = useAdminAccess()
+  const router = useRouter()
+  const pathname = usePathname()
+  const params = useSearchParams()
+  const rawTab = params.get("tab") as Tab | null
+  const tab: Tab = rawTab && TABS.includes(rawTab) ? rawTab : "overview"
+  const list = params.get("list")
+  const creator = params.get("creator")
+  // Tab, open campaign and open creator live in the URL, so any view can be linked to.
+  const setParams = useCallback((patch: Record<string, string | null>) => {
+    const p = new URLSearchParams(params.toString())
+    Object.entries(patch).forEach(([k, v]) => { if (v) p.set(k, v); else p.delete(k) })
+    const qs = p.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }, [params, pathname, router])
+  const openCreator = useCallback((u: string) => setParams({ creator: u }), [setParams])
+
+  const [camps, setCamps] = useState<ScoutCampaignsData | null>(null)
+  const loadCamps = useCallback(async () => {
+    if (typeof document !== "undefined" && document.hidden) return
+    try { setCamps((await scoutApi.campaigns()).data) } catch { /* next tick */ }
+  }, [])
+  // Campaigns feed the tabs and every "DM about" picker: live while on Campaigns or General, once otherwise.
+  useEffect(() => {
+    loadCamps()
+    if (tab !== "campaigns" && tab !== "general") return
+    const t = setInterval(loadCamps, 10000)
+    return () => clearInterval(t)
+  }, [tab, loadCamps])
+
   const [data, setData] = useState<ScoutOverview | null>(null)
   const [events, setEvents] = useState<ScoutEvent[]>([])
   const [adding, setAdding] = useState(false)
@@ -259,6 +313,18 @@ export default function ScoutPage() {
 
         <ScoutBotCard canEdit={canDestroy} />
 
+        <Tabs value={tab} onValueChange={(v: string) => setParams({ tab: v === "overview" ? null : v, list: v === "campaigns" ? list : null })}
+              className="gap-6">
+          <TabsList className="h-10 w-full justify-start overflow-x-auto rounded-full p-1 sm:w-fit">
+            {([["overview", "Overview", null], ["campaigns", "Campaigns", camps?.campaigns.length],
+               ["general", "General", null], ["network", "Network", null]] as const).map(([k, l, n]) => (
+              <TabsTrigger key={k} value={k} className="rounded-full px-4">
+                {l}{n ? <span className="ml-1 tabular-nums text-muted-foreground">{n}</span> : null}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="overview" className="flex flex-col gap-8">
         <section className="grid gap-4 md:grid-cols-3">
           {[["Creator database", data?.network.database, Database], ["Found by light analytics", data?.network.light_only, Sparkles],
             ["App creators", data?.network.app, Users]].map(([l, n, Icon]: any) => (
@@ -306,7 +372,9 @@ export default function ScoutPage() {
                 {events.map(e => (
                   <motion.div key={e.id} layout initial={{ opacity: 0, y: -8, backgroundColor: "rgba(211,255,2,0.25)" }}
                               animate={{ opacity: 1, y: 0, backgroundColor: "rgba(211,255,2,0)" }} transition={{ duration: 0.6 }}
-                              className="flex items-center gap-3 border-b px-4 py-3 last:border-0">
+                              onClick={e.username ? () => openCreator(e.username!) : undefined}
+                              role={e.username ? "button" : undefined}
+                              className={`flex items-center gap-3 border-b px-4 py-3 last:border-0 ${e.username ? "cursor-pointer hover:bg-muted/40" : ""}`}>
                     {e.avatar
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={e.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
@@ -320,12 +388,31 @@ export default function ScoutPage() {
             </div>
           </div>
         </section>
+          </TabsContent>
 
-        <section className="flex flex-col gap-4">
-          <h2 className="text-xl font-semibold">Everyone ScoutOutreach has found</h2>
-          <NetworkBrowser defaultSegment="light" canAdd={canDestroy} />
-        </section>
+          <TabsContent value="campaigns" className="flex flex-col gap-4">
+            {camps ? (
+              <CampaignsTable campaigns={camps.campaigns} expanded={list} onToggle={id => setParams({ list: id })} onOpen={openCreator} />
+            ) : <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}
+          </TabsContent>
+
+          <TabsContent value="general" className="flex flex-col gap-4">
+            <div>
+              <h2 className="text-xl font-semibold">General outreach</h2>
+              <p className="text-sm text-muted-foreground">Creators invited to join Following, not tied to one campaign</p>
+            </div>
+            {camps && <GeneralFunnel g={camps.general} />}
+            <PeopleTable listId="general" mode="general" onOpen={openCreator} />
+          </TabsContent>
+
+          <TabsContent value="network" className="flex flex-col gap-4">
+            <NetworkBrowser defaultSegment="all" canAdd={canDestroy} onOpen={openCreator} dmCampaigns={camps?.campaigns || []} />
+          </TabsContent>
+        </Tabs>
       </div>
+
+      <CreatorSheet username={creator} onClose={() => setParams({ creator: null })} canEdit={canDestroy}
+                    campaigns={camps?.campaigns || []} onChanged={loadCamps} />
     </SuperadminLayout>
   )
 }

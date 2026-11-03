@@ -154,6 +154,64 @@ export interface ScoutRosterPlan {
   worker: ScoutWorker
 }
 
+/* ---- The connected circle: campaigns, people per campaign, one creator in full ---- */
+
+export interface ScoutCampaign {
+  list_id: string
+  name: string
+  brand: string | null
+  open_call: { id: string; title: string; status: string } | null
+  goal: { target: number; round_no: number; status: string; progress: number } | null
+  need: number | null
+  funnel: { contacted: number; whatsapp: number; instagram: number; clicked: number; chatting: number
+            applied: number; relevant: number; shortlisted: number; in_proposal: number }
+  dm_queue: number
+  last_activity: string | null
+}
+
+export interface ScoutCampaignsData {
+  campaigns: ScoutCampaign[]
+  general: { funnel: { contacted: number; clicked: number; joined_app: number; in_database: number }; queue: number }
+}
+
+export type PersonStage = 'queued' | 'contacted' | 'clicked' | 'chatting' | 'applied' | 'relevant' | 'shortlisted'
+  | 'in_proposal' | 'passed' | 'failed' | 'skipped' | 'joined_app' | 'in_database'
+export type PersonChannel = 'instagram' | 'whatsapp' | 'link'
+
+export interface ScoutPerson {
+  username: string
+  full_name: string | null
+  avatar: string | null
+  followers: number | null
+  engagement_rate: number | null
+  city: string | null
+  categories: string[] | null
+  channel: PersonChannel
+  outreach_id: string | null
+  conversation_id: string | null
+  stage: PersonStage
+  steps: { queued_at: string | null; sent_at: string | null; clicked_at: string | null; chat_at: string | null
+           applied_at: string | null; relevant: boolean | null; review: string | null; in_proposal: boolean; joined_app: boolean }
+  last_at: string | null
+}
+
+export interface ScoutCreatorDetail {
+  creator: {
+    username: string; full_name: string | null; avatar: string | null; followers: number | null; engagement_rate: number | null
+    city: string | null; country: string | null; categories: string[] | null; languages: string[] | null
+    summary: string | null; biography: string | null; avg_likes: number | null; avg_views: number | null
+    posts_per_week: number | null; last_post_at: string | null; public_email: string | null; is_creator: boolean | null
+    on_app: boolean; in_database: boolean; imd_id: string | null; analytics_status: string | null; whatsapp: boolean
+  }
+  outreach: { id: string; list_id: string | null; list_name: string | null; channel: string; status: string; message: string | null
+              sent_at: string | null; clicked_at: string | null; clicks: number | null; replied_at: string | null; reply_text: string | null }[]
+  conversations: { id: string; list_id: string; list_name: string | null; title: string | null; state: string
+                   review: string | null; fit: string | null; answers: Record<string, any> | null
+                   created_at: string; last_inbound_at: string | null
+                   applied_at?: string | null; reviewed_at?: string | null }[]
+  events: ScoutEvent[]
+}
+
 export const scoutApi = {
   overview: (): Promise<{ data: ScoutOverview }> => jfetch(`${BASE}/scout/overview`),
   events: (after?: number, listId?: string): Promise<{ data: { events: ScoutEvent[] } }> => {
@@ -198,4 +256,19 @@ export const scoutApi = {
   worker: (): Promise<{ data: ScoutWorker }> => jfetch(`${BASE}/scout/worker`),
   setWorker: (body: { paused?: boolean; daily_cap?: number }): Promise<{ data?: ScoutWorker }> =>
     jfetch(`${BASE}/scout/worker`, { method: 'POST', body: JSON.stringify(body) }),
+
+  // The connected circle: filter, DM, track every step, open any creator.
+  campaigns: (): Promise<{ data: ScoutCampaignsData }> => jfetch(`${BASE}/scout/campaigns`),
+  people: (listId: string | 'general', q: { stage?: string; channel?: string; search?: string } = {}):
+    Promise<{ data: { people: ScoutPerson[] } }> => {
+    const p = new URLSearchParams()
+    Object.entries(q).forEach(([k, v]) => { if (v) p.set(k, v) })
+    return jfetch(`${BASE}/scout/campaigns/${listId}/people?${p}`)
+  },
+  creator: (username: string): Promise<{ data: ScoutCreatorDetail }> =>
+    jfetch(`${BASE}/scout/creator/${encodeURIComponent(username)}`),
+  /** Straight into the bot's queue as approved. list_id null = General outreach (join the Following network). */
+  queue: (usernames: string[], listId: string | null):
+    Promise<{ data: { queued: number; skipped: { username: string; reason: string }[] } }> =>
+    jfetch(`${BASE}/scout/outreach/queue`, { method: 'POST', body: JSON.stringify({ usernames, list_id: listId }) }),
 }

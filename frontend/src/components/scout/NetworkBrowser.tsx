@@ -11,7 +11,8 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
-import { scoutApi, type NetworkCreator, type NetworkQuery } from "@/services/scoutApi"
+import { scoutApi, type NetworkCreator, type NetworkQuery, type ScoutCampaign } from "@/services/scoutApi"
+import { DmAboutMenu } from "./DmAboutMenu"
 
 const CATEGORIES = ["fashion", "beauty", "lifestyle", "food", "travel", "fitness", "tech", "gaming", "business",
   "entertainment", "education", "automotive", "luxury", "family"]
@@ -45,18 +46,22 @@ function Avatar({ c }: { c: NetworkCreator }) {
     {c.username.slice(0, 2)}</span>
 }
 
-function CreatorCard({ c, picked, onPick, canPick }: { c: NetworkCreator; picked: boolean; onPick: () => void; canPick: boolean }) {
+function CreatorCard({ c, picked, onPick, canPick, onOpen }: {
+  c: NetworkCreator; picked: boolean; onPick: () => void; canPick: boolean; onOpen?: () => void
+}) {
   const place = [c.city?.split(",")[0], c.country].filter(Boolean).join(", ")
   return (
-    <div className={`group relative flex flex-col gap-3 rounded-2xl border bg-background p-4 transition ${picked
+    <div onClick={onOpen} role={onOpen ? "button" : undefined} tabIndex={onOpen ? 0 : undefined}
+         onKeyDown={onOpen ? e => { if (e.key === "Enter" && e.target === e.currentTarget) onOpen() } : undefined}
+         className={`group relative flex flex-col gap-3 rounded-2xl border bg-background p-4 transition ${onOpen ? "cursor-pointer" : ""} ${picked
       ? "border-foreground" : "hover:border-foreground/25"}`}>
-      {canPick && c.stage === "light" && (
-        <Checkbox checked={picked} onCheckedChange={onPick} className="absolute right-3 top-3" aria-label="Select" />
+      {canPick && (
+        <Checkbox checked={picked} onCheckedChange={onPick} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="absolute right-3 top-3" aria-label="Select" />
       )}
       <div className="flex items-center gap-3">
         <Avatar c={c} />
         <div className="min-w-0 flex-1 pr-6">
-          <a href={`https://instagram.com/${c.username}`} target="_blank" rel="noreferrer"
+          <a href={`https://instagram.com/${c.username}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
              className="flex items-center gap-1 truncate text-sm font-semibold hover:underline">
             @{c.username}{c.is_verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-sky-500" />}
           </a>
@@ -91,8 +96,12 @@ function CreatorCard({ c, picked, onPick, canPick }: { c: NetworkCreator; picked
   )
 }
 
-export function NetworkBrowser({ defaultSegment = "all", canAdd, compactHeader }: {
+export function NetworkBrowser({ defaultSegment = "all", canAdd, compactHeader, onOpen, dmCampaigns }: {
   defaultSegment?: NetworkQuery["segment"]; canAdd: boolean; compactHeader?: boolean
+  /** Open a creator's full detail. */
+  onOpen?: (username: string) => void
+  /** When given, founders can pick ANY creator and DM them about one of these campaigns (or General outreach). */
+  dmCampaigns?: ScoutCampaign[]
 }) {
   const [q, setQ] = useState<NetworkQuery>({ segment: defaultSegment, sort: "followers", page_size: 48 })
   const [page, setPage] = useState(1)
@@ -101,7 +110,8 @@ export function NetworkBrowser({ defaultSegment = "all", canAdd, compactHeader }
   const [total, setTotal] = useState(0)
   const [segments, setSegments] = useState<{ database: number; light: number; app: number } | null>(null)
   const [loading, setLoading] = useState(false)
-  const [picked, setPicked] = useState<Record<string, boolean>>({})
+  // username → stage, so a selection survives filter changes and still knows who is light.
+  const [picked, setPicked] = useState<Record<string, NetworkCreator["stage"]>>({})
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async (query: NetworkQuery, append = false) => {
@@ -120,13 +130,20 @@ export function NetworkBrowser({ defaultSegment = "all", canAdd, compactHeader }
   }, [search])
 
   const set = (p: Partial<NetworkQuery>) => setQ(prev => ({ ...prev, ...p }))
-  const ids = useMemo(() => Object.keys(picked).filter(k => picked[k]), [picked])
+  const ids = useMemo(() => Object.keys(picked), [picked])
+  const lightIds = useMemo(() => ids.filter(k => picked[k] === "light"), [ids, picked])
+  const canDm = canAdd && !!dmCampaigns
+  const togglePick = (c: NetworkCreator) => setPicked(p => {
+    const n = { ...p }
+    if (n[c.username]) delete n[c.username]; else n[c.username] = c.stage
+    return n
+  })
   const size = SIZES.findIndex(s => s[1] === q.min_followers && s[2] === q.max_followers)
 
   const add = async () => {
     setBusy(true)
     try {
-      const r = await scoutApi.addToDatabase(ids)
+      const r = await scoutApi.addToDatabase(lightIds)
       toast.success(`${r.data.added.length} added to the database`, {
         description: [r.data.added.length ? "Main analytics has started for them." : "",
                       r.data.already_in_database.length ? `${r.data.already_in_database.length} were already there.` : "",
@@ -187,8 +204,9 @@ export function NetworkBrowser({ defaultSegment = "all", canAdd, compactHeader }
         <p className="py-20 text-center text-sm text-muted-foreground">No creators match these filters.</p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          {rows.map(c => <CreatorCard key={`${c.stage}-${c.id}`} c={c} canPick={canAdd}
-                                      picked={!!picked[c.username]} onPick={() => setPicked(p => ({ ...p, [c.username]: !p[c.username] }))} />)}
+          {rows.map(c => <CreatorCard key={`${c.stage}-${c.id}`} c={c} canPick={canDm || (canAdd && c.stage === "light")}
+                                      picked={!!picked[c.username]} onPick={() => togglePick(c)}
+                                      onOpen={onOpen ? () => onOpen(c.username) : undefined} />)}
         </div>
       )}
       {loading && <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}
@@ -202,9 +220,12 @@ export function NetworkBrowser({ defaultSegment = "all", canAdd, compactHeader }
         <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border bg-background/95 py-1.5 pl-4 pr-1.5 shadow-lg backdrop-blur">
           <span className="text-sm font-medium tabular-nums">{ids.length} selected</span>
           <Button size="sm" variant="ghost" className="rounded-full" onClick={() => setPicked({})}><X className="h-3.5 w-3.5" /></Button>
-          <Button size="sm" className="gap-1.5 rounded-full bg-[#111] text-white hover:bg-black" disabled={busy} onClick={add}>
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}Add {ids.length} to Database
-          </Button>
+          {canDm && <DmAboutMenu usernames={ids} campaigns={dmCampaigns!} onDone={() => setPicked({})} />}
+          {lightIds.length > 0 && (
+            <Button size="sm" className="gap-1.5 rounded-full bg-[#111] text-white hover:bg-black" disabled={busy} onClick={add}>
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}Add {lightIds.length} to Database
+            </Button>
+          )}
         </div>
       )}
     </div>
