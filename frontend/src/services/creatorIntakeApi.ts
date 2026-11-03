@@ -27,6 +27,8 @@ async function call(url: string, options: RequestInit = {}) {
 }
 
 export interface PendingCreator {
+  /** A barter creator: normally has no price and needs none (the Barter tab). */
+  barter?: boolean
   id: string
   username: string
   full_name: string | null

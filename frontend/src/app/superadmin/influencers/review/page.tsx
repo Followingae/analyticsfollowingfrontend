@@ -41,7 +41,7 @@ import { briefLine } from '@/lib/areaBrief'
 import type { AreaBrief } from '@/services/imdListsApi'
 
 const DELIVERABLES = ['reel', 'post', 'story', 'carousel'] as const
-type Lane = 'needs_cost' | 'needs_sell'
+type Lane = 'needs_cost' | 'needs_sell' | 'barter'
 type Sort = 'newest' | 'followers' | 'cost'
 const ALL = '__all__'
 const NONE = '__none__'
@@ -104,8 +104,8 @@ export default function ReviewQueuePage() {
       if (!keepLane) {
         // Open on the lane with work this person can do: founders price first, the talent team
         // records costs. An empty lane never opens when the other one has something in it.
-        const sell = list.filter((i) => i.lane === 'needs_sell').length
-        const cost = list.filter((i) => i.lane === 'needs_cost').length
+        const sell = list.filter((i) => i.lane === 'needs_sell' && !i.barter).length
+        const cost = list.filter((i) => i.lane === 'needs_cost' && !i.barter).length
         const leader = (res.data?.scope || 'leadership') === 'leadership'
         setLane(leader ? (sell ? 'needs_sell' : cost ? 'needs_cost' : 'needs_sell')
                        : (cost ? 'needs_cost' : sell ? 'needs_sell' : 'needs_cost'))
@@ -167,8 +167,10 @@ export default function ReviewQueuePage() {
   const clearFilters = () => { setQ(''); setRoster(ALL); setOrigin(ALL); setSize(ALL); setCosted(ALL) }
 
   const lanes = useMemo(() => ({
-    needs_cost: filtered.filter((i) => i.lane === 'needs_cost'),
-    needs_sell: filtered.filter((i) => i.lane === 'needs_sell'),
+    // Barter creators normally have no price and need none: their own tab, not a to-do.
+    needs_cost: filtered.filter((i) => i.lane === 'needs_cost' && !i.barter),
+    needs_sell: filtered.filter((i) => i.lane === 'needs_sell' && !i.barter),
+    barter: filtered.filter((i) => !!i.barter),
   }), [filtered])
   const shown = lanes[lane]
 
@@ -349,6 +351,9 @@ export default function ReviewQueuePage() {
               {failed
                 ? <Dash reason="unmeasured" what="how many creators need a sell price" />
                 : lanes.needs_sell.length})
+            </TabsTrigger>
+            <TabsTrigger value="barter">
+              Barter ({failed ? <Dash reason="unmeasured" what="how many barter creators there are" /> : lanes.barter.length})
             </TabsTrigger>
           </TabsList>
         </Tabs>
