@@ -31,6 +31,10 @@ const ROUTE_TITLES: Record<string, string> = {
   "/pricing": "Pricing",
   "/checkout": "Checkout",
   "/teams": "Teams",
+  // Creator Contracting (the brand's own name for it; "Mor" is only the URL).
+  "/mor": "Creator Contracting",
+  "/mor/new": "Pay a creator",
+  "/mor/payees": "Payees",
   // The operating console — everyone internal, not just the founders.
   "/work/today": "Today",
   "/work/brands": "Brands",
@@ -68,7 +72,9 @@ const ROUTE_TITLES: Record<string, string> = {
   "/ops": "Operations",
 }
 
-const ID_LIKE = /^[0-9a-f]{8}-[0-9a-f-]{20,}$|^\d{4,}$/i
+const NO_PAGE = new Set(["/mor/batch"])
+
+const ID_LIKE =/^[0-9a-f]{8}-[0-9a-f-]{20,}$|^\d{4,}$/i
 
 function prettify(segment: string): string {
   const decoded = decodeURIComponent(segment)
@@ -119,6 +125,8 @@ export function getRouteTrail(pathname: string): Crumb[] {
       crumbs.push({ title: "Console", href: "/work/today", isLast: segments.length === 1 })
       return
     }
+    // Grouping segments with no page of their own: a crumb there would be a dead link.
+    if (NO_PAGE.has(acc)) return
     const href = toWork(acc)
     crumbs.push({
       // destinations.ts first, because it is where a console screen's ONE name lives. The
