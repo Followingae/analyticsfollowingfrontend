@@ -152,7 +152,7 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'ScoutOutreach', href: '/work/scout', icon: Radar, restricted: true,
-        what: 'Your outreach teammate. It finds creators who fit each brief, DMs them on Instagram or alerts them on WhatsApp, and ScoutAI collects their rate onto the roster.',
+        what: 'Your outreach teammate. It finds creators who fit each brief and reaches them on Instagram, by email or on WhatsApp. ScoutAI talks to whoever replies and puts their rate on the roster.',
         why: 'The live bar shows ScoutAI, the DMs sent today and the job it is on now. It runs itself and rests itself when Instagram slows it down. The one time it needs a person is when Instagram logs the account out or asks for a check: sign in on the bot PC, then press Resume here. The full chapter is near the top of this guide.',
         also: ['scout', 'scoutai', 'outreach', 'dm', 'instagram', 'bot', 'resume', 'open call', 'whatsapp', 'ai'],
       },
@@ -205,13 +205,13 @@ const SECTIONS: Section[] = [
       {
         title: 'Sales', href: '/work/sales', icon: Megaphone,
         what: 'Your board. Every brand we are talking to, grouped by what stage the conversation is at.',
-        why: 'This replaces the spreadsheet. It is one row per DEAL, grouped under the brand, because a client who has run eighteen campaigns cannot be described by a single stage: they are live on one and negotiating the next. The button that matters is Ask talent. Press it the moment a deal looks real rather than when it closes, because sourcing takes days and the client expects names the moment they say yes. It raises a request and opens a roster with your brief on it. Opening a deal opens the brand record, where everything about that brand lives.',
+        why: 'This replaces the spreadsheet. It is one row per DEAL, grouped under the brand, because a client who has run eighteen campaigns cannot be described by a single stage: they are live on one and negotiating the next. The button that matters is Ask talent. A founder presses it the moment a deal looks real rather than when it closes, because sourcing takes days and the client expects names the moment they say yes. It raises a request and opens a roster with the brief on it. Only the Founder & CEO writes a brief: what you learn on the deal is what goes into it. Opening a deal opens the brand record, where everything about that brand lives.',
         also: ['crm', 'deals', 'outreach', 'pipeline', 'prospects', 'spreadsheet'],
       },
       {
         title: 'Ready to send', href: '/work/handovers', icon: Send,
-        what: 'Client links a founder has checked, waiting for you to email them.',
-        why: 'The client still hears from you, out of your own inbox, and that does not change. What changed is that the platform knows the link is ready and tells you, instead of somebody emailing you separately to say so. Press "I have sent it" afterwards and the fact lands on the client record rather than living only in your sent folder.',
+        what: 'Client links that have been checked and are ready to go.',
+        why: 'Only the Founder & CEO sends a proposal or a quote to a client. Account management, business development, talent and the co-founder never send one, from the platform or from their own inbox. Once it has gone, the fact lands on the client record.',
         also: ['quotes', 'links', 'share', 'send to client', 'quotation'],
       },
       {
@@ -221,14 +221,14 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'Quotes', href: '/work/proposals', icon: FileText,
-        what: 'Build a roster for a brand, price it, and send it.',
+        what: 'A roster for a brand, priced. Only the Founder & CEO sends one to the client.',
         why: 'A quote can be priced by budget or by tier. On a tier deal a creator can be marked as counting for more than one place, so somebody expensive can still be taken rather than dropped.',
         also: ['proposals', 'pitch', 'roster'],
       },
       {
         title: 'Share Center', href: '/work/share', icon: Send,
-        what: 'The links you send clients, and whether they have been opened.',
-        why: 'A share link is the only way a client sees a quote. There is no other client-facing route into one.',
+        what: 'The links clients have been sent, and whether they have been opened.',
+        why: 'A share link is the only way a client sees a quote, and only the Founder & CEO sends one. There is no other client-facing route into one.',
         also: ['share link', 'p/', 'token'],
       },
       {
@@ -250,7 +250,7 @@ const SECTIONS: Section[] = [
       },
       {
         title: 'Quotes', href: '/work/proposals', icon: FileText,
-        what: 'The same quote builder, for repeat work on a client you already run.',
+        what: 'The same quotes, for repeat work on a client you already run. The Founder & CEO sends them; you never do.',
         also: ['proposals'],
       },
       {
@@ -580,10 +580,15 @@ export default function GuidePage() {
           />
         </div>
 
-        {/* The two things a new person needs before any single screen makes sense. */}
+        {/* The three things a new person needs before any single screen makes sense. */}
         {!q && (
           <section className="reading-width space-y-3">
-            <h2 className="text-[17px] font-semibold tracking-[-0.01em]">Two things first</h2>
+            <h2 className="text-[17px] font-semibold tracking-[-0.01em]">Three things first</h2>
+            <p className="text-[15px] leading-relaxed text-muted-foreground">
+              <strong className="text-foreground">Only the Founder &amp; CEO writes briefs and
+              sends proposals and quotes to clients.</strong> Everybody else, the co-founder
+              included, feeds the brief and builds the roster.
+            </p>
             <p className="text-[15px] leading-relaxed text-muted-foreground">
               <strong className="text-foreground">Cost is what we pay a creator, sell is what
               the client pays us.</strong> Brands never see cost, anywhere, on any screen or

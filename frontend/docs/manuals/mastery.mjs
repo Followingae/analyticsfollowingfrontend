@@ -43,7 +43,7 @@ export const MASTERY = {
   /* ─────────────────────────────────────────────────────────────────────────────── */
   'talent-manager': {
     flow: ['source', 'book'],
-    flowNote: 'A founder releases a brief to you before the deal closes. You hand a '
+    flowNote: 'The Founder & CEO writes the brief and releases it to you before the deal closes. You hand a '
             + 'priced, booked roster to account management.',
     screen: {
       title: 'Waiting on us',
@@ -79,7 +79,7 @@ export const MASTERY = {
         ['Tue', 'Search the master database with **Add creators**. Thirty fit. Anyone '
               + 'genuinely new, **Paste a list** straight from your notes.'],
         ['Tue', 'ScoutOutreach is running on the roster too. By lunch it has DMed forty '
-              + 'skincare creators; ScoutAI is asking their rates on WhatsApp while you keep sourcing.'],
+              + 'skincare creators; ScoutAI is asking the ones who replied for their rates while you keep sourcing.'],
         ['Wed', 'Nobody told you to find twenty. You find enough that the client has a real '
               + 'choice, which on skincare is usually sixty before they pick fifteen.'],
         ['Wed', '**Add rate** on each of yours: what they asked, what they agreed. One asks 6,000; '
@@ -238,18 +238,17 @@ export const MASTERY = {
                  + 'Add the brand, add the deal, stage **Met them**.'],
         ['Week 1', 'You get a budget out of them: AED 57,000. Put it on the deal. A deal '
                  + 'with no budget is not a deal yet and the board shows that honestly.'],
-        ['Week 2', 'It feels real. Do not wait. Write on the deal what they are looking for: '
-                 + 'skincare and derm, UAE, 50k to 300k, studio capable. Tell a founder.'],
-        ['Week 2', 'The founder presses **Ask talent** and sets the budget per creator: '
-                 + 'AED 3,500 to 4,000.'],
+        ['Week 2', 'It feels real. Do not wait. Write on the deal what you heard: '
+                 + 'skincare and derm, UAE, 50k to 300k, studio capable. Tell the Founder & CEO.'],
+        ['Week 2', 'The Founder & CEO writes the brief, presses **Ask talent** and sets the budget '
+                 + 'per creator: AED 3,500 to 4,000. You never write the brief.'],
         ['Week 2', 'Say WHAT, never how many. They may need to show sixty before the client '
                  + 'picks fifteen, and a number from you reads as a target.'],
         ['Week 2', 'Talent starts the same day. Two weeks ago she would have started after '
                  + 'signature, and the client would have waited.'],
-        ['Week 3', 'Leadership checks the quotation and it appears in **To send**. You copy the '
-                 + 'link into your own email. The client hears from you, as always.'],
-        ['Week 3', 'Press **I have sent it**. Now it is on their record, not only in your '
-                 + 'sent folder.'],
+        ['Week 3', 'The Founder & CEO sends the quotation to the client. You never send one, '
+                 + 'from the platform or from your own inbox.'],
+        ['Week 3', 'You keep the conversation warm around it, and see on the brand that it went.'],
         ['Week 4', 'They pick. The deal moves to Won and account management takes the client.'],
       ],
     },
@@ -260,7 +259,7 @@ export const MASTERY = {
         'The budget goes on the deal as soon as you hear it, even if it is a range.',
         'A lost deal keeps its reason. "They went with two brands only" is worth more than '
         + 'the deal was.',
-        'You send the client link yourself and then say you have sent it.',
+        'You leave every brief, proposal and quote to the Founder & CEO.',
       ],
       bad: [
         'Waiting for signature before telling talent. This is the one that has cost us weeks '
@@ -269,14 +268,15 @@ export const MASTERY = {
         'Quoting a price that is not on the rate card without a founder saying so.',
         'A board full of deals with no next step. It looks busy and tells you nothing.',
         'Handing a client over in a conversation. If it is not written down, it did not happen.',
+        'Sending a client a quote or a proposal yourself. Only the Founder & CEO sends one.',
       ],
     },
     card: [
       ['Open first', ['Sales. Your whole board.',
-                      'To send. Anything leadership has cleared.']],
+                      'Partner leads. Every new enquiry.']],
       ['The one rule', ['Get talent started when it looks real, not when it closes.']],
       ['Say what, not how many', ['A client signing fifteen may need to see hundreds.']],
-      ['Never', ['Never quote off the rate card without a founder.',
+      ['Never', ['Never send a client a quote or proposal. The Founder & CEO does.',
                  'You see sell. You never see cost.']],
       ['Every deal', ['A next step and a date. Otherwise it is not being worked.']],
     ],
@@ -463,8 +463,8 @@ export const SCOUT = {
     { id: 'find', lane: 0, row: 0, t: 'Find', c: ['AI plans searches: words,', 'places, hashtags'] },
     { id: 'own', extra: true, lane: 2, row: 0, t: 'Your own creators', c: ['By handle, or paste', 'a sheet. Same roster'] },
     { id: 'screen', lane: 0, row: 1, t: 'Screen', c: ['Range, recent posts,', 'real creator, the brief'] },
-    { id: 'dm', lane: 0, row: 2, t: 'DM or WhatsApp', c: ['Instagram DM with a', 'tracked link, or alert'] },
-    { id: 'chat', lane: 1, row: 3, t: 'ScoutAI chat', c: ['Brief, questions,', 'their rate, a counter'] },
+    { id: 'dm', lane: 0, row: 2, t: 'DM or email', c: ['"Interested? Just reply', 'here". Email, WhatsApp'] },
+    { id: 'chat', lane: 1, row: 3, t: 'ScoutAI chat', c: ['In the Instagram chat,', 'or WhatsApp: their rate'] },
     { id: 'rate', lane: 1, row: 4, span: 2, t: 'Rate on the roster', c: ['ScoutAI files it, or talent adds it.', 'Then Send for review'] },
     { id: 'price', lane: 3, row: 5, t: 'Founder prices', c: ['Price on the row.', 'Margin as they type'] },
     { id: 'ready', lane: 2, row: 6, t: 'Ready', c: ['Back on its roster,', 'ready to sell'] },
@@ -474,20 +474,21 @@ export const SCOUT = {
           ['rate', 'price'], ['price', 'ready'], ['ready', 'prop']],
   outreach: [
     'One roster, one brief: location, follower range, language.',
-    'Lives at **ScoutOutreach** in the menu, with a live bar: ScoutAI, DMs today, the job it is on. Each roster shows its own strip too.',
-    'Screens on follower range, a post in the last 60 days, a real creator and not a business, not clearly based elsewhere.',
-    'Then an AI reads each one against the brief, following the team’s own yes and no on that campaign. Every pass has a written reason.',
+    'Lives at **ScoutOutreach**, with a live bar. Each roster shows its own strip too.',
+    'Screens on follower range, a post in 60 days, a real creator, not based elsewhere. Then an AI reads each against the brief and the team’s own yes and no, with a written reason.',
     'A hashtag search reads the 40 most recent posts from up to 4 hashtags. Light analytics on each creator costs about $0.008.',
-    'The DM bot sends from the company’s Instagram, in Chrome on an office PC. The tracked link opens WhatsApp straight into that campaign’s ScoutAI chat.',
-    'WhatsApp alerts go to creators in our network, on Meta-approved templates: barter or paid. A paid campaign is never called barter.',
+    'The DM bot sends from the company’s Instagram, in Chrome on an office PC. No link: "Interested? Just reply here". ScoutAI holds the chat.',
+    'Creators who list an email get one automatically from hello@following.ae, with a WhatsApp button.',
+    'WhatsApp alerts go to creators in our network on Meta-approved templates. Paid is never called barter.',
   ],
   ai: [
-    'A campaign can run an open call with a code, like **OC-D7F4E**.',
-    'ScoutAI answers on WhatsApp, in English. It explains the brief and asks the screening questions set for the campaign.',
+    'A creator who replies to the DM talks to ScoutAI in that same Instagram chat, in English.',
+    'On WhatsApp, a campaign can run an open call with a code, like **OC-D7F4E**.',
+    'It explains the brief and asks the screening questions set for the campaign.',
     'For paid work it asks their rate, and can counter within that campaign’s negotiation rules.',
     'Creators answer with tap buttons or in their own words.',
     'It adds them to the roster with their rate. A decline or a poor fit is recorded with the reason.',
-    'Its chats are kept on the Desk and never ring the team’s bell.',
+    'Its WhatsApp chats are kept on the Desk and never ring the team’s bell.',
   ],
   pace: [
     ['10 min', 'It checks every campaign, but never searches while every DM account rests'],
@@ -615,8 +616,8 @@ export const GLOSSARY = [
   ['Roster', 'The creators sourced for one brand, for its whole life. It replaced the sheet.'],
   ['Skip', 'Not for this campaign. Still in the database; the reason follows them.'],
   ['Open call', 'A campaign card creators answer on WhatsApp. The agent collects their price.'],
-  ['ScoutOutreach', 'Finds creators for a brief, screens them, and DMs them on Instagram.', SCOUT_SEATS],
-  ['ScoutAI', 'Talks to creators on WhatsApp and puts their rate on the roster.', SCOUT_SEATS],
+  ['ScoutOutreach', 'Finds creators for a brief, screens them, and DMs or emails them.', SCOUT_SEATS],
+  ['ScoutAI', 'Talks to creators on Instagram or WhatsApp and puts their rate on the roster.', SCOUT_SEATS],
   ['Following Track', 'Short links per creator. Clicks, carts and sales, shown to the brand once released.'],
   ['List', 'A standing question: "fashion, UAE". Answers itself. Never client-specific.'],
   ['Cost', 'What we pay a creator. Founders and talent only. Never shown to a brand.'],
@@ -624,8 +625,8 @@ export const GLOSSARY = [
   ['Quoted cost', 'What we assumed when pricing. Rarely what we end up paying.'],
   ['Agreed rate', 'What a creator actually accepted. The only number that is real.'],
   ['Request', 'Something somebody is waiting on, with an owner and a date.'],
-  ['Proposal', 'A priced roster sent to a client to choose from.'],
-  ['Share link', 'A /p/ link a client opens without logging in. Mint it, then send it.'],
+  ['Proposal', 'A priced roster the Founder & CEO sends a client to choose from.'],
+  ['Share link', 'A /p/ link a client opens without logging in. Only the Founder & CEO sends one.'],
   ['Enrolment link', 'A founder creates it, talent sends it, the creator signs and gives their own bank.'],
   ['The ladder', 'The rungs a booked creator climbs: briefed, content in, posted, paid.'],
   ['Held', 'Stopped until a founder answers. Nothing has happened yet.'],

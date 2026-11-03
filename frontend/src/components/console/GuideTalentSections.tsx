@@ -177,10 +177,10 @@ const SCOUT_FLOW: Step[] = [
     body: 'Plans searches with AI from the brief: keywords, Instagram places, hashtags.' },
   { title: 'Screen', who: 'machine', whoText: 'ScoutOutreach',
     body: 'Follower range, posted lately, a real creator, then an AI read against the brief.' },
-  { title: 'DM or WhatsApp', who: 'machine', whoText: 'ScoutOutreach',
-    body: 'An Instagram DM with a tracked link, or a WhatsApp alert to creators we know.' },
+  { title: 'DM, email or WhatsApp', who: 'machine', whoText: 'ScoutOutreach',
+    body: 'An Instagram DM: "Interested? Just reply here". An email with a WhatsApp button. A WhatsApp alert to creators we know.' },
   { title: 'ScoutAI chat', who: 'machine', whoText: 'ScoutAI',
-    body: 'Explains the brief on WhatsApp, asks the screening questions and their rate.' },
+    body: 'In the Instagram chat where they replied, or on WhatsApp: explains the brief, asks the screening questions and their rate.' },
   { title: 'Rate on the roster', who: 'machine', whoText: 'ScoutAI, or talent',
     body: 'The creator lands on the campaign roster with their rate. You send them for review.' },
   { title: 'Founder prices', who: 'founder',
@@ -207,8 +207,7 @@ const RESTS = ['20 minutes', '1 hour', '3 hours', 'Until 10am tomorrow']
 const ROSTER_ROWS: { says: string; means: string; button: string; who: string }[] = [
   { says: 'Needs a rate', means: 'Nobody has their price yet.', button: 'Add rate', who: 'You' },
   { says: 'ScoutOutreach asked for their rate', means: 'It DMed them for this campaign. The rate lands by itself.', button: 'None', who: 'Nobody' },
-  { says: 'ScoutAI is getting their rate', means: 'They are talking to ScoutAI on WhatsApp right now.', button: 'None', who: 'Nobody' },
-  { says: 'Replied on Instagram, add their rate', means: 'They answered the DM on Instagram instead.', button: 'Add rate', who: 'You' },
+  { says: 'ScoutAI is getting their rate', means: 'They are talking to ScoutAI on Instagram or WhatsApp right now.', button: 'None', who: 'Nobody' },
   { says: 'Rate in, send for review', means: 'The price is in. A founder needs to see it.', button: 'Send for review', who: 'You' },
   { says: 'Waiting for a founder to price', means: 'Sent up. A founder sets the sell price.', button: 'Price', who: 'A founder' },
   { says: 'Ready', means: 'Priced and cleared. Sellable.', button: 'Add to proposal', who: 'You' },
@@ -232,7 +231,7 @@ export function ScoutGuide() {
       <ChapterHead
         eyebrow="Talent and leadership"
         title="ScoutOutreach and ScoutAI"
-        lede="Two teammates that never sleep. ScoutOutreach finds creators who fit a brief and reaches them on Instagram and WhatsApp. ScoutAI talks to the ones who answer and puts their rate on the roster. You keep sourcing your own creators beside them, on the same roster."
+        lede="Two teammates that never sleep. ScoutOutreach finds creators who fit a brief and reaches them on Instagram, by email and on WhatsApp. ScoutAI talks to the ones who answer and puts their rate on the roster. You keep sourcing your own creators beside them, on the same roster."
         art={<ScoutAvatar size={72} />}
       />
 
@@ -252,19 +251,21 @@ export function ScoutGuide() {
             'Screening: the follower range, a post in the last 60 days, a real creator and not a business, not clearly based somewhere else. Then an AI reads each creator against the brief, following the yes and no decisions the team has already made on that campaign. Every pass carries a written reason.',
             'A hashtag search reads the 40 most recent posts from up to 4 hashtags.',
             'Every creator who passes gets light analytics, at about $0.008 each.',
-            'The DM bot sends from the company’s Instagram account, in Chrome on an office PC. The DM carries a tracked link (api.following.ae/s/ and a code). Taps are counted, and the link opens WhatsApp straight into that campaign’s ScoutAI chat. Outreach not tied to a campaign links to the creator app instead.',
+            'The DM bot sends from the company’s Instagram account, in Chrome on an office PC. The DM carries no link. It says "Interested? Just reply here", and ScoutAI holds the conversation in that Instagram chat.',
+            'Creators who list an email are also emailed, automatically, from hello@following.ae. The email carries a WhatsApp button into ScoutAI.',
             'It also sends WhatsApp alerts to creators in our network whose numbers we hold, using Meta-approved templates: a barter alert and a paid alert. A paid campaign is never called barter.',
           ]} />
         </Panel>
 
-        <Panel icon={MessageCircle} title="ScoutAI talks to them on WhatsApp">
+        <Panel icon={MessageCircle} title="ScoutAI talks to them, on Instagram and WhatsApp">
           <Bullets items={[
-            'A campaign can run an open call with a code, like OC-D7F4E. ScoutAI answers creators on WhatsApp, in English.',
+            'When a creator replies to the DM, ScoutAI carries on in that same Instagram chat, in English.',
+            'On WhatsApp, a campaign can run an open call with a code, like OC-D7F4E, and ScoutAI answers there too.',
             'It explains the brief and asks the screening questions set for that campaign: where they live, their audience, nationality where it is asked.',
             'For paid work it asks their rate, and can counter within the negotiation rules set for that campaign.',
             'Creators answer with tap buttons or in their own words.',
             'It adds the creator to the campaign’s roster with their rate. Anybody who declines or does not fit is recorded with the reason.',
-            'Its chats are kept on the Desk but do not ring the team’s notifications. A creator talking to ScoutAI is not a job for you.',
+            'Its WhatsApp chats are kept on the Desk but do not ring the team’s notifications. A creator talking to ScoutAI is not a job for you.',
           ]} />
         </Panel>
       </div>

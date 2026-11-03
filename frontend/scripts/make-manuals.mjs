@@ -437,7 +437,7 @@ function scoutChapter(role, op) {
         ${bullets(S.outreach)}
       </div>
       <div class="panel">
-        <div class="hh">${icon('message', 15)} ScoutAI talks on WhatsApp</div>
+        <div class="hh">${icon('message', 15)} ScoutAI talks to them</div>
         ${bullets(S.ai)}
       </div>
     </div>

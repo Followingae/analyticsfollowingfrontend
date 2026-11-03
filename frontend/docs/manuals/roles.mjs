@@ -50,7 +50,7 @@ export const ROLES = [
         when: 'Starts when a brief arrives. Ends when the client has a list to choose from.',
         path: ['Creators', 'Rosters'],
         steps: [
-          'A founder releases the brand. It reaches you on **Today** with the brief.',
+          'The Founder & CEO writes the brief and releases the brand. It reaches you on **Today**.',
           'The brand’s roster is already open. It replaces the campaign sheet.',
           'Search the master database first with **Add creators**.',
           'Anyone new: **Paste a list**, rows from a sheet or one handle per line.',
@@ -232,14 +232,14 @@ export const ROLES = [
       },
       {
         icon: 'send',
-        title: 'Send the proposal and get an answer',
-        when: 'Once a founder has marked it internally approved and ready to send.',
-        path: ['Clients', 'To send'],
+        title: 'Follow the proposal, never send it',
+        when: 'Once the Founder & CEO has sent the client a proposal or a quote.',
+        path: ['Clients', 'Quotes'],
         steps: [
-          'It appears here and you are told. You never mint the link yourself.',
-          'Send it from your own inbox. The platform never emails a client.',
-          'Press "I have sent it" so it is on their record.',
-          'The client picks in the proposal. If they tell you instead, a founder uses **Confirm for the client**.',
+          'Only the Founder & CEO sends a proposal or a quote to a client. You never do.',
+          'Not from the platform, and not from your own inbox. The platform never emails a client.',
+          'The client picks in the proposal. You see what they chose without asking.',
+          'If they tell you instead, pass it on. The Founder & CEO uses **Confirm for the client**.',
         ],
         next: 'Confirming locks the creators they took. More later means Reopen, not a new proposal.',
       },
@@ -257,6 +257,7 @@ export const ROLES = [
     ],
     rules: [
       'You never see what a creator costs us. You sell. That is deliberate.',
+      'You never write a brief or send a proposal or quote. Only the Founder & CEO does.',
       'No automated email ever reaches your client. Every one is sent by a person.',
       'A promise made in email belongs on the client record the same day.',
       'If a brand has gone quiet for a fortnight you will be told. Act on it.',
@@ -275,12 +276,12 @@ export const ROLES = [
     day: [
       { icon: 'sunrise', head: 'First thing', items: [
         'Open **Sales**. Your whole board, by stage.',
-        'Open **To send**. Anything leadership has checked and cleared for a client.',
         'Open **Partner leads**. Enquiries off the website land here.',
+        'Open **Brands**. Every brand you are talking to.',
       ]},
       { icon: 'clock', head: 'Through the day', items: [
         'Move deals as they move. The board is the record now, not the sheet.',
-        'The moment a deal looks real, tell a founder so they press **Ask talent**. Do not wait for the yes.',
+        'The moment a deal looks real, tell the Founder & CEO, who writes the brief and presses **Ask talent**. Do not wait for the yes.',
         'Every deal carries a next step and a date, or it is not being worked.',
       ]},
       { icon: 'moon', head: 'Before you log off', items: [
@@ -302,14 +303,14 @@ export const ROLES = [
       {
         icon: 'clipboard',
         title: 'Qualify it',
-        when: 'Before you quote anything.',
+        when: 'Before anything is quoted.',
         path: ['Clients', 'Sales', 'Add a brand'],
         steps: [
           'Budget, market, category, timing, who signs.',
           'Without a budget there is no brief, and no brief wastes everyone.',
           'Add the brand on the board and write what you learned on the deal.',
         ],
-        next: 'A founder decides whether we chase it and writes what to look for.',
+        next: 'The Founder & CEO decides whether we chase it and writes the brief.',
       },
       {
         icon: 'users',
@@ -318,8 +319,8 @@ export const ROLES = [
         path: ['Clients', 'Sales'],
         steps: [
           'This is the one that used to cost us weeks. Talent heard when a campaign locked.',
-          'Write on the deal what the brand is looking for: market, category, size, budget.',
-          'Tell a founder it is real. **Ask talent** is theirs to press.',
+          'Write on the deal what you heard: market, category, size, budget. That feeds the brief.',
+          'Tell the Founder & CEO it is real. They write the brief and press **Ask talent**.',
           'Say WHAT, never how many. A client signing fifteen may need to see hundreds.',
           'Talent get it on Today, with the brand’s roster open and the brief on it.',
         ],
@@ -327,14 +328,13 @@ export const ROLES = [
       },
       {
         icon: 'banknote',
-        title: 'Send the quotation',
-        when: 'Once leadership has checked it.',
-        path: ['Clients', 'To send'],
+        title: 'Leave the quotation to the Founder & CEO',
+        when: 'When the client is ready to see prices.',
+        path: ['Clients', 'Quotes'],
         steps: [
-          'You do not mint the link and you do not build the numbers. Leadership does both.',
-          'When it is checked it appears here and you are told.',
-          'Copy the link into your OWN email. The client hears from you, as always.',
-          'Then press "I have sent it" so it is on their record and not just your sent folder.',
+          'You do not build the numbers and you do not send the quote or proposal.',
+          'Only the Founder & CEO sends it, never from your own inbox.',
+          'Keep the conversation warm around it. You can see on the brand that it went.',
         ],
         next: 'The client opens it and picks. You see what they chose without asking.',
       },
@@ -352,6 +352,7 @@ export const ROLES = [
       },
     ],
     rules: [
+      'Never send a client a quote or a proposal. Only the Founder & CEO does.',
       'Never quote a price that is not on the rate card without a founder saying so.',
       'You never see cost. Only what we sell for.',
       'A handover said out loud is not a handover. Write it down.',
@@ -498,10 +499,23 @@ export const ROLES = [
         steps: [
           'A logged brand is not work until you say so.',
           'Press **Ask talent** on the deal, or **Start sourcing** on Rosters.',
-          'Write the brief: market, categories, follower range, paid or barter.',
+          'Write the brief yourself. Nobody else writes one: market, categories, follower range, paid or barter.',
           'Give the budget per creator as a range, for example AED 3,500 to 4,000.',
         ],
         next: 'Talent are alerted at once and the brand’s roster opens.',
+      },
+      {
+        icon: 'send',
+        title: 'Send the proposal',
+        when: 'When a priced roster is ready for the client. Only you send one.',
+        path: ['Clients', 'Quotes', 'Open the proposal'],
+        steps: [
+          'Every proposal, quote, sample pack and share link goes to the client from you.',
+          'The co-founder, account management, business development and talent never send one.',
+          'The client picks inside it. Their picks come back to the roster.',
+          'If a client tells somebody else their choice, use **Confirm for the client**.',
+        ],
+        next: 'Confirming locks the creators they took. Then settle each one’s real cost.',
       },
       {
         icon: 'message',

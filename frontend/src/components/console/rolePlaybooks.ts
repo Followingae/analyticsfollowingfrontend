@@ -20,6 +20,13 @@
  *     be read.
  */
 
+/*
+ * ONE RULE THAT CROSSES EVERY PLAYBOOK. Only the superadmin (the Founder & CEO) writes a
+ * brief and sends a proposal or a quote to a client. Account management, business
+ * development, talent and the co-founder never do: they feed the brief, build the roster,
+ * and keep the client warm around it. A step that hands a brief or a send to anybody else
+ * is wrong.
+ */
 export type RoleKey = 'talent' | 'account' | 'bd' | 'leadership'
 
 export interface Job {
@@ -103,7 +110,7 @@ export const PLAYBOOKS: Playbook[] = [
           'Send the good ones for review. That tells the founders "these are good, please price them" and it appears on their Today. Do not email the list.',
           'Skip the rest, with a reason if you have one. They stay in the database, and the reason follows them to the next brief.',
         ],
-        handover: 'A founder presses Price on the ones you sent, or sends some back with a note that shows on your row and on your Today. A priced creator comes back onto the roster as Ready, and goes onto the proposal from there.',
+        handover: 'A founder presses Price on the ones you sent, or sends some back with a note that shows on your row and on your Today. A priced creator comes back onto the roster as Ready, and goes onto the proposal from there. Only the Founder & CEO sends the proposal to the client.',
       },
       {
         title: 'Work alongside ScoutOutreach and ScoutAI',
@@ -219,22 +226,23 @@ export const PLAYBOOKS: Playbook[] = [
         ],
       },
       {
-        title: 'Brief the team',
-        when: 'The campaign is open and the client has told you what they want.',
+        title: 'Feed the brief',
+        when: 'The client has told you what they want. Only the Founder & CEO writes the brief.',
         steps: [
-          'A brief is not complete until it answers nine things: name and client, timeline and the last date a post may go live, objective and main message, exact deliverables per creator, what the creator receives, market, budget per creator and how many, content rules including tags and whether the client approves before posting, and whether it covers paid, barter, or both.',
-          'Write the brief into the campaign, not only into an email. The brief then travels with the campaign and everyone reads the same words.',
-          'Answer the team’s questions in the same place. A question answered in a private message gets asked again.',
+          'You do not write the brief. You make sure the Founder & CEO has everything it needs.',
+          'A brief needs nine answers: name and client, timeline and the last date a post may go live, objective and main message, exact deliverables per creator, what the creator receives, market, budget per creator and how many, content rules including tags and whether the client approves before posting, and whether it covers paid, barter, or both.',
+          'Go back to the client for anything missing, then pass the answers to the Founder & CEO in writing.',
+          'Once the brief is on the campaign, answer the team’s questions there. A question answered in a private message gets asked again.',
         ],
-        handover: 'Talent see it on their Today. You do not need to forward it.',
+        handover: 'The Founder & CEO writes the brief into the campaign. Talent see it on their Today.',
       },
       {
         title: 'Get the client to choose creators',
         steps: [
           'Talent source onto the brand’s roster, and leadership reviews the list before the client sees it.',
-          'Send a quote or a share link, never a spreadsheet. The client picks inside it and their picks come straight back to you.',
-          'Check anything client-facing for internal information. Costs, margins and internal notes are never on something a client can open. The platform hides them. A spreadsheet does not.',
-          'When the client confirms, lock it. That is what opens the campaign properly and stops the list drifting.',
+          'Only the Founder & CEO sends the proposal, quote or share link. You never send one, from the platform or from your own inbox, and never a spreadsheet.',
+          'The client picks inside it and their picks come straight back. You see them without asking.',
+          'If the client tells you their choice instead of picking, pass it to the Founder & CEO, who confirms it for them.',
         ],
       },
       {
@@ -289,7 +297,7 @@ export const PLAYBOOKS: Playbook[] = [
         title: 'Handle a new enquiry',
         steps: [
           'Reply the same day, with one specific next step: a fifteen minute introduction call, and offer two times.',
-          'Log the brand. A logged brand is not a client yet, and that is fine. It becomes a client when an account is created, they pay, or they are sent a quote.',
+          'Log the brand. A logged brand is not a client yet, and that is fine. It becomes a client when an account is created, they pay, or the Founder & CEO sends them a quote.',
           'Qualify on the call, and get six things while you can: what they sell and who they want to reach, budget or a range, paid or barter or both, markets, timing and what is driving it, and who signs and who pays.',
           'Write the call up the same day on the brand record. Three lines is enough. A meeting nobody wrote up did not happen.',
         ],
@@ -298,8 +306,8 @@ export const PLAYBOOKS: Playbook[] = [
         title: 'Turn interest into a signed deal',
         steps: [
           'Agree the commercial shape in your own words before you send any document, so nothing in the contract is a surprise.',
-          'If the brand wants to see creators first, ask a founder to release it to talent (Ask talent is founders only), and make sure the brief is complete: market, category, budget per creator, deliverables, paid or barter. A vague ask comes back as a vague list.',
-          'Send a sample pack or a priced quote from the platform. Never a spreadsheet you built yourself, because the platform’s version hides our costs and yours does not.',
+          'If the brand wants to see creators first, tell the Founder & CEO what they are after: market, category, budget per creator, deliverables, paid or barter. The Founder & CEO writes the brief and releases it to talent. A vague ask comes back as a vague list.',
+          'Sample packs and priced quotes go to the client from the Founder & CEO only. Never send one yourself, and never a spreadsheet you built, because the platform’s version hides our costs and yours does not.',
           'Get the agreement signed, and chase the purchase order early if the client needs one before they can pay.',
           'Confirm payment terms in writing: how much up front, how much on completion, and in how many days.',
         ],
@@ -317,12 +325,14 @@ export const PLAYBOOKS: Playbook[] = [
         handover: 'The account manager owns the client from here.',
       },
       {
-        title: 'Pass on a client brief',
+        title: 'Pass on what the client wants',
+        when: 'Only the Founder & CEO writes the brief. Your job is what goes into it.',
         steps: [
-          'Check it answers eight things before you forward it: timeline and the last live date, objective and main message, exact deliverables, what the creator receives, market, content rules and tags, whether the client approves before posting, and whether it covers paid, barter or both.',
+          'Check you have eight answers: timeline and the last live date, objective and main message, exact deliverables, what the creator receives, market, content rules and tags, whether the client approves before posting, and whether it covers paid, barter or both.',
           'Go back to the client for anything missing. Guessing on a client’s behalf is how a campaign gets re-shot.',
-          'Put it into the campaign in the platform, then tell the account manager it is there.',
+          'Give the answers to the Founder & CEO in writing, and tell the account manager you have.',
         ],
+        handover: 'The Founder & CEO writes the brief into the campaign.',
       },
       {
         title: 'Products, vouchers and samples',
@@ -363,9 +373,20 @@ export const PLAYBOOKS: Playbook[] = [
           'If the list is thin, say how many more and by when. A review without a deadline is read as optional.',
           'Do it on the roster, not by email: rows "Waiting for a founder to price" carry a Price button. Select the rows and "Send back" with your note, or price the ones that pass. Each sell price is for what that creator’s quote covers, and the margin shows as you type.',
           'A priced creator goes back onto their roster as Ready, and the confirmation says so with an Open roster button.',
-          'Put a budget per creator on every brief before sourcing starts. It is what stops a list being built at the wrong price.',
+          'Every brief carries a budget per creator before sourcing starts. It is what stops a list being built at the wrong price.',
         ],
         handover: 'Cleared creators go onto a proposal from the roster, with anyone who cannot go on named and the reason shown before you press add.',
+      },
+      {
+        title: 'Write the brief and send the proposal',
+        when: 'Only the Founder & CEO, the superadmin, does this. The co-founder, account management, business development and talent never do.',
+        steps: [
+          'Write every brief yourself, from what account management and business development bring you: market, category, budget per creator, deliverables, paid or barter, dates and content rules.',
+          'Press Ask talent with the brief on it. Talent see it on their Today with the roster open.',
+          'Send every proposal, quote, sample pack and share link to the client yourself. Nobody else sends one, from the platform or from their own inbox.',
+          'If a client gives their choice to somebody else, use Confirm for the client.',
+        ],
+        handover: 'The client picks inside the proposal, and their picks come back to the roster.',
       },
       {
         title: 'Put an open call live',
