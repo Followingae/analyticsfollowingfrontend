@@ -285,6 +285,13 @@ export const enrolmentApi = {
     return download(`/exports/payouts.xlsx${qs ? `?${qs}` : ''}`, 'Payouts.xlsx')
   },
 
+  /** A link to the passport that works for a few minutes. Talent and leadership; every view logged. */
+  passportUrl: async (id: string): Promise<string> => {
+    const res = await fetch(`${BASE}/${id}/passport`, { headers: getAuthHeaders() as HeadersInit })
+    const j = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(j?.detail || 'Could not open the passport')
+    return j.data.url as string
+  },
   agreementPdf: (id: string) => download(`/${id}/agreement.pdf`, 'agreement.pdf'),
   recordPdf: (id: string) => download(`/${id}/record.pdf`, 'enrolment-record.pdf'),
   rosterXlsx: (params?: { proposal_id?: string; campaign_id?: string; status?: string }) => {
