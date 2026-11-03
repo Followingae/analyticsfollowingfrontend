@@ -70,6 +70,8 @@ function fmt(n?: number | null) {
 /** Proposal facts the API returns per row. */
 type Row = ImdListCreator & {
   proposal_id?: string | null; proposal_title?: string | null; on_proposal?: boolean | null; proposal_selected?: boolean | null
+  /** ScoutOutreach's DM for this roster: proposed/approved/sending/sent/replied/failed/skipped. */
+  dm_status?: string | null
 }
 
 /** A quiet Skip for one row. The reason is optional and never blocks. */
@@ -100,12 +102,15 @@ function SkipButton({ onSkip }: { onSkip: (why: string) => Promise<void> }) {
 
 type SourceKey = "all" | "talent" | "scoutai" | "outreach"
 const SOURCES: { key: SourceKey; label: string }[] = [
-  { key: "all", label: "All" }, { key: "talent", label: "Talent team" },
+  { key: "all", label: "All" }, { key: "talent", label: "Team / database" },
   { key: "scoutai", label: "ScoutAI" }, { key: "outreach", label: "ScoutOutreach" },
 ]
 /** 'chat' = answered the ScoutAI open call on WhatsApp; 'scout' = added by ScoutOutreach; anything else is the talent team. */
 const sourceOf = (c: ImdListCreator): Exclude<SourceKey, "all"> =>
   c.via === "chat" ? "scoutai" : c.via === "scout" ? "outreach" : "talent"
+/** Where this creator came from, said on the row so nobody has to switch tabs to find out. */
+const originOf = (c: ImdListCreator): string =>
+  c.via === "chat" ? "ScoutAI (WhatsApp)" : c.via === "scout" ? "ScoutOutreach" : c.via === "sheet" ? "Your sheet" : "Database"
 
 export default function ImdListDetailPage() {
   const listId = useParams().areaId as string
@@ -604,7 +609,7 @@ export default function ImdListDetailPage() {
       return { text: "Client picked", tone: "good",
         action: <Button size="sm" className={btn} asChild><Link href={proposalHref}>Book</Link></Button> }
     }
-    if (c.cleared_at && (c.on_proposal || c.proposal_id)) {
+    if (c.on_proposal || (c.cleared_at && c.proposal_id)) {
       return { text: `On ${c.proposal_title || "a proposal"}`, tone: "wait",
         action: <Button size="sm" variant="outline" className={btn} asChild><Link href={proposalHref}>Open</Link></Button> }
     }
@@ -619,6 +624,20 @@ export default function ImdListDetailPage() {
           <ShieldCheck className="h-3.5 w-3.5" />Price</Button> : undefined }
     }
     const hasRate = c.quote_asked != null || c.quote_agreed != null
+    // ScoutOutreach has DMed (or is about to DM) them for this campaign's rate: that is its job,
+    // not a person's. The rate lands here when they answer; Add rate stays reachable from Price.
+    if (!hasRate && c.dm_status && ["proposed", "approved", "sending", "sent"].includes(c.dm_status)) {
+      return { text: c.dm_status === "sent" ? "ScoutOutreach asked for their rate" : "ScoutOutreach will DM for their rate",
+        tone: "wait", skip: editable ? "pass" : undefined }
+    }
+    if (!hasRate && c.dm_status === "replied") {
+      return { text: "Replied on Instagram, add their rate", tone: "act", skip: editable ? "pass" : undefined,
+        action: editable ? <Button size="sm" variant="outline" className={btn} onClick={() => setQuoteFor(c.id)}>
+          <Pencil className="h-3.5 w-3.5" />Add rate</Button> : undefined }
+    }
+    if (!hasRate && c.via === "chat") {
+      return { text: "ScoutAI is getting their rate", tone: "wait", skip: editable ? "pass" : undefined }
+    }
     if (!hasRate) {
       return { text: "Needs a rate", tone: "act", why: c.review_note, skip: editable ? "pass" : undefined,
         action: editable ? <Button size="sm" variant="outline" className={btn} onClick={() => setQuoteFor(c.id)}>
@@ -971,11 +990,8 @@ export default function ImdListDetailPage() {
                       <TableRow>
                         {canStock && !locked && <TableHead className="w-8" />}
                         <TableHead>Creator</TableHead>
-                        <TableHead className="text-right">Followers</TableHead>
                         <TableHead>Price</TableHead>
-                        <TableHead>Last time</TableHead>
                         <TableHead>Next step</TableHead>
-                        <TableHead className="w-[12rem]" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -985,7 +1001,7 @@ export default function ImdListDetailPage() {
                         return (
                           <React.Fragment key={band.key}>
                             <TableRow className="hover:bg-transparent">
-                              <TableCell colSpan={canStock && !locked ? 7 : 6} className="py-0">
+                              <TableCell colSpan={canStock && !locked ? 4 : 3} className="py-0">
                                 <GroupLabel>{band.label}</GroupLabel>
                               </TableCell>
                             </TableRow>
@@ -1009,8 +1025,8 @@ export default function ImdListDetailPage() {
                                     />
                                   </TableCell>
                                 )}
-                                <TableCell>
-                                  <span className="flex items-center gap-ds-3">
+                                <TableCell className="min-w-[15rem] max-w-[22rem]">
+                                  <span className="flex min-w-0 items-center gap-ds-3">
                                     <Avatar className="h-9 w-9">
                                       <AvatarImage src={cdnAvatar(c.profile_image_url)} />
                                       <AvatarFallback>{(c.username || "?")[0]?.toUpperCase()}</AvatarFallback>
@@ -1018,9 +1034,9 @@ export default function ImdListDetailPage() {
                                     <button type="button" className="min-w-0 text-left"
                                             onClick={() => setPanel({ id: c.id, username: c.username })}>
                                       <span className="block truncate text-sm font-medium hover:underline">@{c.username}</span>
-                                      <span className="block truncate text-xs text-muted-foreground">
-                                        {[c.via === "chat" ? "via WhatsApp" : null, c.full_name, c.country, c.tiktok_username ? "TikTok" : null,
-                                          c.youtube_handle ? "YouTube" : null].filter(Boolean).join(" · ")}
+                                      <span className="block truncate text-xs text-muted-foreground"
+                                            title={[c.full_name, c.country, c.tiktok_username ? "TikTok" : null, c.youtube_handle ? "YouTube" : null].filter(Boolean).join(" · ")}>
+                                        {[fmt(c.followers_count), originOf(c)].filter(Boolean).join(" · ")}
                                       </span>
                                       {(c.relationship_tags?.length || c.passed_elsewhere_reason) ? (
                                         <span className="block truncate text-ds-caption text-[var(--tone-good-ink)]">
@@ -1035,40 +1051,33 @@ export default function ImdListDetailPage() {
                                     </button>
                                   </span>
                                 </TableCell>
-                                <TableCell className="text-right tabular-nums">
-                                  {fmt(c.followers_count)}
-                                </TableCell>
-                                <TableCell className="max-w-[15rem]">
+                                <TableCell className="min-w-[8rem] max-w-[12rem]">
                                   <QuoteCell listId={listId} c={c} bandMax={bandMax}
                                              editable={canStock && !locked && !c.dropped_at}
                                              open={quoteFor === c.id}
                                              onOpenChange={(o) => setQuoteFor(o ? c.id : null)}
                                              onSaved={load} />
-                                </TableCell>
-                                <TableCell className="text-sm">
-                                  {c.last_agreed_aed_cents != null ? (
-                                    <span className="flex flex-col">
-                                      <span className="tabular-nums">{aed(c.last_agreed_aed_cents)}</span>
-                                      <span className="max-w-[10rem] truncate text-ds-caption text-muted-foreground"
-                                            title={c.last_agreed_context || undefined}>
-                                        {c.last_agreed_context}
-                                      </span>
+                                  {c.last_agreed_aed_cents != null && (
+                                    <span className="block truncate text-ds-caption text-muted-foreground"
+                                          title={c.last_agreed_context || undefined}>
+                                      Last time {aed(c.last_agreed_aed_cents)}
                                     </span>
-                                  ) : <span className="text-muted-foreground">–</span>}
+                                  )}
                                 </TableCell>
                                 {(() => {
                                   const n = nextStep(c as Row)
                                   return (
                                     <>
-                                      <TableCell>
+                                      <TableCell className="w-full">
+                                       <span className="flex items-center justify-between gap-3">
                                         {/* Who needs to do what. "Out" keeps its reason on hover;
                                             a founder's note on a live row stays visible. */}
                                         {n.tone === "out" ? (
                                           <span className="text-sm text-muted-foreground underline decoration-dotted underline-offset-4"
                                                 title={n.why || undefined}>Out</span>
                                         ) : (
-                                          <span className="flex flex-col gap-0.5">
-                                            <span className={`text-sm font-medium ${n.tone === "good" ? "text-[var(--tone-good-ink)]"
+                                          <span className="flex min-w-0 flex-col gap-0.5">
+                                            <span className={`truncate text-sm font-medium ${n.tone === "good" ? "text-[var(--tone-good-ink)]"
                                               : n.tone === "wait" ? "text-muted-foreground" : ""}`}>{n.text}</span>
                                             {n.why && (
                                               <span className="max-w-[14rem] truncate text-ds-caption text-[var(--tone-warn-ink)]" title={n.why}>
@@ -1077,9 +1086,7 @@ export default function ImdListDetailPage() {
                                             )}
                                           </span>
                                         )}
-                                      </TableCell>
-                                      <TableCell>
-                                  <span className="flex items-center justify-end gap-1">
+                                  <span className="flex shrink-0 items-center justify-end gap-1">
                                     {n.action}
                                     {n.skip && <SkipButton onSkip={(why) => skipOne(c, n.skip!, why)} />}
                                     {/* Share and Remove, tucked: each row shows the next step, one
@@ -1103,6 +1110,7 @@ export default function ImdListDetailPage() {
                                       </DropdownMenuContent>
                                     </DropdownMenu>
                                   </span>
+                                       </span>
                                 </TableCell>
                                     </>
                                   )

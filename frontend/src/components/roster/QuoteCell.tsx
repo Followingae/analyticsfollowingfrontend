@@ -79,9 +79,19 @@ export function QuoteCell({ listId, c, editable, bandMax, onSaved, open: openPro
   const cur = c.quote_currency || "AED"
   const workingCents = c.quote_agreed_aed_cents ?? c.quote_asked_aed_cents
 
+  // The warning rides on the number (colour + hover), not on a third line under it.
+  const warn = [overBand ? "Above the brief's budget" : "", aboveLast ? `${aboveLast}% above last time` : ""].filter(Boolean).join(" · ")
+  const extra = [c.quote_bundle ? BUNDLE_LABEL[c.quote_bundle] : null,
+    cur !== "AED" && workingCents != null ? aed(workingCents) : null,
+    c.quote_usage_monthly ? `usage ${amount(c.quote_usage_monthly, cur)}/mo` : null,
+  ].filter(Boolean).join(" · ")
+  // No quote for this campaign, but the database already has their rate: show it rather than
+  // asking anyone for a price we hold.
+  const onFile = (c as { cost_reel_aed_cents?: number | null }).cost_reel_aed_cents
+    ?? c.sell_reel_aed_cents ?? c.sell_post_aed_cents ?? null
   const body = has ? (
-    <span className="flex flex-col gap-0.5 text-left">
-      <span className="text-sm tabular-nums">
+    <span className="flex min-w-0 flex-col gap-0.5 text-left" title={warn || undefined}>
+      <span className="whitespace-nowrap text-sm tabular-nums">
         {c.quote_agreed != null && c.quote_asked != null && c.quote_agreed !== c.quote_asked ? (
           <>
             <span className="text-muted-foreground line-through decoration-1">{amount(c.quote_asked, cur)}</span>{" "}
@@ -94,22 +104,16 @@ export function QuoteCell({ listId, c, editable, bandMax, onSaved, open: openPro
           </span>
         )}
       </span>
-      <span className="text-ds-caption text-muted-foreground">
-        {[c.quote_bundle ? BUNDLE_LABEL[c.quote_bundle] : null,
-          cur !== "AED" && workingCents != null ? aed(workingCents) : null,
-          c.quote_usage_monthly ? `usage ${amount(c.quote_usage_monthly, cur)}/mo` : null,
-        ].filter(Boolean).join(" · ")}
-      </span>
-      {(overBand || aboveLast) && (
-        <span className="text-ds-caption text-[var(--tone-warn-ink)]">
-          {overBand ? "Above the brief's budget" : ""}
-          {overBand && aboveLast ? " · " : ""}
-          {aboveLast ? `${aboveLast}% above last time` : ""}
+      {(extra || warn) && (
+        <span className={`truncate text-ds-caption ${warn ? "text-[var(--tone-warn-ink)]" : "text-muted-foreground"}`}>
+          {warn ? (overBand ? "Over budget" : `${aboveLast}% above last time`) : extra}
         </span>
       )}
     </span>
   ) : (
-    <span className="text-sm text-muted-foreground">{editable ? "Add a price" : "–"}</span>
+    onFile != null
+      ? <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">{aed(onFile)} <span className="text-ds-caption">on file</span></span>
+      : <span className="whitespace-nowrap text-sm text-muted-foreground">{editable ? "Add a price" : "–"}</span>
   )
 
   if (!editable) return body
