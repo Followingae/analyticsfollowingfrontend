@@ -114,7 +114,8 @@ export function ScoutActivity({ onOpenList }: { onOpenList: (listId: string) => 
   const dmBusy = a.dm.online && !a.dm.paused && a.dm.queue > 0
   const working = a.running.length > 0 || a.whatsapp_sending.length > 0 || dmBusy
   const todo = [...a.todo].sort((x, y) => (x.kind === "attention" ? 0 : 1) - (y.kind === "attention" ? 0 : 1))
-  const recent = groupRecent(a.recent).slice(0, 3)
+  // A search a server restart cut short is not news: the autopilot reruns it by itself.
+  const recent = groupRecent(a.recent.filter(r => !(r.note || "").startsWith("Stopped (the server restarted)"))).slice(0, 3)
   const showNow = working || dmWarning
 
   return (
