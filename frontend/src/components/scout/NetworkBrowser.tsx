@@ -43,7 +43,7 @@ function Avatar({ c }: { c: NetworkCreator }) {
     return <img src={c.avatar} alt="" onError={() => setBad(true)} className="h-14 w-14 rounded-full object-cover" />
   }
   return <span className="flex h-14 w-14 items-center justify-center rounded-full bg-muted text-sm font-semibold uppercase">
-    {c.username.slice(0, 2)}</span>
+    {(c.username || c.full_name || "?").slice(0, 2)}</span>
 }
 
 function CreatorCard({ c, picked, onPick, canPick, onOpen }: {

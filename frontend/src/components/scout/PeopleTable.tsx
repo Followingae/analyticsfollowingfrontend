@@ -71,13 +71,13 @@ export function StepTracker({ steps }: { steps: Step[] }) {
   )
 }
 
-function Face({ p }: { p: Pick<ScoutPerson, "avatar" | "username"> }) {
+function Face({ p }: { p: Pick<ScoutPerson, "avatar" | "username" | "full_name"> }) {
   const [bad, setBad] = useState(false)
   if (p.avatar && !bad) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={p.avatar} alt="" onError={() => setBad(true)} className="h-9 w-9 shrink-0 rounded-full object-cover" />
   }
-  return <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold uppercase">{p.username.slice(0, 2)}</span>
+  return <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold uppercase">{(p.username || p.full_name || "?").slice(0, 2)}</span>
 }
 
 function Chip({ on, dim, children, onClick }: { on: boolean; dim?: boolean; children: React.ReactNode; onClick: () => void }) {
@@ -165,13 +165,13 @@ export function PeopleTable({ listId, mode, onOpen }: { listId: string; mode: Mo
               return (
                 <motion.button type="button" layout key={`${p.username}-${p.outreach_id || p.conversation_id || ""}`}
                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                               onClick={() => onOpen(p.username)}
+                               onClick={() => p.username && onOpen(p.username)}
                                className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-b px-4 py-2.5 text-left transition-colors last:border-0 hover:bg-muted/40 md:grid-cols-[minmax(0,1.5fr)_72px_minmax(0,1.6fr)_112px_56px]">
                   <span className="flex min-w-0 items-center gap-3">
                     <Face p={p} />
                     <span className="min-w-0">
                       <span className="flex items-center gap-1.5 text-sm font-medium">
-                        <span className="truncate">@{p.username}</span>
+                        <span className="truncate">{p.username ? `@${p.username}` : (p.full_name || "WhatsApp contact")}</span>
                         <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label={label} />
                       </span>
                       {(p.full_name || p.city) && <span className="block truncate text-xs text-muted-foreground">

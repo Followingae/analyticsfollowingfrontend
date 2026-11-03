@@ -60,7 +60,7 @@ export function Chip({ on, children, onClick, disabled }: { on: boolean; childre
   )
 }
 
-export function Face({ c, size = 40, ring = false }: { c: Pick<ScoutCreator, "avatar" | "username">; size?: number; ring?: boolean }) {
+export function Face({ c, size = 40, ring = false }: { c: Pick<ScoutCreator, "avatar" | "username"> & { full_name?: string | null }; size?: number; ring?: boolean }) {
   const [bad, setBad] = useState(false)
   const style = { width: size, height: size }
   const cls = `shrink-0 rounded-full object-cover ${ring ? "ring-2 ring-background" : ""}`
@@ -69,7 +69,7 @@ export function Face({ c, size = 40, ring = false }: { c: Pick<ScoutCreator, "av
     return <img src={c.avatar} alt="" style={style} onError={() => setBad(true)} className={cls} />
   }
   return <span style={style} className={`${cls} flex items-center justify-center bg-muted text-[11px] font-semibold uppercase`}>
-    {c.username.slice(0, 2)}</span>
+    {(c.username || c.full_name || "?").slice(0, 2)}</span>
 }
 
 export function ChipGroup({ label, options, value, onChange, format = (s: string) => s, capitalize }: {

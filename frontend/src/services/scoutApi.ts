@@ -197,7 +197,7 @@ export type PersonStage = 'queued' | 'contacted' | 'clicked' | 'chatting' | 'app
 export type PersonChannel = 'instagram' | 'whatsapp' | 'link'
 
 export interface ScoutPerson {
-  username: string
+  username: string | null
   full_name: string | null
   avatar: string | null
   followers: number | null

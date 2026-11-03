@@ -199,7 +199,7 @@ export function CreatorSheet({ username, onClose, canEdit, campaigns, onChanged 
               {c.avatar && !bad
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={c.avatar} alt="" onError={() => setBad(true)} className="h-16 w-16 shrink-0 rounded-full object-cover" />
-                : <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-muted text-lg font-semibold uppercase">{c.username.slice(0, 2)}</span>}
+                : <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-muted text-lg font-semibold uppercase">{(c.username || c.full_name || "?").slice(0, 2)}</span>}
               <div className="min-w-0 flex-1">
                 <a href={`https://instagram.com/${c.username}`} target="_blank" rel="noreferrer"
                    className="flex items-center gap-1 truncate text-lg font-semibold hover:underline">
