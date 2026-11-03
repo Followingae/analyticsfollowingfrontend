@@ -38,6 +38,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { CARD, PageHead } from '@/components/console/primitives'
+import { CreatorsHubHeader } from '@/components/console/CreatorsHubHeader'
 import { ReadState, SectionHead } from '@/components/console/surfaces'
 import { useConfirm } from '@/components/console/confirm'
 import { API_CONFIG } from '@/config/api'
@@ -202,6 +203,7 @@ function Lists() {
 
   return (
     <div className="space-y-6">
+      <CreatorsHubHeader className="mb-0" bare />
       <PageHead
         title="Standing lists"
         sub="A list is a question, not a set of names. It answers itself every time you open it."

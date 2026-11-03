@@ -71,6 +71,7 @@ import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { ProcessFlow } from '@/components/console/ProcessFlow'
 import { Shortcuts } from '@/components/console/Shortcuts'
 import { WaitingOnYou } from '@/components/console/WaitingOnYou'
+import { NeedsMe } from '@/components/console/NeedsMe'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -630,6 +631,7 @@ export default function Today() {
             }
           />
         </div>
+        <NeedsMe />
 
         {/* ── slot 2: the figures, as figures ───────────────────────────────────────────
             Four numbers at 30px with 40px of air between them and no borders at all. The

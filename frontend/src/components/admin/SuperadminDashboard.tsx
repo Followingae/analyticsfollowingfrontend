@@ -108,7 +108,7 @@ export default function SuperadminDashboard() {
   const navigationCards = [
     {
       label: 'Users',
-      path: '/superadmin/users',
+      path: '/work/users',
       icon: Users,
       metric: show(stats?.users?.total ?? null),
       subMetric: stats?.users?.active == null
@@ -117,14 +117,14 @@ export default function SuperadminDashboard() {
     },
     {
       label: 'Proposals',
-      path: '/superadmin/proposals',
+      path: '/work/proposals',
       icon: Briefcase,
       metric: 'Open',
       subMetric: 'Quotes out with a client',
     },
     {
       label: 'Clients',
-      path: '/superadmin/clients',
+      path: '/work/clients',
       icon: Building2,
       metric: 'Open',
       subMetric: 'Scope, commercial and approvals',

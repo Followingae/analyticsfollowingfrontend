@@ -16,7 +16,7 @@ import { ArrowLeft, ArrowRight, QrCode, Coins, Gift } from "lucide-react"
 const TYPES = [
   {
     key: "cashback",
-    href: "/superadmin/fa/campaigns/create",
+    href: "/work/fa/campaigns/create",
     icon: QrCode,
     title: "Cashback",
     badge: "Driven by a QR receipt",
@@ -25,7 +25,7 @@ const TYPES = [
   },
   {
     key: "paid_deal",
-    href: "/superadmin/fa/campaigns/create-paid-deal",
+    href: "/work/fa/campaigns/create-paid-deal",
     icon: Coins,
     title: "Paid deal",
     badge: "One fixed fee",
@@ -34,7 +34,7 @@ const TYPES = [
   },
   {
     key: "barter",
-    href: "/superadmin/fa/campaigns/create-barter",
+    href: "/work/fa/campaigns/create-barter",
     icon: Gift,
     title: "Barter",
     badge: "Product, not money",
@@ -50,7 +50,7 @@ export default function FaCampaignTypePickerPage() {
         <FaPage className="max-w-5xl">
           <div>
             <Link
-              href="/superadmin/fa/campaigns"
+              href="/work/fa/campaigns"
               className="mb-ds-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />

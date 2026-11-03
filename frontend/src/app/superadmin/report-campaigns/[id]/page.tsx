@@ -131,7 +131,7 @@ export default function ReportCampaignDetail() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <Button asChild variant="ghost" size="sm" className="-ml-2 mb-1 gap-1.5 text-muted-foreground">
-              <Link href="/superadmin/report-campaigns"><ArrowLeft className="h-3.5 w-3.5" /> Report campaigns</Link>
+              <Link href="/work/report-campaigns"><ArrowLeft className="h-3.5 w-3.5" /> Report campaigns</Link>
             </Button>
           </div>
         </div>

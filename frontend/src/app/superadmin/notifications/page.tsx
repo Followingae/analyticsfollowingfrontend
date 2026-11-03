@@ -467,7 +467,7 @@ export default function SuperadminNotificationsPage() {
     <SuperadminLayout>
       <div className="mx-auto w-full max-w-5xl space-y-ds-5 p-ds-3 md:p-ds-4">
         <PageHead
-          title="Email alerts"
+          title="Sending"
           sub={
             failure
               ? "Control which platform events send email, how it arrives, and who receives it. An event either interrupts someone straight away, or waits and arrives as one line in the twice-daily digest."

@@ -552,7 +552,7 @@ export default function GuidePage() {
     <SuperadminLayout>
       <div className="space-y-8">
         <PageHead
-          title="The manual"
+          title={shortName('/work/guide')}
           sub="What every screen in here is for, grouped by whose day it belongs to. Read your own role, and open somebody else's when you are covering for them."
         />
 

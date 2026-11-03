@@ -10,7 +10,7 @@
 import * as React from "react"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Loader2, Search, ArrowLeft } from "lucide-react"
+import { Loader2, Search, ArrowLeft, Plus } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -111,7 +111,12 @@ export function ToProposalDialog({ open, onOpenChange, listId, brand, ids, onDon
             </div>
             <div className="max-h-[46vh] overflow-y-auto">
               {shown.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">No open proposals match.</p>
+                <div className="flex flex-col items-center gap-ds-2 py-8 text-center">
+                  <p className="text-sm text-muted-foreground">No open proposal matches.</p>
+                  <Button size="sm" className="gap-1.5" onClick={() => { onOpenChange(false); router.push("/work/proposals/create") }}>
+                    <Plus className="h-4 w-4" />Create a new proposal{brand ? ` for ${brand}` : ""}
+                  </Button>
+                </div>
               ) : shown.map(p => (
                 <button key={p.id} type="button" onClick={() => pick(p)}
                         className="flex w-full items-center justify-between gap-ds-3 border-b px-1 py-2.5 text-left last:border-0 hover:bg-muted/40">
@@ -124,6 +129,12 @@ export function ToProposalDialog({ open, onOpenChange, listId, brand, ids, onDon
                 </button>
               ))}
             </div>
+            {shown.length > 0 && (
+              <button type="button" onClick={() => { onOpenChange(false); router.push("/work/proposals/create") }}
+                      className="inline-flex items-center gap-1.5 self-start text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
+                <Plus className="h-3.5 w-3.5" />Create a new proposal{brand ? ` for ${brand}` : ""}
+              </button>
+            )}
           </div>
         ) : busy && !check ? (
           <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>

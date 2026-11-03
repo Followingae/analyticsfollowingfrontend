@@ -26,7 +26,7 @@ export default function AddInfluencerPage() {
       <div className="mx-auto max-w-4xl space-y-ds-5">
         <div>
           <Link
-            href="/superadmin/influencers"
+            href="/work/influencers"
             className="mb-ds-3 inline-flex items-center gap-ds-2 text-ds-body-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" /> Master database

@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AlertTriangle, ShieldCheck, Clock, Instagram, Phone, ChevronDown } from "lucide-react"
 import { PageHead, Stat, StatGrid } from "@/components/console/primitives"
+import { CreatorsHubHeader } from "@/components/console/CreatorsHubHeader"
 import {
   FaPage, Failed, Loading, Nothing, TONE_BADGE, TONE_TEXT, figure, type Tone,
 } from "../_ui"
@@ -108,6 +109,7 @@ export default function FAReliabilityPage() {
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <FaPage className="mx-auto w-full max-w-5xl">
+          <CreatorsHubHeader className="mb-0" bare />
           <PageHead
             title="Creator reliability"
             sub="App creators only, scored on whether they deliver and whether they deliver on time. The point of the board is to reach somebody before a deadline turns into a default."
@@ -124,7 +126,7 @@ export default function FAReliabilityPage() {
                   hint="Worth a message today" />
           </StatGrid>
 
-          <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+          <Tabs value={tab} onValueChange={(v: string) => setTab(v as typeof tab)}>
             <TabsList>
               <TabsTrigger value="at_risk">At risk{summary.at_risk ? ` · ${summary.at_risk}` : ""}</TabsTrigger>
               <TabsTrigger value="all">Everyone</TabsTrigger>

@@ -36,7 +36,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { BadgeCheck, CircleDollarSign, Wallet, Plus, Loader2, Check, Download } from 'lucide-react'
+import { Banknote, BadgeCheck, CircleDollarSign, Wallet, Plus, Loader2, Check, Download } from 'lucide-react'
 import { Aed, Stat, StatGrid, type Tone } from '@/components/console/primitives'
 import {
   Age,
@@ -391,6 +391,13 @@ function Payables() {
           sub="Recording a payment is not paying it. A founder approves it, and a founder marks it paid."
           action={
             <>
+              {/* Approved payments leave through a payout run. The screen existed and nothing
+                  here pointed at it. */}
+              {canPay && (
+                <Button variant="outline" onClick={() => router.push('/work/payouts')}>
+                  <Banknote className="mr-1.5 h-4 w-4" />Payout runs
+                </Button>
+              )}
               <Button variant="outline" onClick={exportCsv} disabled={!items.length}>
                 <Download className="mr-1.5 h-4 w-4" />Export
               </Button>

@@ -164,14 +164,14 @@ export function UserManagementDashboard() {
             table.getIsAllPageRowsSelected() ||
             (table.getIsSomePageRowsSelected() && 'indeterminate')
           }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          onCheckedChange={(value: boolean | "indeterminate") => table.toggleAllPageRowsSelected(!!value)}
           aria-label="Select all"
         />
       ),
       cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          onCheckedChange={(value: boolean | "indeterminate") => row.toggleSelected(!!value)}
           aria-label="Select row"
         />
       ),
@@ -415,7 +415,7 @@ export function UserManagementDashboard() {
             <Filter className="h-4 w-4 mr-2" />
             Export Users
           </Button>
-          <Button onClick={() => router.push('/superadmin/users/create')} size="sm">
+          <Button onClick={() => router.push('/work/users/create')} size="sm">
             <UserPlus className="h-4 w-4 mr-2" />
             Add User
           </Button>

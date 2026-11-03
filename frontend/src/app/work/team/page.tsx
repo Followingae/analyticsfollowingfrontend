@@ -135,7 +135,7 @@ export default function TeamConsolePage() {
     <SuperadminLayout>
       <div className="space-y-ds-5">
         <PageHead
-          title="My team"
+          title="Team"
           sub="Nobody else sees this page. An alert here needs a pattern, not one slow afternoon."
         />
 

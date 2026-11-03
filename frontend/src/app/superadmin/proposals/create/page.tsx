@@ -689,7 +689,7 @@ function CreateProposalContent() {
         deliverable_assignments: delAssignments.length > 0 ? delAssignments : undefined,
       })
       toast.success("More influencers added and brand notified!")
-      router.push(`/superadmin/proposals/${addMoreId}`)
+      router.push(`/work/proposals/${addMoreId}`)
     } catch (err: any) {
       toast.error(err.message || "Failed to add more influencers")
     } finally {
@@ -728,7 +728,7 @@ function CreateProposalContent() {
       }
 
       toast.success("Proposal updated!")
-      router.push(`/superadmin/proposals/${editId}`)
+      router.push(`/work/proposals/${editId}`)
     } catch (err: any) {
       toast.error(err.message || "Failed to update proposal")
     } finally {
@@ -781,10 +781,10 @@ function CreateProposalContent() {
 
       if (startApproval) {
         toast.success("Proposal created - opening the approval workflow")
-        router.push(`/superadmin/proposals/${proposal.id}/approval`)
+        router.push(`/work/proposals/${proposal.id}/approval`)
       } else {
         toast.success("Proposal saved as draft")
-        router.push("/superadmin/proposals")
+        router.push("/work/proposals")
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to create proposal")
@@ -844,8 +844,8 @@ function CreateProposalContent() {
             onClick={() =>
               router.push(
                 editId || addMoreId
-                  ? `/superadmin/proposals/${editId || addMoreId}`
-                  : "/superadmin/proposals"
+                  ? `/work/proposals/${editId || addMoreId}`
+                  : "/work/proposals"
               )
             }
           >

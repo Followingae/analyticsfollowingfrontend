@@ -26,6 +26,7 @@ import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CARD, PageHead } from '@/components/console/primitives'
+import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
 import { ReadState, SectionHead } from '@/components/console/surfaces'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
@@ -110,6 +111,8 @@ function Handovers() {
 
   return (
     <div className="space-y-6">
+      {/* A Clients tab, so it wears the Clients tab row like the others. */}
+      <ClientsHubHeader bare />
       <PageHead
         title="Ready to send"
         sub="Links a founder has checked. You send them from your own inbox, as always."

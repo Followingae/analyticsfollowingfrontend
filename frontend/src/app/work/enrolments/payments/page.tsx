@@ -47,6 +47,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { PageHead } from "@/components/console/primitives"
+import { CampaignsHubHeader } from "@/components/console/CampaignsHubHeader"
 import { fullName } from "@/lib/destinations"
 import {
   enrolmentApi, type PayableCreator, type Instalment,
@@ -126,6 +127,9 @@ function PaymentsPage() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Enrolments are a Campaigns tab, and this is one of their screens: the tab row keeps
+          the way back to the board it was opened from. */}
+      <CampaignsHubHeader bare />
       <PageHead
         title={fullName('/work/enrolments/payments')}
         sub="Everyone who has signed an agreement, and whether their money has gone out. Only creators who have signed appear here."

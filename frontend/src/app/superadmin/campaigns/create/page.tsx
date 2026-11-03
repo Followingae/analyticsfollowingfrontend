@@ -229,7 +229,7 @@ export default function SuperadminCreateCampaignPage() {
           {/* Header */}
           <div>
             <Link
-              href="/superadmin/campaigns"
+              href="/work/campaigns"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
             >
               <ArrowLeft className="h-4 w-4" /> All campaigns
@@ -244,7 +244,7 @@ export default function SuperadminCreateCampaignPage() {
                 <p className="font-medium">Direct campaign</p>
                 <p className="mt-0.5 text-muted-foreground">Runs straight away. No client sign-off.</p>
               </div>
-              <Link href="/superadmin/proposals/create"
+              <Link href="/work/proposals/create"
                     className="min-w-[220px] flex-1 rounded-ds-lg px-ds-3 py-ds-2 transition-colors hover:bg-black/[0.035] dark:hover:bg-white/[0.05]">
                 <p className="font-medium text-primary">Start from a proposal →</p>
                 <p className="mt-0.5 text-muted-foreground">
@@ -468,7 +468,7 @@ export default function SuperadminCreateCampaignPage() {
 
           {/* Submit */}
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => router.push("/superadmin/campaigns")}>
+            <Button variant="outline" onClick={() => router.push("/work/campaigns")}>
               Cancel
             </Button>
             <Button

@@ -30,6 +30,7 @@ import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CARD, PageHead } from '@/components/console/primitives'
+import { MoneyHubHeader } from '@/components/console/MoneyHubHeader'
 import { ReadState, SectionHead } from '@/components/console/surfaces'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
@@ -113,6 +114,7 @@ function Negotiations() {
 
   return (
     <div className="space-y-7">
+      <MoneyHubHeader bare />
       <PageHead
         title="Rates to agree"
         sub="Clients have said yes to these. Nothing opens until we know what we are paying."

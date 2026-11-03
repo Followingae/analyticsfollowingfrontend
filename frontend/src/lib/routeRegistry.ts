@@ -86,6 +86,23 @@ export interface Crumb {
   isLast: boolean
 }
 
+/**
+ * Segments that have a real page of their own under /work. Mirrors the exclusion list of the
+ * /work rewrite in next.config.ts: for these, /superadmin/<x> and /work/<x> are DIFFERENT
+ * screens, so a /superadmin crumb is not translated.
+ */
+const WORK_OWN = /^(areas|brands|chasing|coverage|creators|enrolments|goals|guide|inbox|manual|money|payables|payouts|pipeline|scout|sourcing|team|today)/
+
+/** The /work form of a console path, so a raw /superadmin URL is named and linked the way
+ *  the sidebar names and links it. */
+function toWork(path: string): string {
+  const m = path.match(/^\/superadmin(\/.*)?$/)
+  if (!m) return path
+  const rest = m[1] || ""
+  if (!rest) return "/work/today"
+  return WORK_OWN.test(rest.slice(1)) ? path : `/work${rest}`
+}
+
 /** Builds a breadcrumb trail for any pathname using the registry, falling back
  *  to prettified segments for dynamic parts (ids become "Details"). */
 export function getRouteTrail(pathname: string): Crumb[] {
@@ -96,14 +113,21 @@ export function getRouteTrail(pathname: string): Crumb[] {
   let acc = ""
   segments.forEach((seg, i) => {
     acc += `/${seg}`
+    // The console's root crumb. /work is only a redirect and /superadmin was the retired
+    // founders' dashboard, so the first crumb is the console itself and goes to Today.
+    if (i === 0 && (seg === "work" || seg === "superadmin")) {
+      crumbs.push({ title: "Console", href: "/work/today", isLast: segments.length === 1 })
+      return
+    }
+    const href = toWork(acc)
     crumbs.push({
       // destinations.ts first, because it is where a console screen's ONE name lives. The
       // breadcrumb was prettifying the URL segment instead, so the trail above a page read
       // "Inbox" while the sidebar and the page itself both said "My queue", and
       // "Influencers" above a page titled "Creators". Three names for two screens, all on
       // screen at the same time.
-      title: DESTINATIONS[acc]?.short ?? ROUTE_TITLES[acc] ?? prettify(seg),
-      href: acc,
+      title: DESTINATIONS[href]?.short ?? ROUTE_TITLES[acc] ?? prettify(seg),
+      href,
       isLast: i === segments.length - 1,
     })
   })

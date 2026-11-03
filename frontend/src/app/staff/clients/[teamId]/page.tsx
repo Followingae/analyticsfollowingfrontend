@@ -112,7 +112,7 @@ export default function StaffClientDetail() {
           <div className="flex flex-col">
             {proposals.map((p) => (
               <ListRow key={p.id}
-                       onClick={() => router.push(`/superadmin/proposals/${p.id}/approval`)}>
+                       onClick={() => router.push(`/work/proposals/${p.id}/approval`)}>
                 <FileText className="h-4 w-4 flex-none text-muted-foreground" />
                 <span className="min-w-0 flex-1 truncate text-ds-label">{p.name || "Proposal"}</span>
                 <Badge variant="outline" className={`shrink-0 capitalize ${statusTone(p.status)}`}>

@@ -105,7 +105,7 @@ export const isBrandUser = (userRole: string): boolean => {
  */
 export const getRedirectPath = (userRole: string): string => {
   if (canAccessSuperAdmin(userRole)) {
-    return '/superadmin'
+    return '/work/today'
   }
   
   if (canAccessAdmin(userRole)) {

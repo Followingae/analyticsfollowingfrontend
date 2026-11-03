@@ -256,7 +256,7 @@ export default function SuperadminUsersPage() {
                   the console's shared page head, so this screen's title is the size every
                   other console title is instead of a fourth guess at it. */}
               <PageHead
-                title="User Management"
+                title="Users"
                 sub="Create, manage, and monitor platform users"
                 action={
                   <>
@@ -265,7 +265,7 @@ export default function SuperadminUsersPage() {
                       Refresh
                     </Button>
                     <Button
-                      onClick={() => router.push('/superadmin/users/create')}
+                      onClick={() => router.push('/work/users/create')}
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
                       Create Brand Account
@@ -410,7 +410,7 @@ export default function SuperadminUsersPage() {
                                   View Details
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => {
-                                  router.push(`/superadmin/users/${user.id}`)
+                                  router.push(`/work/users/${user.id}`)
                                 }}>
                                   <Edit className="h-3.5 w-3.5 mr-2" />
                                   Edit User
@@ -551,7 +551,7 @@ export default function SuperadminUsersPage() {
                 </div>
               )}
               <div className="flex justify-end">
-                <Button size="sm" onClick={() => { setIsUserDetailsOpen(false); router.push(`/superadmin/users/${selectedUser.id}`) }}>
+                <Button size="sm" onClick={() => { setIsUserDetailsOpen(false); router.push(`/work/users/${selectedUser.id}`) }}>
                   <Edit className="h-3.5 w-3.5 mr-2" />
                   Edit User
                 </Button>

@@ -142,7 +142,7 @@ export default function StaffHome() {
               const isUpload = t.task_type === "upload_content";
               const kind = t.task_type === "curate" ? "curate" : isUpload ? "upload" : "approval";
               const go = () => router.push(
-                isUpload ? `/campaigns/${t.campaign_id}/posts` : `/superadmin/proposals/${t.proposal_id}/approval`
+                isUpload ? `/campaigns/${t.campaign_id}/posts` : `/work/proposals/${t.proposal_id}/approval`
               );
               return (
                 <ListRow key={`${t.proposal_id ?? t.campaign_id ?? i}-${t.task_type}`} onClick={go}>

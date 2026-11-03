@@ -1,5 +1,5 @@
 /**
- * Shared vocabulary for the proposal builder (`/superadmin/proposals/create`).
+ * Shared vocabulary for the proposal builder (`/work/proposals/create`).
  *
  * The builder is an operator tool. It only ever handles SELL prices — the
  * `sell_*_aed_cents` columns off `influencer_database`. Cost and margin are

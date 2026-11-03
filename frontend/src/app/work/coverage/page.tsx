@@ -167,7 +167,7 @@ export default function CoveragePage() {
       <CreatorsHubHeader />
       <div className="space-y-ds-5">
         <PageHead
-          title="Where we're thin"
+          title="Coverage"
           sub="A creator counts only once we hold a rate. A name without one cannot be quoted."
           /* The hub header directly above now carries "Add or import creators" as its primary
              button, so the same button here would be the second one on the screen. */

@@ -15,6 +15,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { PageHead } from "@/components/console/primitives"
+import { MoneyHubHeader } from "@/components/console/MoneyHubHeader"
+import { shortName } from "@/lib/destinations"
 import { FaPage, Failed, Loading, Nothing, Section, TIER_BADGE, TONE_TEXT } from "../_ui"
 import { Search, Instagram, ExternalLink } from "lucide-react"
 import { faWalletApi } from "@/services/faAdminApi"
@@ -96,8 +98,10 @@ export default function FAWalletsPage() {
     <AuthGuard requiredRole="admin">
       <SuperAdminInterface>
         <FaPage>
+          {/* A Money tab: it opened with no way back to the rest of Money. */}
+          <MoneyHubHeader bare />
           <PageHead
-            title="Creator wallets"
+            title={shortName("/work/fa/wallets")}
             sub="What every creator is holding: available now, cashback still clearing, and what they have earned and taken out over their whole time with us. All figures in AED."
             action={
               <div className="relative">

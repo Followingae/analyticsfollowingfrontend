@@ -104,42 +104,42 @@ export default function FADashboardPage() {
       icon: Camera,
       // The tile counts one stage; it used to open the queue on "Active", which is a
       // wider set, so the number you pressed was not the list you got.
-      href: "/superadmin/fa/deliverables?stage=proof_submitted",
+      href: "/work/fa/deliverables?stage=proof_submitted",
     },
     {
       label: "Withdrawals to approve",
       value: summary?.pending_withdrawals,
       icon: Banknote,
-      href: "/superadmin/fa/withdrawals",
+      href: "/work/fa/withdrawals",
     },
     {
       label: "Creators to decide on",
       value: stats?.pending_approvals,
       icon: UserCheck,
-      href: "/superadmin/fa/members?tab=pending",
+      href: "/work/fa/members?tab=pending",
     },
     {
       label: "Signed up today",
       value: summary?.new_signups,
       icon: UserPlus,
-      href: "/superadmin/fa/members",
+      href: "/work/fa/members",
     },
     {
       label: "Receipts to check",
       value: summary?.pending_receipts,
       icon: Receipt,
-      href: "/superadmin/fa/receipt-claims",
+      href: "/work/fa/receipt-claims",
     },
   ]
 
   // ─── (c) Platform overview — existing roll-up stat cards ──────────────
   const cards = [
-    { label: "Creators signed up", value: stats?.total_members, icon: Users, href: "/superadmin/fa/members" },
-    { label: "Waiting on a decision", value: stats?.pending_approvals, icon: Clock, href: "/superadmin/fa/members?tab=pending" },
-    { label: "Merchants live", value: stats?.active_merchants, icon: Store, href: "/superadmin/fa/merchants" },
-    { label: "Campaigns running", value: stats?.active_campaigns, icon: Megaphone, href: "/superadmin/fa/campaigns" },
-    { label: "Deliverables outstanding", value: stats?.pending_deliverables, icon: ClipboardCheck, href: "/superadmin/fa/deliverables" },
-    { label: "Withdrawals waiting", value: stats?.pending_withdrawals, icon: Banknote, href: "/superadmin/fa/withdrawals" },
+    { label: "Creators signed up", value: stats?.total_members, icon: Users, href: "/work/fa/members" },
+    { label: "Waiting on a decision", value: stats?.pending_approvals, icon: Clock, href: "/work/fa/members?tab=pending" },
+    { label: "Merchants live", value: stats?.active_merchants, icon: Store, href: "/work/fa/merchants" },
+    { label: "Campaigns running", value: stats?.active_campaigns, icon: Megaphone, href: "/work/fa/campaigns" },
+    { label: "Deliverables outstanding", value: stats?.pending_deliverables, icon: ClipboardCheck, href: "/work/fa/deliverables" },
+    { label: "Withdrawals waiting", value: stats?.pending_withdrawals, icon: Banknote, href: "/work/fa/withdrawals" },
   ]
 
   /* The shared hover/focus affordance the Stat gets when it is a link. Stat itself supplies
@@ -184,7 +184,7 @@ export default function FADashboardPage() {
               <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-ds-2">
                 <Activity className="h-4 w-4 text-primary" />What just happened
               </h2>
-              <Link href="/superadmin/fa/activity">
+              <Link href="/work/fa/activity">
                 <Button variant="ghost" size="sm">See everything<ArrowRight className="h-4 w-4 ml-1" /></Button>
               </Link>
             </div>

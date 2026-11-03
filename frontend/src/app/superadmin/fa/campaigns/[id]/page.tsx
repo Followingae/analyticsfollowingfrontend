@@ -156,7 +156,7 @@ export default function FACampaignFunnelPage() {
         <FaPage>
           <div className="flex flex-wrap items-center justify-between gap-ds-3">
             <div className="flex items-center gap-ds-3 min-w-0">
-              <Button size="sm" variant="ghost" onClick={() => router.push("/superadmin/fa/campaigns")}>
+              <Button size="sm" variant="ghost" onClick={() => router.push("/work/fa/campaigns")}>
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="min-w-0 flex-1">
@@ -169,7 +169,7 @@ export default function FACampaignFunnelPage() {
                   ].filter(Boolean).join(" · ")}
                   action={(
                     /* The queue has a campaign picker; it just never read the campaign you came from. */
-                    <Link href={`/superadmin/fa/deliverables?campaign=${id}`}>
+                    <Link href={`/work/fa/deliverables?campaign=${id}`}>
                       <Button size="sm" variant="outline"><ClipboardList className="h-4 w-4 mr-1.5" />All deliverables</Button>
                     </Link>
                   )}

@@ -101,7 +101,7 @@ export default function JobQueuePage() {
     <SuperadminLayout>
       <div className="space-y-ds-5">
         <div>
-          <Link href="/superadmin/system" className="inline-flex items-center gap-2 text-ds-body-sm text-muted-foreground transition-colors hover:text-foreground mb-ds-3">
+          <Link href="/work/system" className="inline-flex items-center gap-2 text-ds-body-sm text-muted-foreground transition-colors hover:text-foreground mb-ds-3">
             <ArrowLeft className="h-4 w-4" /> System
           </Link>
           <PageHead

@@ -42,7 +42,7 @@ export function AddInfluencerForm() {
 
       if (result.success) {
         toast.success(`@${trimmed} added - analytics will process in the background`)
-        router.push("/superadmin/influencers")
+        router.push("/work/influencers")
       } else {
         toast.error(result.error || "Failed to add influencer")
       }
@@ -132,7 +132,7 @@ export function AddInfluencerForm() {
       <div className="flex gap-3">
         <Button
           variant="outline"
-          onClick={() => router.push("/superadmin/influencers")}
+          onClick={() => router.push("/work/influencers")}
         >
           Cancel
         </Button>

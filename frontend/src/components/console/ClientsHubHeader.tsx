@@ -107,8 +107,11 @@ export function ClientsHubHeader({
    * dropped — nothing a page said before should stop being said.
    */
   note,
+  bare,
 }: {
   action?: React.ReactNode
+  /** Tabs only, no hub title: for a screen that keeps its own heading and buttons. */
+  bare?: boolean
   showStats?: boolean
   note?: React.ReactNode
 }) {
@@ -120,6 +123,7 @@ export function ClientsHubHeader({
       sub="Who we sell to, and what we have quoted them. Clients are on the books, brands are the earlier conversations, and proposals are the quotes sitting with them."
       tabs={TABS}
       action={action}
+      bare={bare}
     >
       {note && (
         <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">{note}</p>

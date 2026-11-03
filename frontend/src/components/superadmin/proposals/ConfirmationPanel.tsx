@@ -157,7 +157,7 @@ export function ConfirmationPanel({ proposalId }: { proposalId: string }) {
               exactly as their own confirmation would have opened it.
             </CardDescription>
           </div>
-          <Button className="rounded-xl" onClick={() => router.push(`/superadmin/proposals/${proposalId}/confirm`)}>
+          <Button className="rounded-xl" onClick={() => router.push(`/work/proposals/${proposalId}/confirm`)}>
             Confirm on their behalf <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>

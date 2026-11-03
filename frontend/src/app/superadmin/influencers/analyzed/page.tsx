@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { CARD, PageHead, Stat, StatGrid } from "@/components/console/primitives"
+import { CreatorsHubHeader } from "@/components/console/CreatorsHubHeader"
+import { shortName } from "@/lib/destinations"
 import { Search, Users, BadgeCheck, TrendingUp, BarChart3, ArrowUpRight } from "lucide-react"
 import { API_CONFIG } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
@@ -109,8 +111,10 @@ export default function AnalyzedCreatorsPage() {
   return (
     <SuperadminLayout>
       <div className="space-y-ds-5">
+        {/* A Creators tab: without the tab row it was a dead end off the hub. */}
+        <CreatorsHubHeader className="mb-0" bare />
         <PageHead
-          title="Analyzed Creators"
+          title={shortName("/work/influencers/analyzed")}
           sub="Instagram creators run through Creator Analytics. Separate from the curated Master Database."
         />
 

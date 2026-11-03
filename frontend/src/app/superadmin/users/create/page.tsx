@@ -193,7 +193,7 @@ export default function CreateBrandAccountPage() {
       <SuperadminLayout>
         <div className="space-y-ds-5">
           <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground"
-                  onClick={() => router.push('/superadmin/users')}>
+                  onClick={() => router.push('/work/users')}>
             <ArrowLeft className="h-4 w-4" /> Users
           </Button>
 
@@ -260,7 +260,7 @@ export default function CreateBrandAccountPage() {
               {/* Actions */}
               <div className="flex gap-3">
                 <Button
-                  onClick={() => router.push('/superadmin/users')}
+                  onClick={() => router.push('/work/users')}
                 >
                   Back to the user list
                 </Button>
@@ -300,7 +300,7 @@ export default function CreateBrandAccountPage() {
       <div className="space-y-ds-5">
         <div>
           <Button type="button" variant="ghost" size="sm" className="-ml-2 mb-ds-3 gap-1.5 text-muted-foreground"
-                  onClick={() => router.push('/superadmin/users')}>
+                  onClick={() => router.push('/work/users')}>
             <ArrowLeft className="h-4 w-4" /> Users
           </Button>
           <PageHead
@@ -466,7 +466,7 @@ export default function CreateBrandAccountPage() {
         ) : accountType === 'staff' ? (
         <Panel title="Staff role" description="What this person does here. It decides what they can open and what they can approve.">
             <div>
-            <Select value={staffRole} onValueChange={(v) => setStaffRole(v as any)}>
+            <Select value={staffRole} onValueChange={(v: string) => setStaffRole(v as any)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="talent_manager">Talent Manager</SelectItem>
@@ -483,7 +483,7 @@ export default function CreateBrandAccountPage() {
         {/* Subscription Tier */}
         <Panel title="Subscription tier" description="Picking a plan fills in the credits and limits below.">
             <div>
-            <Select value={formData.subscription_tier} onValueChange={(value) => handleTierChange(value as any)}>
+            <Select value={formData.subscription_tier} onValueChange={(value: string) => handleTierChange(value as any)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -575,7 +575,7 @@ export default function CreateBrandAccountPage() {
 
           {/* Submit Button - Full Width */}
           <div className="lg:col-span-2 flex justify-end gap-3 pb-8 border-t pt-6 mt-6">
-            <Button type="button" variant="outline" size="lg" onClick={() => router.push('/superadmin/users')}>
+            <Button type="button" variant="outline" size="lg" onClick={() => router.push('/work/users')}>
               Cancel
             </Button>
             <Button

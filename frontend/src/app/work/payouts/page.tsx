@@ -39,6 +39,7 @@ import {
 import { toast } from 'sonner'
 
 import { CARD, PageHead, Stat, StatGrid } from '@/components/console/primitives'
+import { MoneyHubHeader } from '@/components/console/MoneyHubHeader'
 import {
   Age,
   BulkBar,
@@ -310,6 +311,7 @@ export default function PayoutRunsPage() {
   return (
     <SuperadminLayout>
       <div className="space-y-ds-5">
+        <MoneyHubHeader bare />
         <PageHead
           title="Payout runs"
           sub="A run is a basket of approved creator payments, checked line by line, turned into one file for the bank, and closed once the bank has taken it."

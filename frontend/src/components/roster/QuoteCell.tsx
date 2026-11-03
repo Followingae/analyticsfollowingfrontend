@@ -18,14 +18,18 @@ import { BUNDLE_LABEL, CURRENCIES, aed, amount, priceFlags } from "./rosterForma
 
 const NONE = "__none__"
 
-export function QuoteCell({ listId, c, editable, bandMax, onSaved }: {
+export function QuoteCell({ listId, c, editable, bandMax, onSaved, open: openProp, onOpenChange }: {
   listId: string
   c: ImdListCreator
   editable: boolean
   bandMax?: number | null
   onSaved: () => void
+  /** Optional control from outside, so a row's "Add rate" button can open this editor. */
+  open?: boolean
+  onOpenChange?: (o: boolean) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [openState, setOpenState] = useState(false)
+  const open = openProp ?? openState
   const [busy, setBusy] = useState(false)
   const [asked, setAsked] = useState("")
   const [agreed, setAgreed] = useState("")
@@ -34,15 +38,20 @@ export function QuoteCell({ listId, c, editable, bandMax, onSaved }: {
   const [usage, setUsage] = useState("")
   const [note, setNote] = useState("")
 
+  const init = () => {
+    setAsked(c.quote_asked != null ? String(c.quote_asked) : "")
+    setAgreed(c.quote_agreed != null ? String(c.quote_agreed) : "")
+    setCurrency(c.quote_currency || "AED")
+    setBundle(c.quote_bundle || NONE)
+    setUsage(c.quote_usage_monthly != null ? String(c.quote_usage_monthly) : "")
+    setNote(c.quote_note || "")
+  }
+  // Opened from outside: fill the fields the same way a click on the cell does.
+  React.useEffect(() => { if (openProp) init() }, [openProp]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setOpen = (o: boolean) => { if (onOpenChange) onOpenChange(o); else setOpenState(o) }
   const start = (o: boolean) => {
-    if (o) {
-      setAsked(c.quote_asked != null ? String(c.quote_asked) : "")
-      setAgreed(c.quote_agreed != null ? String(c.quote_agreed) : "")
-      setCurrency(c.quote_currency || "AED")
-      setBundle(c.quote_bundle || NONE)
-      setUsage(c.quote_usage_monthly != null ? String(c.quote_usage_monthly) : "")
-      setNote(c.quote_note || "")
-    }
+    if (o) init()
     setOpen(o)
   }
 

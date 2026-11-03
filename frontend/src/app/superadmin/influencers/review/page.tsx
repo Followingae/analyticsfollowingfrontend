@@ -21,13 +21,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cdnAvatar } from '@/lib/avatar'
 import {
-  Check, X, UserPlus, Loader2, LayoutGrid, Layers, Tag, ArrowLeft, ArrowRight, Undo2,
+  Check, X, UserPlus, Loader2, LayoutGrid, Layers, Tag, ArrowLeft, ArrowRight, Undo2, Search,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { creatorIntakeApi, type PendingCreator } from '@/services/creatorIntakeApi'
@@ -41,6 +42,17 @@ import type { AreaBrief } from '@/services/imdListsApi'
 
 const DELIVERABLES = ['reel', 'post', 'story', 'carousel'] as const
 type Lane = 'needs_cost' | 'needs_sell'
+type Sort = 'newest' | 'followers' | 'cost'
+const ALL = '__all__'
+const NONE = '__none__'
+const SIZES: { key: string; label: string; min: number; max: number | null }[] = [
+  { key: ALL, label: 'Any size', min: -1, max: null },
+  { key: 'u10', label: 'Under 10K', min: 0, max: 10_000 },
+  { key: '10-50', label: '10K to 50K', min: 10_000, max: 50_000 },
+  { key: '50-250', label: '50K to 250K', min: 50_000, max: 250_000 },
+  { key: '250', label: '250K+', min: 250_000, max: null },
+]
+const ORIGIN_LABEL: Record<string, string> = { submitted: 'Added by the team', imported: 'From an import', legacy: 'Older record' }
 
 const money = (c?: number | null) => (c == null ? null : (c / 100).toLocaleString('en-AE'))
 const compact = (n: number | null) =>
@@ -90,8 +102,13 @@ export default function ReviewQueuePage() {
       setItems(list)
       setScope(res.data?.scope || 'leadership')
       if (!keepLane) {
-        // Open on the lane that is actually this person's work.
-        setLane(res.data?.scope === 'leadership' && res.data?.needs_sell ? 'needs_sell' : 'needs_cost')
+        // Open on the lane with work this person can do: founders price first, the talent team
+        // records costs. An empty lane never opens when the other one has something in it.
+        const sell = list.filter((i) => i.lane === 'needs_sell').length
+        const cost = list.filter((i) => i.lane === 'needs_cost').length
+        const leader = (res.data?.scope || 'leadership') === 'leadership'
+        setLane(leader ? (sell ? 'needs_sell' : cost ? 'needs_cost' : 'needs_sell')
+                       : (cost ? 'needs_cost' : sell ? 'needs_sell' : 'needs_cost'))
       }
     } catch (e) {
       setFailed(true)
@@ -103,10 +120,56 @@ export default function ReviewQueuePage() {
   }
   useEffect(() => { load(false) }, [])
 
+  // ---- find, filter, sort ----------------------------------------------------
+  const [q, setQ] = useState('')
+  const [roster, setRoster] = useState<string>(ALL)
+  const [origin, setOrigin] = useState<string>(ALL)
+  const [size, setSize] = useState<string>(ALL)
+  const [costed, setCosted] = useState<string>(ALL)
+  const [sort, setSort] = useState<Sort>('newest')
+
+  const rosters = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const i of items) {
+      const k = i.sourced_for_list_id || (i.sourced_for ? `name:${i.sourced_for}` : NONE)
+      if (!m.has(k)) m.set(k, k === NONE ? 'Not for a roster'
+        : [i.sourced_for_brand, i.sourced_for].filter(Boolean).filter((v, n, a) => a.indexOf(v) === n).join(' · '))
+    }
+    return [...m.entries()].sort((a, b) => (a[0] === NONE ? 1 : b[0] === NONE ? -1 : a[1].localeCompare(b[1])))
+  }, [items])
+  const origins = useMemo(() => [...new Set(items.map((i) => i.origin || 'legacy'))], [items])
+
+  const filtered = useMemo(() => {
+    const t = q.trim().toLowerCase().replace(/^@/, '')
+    const band = SIZES.find((s) => s.key === size)
+    const out = items.filter((i) => {
+      if (t && !`${i.username} ${i.full_name || ''}`.toLowerCase().includes(t)) return false
+      if (roster !== ALL) {
+        const k = i.sourced_for_list_id || (i.sourced_for ? `name:${i.sourced_for}` : NONE)
+        if (k !== roster) return false
+      }
+      if (origin !== ALL && (i.origin || 'legacy') !== origin) return false
+      if (band && band.key !== ALL) {
+        const f = i.followers_count ?? -1
+        if (f < band.min || (band.max != null && f >= band.max)) return false
+      }
+      const hasCost = (i.cost_total_cents ?? 0) > 0 || DELIVERABLES.some((d) => costOf(i, d) != null)
+      if (costed === 'yes' && !hasCost) return false
+      if (costed === 'no' && hasCost) return false
+      return true
+    })
+    const when = (i: PendingCreator) => new Date(i.cost_captured_at || i.submitted_at || 0).getTime()
+    return out.sort((a, b) => sort === 'followers' ? (b.followers_count ?? -1) - (a.followers_count ?? -1)
+      : sort === 'cost' ? (b.cost_total_cents ?? 0) - (a.cost_total_cents ?? 0)
+      : when(b) - when(a))
+  }, [items, q, roster, origin, size, costed, sort])
+  const filtering = !!q.trim() || roster !== ALL || origin !== ALL || size !== ALL || costed !== ALL
+  const clearFilters = () => { setQ(''); setRoster(ALL); setOrigin(ALL); setSize(ALL); setCosted(ALL) }
+
   const lanes = useMemo(() => ({
-    needs_cost: items.filter((i) => i.lane === 'needs_cost'),
-    needs_sell: items.filter((i) => i.lane === 'needs_sell'),
-  }), [items])
+    needs_cost: filtered.filter((i) => i.lane === 'needs_cost'),
+    needs_sell: filtered.filter((i) => i.lane === 'needs_sell'),
+  }), [filtered])
   const shown = lanes[lane]
 
   // ---- the card stack ------------------------------------------------------
@@ -195,6 +258,13 @@ export default function ReviewQueuePage() {
       </Badge>
     )
 
+  /** Which brand they were found for, at a glance on every card. */
+  const ForBrand = ({ c }: { c: PendingCreator }) => {
+    const b = c.sourced_for_brand || c.sourced_for
+    if (!b) return null
+    return <span className="inline-flex max-w-full items-center truncate rounded-full bg-foreground px-2 py-0.5 text-xs font-medium text-background">For {b}</span>
+  }
+
   const Face = ({ c, size = 'h-11 w-11' }: { c: PendingCreator; size?: string }) => (
     <Avatar className={size}>
       {/* Instagram blocks hotlinks, so this always goes through our own CDN. */}
@@ -272,6 +342,57 @@ export default function ReviewQueuePage() {
           </TabsList>
         </Tabs>
 
+        {/* Find one creator, or narrow to one roster, without scrolling the whole room. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input className="pl-9" placeholder="Handle or name" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+          {rosters.length > 1 && (
+            <Select value={roster} onValueChange={setRoster}>
+              <SelectTrigger className="h-9 w-full sm:w-56"><SelectValue placeholder="Any roster" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Any roster</SelectItem>
+                {rosters.map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          {origins.length > 1 && (
+            <Select value={origin} onValueChange={setOrigin}>
+              <SelectTrigger className="h-9 w-full sm:w-44"><SelectValue placeholder="Any source" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>Any source</SelectItem>
+                {origins.map((o) => <SelectItem key={o} value={o}>{ORIGIN_LABEL[o] || o}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          <Select value={size} onValueChange={setSize}>
+            <SelectTrigger className="h-9 w-full sm:w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>{SIZES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={costed} onValueChange={setCosted}>
+            <SelectTrigger className="h-9 w-full sm:w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Cost or not</SelectItem>
+              <SelectItem value="yes">Has a cost</SelectItem>
+              <SelectItem value="no">No cost yet</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sort} onValueChange={(v: string) => setSort(v as Sort)}>
+            <SelectTrigger className="h-9 w-full sm:w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest first</SelectItem>
+              <SelectItem value="followers">Most followers</SelectItem>
+              <SelectItem value="cost">Highest cost</SelectItem>
+            </SelectContent>
+          </Select>
+          {filtering && (
+            <Button size="sm" variant="ghost" className="h-9 gap-1.5" onClick={clearFilters}>
+              <X className="h-3.5 w-3.5" />Clear
+            </Button>
+          )}
+        </div>
+
         <p className="-mt-2 text-sm text-muted-foreground">
           {lane === 'needs_cost'
             ? 'Nobody has recorded what these creators charge us. Ring them, then put the rate in here.'
@@ -284,7 +405,12 @@ export default function ReviewQueuePage() {
           empty={shown.length === 0}
           what="the waiting room"
           onRetry={() => load()}
-          nothing={
+          nothing={filtering ? (
+            <>
+              <span className="block text-ds-label text-foreground">No creator here matches</span>
+              <Button size="sm" variant="outline" className="mt-ds-2" onClick={clearFilters}>Clear the filters</Button>
+            </>
+          ) : (
             <>
               <span className="block text-ds-label text-foreground">Nothing waiting here</span>
               <span className="mt-ds-1 block">
@@ -293,7 +419,7 @@ export default function ReviewQueuePage() {
                   : 'Every creator with a cost has been priced and added to the database.'}
               </span>
             </>
-          }
+          )}
           skeleton={
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />Loading…
@@ -318,6 +444,7 @@ export default function ReviewQueuePage() {
                   </div>
 
                   <div className="flex flex-wrap gap-1.5">
+                    <ForBrand c={c} />
                     {(c.categories || []).slice(0, 3).map((cat) => (
                       <Badge key={cat} variant="outline" className="text-xs">{cat}</Badge>
                     ))}
@@ -345,10 +472,8 @@ export default function ReviewQueuePage() {
                       : <Rates c={c} />}
                   </div>
 
-                  {c.sourced_for && (
-                    <p className="text-xs text-muted-foreground">
-                      Found for <span className="text-foreground">{c.sourced_for_brand || c.sourced_for}</span>
-                    </p>
+                  {c.sourced_for && c.sourced_for_brand && c.sourced_for !== c.sourced_for_brand && (
+                    <p className="truncate text-xs text-muted-foreground">Roster: {c.sourced_for}</p>
                   )}
                   {/* The area's brief. It was already being fetched here and rendered
                       nowhere, so a founder pricing this creator could see which brand they
@@ -417,6 +542,7 @@ export default function ReviewQueuePage() {
                           </div>
 
                           <div className="flex flex-wrap gap-1.5">
+                            <ForBrand c={top} />
                             {(top.categories || []).map((cat) => (
                               <Badge key={cat} variant="outline" className="text-xs">{cat}</Badge>
                             ))}
@@ -434,10 +560,8 @@ export default function ReviewQueuePage() {
                               : <Rates c={top} />}
                           </div>
 
-                          {top.sourced_for && (
-                            <p className="text-sm text-muted-foreground">
-                              Found for <span className="text-foreground">{top.sourced_for_brand || top.sourced_for}</span>
-                            </p>
+                          {top.sourced_for && top.sourced_for_brand && top.sourced_for !== top.sourced_for_brand && (
+                            <p className="text-sm text-muted-foreground">Roster: {top.sourced_for}</p>
                           )}
                           {briefLine(top.sourced_brief as AreaBrief) && (
                             <p className="text-sm text-muted-foreground">

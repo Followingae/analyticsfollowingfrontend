@@ -230,7 +230,7 @@ export default function CreateCashbackCampaignPage() {
       } else {
         // The campaign you just made is the destination; the list is where you go to
         // find one you have lost. `newId` was already in hand and thrown away.
-        router.push(newId ? `/superadmin/fa/campaigns/${newId}` : "/superadmin/fa/campaigns")
+        router.push(newId ? `/work/fa/campaigns/${newId}` : "/work/fa/campaigns")
       }
     } catch (e: any) {
       toast.error(e?.message || "Failed to create campaign")
@@ -246,7 +246,7 @@ export default function CreateCashbackCampaignPage() {
           <FaPage className="mx-auto max-w-4xl pb-16">
             {/* ─── Header ──────────────────────────────────────── */}
             <div>
-              <Link href="/superadmin/fa/campaigns" className="mb-ds-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <Link href="/work/fa/campaigns" className="mb-ds-3 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
                 <ArrowLeft className="h-4 w-4" />Back to campaigns
               </Link>
               <PageHead
@@ -299,7 +299,7 @@ export default function CreateCashbackCampaignPage() {
                 ) : merchants.length === 0 ? (
                   <div className="space-y-ds-2 sm:col-span-2 lg:col-span-3">
                     <Nothing>No merchants exist yet, and cashback has to be redeemed at one.</Nothing>
-                    <Link href="/superadmin/fa/merchants">
+                    <Link href="/work/fa/merchants">
                       <Button variant="outline" size="sm">
                         <Plus className="mr-1.5 h-4 w-4" />
                         Add a merchant first
@@ -577,7 +577,7 @@ export default function CreateCashbackCampaignPage() {
             {/* ─── Submit Bar ────────────────────────────────────── */}
             <div className={`${CARD} sticky bottom-4 flex items-center justify-between bg-[var(--tone-neutral-wash)] p-ds-3`}>
                 <Button variant="ghost" asChild>
-                  <Link href="/superadmin/fa/campaigns" className="gap-1.5">
+                  <Link href="/work/fa/campaigns" className="gap-1.5">
                     <ArrowLeft className="h-4 w-4" />Cancel
                   </Link>
                 </Button>
@@ -611,7 +611,7 @@ export default function CreateCashbackCampaignPage() {
             campaignId={couponCampaignId}
             campaignName={name}
             open={couponOpen}
-            onOpenChange={(o) => { setCouponOpen(o); if (!o) router.push(`/superadmin/fa/campaigns/${couponCampaignId}`) }}
+            onOpenChange={(o) => { setCouponOpen(o); if (!o) router.push(`/work/fa/campaigns/${couponCampaignId}`) }}
           />
         </TooltipProvider>
       </SuperAdminInterface>

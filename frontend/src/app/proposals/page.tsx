@@ -55,7 +55,7 @@ interface ProposalListItem {
 // Page
 // ---------------------------------------------------------------------------
 function ProposalsPageContent() {
-  const { user, loading: authLoading, hasRole } = useEnhancedAuth()
+  const { user, isLoading: authLoading, hasRole } = useEnhancedAuth()
   const router = useRouter()
   const { markReadByReference } = useNotifications()
   const isFreeTier = hasRole('brand_free')
@@ -67,7 +67,7 @@ function ProposalsPageContent() {
   useEffect(() => {
     if (!authLoading && user) {
       if (user.role === "super_admin" || user.role === "admin") {
-        router.replace("/superadmin/proposals")
+        router.replace("/work/proposals")
         return
       }
     }

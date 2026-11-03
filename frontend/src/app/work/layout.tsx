@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { ConfirmProvider } from "@/components/console/confirm"
+import { DocumentTitle } from "@/components/console/DocumentTitle"
 
 /**
  * The /work tree's layout, and the confirmation host for it.
@@ -33,5 +34,10 @@ export const metadata: Metadata = {
 }
 
 export default function WorkLayout({ children }: { children: React.ReactNode }) {
-  return <ConfirmProvider>{children}</ConfirmProvider>
+  return (
+    <ConfirmProvider>
+      <DocumentTitle />
+      {children}
+    </ConfirmProvider>
+  )
 }

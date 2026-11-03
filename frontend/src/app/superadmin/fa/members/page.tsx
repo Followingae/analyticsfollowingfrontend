@@ -6,6 +6,8 @@ import { AuthGuard } from "@/components/AuthGuard"
 import { SuperAdminInterface } from "@/components/admin/SuperAdminInterface"
 import { FirstPartyAudienceAnalytics } from "@/components/analytics/FirstPartyAudienceAnalytics"
 import { CARD, PageHead } from "@/components/console/primitives"
+import { CreatorsHubHeader } from "@/components/console/CreatorsHubHeader"
+import { shortName } from "@/lib/destinations"
 import {
   FaPage, Failed, Loading, Nothing, TIER_BADGE, TONE_BADGE, TONE_TEXT, figure, type Tone,
 } from "../_ui"
@@ -1118,9 +1120,12 @@ function FAMembers() {
     <AuthGuard requireAdmin={true}>
       <SuperAdminInterface>
         <FaPage>
+          {/* A Creators tab. It was titled "Creators" too, the same word as the hub it had
+              no way back to. */}
+          <CreatorsHubHeader className="mb-0" bare />
           {/* ─── Header ─── */}
           <PageHead
-            title="Creators"
+            title={shortName("/work/fa/members")}
             sub={
               totalCount == null
                 ? "Everyone who has signed up to the Following App. Approving somebody lets them apply to campaigns."
@@ -1207,7 +1212,7 @@ function FAMembers() {
                 <div className="flex flex-wrap items-center gap-3 rounded-ds-md border border-black/[0.06] px-4 py-2.5 dark:border-white/[0.07]">
                   <Checkbox
                     checked={selected.size > 0 && selected.size === filteredMembers.length}
-                    onCheckedChange={(v) =>
+                    onCheckedChange={(v: boolean | "indeterminate") =>
                       setSelected(v ? new Set(filteredMembers.map((m) => m.id)) : new Set())
                     }
                     aria-label="Select all members"

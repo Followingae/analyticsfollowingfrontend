@@ -260,7 +260,7 @@ export default function AgencyOperationsPage() {
     <SuperadminLayout>
       <div className="space-y-ds-5">
         <PageHead
-          title="Operations"
+          title="Creator app queue"
           sub="Everything in flight, and everything waiting on us. Approve or turn down an item without leaving this screen."
           action={
             <Button variant="outline" size="sm" onClick={load} disabled={loading}>Refresh</Button>
@@ -332,7 +332,7 @@ export default function AgencyOperationsPage() {
                     />
                   ))}
                 {deliverables.length > 0 && (
-                  <FullPageLink href="/superadmin/fa/deliverables?stage=proof_submitted" label="Open Deliverables" />
+                  <FullPageLink href="/work/fa/deliverables?stage=proof_submitted" label="Open Deliverables" />
                 )}
               </TabsContent>
 
@@ -346,7 +346,7 @@ export default function AgencyOperationsPage() {
                     />
                   ))}
                 {receipts.length > 0 && (
-                  <FullPageLink href="/superadmin/fa/receipt-claims" label="Open Receipt Claims" />
+                  <FullPageLink href="/work/fa/receipt-claims" label="Open Receipt Claims" />
                 )}
               </TabsContent>
 
@@ -361,7 +361,7 @@ export default function AgencyOperationsPage() {
                     />
                   ))}
                 {withdrawals.length > 0 && (
-                  <FullPageLink href="/superadmin/fa/withdrawals" label="Open Withdrawals" />
+                  <FullPageLink href="/work/fa/withdrawals" label="Open Withdrawals" />
                 )}
               </TabsContent>
 
@@ -375,7 +375,7 @@ export default function AgencyOperationsPage() {
                     />
                   ))}
                 {members.length > 0 && (
-                  <FullPageLink href="/superadmin/fa/members?tab=pending" label="Open Members" />
+                  <FullPageLink href="/work/fa/members?tab=pending" label="Open Members" />
                 )}
               </TabsContent>
             </Tabs>
@@ -386,7 +386,7 @@ export default function AgencyOperationsPage() {
           title="Campaigns in flight"
           description="Running now, across every type"
           action={
-            <Link href="/superadmin/fa/campaigns"
+            <Link href="/work/fa/campaigns"
                   className="text-[13px] text-muted-foreground transition-colors hover:text-foreground">
               View all
             </Link>

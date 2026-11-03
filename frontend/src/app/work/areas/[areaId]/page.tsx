@@ -23,6 +23,7 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   ArrowLeft, Loader2, Plus, Search, X, Globe, Check, MoreHorizontal,
   Download, Link2, Copy, BarChart3, Link as LinkIcon, ShieldCheck, Ban,
@@ -65,6 +66,46 @@ function fmt(n?: number | null) {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return String(n)
 }
+
+/** Proposal facts the API returns per row. */
+type Row = ImdListCreator & {
+  proposal_id?: string | null; proposal_title?: string | null; on_proposal?: boolean | null; proposal_selected?: boolean | null
+}
+
+/** A quiet Skip for one row. The reason is optional and never blocks. */
+function SkipButton({ onSkip }: { onSkip: (why: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false)
+  const [why, setWhy] = useState("")
+  const [busy, setBusy] = useState(false)
+  const go = async () => {
+    setBusy(true)
+    try { await onSkip(why.trim()); setOpen(false); setWhy("") } finally { setBusy(false) }
+  }
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="ghost" className="h-7 shrink-0 px-2 text-xs text-muted-foreground">Skip</Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 p-2">
+        <form className="flex gap-1.5" onSubmit={(e) => { e.preventDefault(); void go() }}>
+          <Input autoFocus value={why} onChange={(e) => setWhy(e.target.value)} placeholder="Why (optional)" className="h-8 text-xs" />
+          <Button type="submit" size="sm" className="h-8" disabled={busy}>
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Skip"}
+          </Button>
+        </form>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+type SourceKey = "all" | "talent" | "scoutai" | "outreach"
+const SOURCES: { key: SourceKey; label: string }[] = [
+  { key: "all", label: "All" }, { key: "talent", label: "Talent team" },
+  { key: "scoutai", label: "ScoutAI" }, { key: "outreach", label: "ScoutOutreach" },
+]
+/** 'chat' = answered the ScoutAI open call on WhatsApp; 'scout' = added by ScoutOutreach; anything else is the talent team. */
+const sourceOf = (c: ImdListCreator): Exclude<SourceKey, "all"> =>
+  c.via === "chat" ? "scoutai" : c.via === "scout" ? "outreach" : "talent"
 
 export default function ImdListDetailPage() {
   const listId = useParams().areaId as string
@@ -113,6 +154,11 @@ export default function ImdListDetailPage() {
   const [panel, setPanel] = useState<{ id: string; username: string } | null>(null)
   const [backOpen, setBackOpen] = useState(false)
   const [backNote, setBackNote] = useState("")
+  /** The row whose rate editor a row's "Add rate" button opened. */
+  const [quoteFor, setQuoteFor] = useState<string | null>(null)
+  /** Who brought the creator in: the talent team, ScoutAI on WhatsApp, or ScoutOutreach. */
+  const [source, setSource] = useState<SourceKey>("all")
+  const [rowBusy, setRowBusy] = useState<string | null>(null)
 
   // add-creators picker
   const [open, setOpen] = useState(false)
@@ -355,6 +401,37 @@ export default function ImdListDetailPage() {
     }
   }
 
+  /** Send one row for review straight from its own button, without the select-and-bulk-bar dance. */
+  const shortlistOne = async (c: ImdListCreator) => {
+    setRowBusy(c.id)
+    try {
+      await rosterSheetApi.talent(listId, [c.id], "shortlist")
+      toast.success(`@${c.username} sent for a founder to price`)
+      load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not send them for review")
+    } finally {
+      setRowBusy(null)
+    }
+  }
+
+  /**
+   * Skip one creator for this campaign. Before a founder clears them it is talent's "not this
+   * time"; once cleared only a founder can take them off the table. Both need a reason on the
+   * server, so an empty one is filled in rather than asked for.
+   */
+  const skipOne = async (c: ImdListCreator, kind: "pass" | "strike", why: string) => {
+    const reason = why || "Skipped for this campaign"
+    try {
+      if (kind === "pass") await rosterSheetApi.talent(listId, [c.id], "pass", reason)
+      else await imdListsApi.strike(listId, [c.id], reason)
+      toast.success(`@${c.username} skipped`)
+      load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not skip them")
+    }
+  }
+
   const openPrice = (rows: ImdListCreator[]) => { setPriceRows(rows); setPriceOpen(true) }
 
   /** A founder's answer to a shortlist, on the rows, instead of a reply to an emailed sheet. */
@@ -493,11 +570,64 @@ export default function ImdListDetailPage() {
   type BandKey = "work" | "review" | "ready" | "passed" | "out"
   const BANDS: { key: BandKey; label: string }[] = [
     { key: "work", label: "Working on" },
-    { key: "review", label: "Sent for review" },
-    { key: "ready", label: "Ready for a proposal" },
+    { key: "review", label: "Waiting for a founder to price" },
+    { key: "ready", label: "Ready to add to a proposal" },
     { key: "passed", label: "Not this time" },
     { key: "out", label: "Ruled out" },
   ]
+  const sourceCounts = useMemo(() => {
+    const n: Record<SourceKey, number> = { all: 0, talent: 0, scoutai: 0, outreach: 0 }
+    for (const c of list?.items ?? []) { n.all++; n[sourceOf(c)]++ }
+    return n
+  }, [list])
+  const inSource = (c: ImdListCreator) => source === "all" || sourceOf(c) === source
+
+  /**
+   * What happens next for this creator, who does it, and the one button that does it.
+   * Replaces the state words: a row says what it needs rather than what it is.
+   */
+  const nextStep = (c: Row): {
+    text: string; tone: "act" | "wait" | "good" | "out"; why?: string | null; action?: React.ReactNode
+    /** How this row is skipped, when the viewer may: talent's pass, or a founder's strike once cleared. */
+    skip?: "pass" | "strike"
+  } => {
+    const editable = canStock && !locked
+    const btn = "h-7 shrink-0 gap-1.5 px-2.5 text-xs"
+    const proposalHref = c.proposal_id ? `/work/proposals/${c.proposal_id}` : "/work/proposals"
+    if (c.dropped_at) {
+      return { text: "Out", tone: "out", why: `Client turned down${c.dropped_in_round ? ` in round ${c.dropped_in_round}` : ""}${c.dropped_reason ? `: ${c.dropped_reason}` : ""}`,
+        action: editable ? <Button size="sm" variant="ghost" className={`${btn} text-muted-foreground`} onClick={() => undropOne(c.id, c.username)}>Put back</Button> : undefined }
+    }
+    if (c.struck_at) return { text: "Out", tone: "out", why: `Taken off the table${c.struck_reason ? `: ${c.struck_reason}` : ""}` }
+    if (c.talent_state === "passed" && !c.cleared_at) return { text: "Out", tone: "out", why: `Not this time${c.talent_reason ? `: ${c.talent_reason}` : ""}` }
+    if (c.proposal_selected || c.client_verdict === "selected") {
+      return { text: "Client picked", tone: "good",
+        action: <Button size="sm" className={btn} asChild><Link href={proposalHref}>Book</Link></Button> }
+    }
+    if (c.cleared_at && (c.on_proposal || c.proposal_id)) {
+      return { text: `On ${c.proposal_title || "a proposal"}`, tone: "wait",
+        action: <Button size="sm" variant="outline" className={btn} asChild><Link href={proposalHref}>Open</Link></Button> }
+    }
+    if (c.cleared_at) {
+      return { text: "Ready", tone: "good", skip: canDestroy && !locked ? "strike" : undefined,
+        action: canStock ? <Button size="sm" className={btn} onClick={() => openProposal([c.id])}>
+          <FileText className="h-3.5 w-3.5" />Add to proposal</Button> : undefined }
+    }
+    if (c.talent_state === "shortlisted") {
+      return { text: "Waiting for a founder to price", tone: "wait", why: c.review_note, skip: editable ? "pass" : undefined,
+        action: canDestroy && !locked ? <Button size="sm" className={btn} onClick={() => openPrice([c])}>
+          <ShieldCheck className="h-3.5 w-3.5" />Price</Button> : undefined }
+    }
+    const hasRate = c.quote_asked != null || c.quote_agreed != null
+    if (!hasRate) {
+      return { text: "Needs a rate", tone: "act", why: c.review_note, skip: editable ? "pass" : undefined,
+        action: editable ? <Button size="sm" variant="outline" className={btn} onClick={() => setQuoteFor(c.id)}>
+          <Pencil className="h-3.5 w-3.5" />Add rate</Button> : undefined }
+    }
+    return { text: "Rate in, send for review", tone: "act", why: c.review_note, skip: editable ? "pass" : undefined,
+      action: editable ? <Button size="sm" variant="outline" className={btn} disabled={rowBusy === c.id} onClick={() => shortlistOne(c)}>
+        {rowBusy === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}Send for review</Button> : undefined }
+  }
   const banded = useMemo(() => {
     const out: Record<BandKey, ImdListCreator[]> = { work: [], review: [], ready: [], passed: [], out: [] }
     for (const c of list?.items ?? []) {
@@ -712,10 +842,9 @@ export default function ImdListDetailPage() {
               {locked && (
                 <div className="flex flex-wrap items-baseline gap-ds-2 border-t pt-ds-3 text-ds-caption">
                   <span className="font-medium text-foreground">Round {roundNo} is closed.</span>
-                  <span className="text-muted-foreground">
-                    Nothing here changes and the client link no longer takes answers.
-                    {list.locked_by_email ? ` Closed by ${list.locked_by_email.split("@")[0]}.` : ""}
-                    {canDestroy ? " Open the next round to keep going." : ""}
+                  <span className="text-muted-foreground"
+                        title="Nothing here changes and the client link no longer takes answers.">
+                    Frozen{list.locked_by_email ? ` by ${list.locked_by_email.split("@")[0]}` : ""}
                   </span>
                 </div>
               )}
@@ -824,6 +953,18 @@ export default function ImdListDetailPage() {
                    ruled on is what this screen is asking a founder for, so they sit at the
                    top rather than wherever they were added, and the people already ruled out
                    sit at the bottom, dimmed. */
+                <div className="flex flex-col gap-ds-2">
+                {/* Where they came from: the talent team, ScoutAI on WhatsApp, or ScoutOutreach. */}
+                <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Source">
+                  {SOURCES.filter(s => s.key === "all" || sourceCounts[s.key] > 0 || source === s.key).map(s => (
+                    <button key={s.key} type="button" role="tab" aria-selected={source === s.key}
+                            onClick={() => setSource(s.key)}
+                            className={`rounded-full border px-3 py-1 text-xs transition-colors ${source === s.key
+                              ? "border-foreground bg-foreground text-background" : "hover:border-foreground/40"}`}>
+                      {s.label} <span className="tabular-nums opacity-60">{sourceCounts[s.key]}</span>
+                    </button>
+                  ))}
+                </div>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -833,13 +974,13 @@ export default function ImdListDetailPage() {
                         <TableHead className="text-right">Followers</TableHead>
                         <TableHead>Price</TableHead>
                         <TableHead>Last time</TableHead>
-                        <TableHead>State</TableHead>
-                        <TableHead className="w-[8.5rem]" />
+                        <TableHead>Next step</TableHead>
+                        <TableHead className="w-[12rem]" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {BANDS.map(band => {
-                        const rows = banded[band.key]
+                        const rows = banded[band.key].filter(inSource)
                         if (!rows.length) return null
                         return (
                           <React.Fragment key={band.key}>
@@ -900,6 +1041,8 @@ export default function ImdListDetailPage() {
                                 <TableCell className="max-w-[15rem]">
                                   <QuoteCell listId={listId} c={c} bandMax={bandMax}
                                              editable={canStock && !locked && !c.dropped_at}
+                                             open={quoteFor === c.id}
+                                             onOpenChange={(o) => setQuoteFor(o ? c.id : null)}
                                              onSaved={load} />
                                 </TableCell>
                                 <TableCell className="text-sm">
@@ -913,108 +1056,57 @@ export default function ImdListDetailPage() {
                                     </span>
                                   ) : <span className="text-muted-foreground">–</span>}
                                 </TableCell>
-                                <TableCell>
-                                  {/* Their no outranks ours: it is the one that ends the
-                                      conversation, and its reason is why the next round
-                                      exists. On the row, never in a tooltip: a round later
-                                      nobody remembers to hover. */}
-                                  {c.dropped_at ? (
-                                    <span className="flex flex-col gap-0.5">
-                                      <Badge variant="outline" className="w-fit gap-1 text-muted-foreground">
-                                        <ThumbsDown className="h-3 w-3" />
-                                        Turned down{c.dropped_in_round ? ` in round ${c.dropped_in_round}` : ""}
-                                      </Badge>
-                                      {c.dropped_reason && (
-                                        <span className="max-w-[16rem] truncate text-ds-caption text-muted-foreground"
-                                              title={c.dropped_reason}>
-                                          {c.dropped_reason}
-                                        </span>
-                                      )}
-                                    </span>
-                                  ) : c.struck_at ? (
-                                    <Badge variant="outline" className="gap-1 text-muted-foreground"
-                                           title={c.struck_reason || undefined}>
-                                      <Ban className="h-3 w-3" />Struck
-                                    </Badge>
-                                  ) : c.client_verdict === "selected" ? (
-                                    <Badge>Client picked</Badge>
-                                  ) : c.cleared_at ? (
-                                    <Badge variant="outline" className="gap-1 border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]">
-                                      <ShieldCheck className="h-3 w-3" />Ready
-                                    </Badge>
-                                  ) : c.talent_state === "passed" ? (
-                                    <span className="flex flex-col gap-0.5">
-                                      <Badge variant="outline" className="w-fit gap-1 text-muted-foreground">
-                                        <CircleSlash className="h-3 w-3" />Not this time
-                                      </Badge>
-                                      {c.talent_reason && (
-                                        <span className="max-w-[14rem] truncate text-ds-caption text-muted-foreground" title={c.talent_reason}>
-                                          {c.talent_reason}
-                                        </span>
-                                      )}
-                                    </span>
-                                  ) : c.talent_state === "shortlisted" ? (
-                                    <span className="flex flex-col gap-0.5">
-                                      <Badge variant="outline" className="w-fit gap-1 border-transparent bg-[var(--tone-info-wash)]">
-                                        <Send className="h-3 w-3" />For review
-                                      </Badge>
-                                      {c.review_note && (
-                                        <span className="max-w-[14rem] truncate text-ds-caption text-[var(--tone-warn-ink)]" title={c.review_note}>
-                                          {c.review_note}
-                                        </span>
-                                      )}
-                                    </span>
-                                  ) : (
-                                    <span className="flex flex-col gap-0.5">
-                                      <Badge variant="outline" className="w-fit text-muted-foreground">Working on</Badge>
-                                      {c.review_note && (
-                                        <span className="max-w-[14rem] truncate text-ds-caption text-[var(--tone-warn-ink)]" title={c.review_note}>
-                                          {c.review_note}
-                                        </span>
-                                      )}
-                                    </span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
+                                {(() => {
+                                  const n = nextStep(c as Row)
+                                  return (
+                                    <>
+                                      <TableCell>
+                                        {/* Who needs to do what. "Out" keeps its reason on hover;
+                                            a founder's note on a live row stays visible. */}
+                                        {n.tone === "out" ? (
+                                          <span className="text-sm text-muted-foreground underline decoration-dotted underline-offset-4"
+                                                title={n.why || undefined}>Out</span>
+                                        ) : (
+                                          <span className="flex flex-col gap-0.5">
+                                            <span className={`text-sm font-medium ${n.tone === "good" ? "text-[var(--tone-good-ink)]"
+                                              : n.tone === "wait" ? "text-muted-foreground" : ""}`}>{n.text}</span>
+                                            {n.why && (
+                                              <span className="max-w-[14rem] truncate text-ds-caption text-[var(--tone-warn-ink)]" title={n.why}>
+                                                {n.why}
+                                              </span>
+                                            )}
+                                          </span>
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
                                   <span className="flex items-center justify-end gap-1">
-                                    <Button
-                                      size="sm"
-                                      variant={c.share_token ? "secondary" : "outline"}
-                                      className="h-7 shrink-0 gap-1.5 px-2 text-xs"
-                                      disabled={sharing === c.username}
-                                      onClick={() => share(c.username, c.share_path)}
-                                      title={c.share_token
-                                        ? `Public link · ${c.share_views ?? 0} view${c.share_views === 1 ? "" : "s"}`
-                                        : "Create a public analytics link"}
-                                    >
-                                      {sharing === c.username
-                                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                        : c.share_token ? <Copy className="h-3.5 w-3.5" /> : <Link2 className="h-3.5 w-3.5" />}
-                                      {c.share_token ? "Copy" : "Share"}
-                                    </Button>
-                                    {/* Somebody records the wrong name, or the client changes
-                                        their mind. A drop that could not be undone would make
-                                        people avoid recording it at all, which costs the loop
-                                        the information it runs on. */}
-                                    {c.dropped_at && canStock && !locked && (
-                                      <Button size="sm" variant="ghost"
-                                              className="h-7 shrink-0 px-2 text-xs text-muted-foreground"
-                                              onClick={() => undropOne(c.id, c.username)}>
-                                        Put back
-                                      </Button>
-                                    )}
-                                    {canStock && !locked && (
-                                      <Button
-                                        size="icon" variant="ghost"
-                                        className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                                        onClick={() => removeOne(c.id, c.username)}
-                                        aria-label={`Remove @${c.username}`}
-                                      >
-                                        <X className="h-3.5 w-3.5 text-muted-foreground" />
-                                      </Button>
-                                    )}
+                                    {n.action}
+                                    {n.skip && <SkipButton onSkip={(why) => skipOne(c, n.skip!, why)} />}
+                                    {/* Share and Remove, tucked: each row shows the next step, one
+                                        button, Skip, and this menu. */}
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" aria-label={`More for @${c.username}`}>
+                                          {sharing === c.username ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-52">
+                                        <DropdownMenuItem disabled={sharing === c.username} onClick={() => share(c.username, c.share_path)}>
+                                          {c.share_token ? <Copy className="mr-2 h-4 w-4" /> : <Link2 className="mr-2 h-4 w-4" />}
+                                          {c.share_token ? `Copy link (${c.share_views ?? 0} view${c.share_views === 1 ? "" : "s"})` : "Share analytics link"}
+                                        </DropdownMenuItem>
+                                        {canStock && !locked && (
+                                          <DropdownMenuItem onClick={() => removeOne(c.id, c.username)} className="text-[var(--tone-bad-ink)]">
+                                            <X className="mr-2 h-4 w-4" />Remove from roster
+                                          </DropdownMenuItem>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   </span>
                                 </TableCell>
+                                    </>
+                                  )
+                                })()}
                               </TableRow>
                             ))}
                           </React.Fragment>
@@ -1022,6 +1114,7 @@ export default function ImdListDetailPage() {
                       })}
                     </TableBody>
                   </Table>
+                </div>
                 </div>
               )}
             </>
@@ -1041,10 +1134,7 @@ export default function ImdListDetailPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Send {markedIds.length} back</DialogTitle>
-              <DialogDescription>
-                They go back to the working list with your note on the row, and it shows on
-                the talent team's Today.
-              </DialogDescription>
+              <DialogDescription>Back to the working list, with your note on the row.</DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-1.5">
               <Label>Your note</Label>
@@ -1067,10 +1157,7 @@ export default function ImdListDetailPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Not this time: {markedIds.length} creator{markedIds.length === 1 ? "" : "s"}</DialogTitle>
-              <DialogDescription>
-                They stay in the database and on this roster, just not sent forward for this
-                campaign. The reason is shown wherever they come up next.
-              </DialogDescription>
+              <DialogDescription>They stay in the database. The reason travels with them.</DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-1.5">
               <Label>Why not for this one</Label>
@@ -1103,10 +1190,7 @@ export default function ImdListDetailPage() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>The brief</DialogTitle>
-              <DialogDescription>
-                What the team is looking for, what we are offering and what we need back.
-                Everyone working this roster reads it, so say the parts you know.
-              </DialogDescription>
+              <DialogDescription>Fill in what you know.</DialogDescription>
             </DialogHeader>
             <div className="flex max-h-[62vh] flex-col gap-ds-3 overflow-y-auto pr-1">
               <BriefFields brief={briefDraft} onChange={setBriefDraft} />
@@ -1130,20 +1214,13 @@ export default function ImdListDetailPage() {
               <DialogTitle>
                 The client turned down {markedIds.length} creator{markedIds.length === 1 ? "" : "s"}
               </DialogTitle>
-              <DialogDescription>
-                They stay on the roster with the reason on their row, so round {roundNo + 1} is built
-                knowing who has already been turned down. You can put them back if this was
-                recorded in error.
-              </DialogDescription>
+              <DialogDescription>Kept on the roster with the reason. You can put them back.</DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-1.5">
               <Label>What did they say</Label>
               <Textarea value={dropWhy} rows={3}
                         onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDropWhy(e.target.value)}
                         placeholder="e.g. too small for the launch, worked with a competitor last month, tone is wrong for us" />
-              <p className="text-ds-caption text-muted-foreground">
-                Required. A drop with no reason tells the next round nothing.
-              </p>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDropOpen(false)} disabled={gateBusy}>Cancel</Button>
@@ -1158,10 +1235,7 @@ export default function ImdListDetailPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Take {markedIds.length} off the table</DialogTitle>
-              <DialogDescription>
-                They stay on the roster and keep their research. This only stops them being shown
-                to this brand. The reason is what stops them coming back next round.
-              </DialogDescription>
+              <DialogDescription>Hidden from this brand. They keep their research.</DialogDescription>
             </DialogHeader>
             <div className="space-y-1.5">
               <Label>Why</Label>
@@ -1278,9 +1352,8 @@ export default function ImdListDetailPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Share this roster</DialogTitle>
-            <DialogDescription>
-              Anyone with the link sees the cleared creators. No login, and never a cost
-              price. A creator with no sell price is left off a link that shows prices.
+            <DialogDescription title="A creator with no sell price is left off a link that shows prices.">
+              Cleared creators only. No login, never a cost price.
             </DialogDescription>
           </DialogHeader>
 

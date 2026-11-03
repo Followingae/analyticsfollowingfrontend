@@ -179,7 +179,7 @@ export default function SuperadminCampaignsPage() {
         <FrameioCallback />
         <CampaignsHubHeader
           action={
-            <Button onClick={() => router.push("/superadmin/campaigns/create")}>
+            <Button onClick={() => router.push("/work/campaigns/create")}>
               <Plus className="mr-1.5 h-4 w-4" /> New campaign
             </Button>
           }

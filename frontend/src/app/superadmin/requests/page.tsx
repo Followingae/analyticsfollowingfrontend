@@ -107,7 +107,7 @@ function Requests() {
   return (
     <div className="space-y-6">
       <PageHead
-        title="Waiting on us"
+        title="Requests"
         sub="What clients and colleagues have asked for, and who owes it."
         action={<Button onClick={() => setAdding(true)}>
           <Plus className="mr-1.5 h-3.5 w-3.5" /> Raise one

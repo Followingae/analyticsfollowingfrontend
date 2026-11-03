@@ -165,7 +165,7 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
 
       {!oc ? (
         <p className="text-ds-caption text-muted-foreground">
-          A campaign card the talent team sends creators to. The chat collects their price, dates and email and puts them on this roster.
+          Creators reply on WhatsApp and land on this roster with their price.
         </p>
       ) : (
         <>
@@ -295,7 +295,7 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
                 {draft.ask_rate === false && (
                   <>
                     <p className="text-ds-caption text-muted-foreground">
-                      ScoutAI states the fee and never asks a rate, so a small top-up on the product does not turn into a negotiation.
+                      ScoutAI states the fee and never asks a rate.
                     </p>
                     <F label="The fee, as creators read it">
                       <Input value={draft.fee_note || ""} onChange={e => set({ fee_note: e.target.value })} placeholder="AED 150 on top" />
@@ -307,8 +307,9 @@ export function OpenCallPanel({ listId, brand, isSuperadmin, isFounder }: {
             {draft.comp_mode !== "barter" && draft.ask_rate !== false && (
               <div className="rounded-ds-lg bg-[var(--tone-neutral-wash)] p-ds-3">
                 <p className="mb-ds-2 text-ds-caption text-muted-foreground">
-                  How the agent negotiates. At or under the target it accepts. Above it, it counters once, gently.
-                  Above the ceiling, or over the follower size, it hands the creator to the talent manager.
+                  <span title="Above the target it counters once. Above the ceiling, or over the follower size, it hands the creator to the talent manager.">
+                    At or under the target it accepts. Above the ceiling it hands over. ⓘ
+                  </span>
                 </p>
                 <div className="grid gap-ds-3 sm:grid-cols-3">
                   <F label="Target per creator (AED)"><Input inputMode="decimal" value={draft.target_aed ?? ""} onChange={e => set({ target_aed: e.target.value as unknown as number })} placeholder="3500" /></F>

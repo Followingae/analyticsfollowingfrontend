@@ -130,7 +130,7 @@ export default function SuperadminProposalsPage() {
           <ClientsHubHeader
             note="Every quote we have written for a brand: what is still a draft, what is out with them, and what came back approved."
             action={
-              <Link href="/superadmin/proposals/create">
+              <Link href="/work/proposals/create">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
                   Create a proposal
@@ -265,7 +265,7 @@ export default function SuperadminProposalsPage() {
                           <FileText className="h-8 w-8 mx-auto text-muted-foreground/60 mb-3 block" />
                           <span className="text-sm font-medium mb-1 block text-foreground">No proposals found</span>
                           <span className="text-xs text-muted-foreground mb-4 block">Create a proposal to get started</span>
-                          <Link href="/superadmin/proposals/create">
+                          <Link href="/work/proposals/create">
                             <Button variant="outline" size="sm">
                               <Plus className="mr-2 h-4 w-4" />
                               Create a proposal
@@ -278,7 +278,7 @@ export default function SuperadminProposalsPage() {
                       <TableRow key={p.id} className="group transition-colors duration-150 hover:bg-muted/50">
                         <TableCell>
                           <Link
-                            href={`/superadmin/proposals/${p.id}`}
+                            href={`/work/proposals/${p.id}`}
                             className="hover:underline font-medium text-sm"
                           >
                             {p.title}
@@ -327,13 +327,13 @@ export default function SuperadminProposalsPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem asChild>
-                                <Link href={`/superadmin/proposals/${p.id}`}>
+                                <Link href={`/work/proposals/${p.id}`}>
                                   <Eye className="mr-2 h-3.5 w-3.5" />
                                   View details
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <Link href={`/superadmin/proposals/${p.id}/approval`}>
+                                <Link href={`/work/proposals/${p.id}/approval`}>
                                   <ArrowRight className="mr-2 h-3.5 w-3.5" />
                                   Approval steps
                                 </Link>

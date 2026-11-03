@@ -46,6 +46,11 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Today',
     hint: 'What your day is made of',
   },
+  '/work/jobs': {
+    short: 'Jobs',
+    full: 'Jobs',
+    hint: 'Every brief, start to paid, and what needs you',
+  },
   '/work/inbox': {
     short: 'Decisions',
     full: 'Open decisions',
@@ -332,6 +337,13 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Client credits',
     hint: 'Credit balances, top-ups and plans for every client',
   },
+  /* Not under /work: the production board lives in its own /ops tree, which clients can also
+     open read-only. It is the Campaigns hub's "Production" tab for the team. */
+  '/ops/campaigns': {
+    short: 'Production',
+    full: 'Production',
+    hint: 'Workstreams, concepts and deliverables for every campaign in flight',
+  },
   '/work/report-campaigns': {
     short: 'Reports',
     full: 'Campaign reports',
@@ -342,11 +354,13 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Campaign report',
     hint: 'One finished campaign: results, content and spend',
   },
-  '/superadmin/operations': {
-    short: 'Operations queues',
-    full: 'Operations queues',
-    // The only entry keyed /superadmin/...: this page has no /work/ form, and the rewrite only goes one way.
-    hint: 'Work that has piled up and needs an owner',
+  '/work/operations': {
+    // Was "Operations" on the page and "Operations queues" here, while the production board
+    // at /ops was also titled "Operations". Two screens, one name. This one is the creator
+    // app's backlog: content to review, receipts, withdrawals and sign-ups.
+    short: 'Creator app queue',
+    full: 'Creator app queue',
+    hint: 'Content, receipts, withdrawals and sign-ups waiting in the creator app',
   },
 
   // ── Insight ─────────────────────────────────────────────────────────────────────────
@@ -564,4 +578,10 @@ export function fullName(url: string): string {
 
 export function hintFor(url: string): string | undefined {
   return lookup(url)?.hint
+}
+
+/** The destination for a URL, or undefined when it has none. Unlike `fullName`, a miss does
+ *  not fall back to the URL, so a caller can tell "unnamed" from "named". */
+export function destinationFor(url: string): Destination | undefined {
+  return lookup(url)
 }

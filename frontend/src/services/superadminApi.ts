@@ -96,6 +96,9 @@ export interface UserManagement {
   recent_activity: number
   created_at: string
   updated_at: string
+  /** Sent by the users list and read by UserManagementDashboard; absent on older payloads. */
+  subscription_tier?: string
+  credit_balance?: number
 }
 
 export interface Influencer {

@@ -256,7 +256,7 @@ export default function FACampaignsPage() {
                 <Button size="sm" variant="outline" onClick={() => setCreateMasterOpen(true)}>
                   <Layers className="h-4 w-4 mr-1" />New package
                 </Button>
-                <Link href="/superadmin/fa/campaigns/new">
+                <Link href="/work/fa/campaigns/new">
                   <Button size="sm"><Plus className="h-4 w-4 mr-1" />Create Campaign</Button>
                 </Link>
               </>
@@ -327,7 +327,7 @@ export default function FACampaignsPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={(e) => { e.stopPropagation(); router.push(`/superadmin/fa/campaigns/${c.id}`) }}
+                        onClick={(e) => { e.stopPropagation(); router.push(`/work/fa/campaigns/${c.id}`) }}
                         title="Creator funnel: who's enrolled, approved, submitted, verified"
                       >
                         <Users className="h-3.5 w-3.5 mr-1.5" />

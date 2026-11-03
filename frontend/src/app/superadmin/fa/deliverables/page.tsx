@@ -283,7 +283,7 @@ function FADeliverables() {
       <SuperAdminInterface>
         <FaPage>
           <PageHead
-            title="Deliverables"
+            title="Content review"
             sub="Every piece of content creators owe us, across every campaign: what is waiting on a review, what has been posted, and what still needs verifying before a payout is released."
           />
 

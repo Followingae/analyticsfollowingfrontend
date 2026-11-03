@@ -117,7 +117,7 @@ export default function ConfirmForClientPage() {
       setPicked(Object.fromEntries(d.influencers.map(i => [i.id, !!i.selected_by_user])))
       if (d.proposal.status === "approved") {
         toast.info("This proposal is already confirmed")
-        router.replace(`/superadmin/proposals/${id}`)
+        router.replace(`/work/proposals/${id}`)
       }
     } catch (e) {
       toast.error((e as Error).message || "Could not load this proposal")
@@ -226,7 +226,7 @@ export default function ConfirmForClientPage() {
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.detail || "Could not confirm this proposal")
       toast.success(j.message || "Confirmed")
-      router.push(`/superadmin/proposals/${id}`)
+      router.push(`/work/proposals/${id}`)
     } catch (e) {
       toast.error((e as Error).message || "Could not confirm this proposal")
     } finally {
@@ -260,7 +260,7 @@ export default function ConfirmForClientPage() {
       <AuthGuard>
         <SuperAdminInterface>
           <div className="p-6">
-            <Link href={`/superadmin/proposals/${id}`}
+            <Link href={`/work/proposals/${id}`}
                   className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-3.5 w-3.5" />Back to the proposal
             </Link>
@@ -282,7 +282,7 @@ export default function ConfirmForClientPage() {
         <div className="space-y-6 p-6 pb-24">
           {/* ── who and what ─────────────────────────────────────────────────── */}
           <div>
-            <Link href={`/superadmin/proposals/${id}`}
+            <Link href={`/work/proposals/${id}`}
                   className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-3.5 w-3.5" />Back to the proposal
             </Link>

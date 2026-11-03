@@ -174,7 +174,7 @@ export default function ProposalApprovalPage() {
       <div className="flex-1 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/superadmin/proposals')}>
+          <Button variant="ghost" size="icon" onClick={() => router.push('/work/proposals')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="space-y-2">

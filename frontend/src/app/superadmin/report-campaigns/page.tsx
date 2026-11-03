@@ -214,7 +214,7 @@ export default function ReportCampaignsPage() {
                     {/* Opens the REPORT, not the generic campaign screen. Clicking a
                         report campaign used to land on /campaigns/[id]/posts, so the
                         report itself was unreachable without minting a share link. */}
-                    <Link href={`/superadmin/report-campaigns/${r.id}`}
+                    <Link href={`/work/report-campaigns/${r.id}`}
                           className="truncate font-medium hover:underline">
                       {r.name}
                     </Link>
@@ -241,7 +241,7 @@ export default function ReportCampaignsPage() {
 
                 <div className="flex flex-wrap items-center gap-2">
                   <Button asChild variant="secondary" size="sm" className="gap-1.5">
-                    <Link href={`/superadmin/report-campaigns/${r.id}`}>
+                    <Link href={`/work/report-campaigns/${r.id}`}>
                       <BarChart3 className="h-3.5 w-3.5" /> View report
                     </Link>
                   </Button>

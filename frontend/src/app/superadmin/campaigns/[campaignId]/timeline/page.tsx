@@ -534,7 +534,7 @@ export default function CampaignTimelinePage() {
                       <>
                         The {t.roster_note.booked} the client locked.{' '}
                         <button type="button" className="underline underline-offset-2 hover:text-foreground"
-                                onClick={() => router.push(`/superadmin/proposals/${t.roster_note?.proposal_id}`)}>
+                                onClick={() => router.push(`/work/proposals/${t.roster_note?.proposal_id}`)}>
                           All {t.roster_note.pitched} we pitched →
                         </button>
                       </>

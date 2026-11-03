@@ -381,7 +381,7 @@ export default function UserEditPage() {
       <SuperadminLayout>
         <div className="space-y-ds-5">
           <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground"
-                  onClick={() => router.push('/superadmin/users')}>
+                  onClick={() => router.push('/work/users')}>
             <ArrowLeft className="h-4 w-4" /> Users
           </Button>
           <div className="py-ds-6 text-center">
@@ -412,7 +412,7 @@ export default function UserEditPage() {
                   <RefreshCw className="mr-1.5 h-4 w-4" /> Try again
                 </Button>
               )}
-              <Button size="sm" onClick={() => router.push('/superadmin/users')}>
+              <Button size="sm" onClick={() => router.push('/work/users')}>
                 Back to the user list
               </Button>
             </div>
@@ -431,7 +431,7 @@ export default function UserEditPage() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/superadmin/users" className="flex items-center gap-2">
+                <BreadcrumbLink href="/work/users" className="flex items-center gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   Users
                 </BreadcrumbLink>
@@ -561,7 +561,7 @@ export default function UserEditPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
-                  <Select value={accountControl.role} onValueChange={(value) => setAccountControl(prev => ({ ...prev, role: value }))}>
+                  <Select value={accountControl.role} onValueChange={(value: string) => setAccountControl(prev => ({ ...prev, role: value }))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -577,7 +577,7 @@ export default function UserEditPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
-                  <Select value={accountControl.status} onValueChange={(value) => setAccountControl(prev => ({ ...prev, status: value }))}>
+                  <Select value={accountControl.status} onValueChange={(value: string) => setAccountControl(prev => ({ ...prev, status: value }))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -594,7 +594,7 @@ export default function UserEditPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="subscription_tier">Subscription Tier</Label>
-                  <Select value={accountControl.subscription_tier} onValueChange={(value) => setAccountControl(prev => ({ ...prev, subscription_tier: value }))}>
+                  <Select value={accountControl.subscription_tier} onValueChange={(value: string) => setAccountControl(prev => ({ ...prev, subscription_tier: value }))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -751,7 +751,7 @@ export default function UserEditPage() {
                       as a button that drops its context. */}
                   {user.team_id && user.team_name ? (
                     <button type="button" className="font-medium hover:underline"
-                            onClick={() => router.push(`/superadmin/clients/${user.team_id}`)}>
+                            onClick={() => router.push(`/work/clients/${user.team_id}`)}>
                       {user.team_name}
                     </button>
                   ) : (

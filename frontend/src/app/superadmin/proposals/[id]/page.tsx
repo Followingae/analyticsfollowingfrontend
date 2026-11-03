@@ -7,7 +7,7 @@ import { adminProposalApi, AdminProposalDetail, AdminProposalInfluencer } from "
 import { toast } from "sonner"
 import { PageHead } from "@/components/console/primitives"
 import { Dash, Failed, ReadStateRow } from "@/components/console/surfaces"
-import { fullName } from "@/lib/destinations"
+import { fullName, shortName } from "@/lib/destinations"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -231,7 +231,7 @@ export default function ProposalDetailPage() {
       <SuperadminLayout>
         <div className="min-h-[400px]">
           <Failed what="this proposal" onRetry={loadDetail} />
-          <Button variant="outline" onClick={() => router.push("/superadmin/proposals")}>
+          <Button variant="outline" onClick={() => router.push("/work/proposals")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Proposals
           </Button>
@@ -245,7 +245,7 @@ export default function ProposalDetailPage() {
       <SuperadminLayout>
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <p className="text-muted-foreground">Proposal not found</p>
-          <Button variant="outline" onClick={() => router.push("/superadmin/proposals")}>
+          <Button variant="outline" onClick={() => router.push("/work/proposals")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Proposals
           </Button>
@@ -303,7 +303,7 @@ export default function ProposalDetailPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push("/superadmin/proposals")}
+                onClick={() => router.push("/work/proposals")}
               >
                 <ArrowLeft className="mr-1 h-4 w-4" />
                 Back
@@ -317,7 +317,7 @@ export default function ProposalDetailPage() {
                   action={
                     <Button
                       size="sm"
-                      onClick={() => router.push(`/superadmin/proposals/${id}/approval`)}
+                      onClick={() => router.push(`/work/proposals/${id}/approval`)}
                     >
                       Approval workflow
                     </Button>
@@ -326,12 +326,22 @@ export default function ProposalDetailPage() {
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <ProposalStatusBadge status={status} />
+                {/* Where the product goes, who visits, and when each post is due. The screen
+                    existed with nothing linking to it. Shown for every quote: a paid creator
+                    still has a posting deadline. */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/work/proposals/${id}/mechanics`)}
+                >
+                  {shortName("/work/proposals/[id]/mechanics")}
+                </Button>
                 {canEdit && (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      router.push(`/superadmin/proposals/create?edit=${id}`)
+                      router.push(`/work/proposals/create?edit=${id}`)
                     }
                   >
                     Edit
@@ -532,7 +542,7 @@ export default function ProposalDetailPage() {
                         checked={allPicked}
                         disabled={removable.length === 0}
                         aria-label="Select every creator that can be removed"
-                        onCheckedChange={on =>
+                        onCheckedChange={(on: boolean | "indeterminate") =>
                           setPicked(on ? new Set(removable.map(i => i.id)) : new Set())
                         }
                       />
@@ -747,7 +757,7 @@ export default function ProposalDetailPage() {
         {/* Recommending one creator to this client. The client reads this line on the card,
             so it is written as we would say it to them, and it is theirs alone — the same
             creator on the next brand's proposal starts blank. */}
-        <Dialog open={!!recFor} onOpenChange={o => !recSaving && !o && setRecFor(null)}>
+        <Dialog open={!!recFor} onOpenChange={(o: boolean) => !recSaving && !o && setRecFor(null)}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Recommend @{recFor?.username || "creator"} to this client</DialogTitle>
@@ -786,7 +796,7 @@ export default function ProposalDetailPage() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={removeOpen} onOpenChange={o => !removing && setRemoveOpen(o)}>
+        <Dialog open={removeOpen} onOpenChange={(o: boolean) => !removing && setRemoveOpen(o)}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
@@ -874,7 +884,7 @@ export default function ProposalDetailPage() {
                   <Button
                     onClick={() =>
                       router.push(
-                        `/superadmin/proposals/create?addMore=${id}`
+                        `/work/proposals/create?addMore=${id}`
                       )
                     }
                   >

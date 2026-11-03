@@ -24,13 +24,13 @@ const systemSections = [
   {
     title: "Job queue",
     description: "Post analytics jobs that have been processing or queued for too long, and worker health.",
-    href: "/superadmin/system/jobs",
+    href: "/work/system/jobs",
     icon: Workflow,
   },
   {
     title: "Office screens",
     description: "The TV wall and any other screen we hang: what it shows, how often it refreshes.",
-    href: "/superadmin/system/displays",
+    href: "/work/system/displays",
     icon: Monitor,
   },
 ]

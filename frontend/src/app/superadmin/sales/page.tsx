@@ -44,6 +44,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { CARD, PageHead } from '@/components/console/primitives'
+import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
+import { shortName } from '@/lib/destinations'
 import { ReadState } from '@/components/console/surfaces'
 import {
   aed, crmApi, person, STAGE_LABEL, type Board, type Deal, type Stage,
@@ -67,7 +69,7 @@ function dueTone(iso: string | null): string {
 const when = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : null
 
-export default function PipelinePage() {
+export default function SalesPage() {
   return (
     <AuthGuard requireAuth>
       <SuperadminLayout><Pipeline /></SuperadminLayout>
@@ -123,8 +125,12 @@ function Pipeline() {
 
   return (
     <div className="space-y-6">
+      {/* Sales is the first Clients tab. It opened with no tab row, so the only way on to
+          Clients, Brands or Quotes was the sidebar. */}
+      <ClientsHubHeader bare />
       <PageHead
-        title="Pipeline"
+        /* Was "Pipeline", which is the name of the delivery ladder at /work/pipeline. */
+        title={shortName('/work/sales')}
         sub="Every brand we are talking to, and what happens next."
         action={board?.can_edit ? (
           <Button onClick={() => setAdding(true)}>
@@ -193,7 +199,11 @@ function Pipeline() {
                   <DealCard key={d.id} deal={d} canEdit={!!board?.can_edit} canAsk={!!board?.can_ask_talent}
                             onMove={(st) => move(d, st)}
                             onAsk={() => setAsking(d)}
-                            onOpen={() => router.push(`/work/sales/${d.brand_id}`)} />
+                            /* The brand record is keyed by the client's team. This pushed
+                               /work/sales/{brand_id}, a page that does not exist, so every card
+                               was a 404. A brand not yet signed up has no team and no record
+                               to open, so its name is not a link. */
+                            onOpen={d.team_id ? () => router.push(`/work/brands/${d.team_id}`) : undefined} />
                 ))}
                 {s.deals.length === 0 && (
                   <p className="px-1 py-6 text-center text-ds-caption text-muted-foreground">
@@ -218,17 +228,26 @@ function DealCard({ deal, canEdit, canAsk, onMove, onAsk, onOpen }: {
   canEdit: boolean
   onMove: (s: Stage) => void
   onAsk: () => void
-  onOpen: () => void
+  onOpen?: () => void
 }) {
   const asked = !!deal.sourcing_asked_at
+  const name = (
+    <>
+      <p className="truncate text-ds-label font-semibold">{deal.brand}</p>
+      {deal.title && deal.title !== 'First campaign' && (
+        <p className="truncate text-ds-caption text-muted-foreground">{deal.title}</p>
+      )}
+    </>
+  )
   return (
     <article className={cn(CARD, 'group space-y-2 bg-card p-3')}>
-      <button type="button" onClick={onOpen} className="block w-full text-left">
-        <p className="truncate text-ds-label font-semibold">{deal.brand}</p>
-        {deal.title && deal.title !== 'First campaign' && (
-          <p className="truncate text-ds-caption text-muted-foreground">{deal.title}</p>
-        )}
-      </button>
+      {onOpen ? (
+        <button type="button" onClick={onOpen} className="block w-full text-left hover:underline">
+          {name}
+        </button>
+      ) : (
+        <div className="w-full">{name}</div>
+      )}
 
       <div className="flex flex-wrap items-center gap-1.5">
         {deal.model && (

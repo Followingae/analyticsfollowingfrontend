@@ -109,11 +109,11 @@ export function activityHref(item: ActivityItem): string {
     if (DELIVERABLE_STAGE[k]) q.set("stage", DELIVERABLE_STAGE[k])
     if (item.campaign_id) q.set("campaign", item.campaign_id)
     const qs = q.toString()
-    return `/superadmin/fa/deliverables${qs ? `?${qs}` : ""}`
+    return `/work/fa/deliverables${qs ? `?${qs}` : ""}`
   }
-  if (WITHDRAWAL_KINDS.has(k)) return "/superadmin/fa/withdrawals"
-  if (k === "signup") return "/superadmin/fa/members?tab=pending"
-  if (k === "receipt_claim") return "/superadmin/fa/receipt-claims"
+  if (WITHDRAWAL_KINDS.has(k)) return "/work/fa/withdrawals"
+  if (k === "signup") return "/work/fa/members?tab=pending"
+  if (k === "receipt_claim") return "/work/fa/receipt-claims"
   if (CAMPAIGN_KINDS.has(k)) {
     // FA campaigns have a team screen of their own. This pointed at the CLIENT's posts
     // page, which for a self-managed FA campaign with no brand account is empty.
@@ -121,7 +121,7 @@ export function activityHref(item: ActivityItem): string {
   }
   // A row that navigates to the page it is already on is a dead click. An event we cannot
   // place goes to the FA overview, which at least moves.
-  return "/superadmin/fa"
+  return "/work/fa"
 }
 
 export function ActivityRow({ item }: { item: ActivityItem }) {

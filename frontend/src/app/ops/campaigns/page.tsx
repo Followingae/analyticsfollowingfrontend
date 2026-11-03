@@ -34,6 +34,8 @@ import {
   type StateTone,
 } from '@/components/campaigns/surface';
 import { Search, ChevronRight, Filter, RefreshCcw, Briefcase } from 'lucide-react';
+import { CampaignsHubHeader } from '@/components/console/CampaignsHubHeader';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { format, isValid } from 'date-fns';
 
 /** Format a date defensively. A date we do not have is a dash, never a guess. */
@@ -75,6 +77,13 @@ export default function OperationsCampaignsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  /* This screen is the Production tab of the Campaigns hub for the team, and a read-only
+     view of their campaigns for a client. Only the team gets the tab row and the hub's name
+     for it: a client has no Campaigns hub to go back to. */
+  const { isSuperAdmin, isStaff, role } = useAdminAccess();
+  const internal = isSuperAdmin || isStaff || role === 'admin';
+  const title = internal ? 'Production' : 'Operations';
+  const tabs = internal ? <CampaignsHubHeader bare /> : null;
 
   useEffect(() => {
     loadCampaigns().finally(() => setIsInitialLoad(false));
@@ -102,7 +111,8 @@ export default function OperationsCampaignsPage() {
     return (
       <Page width="wide">
         <Sections>
-          <PageHead title="Operations" sub="Campaign execution and deliverables." />
+          {tabs}
+          <PageHead title={title} sub="Campaign execution and deliverables." />
           <Waiting lines={6} />
         </Sections>
       </Page>
@@ -112,8 +122,9 @@ export default function OperationsCampaignsPage() {
   return (
     <Page width="wide">
       <Sections>
+        {tabs}
         <PageHead
-          title="Operations"
+          title={title}
           sub="Campaign execution and deliverables."
           action={
             <>

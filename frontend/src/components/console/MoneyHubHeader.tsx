@@ -39,7 +39,12 @@ export function useMoneyTabs(): HubTab[] {
     { label: 'Creator Contracting', href: '/work/mor', module: 'billing', when: canSeeCost },
     // Cost, not just creators — see the note above.
     { href: '/work/payables', module: 'influencers', when: canSeeCost },
-    { label: 'Creator app balances', href: '/work/fa/wallets', module: 'fa', when: canSeeCost },
+    /* Paying what is owed: approved payments gathered into one bank file. It had a screen
+       and no way to reach it except by typing the URL. */
+    { href: '/work/payouts', module: 'influencers', when: canSeeCost },
+    /* Named from destinations.ts like every other tab; it said "Creator app balances" here
+       and "Creator wallets" on the page itself. */
+    { href: '/work/fa/wallets', module: 'fa', when: canSeeCost },
     /* Enrolments moved to the Campaigns hub (2026-11-03): they are the paperwork for a
        booking. Creator payments stay here, and each one links back to its enrolment. */
     /* The founders' desk: prices to set, creators to release, payments to approve. Every
@@ -59,14 +64,17 @@ export function MoneyHubHeader({
   title = 'Money',
   sub = 'What comes in, and what goes out.',
   action,
+  bare,
 }: {
   title?: string
   sub?: string
   action?: React.ReactNode
+  /** Tabs only, no hub title: for a screen that keeps its own heading and buttons. */
+  bare?: boolean
 }) {
   const tabs = useMoneyTabs()
   return (
-    <Hub title={title} sub={sub} tabs={tabs} action={action}>
+    <Hub title={title} sub={sub} tabs={tabs} action={action} bare={bare}>
       {null}
     </Hub>
   )
