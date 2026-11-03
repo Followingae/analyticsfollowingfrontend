@@ -205,7 +205,7 @@ const SECTIONS: Section[] = [
       {
         title: 'Sales', href: '/work/sales', icon: Megaphone,
         what: 'Your board. Every brand we are talking to, grouped by what stage the conversation is at.',
-        why: 'This replaces the spreadsheet. It is one row per DEAL, grouped under the brand, because a client who has run eighteen campaigns cannot be described by a single stage: they are live on one and negotiating the next. The button that matters is Ask talent. A founder presses it the moment a deal looks real rather than when it closes, because sourcing takes days and the client expects names the moment they say yes. It raises a request and opens a roster with the brief on it. Only the Founder & CEO writes a brief: what you learn on the deal is what goes into it. Opening a deal opens the brand record, where everything about that brand lives.',
+        why: 'This replaces the spreadsheet. It is one row per DEAL, grouped under the brand, because a client who has run eighteen campaigns cannot be described by a single stage: they are live on one and negotiating the next. The button that matters is Ask talent. A founder presses it the moment a deal looks real rather than when it closes, because sourcing takes days and the client expects names the moment they say yes. It raises a request and opens a roster with the brief on it. The brief itself comes from the brand: whoever receives it forwards it to the Founder & CEO, who sets it up. Opening a deal opens the brand record, where everything about that brand lives.',
         also: ['crm', 'deals', 'outreach', 'pipeline', 'prospects', 'spreadsheet'],
       },
       {
@@ -319,7 +319,7 @@ const SECTIONS: Section[] = [
       {
         title: 'The approval gate', href: '/work/approvals/gate', icon: ShieldCheck,
         what: 'The switch that decides what staff can do on their own, and what is held for a founder. Off by default.',
-        why: 'With it on, anything a member of staff does that moves money, reaches a client, changes who can do what, or deletes something is stopped and queued instead of happening. Nothing is lost: the whole request is kept and replayed exactly as it was submitted the moment it is approved, and the person who asked is told either way. Approving runs it on the approver’s authority, not theirs, and every permission check runs again, so nobody can be approved into doing something the approver could not do themselves. Three things are never held, whatever the settings say: anything a brand user or a creator on the app does, logging in, and the queue itself. Each role keeps its own lane by default — talent records costs and builds rosters, business development creates brands and leads, account management writes briefs — because taking that away means they cannot work at all without a founder in the loop.',
+        why: 'With it on, anything a member of staff does that moves money, reaches a client, changes who can do what, or deletes something is stopped and queued instead of happening. Nothing is lost: the whole request is kept and replayed exactly as it was submitted the moment it is approved, and the person who asked is told either way. Approving runs it on the approver’s authority, not theirs, and every permission check runs again, so nobody can be approved into doing something the approver could not do themselves. Three things are never held, whatever the settings say: anything a brand user or a creator on the app does, logging in, and the queue itself. Each role keeps its own lane by default — talent records costs and builds rosters, business development creates brands and leads, account management logs client requests, because taking that away means they cannot work at all without a founder in the loop.',
         also: ['approval', 'gate', 'permissions', 'held', 'waiting', 'ceo approval', 'locked', 'cannot save', 'sent for approval', 'queue'],
       },
       {
@@ -585,9 +585,12 @@ export default function GuidePage() {
           <section className="reading-width space-y-3">
             <h2 className="text-[17px] font-semibold tracking-[-0.01em]">Three things first</h2>
             <p className="text-[15px] leading-relaxed text-muted-foreground">
-              <strong className="text-foreground">Only the Founder &amp; CEO writes briefs and
-              sends proposals and quotes to clients.</strong> Everybody else, the co-founder
-              included, feeds the brief and builds the roster.
+              <strong className="text-foreground">The brand writes the brief. Only the Founder
+              &amp; CEO sets it up and sends proposals and quotes to clients.</strong> On a first
+              campaign the brand sends its brief to business development; after that to business
+              development or the account manager. Whoever receives it forwards it to the Founder
+              &amp; CEO, and chases the brand for anything missing. Nobody else, the co-founder
+              included, sets up a brief or sends a proposal.
             </p>
             <p className="text-[15px] leading-relaxed text-muted-foreground">
               <strong className="text-foreground">Cost is what we pay a creator, sell is what

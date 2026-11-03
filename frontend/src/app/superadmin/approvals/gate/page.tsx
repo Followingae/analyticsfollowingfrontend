@@ -10,7 +10,7 @@
  *
  * The matrix underneath is the part that keeps the business moving. A role with `internal`
  * keeps its own lane: talent records costs and builds rosters, business development creates
- * brands and leads, account management writes briefs. Take `internal` away from somebody and
+ * brands and leads, account management logs client requests. Take `internal` away from somebody and
  * they cannot do their job at all without you, which is a thing you should be able to see
  * yourself choosing rather than discover on Monday.
  */
@@ -199,7 +199,7 @@ function Gate() {
           <span>
             <strong className="font-semibold text-foreground">Internal is their own lane.</strong>{' '}
             Talent records costs and builds rosters, business development creates brands and
-            leads, account management writes briefs. Take it away and they cannot work at all
+            leads, account management logs client requests. Take it away and they cannot work at all
             without you.
           </span>
         </p>

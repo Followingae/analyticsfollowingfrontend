@@ -43,7 +43,7 @@ export const MASTERY = {
   /* ─────────────────────────────────────────────────────────────────────────────── */
   'talent-manager': {
     flow: ['source', 'book'],
-    flowNote: 'The Founder & CEO writes the brief and releases it to you before the deal closes. You hand a '
+    flowNote: 'The Founder & CEO sets up the brand’s brief and releases it to you before the deal closes. You hand a '
             + 'priced, booked roster to account management.',
     screen: {
       title: 'Waiting on us',
@@ -238,10 +238,10 @@ export const MASTERY = {
                  + 'Add the brand, add the deal, stage **Met them**.'],
         ['Week 1', 'You get a budget out of them: AED 57,000. Put it on the deal. A deal '
                  + 'with no budget is not a deal yet and the board shows that honestly.'],
-        ['Week 2', 'It feels real. Do not wait. Write on the deal what you heard: '
-                 + 'skincare and derm, UAE, 50k to 300k, studio capable. Tell the Founder & CEO.'],
-        ['Week 2', 'The Founder & CEO writes the brief, presses **Ask talent** and sets the budget '
-                 + 'per creator: AED 3,500 to 4,000. You never write the brief.'],
+        ['Week 2', 'It feels real. Do not wait. Ask Minimalist for their brief: skincare and '
+                 + 'derm, UAE, 50k to 300k, studio capable. Forward it to the Founder & CEO.'],
+        ['Week 2', 'It has no budget per creator, so you chase Minimalist for one. The Founder & CEO '
+                 + 'sets it up, presses **Ask talent**, budget AED 3,500 to 4,000.'],
         ['Week 2', 'Say WHAT, never how many. They may need to show sixty before the client '
                  + 'picks fifteen, and a number from you reads as a target.'],
         ['Week 2', 'Talent starts the same day. Two weeks ago she would have started after '
@@ -259,7 +259,7 @@ export const MASTERY = {
         'The budget goes on the deal as soon as you hear it, even if it is a range.',
         'A lost deal keeps its reason. "They went with two brands only" is worth more than '
         + 'the deal was.',
-        'You leave every brief, proposal and quote to the Founder & CEO.',
+        'The brand’s brief goes to the Founder & CEO the day it arrives. Proposals and quotes are theirs.',
       ],
       bad: [
         'Waiting for signature before telling talent. This is the one that has cost us weeks '

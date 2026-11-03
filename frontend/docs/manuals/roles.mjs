@@ -50,7 +50,7 @@ export const ROLES = [
         when: 'Starts when a brief arrives. Ends when the client has a list to choose from.',
         path: ['Creators', 'Rosters'],
         steps: [
-          'The Founder & CEO writes the brief and releases the brand. It reaches you on **Today**.',
+          'The Founder & CEO sets up the brand’s brief and releases it. It reaches you on **Today**.',
           'The brand’s roster is already open. It replaces the campaign sheet.',
           'Search the master database first with **Add creators**.',
           'Anyone new: **Paste a list**, rows from a sheet or one handle per line.',
@@ -257,7 +257,7 @@ export const ROLES = [
     ],
     rules: [
       'You never see what a creator costs us. You sell. That is deliberate.',
-      'You never write a brief or send a proposal or quote. Only the Founder & CEO does.',
+      'A brand’s brief that reaches you goes to the Founder & CEO the same day. You never set one up or send a proposal or quote.',
       'No automated email ever reaches your client. Every one is sent by a person.',
       'A promise made in email belongs on the client record the same day.',
       'If a brand has gone quiet for a fortnight you will be told. Act on it.',
@@ -281,7 +281,7 @@ export const ROLES = [
       ]},
       { icon: 'clock', head: 'Through the day', items: [
         'Move deals as they move. The board is the record now, not the sheet.',
-        'The moment a deal looks real, tell the Founder & CEO, who writes the brief and presses **Ask talent**. Do not wait for the yes.',
+        'The moment a deal looks real, ask the brand for its brief and forward it to the Founder & CEO, who sets it up and presses **Ask talent**. Do not wait for the yes.',
         'Every deal carries a next step and a date, or it is not being worked.',
       ]},
       { icon: 'moon', head: 'Before you log off', items: [
@@ -310,7 +310,7 @@ export const ROLES = [
           'Without a budget there is no brief, and no brief wastes everyone.',
           'Add the brand on the board and write what you learned on the deal.',
         ],
-        next: 'The Founder & CEO decides whether we chase it and writes the brief.',
+        next: 'The Founder & CEO decides whether we chase it and sets up the brand’s brief.',
       },
       {
         icon: 'users',
@@ -319,8 +319,9 @@ export const ROLES = [
         path: ['Clients', 'Sales'],
         steps: [
           'This is the one that used to cost us weeks. Talent heard when a campaign locked.',
-          'Write on the deal what you heard: market, category, size, budget. That feeds the brief.',
-          'Tell the Founder & CEO it is real. They write the brief and press **Ask talent**.',
+          'Ask the brand for its brief. The brand writes it; on a first campaign it comes to you.',
+          'Forward it to the Founder & CEO, and chase the brand for anything missing.',
+          'The Founder & CEO sets it up and presses **Ask talent**.',
           'Say WHAT, never how many. A client signing fifteen may need to see hundreds.',
           'Talent get it on Today, with the brand’s roster open and the brief on it.',
         ],
@@ -499,7 +500,7 @@ export const ROLES = [
         steps: [
           'A logged brand is not work until you say so.',
           'Press **Ask talent** on the deal, or **Start sourcing** on Rosters.',
-          'Write the brief yourself. Nobody else writes one: market, categories, follower range, paid or barter.',
+          'Set up the brand’s brief, forwarded by business development or the account manager: market, categories, follower range, paid or barter.',
           'Give the budget per creator as a range, for example AED 3,500 to 4,000.',
         ],
         next: 'Talent are alerted at once and the brand’s roster opens.',

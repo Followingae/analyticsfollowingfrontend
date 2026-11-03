@@ -21,11 +21,12 @@
  */
 
 /*
- * ONE RULE THAT CROSSES EVERY PLAYBOOK. Only the superadmin (the Founder & CEO) writes a
- * brief and sends a proposal or a quote to a client. Account management, business
- * development, talent and the co-founder never do: they feed the brief, build the roster,
- * and keep the client warm around it. A step that hands a brief or a send to anybody else
- * is wrong.
+ * ONE RULE THAT CROSSES EVERY PLAYBOOK. The BRAND writes and sends the brief: on a first
+ * campaign to business development, after that to business development or the account
+ * manager. Whoever receives it forwards it to the Founder & CEO (the superadmin), who sets it
+ * up on the platform, and only the Founder & CEO sends a proposal or a quote to a client.
+ * Account management, business development, talent and the co-founder never set a brief up
+ * and never send a proposal or a quote.
  */
 export type RoleKey = 'talent' | 'account' | 'bd' | 'leadership'
 
@@ -226,15 +227,15 @@ export const PLAYBOOKS: Playbook[] = [
         ],
       },
       {
-        title: 'Feed the brief',
-        when: 'The client has told you what they want. Only the Founder & CEO writes the brief.',
+        title: 'Receive the brand’s brief and forward it',
+        when: 'The brand writes and sends the brief. After their first campaign it may come to you.',
         steps: [
-          'You do not write the brief. You make sure the Founder & CEO has everything it needs.',
-          'A brief needs nine answers: name and client, timeline and the last date a post may go live, objective and main message, exact deliverables per creator, what the creator receives, market, budget per creator and how many, content rules including tags and whether the client approves before posting, and whether it covers paid, barter, or both.',
-          'Go back to the client for anything missing, then pass the answers to the Founder & CEO in writing.',
+          'Receive the brand’s brief and forward it to the Founder & CEO, who sets it up on the platform.',
+          'Chase the brand for anything missing. A complete brief covers: name and client, timeline and the last date a post may go live, objective and main message, exact deliverables per creator, what the creator receives, market, budget per creator and how many, content rules including tags and whether the client approves before posting, and whether it covers paid, barter, or both.',
+          'Never rewrite it or set it up yourself. The brand’s words go to the Founder & CEO as they were sent.',
           'Once the brief is on the campaign, answer the team’s questions there. A question answered in a private message gets asked again.',
         ],
-        handover: 'The Founder & CEO writes the brief into the campaign. Talent see it on their Today.',
+        handover: 'The Founder & CEO sets the brief up on the platform. Talent see it on their Today.',
       },
       {
         title: 'Get the client to choose creators',
@@ -306,7 +307,7 @@ export const PLAYBOOKS: Playbook[] = [
         title: 'Turn interest into a signed deal',
         steps: [
           'Agree the commercial shape in your own words before you send any document, so nothing in the contract is a surprise.',
-          'If the brand wants to see creators first, tell the Founder & CEO what they are after: market, category, budget per creator, deliverables, paid or barter. The Founder & CEO writes the brief and releases it to talent. A vague ask comes back as a vague list.',
+          'If the brand wants to see creators first, ask them for their brief: market, category, budget per creator, deliverables, paid or barter. Receive it and forward it to the Founder & CEO, who sets it up and releases it to talent. A vague ask comes back as a vague list.',
           'Sample packs and priced quotes go to the client from the Founder & CEO only. Never send one yourself, and never a spreadsheet you built, because the platform’s version hides our costs and yours does not.',
           'Get the agreement signed, and chase the purchase order early if the client needs one before they can pay.',
           'Confirm payment terms in writing: how much up front, how much on completion, and in how many days.',
@@ -325,14 +326,15 @@ export const PLAYBOOKS: Playbook[] = [
         handover: 'The account manager owns the client from here.',
       },
       {
-        title: 'Pass on what the client wants',
-        when: 'Only the Founder & CEO writes the brief. Your job is what goes into it.',
+        title: 'Receive the brand’s brief and forward it',
+        when: 'The brand writes and sends the brief. On a first campaign it always comes to you.',
         steps: [
-          'Check you have eight answers: timeline and the last live date, objective and main message, exact deliverables, what the creator receives, market, content rules and tags, whether the client approves before posting, and whether it covers paid, barter or both.',
-          'Go back to the client for anything missing. Guessing on a client’s behalf is how a campaign gets re-shot.',
-          'Give the answers to the Founder & CEO in writing, and tell the account manager you have.',
+          'Receive the brand’s brief and forward it to the Founder & CEO, who sets it up on the platform.',
+          'Chase the brand for anything missing: timeline and the last live date, objective and main message, exact deliverables, what the creator receives, market, content rules and tags, whether the client approves before posting, and whether it covers paid, barter or both.',
+          'Never fill a gap with a guess. Guessing on a client’s behalf is how a campaign gets re-shot.',
+          'Tell the account manager you have forwarded it.',
         ],
-        handover: 'The Founder & CEO writes the brief into the campaign.',
+        handover: 'The Founder & CEO sets the brief up on the platform.',
       },
       {
         title: 'Products, vouchers and samples',
@@ -378,10 +380,11 @@ export const PLAYBOOKS: Playbook[] = [
         handover: 'Cleared creators go onto a proposal from the roster, with anyone who cannot go on named and the reason shown before you press add.',
       },
       {
-        title: 'Write the brief and send the proposal',
+        title: 'Set up the brief and send the proposal',
         when: 'Only the Founder & CEO, the superadmin, does this. The co-founder, account management, business development and talent never do.',
         steps: [
-          'Write every brief yourself, from what account management and business development bring you: market, category, budget per creator, deliverables, paid or barter, dates and content rules.',
+          'The brand writes the brief. Business development or the account manager receives it and forwards it to you.',
+          'Set it up on the platform: market, category, budget per creator, deliverables, paid or barter, dates and content rules. Anything missing goes back to whoever forwarded it, to chase the brand.',
           'Press Ask talent with the brief on it. Talent see it on their Today with the roster open.',
           'Send every proposal, quote, sample pack and share link to the client yourself. Nobody else sends one, from the platform or from their own inbox.',
           'If a client gives their choice to somebody else, use Confirm for the client.',
