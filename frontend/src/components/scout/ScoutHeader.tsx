@@ -69,13 +69,19 @@ function BotRow({ b, canEdit, onChanged }: { b: ScoutBot; canEdit: boolean; onCh
         </div>
         <span className="text-xs tabular-nums text-muted-foreground">{b.sent_today} of {b.cap_today} today</span>
       </div>
+      {/* Calm, one line. A rest Instagram asked for is routine and lifts by itself; the
+          long red alert read as something wrong (founder, 4 Nov). */}
       {b.warning && (
-        <p className="flex items-start gap-1.5 text-xs text-red-700">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{b.warning.text} · {ago(b.warning.at)} ago
+        <p className="text-xs text-muted-foreground">
+          {b.resume_at ? `Resting until ${restUntil(b.resume_at)}, picks up by itself` : "Paused for now"}
         </p>
       )}
     </div>
   )
+}
+
+function restUntil(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Dubai" })
 }
 
 function NewAccount() {

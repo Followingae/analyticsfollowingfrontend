@@ -128,6 +128,8 @@ export interface ScoutWorker {
   sent_today: number
   queue: number
   warning: { kind: string; text: string; at: string } | null
+  /** When a soft limit lifts by itself. */
+  resume_at?: string | null
   target_cap?: number
   accounts?: number
   bots?: ScoutBot[]
@@ -143,6 +145,8 @@ export interface ScoutBot {
   last_seen: string | null
   paused: boolean
   warning: { kind: string; text: string; at: string } | null
+  /** When a soft limit lifts by itself. */
+  resume_at?: string | null
   sent_today: number
   cap_today: number
   daily_cap: number
@@ -170,7 +174,7 @@ export interface ScoutActivity {
             finished_at: string; list_name: string | null }[]
   whatsapp_sending: { list_name: string | null; list_id: string; sent: number; waiting: number; failed: number; total: number }[]
   dm: { online: boolean; paused: boolean; sent_today: number; cap_today: number; queue: number; next_send_at: string | null
-        state: string | null; warning: { kind?: string; text: string; at?: string } | string | null }
+        state: string | null; warning: { kind?: string; text: string; at?: string } | string | null; resume_at?: string | null }
   todo: { kind: 'attention' | 'dm' | 'search' | string; label: string; list_id?: string | null }[]
 }
 

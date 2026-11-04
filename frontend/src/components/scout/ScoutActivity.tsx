@@ -197,8 +197,11 @@ function arc(cx: number, cy: number, r: number, a0: number, a1: number) {
 }
 
 function dmWarningText(dm: Activity["dm"]) {
-  return typeof dm.warning === "string" ? dm.warning
-    : dm.warning ? (dm.warning.text || `Instagram warning: ${(dm.warning.kind || "").replace(/_/g, " ")}`) : null
+  /* One calm line, never the bot's full alert: a rest Instagram asked for is routine. */
+  if (!dm.warning) return null
+  return dm.resume_at
+    ? `Resting until ${new Date(dm.resume_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Dubai" })}`
+    : "Paused for now"
 }
 
 function DmMeter({ dm, size = 132 }: { dm: Activity["dm"]; size?: number }) {
@@ -231,18 +234,17 @@ function DmMeter({ dm, size = 132 }: { dm: Activity["dm"]; size?: number }) {
             <span className="text-3xl font-semibold leading-none tabular-nums">{fmt(dm.sent_today)}</span>
             <span className="mt-1 text-[11px] tabular-nums text-muted-foreground">{cap ? `of ${fmt(cap)}` : "DMs"}</span>
             <span className="mt-1.5 flex h-4 items-center">
-              {state ? <span className={`text-[10px] ${dm.paused ? "text-amber-700" : "text-muted-foreground"}`}>{state}</span>
+              {state ? <span className="text-[10px] text-muted-foreground">{state}</span>
                 : dm.next_send_at ? <CountdownRing at={dm.next_send_at} size={14} /> : null}
             </span>
           </div>
-          {warning && <span className="absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-background bg-red-500" />}
         </motion.div>
       </TooltipTrigger>
       <TooltipContent side="bottom" className="max-w-xs">
         <p className="font-medium">{fmt(dm.sent_today)} of {fmt(cap)} DMs today</p>
         <p className="opacity-80">{fmt(dm.queue)} queued{state ? ` · ${state}` : dm.state ? ` · ${dm.state.replace(/_/g, " ")}` : ""}</p>
         {dm.next_send_at && !state && <p className="opacity-80">Next DM {new Date(dm.next_send_at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</p>}
-        {warning && <p className="text-red-300">{warning}</p>}
+        {warning && <p className="opacity-80">{warning}</p>}
       </TooltipContent>
     </Tooltip>
   )
@@ -308,7 +310,7 @@ function Details({ a, onOpenList }: { a: Activity; onOpenList: (id: string) => v
         {(dmTodos.length > 0 || warning) && (
           <div className="flex min-w-0 flex-col gap-1">
             <Heading>Instagram DMs</Heading>
-            {warning && item("w", <><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className={`${wrap} flex-1`}>{warning}</span></>, null, "bg-red-50 text-red-800")}
+            {warning && item("w", <span className={`${wrap} flex-1`}>{warning}</span>, null, "bg-muted text-muted-foreground")}
             {dmTodos.map((t, i) => item(i, <><Instagram className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" /><span className={`${wrap} flex-1`}>{t.label}</span></>, t.list_id))}
           </div>
         )}
@@ -401,7 +403,7 @@ export function ScoutActivity({ onOpenList }: { onOpenList: (listId: string) => 
     : a.running.length ? "Checking creators"
     : a.whatsapp_sending.length ? "Sending WhatsApp alerts"
     : dmBusy ? "Sending DMs"
-    : a.dm.warning ? "Needs attention"
+    : a.dm.warning ? "Resting"
     : "Idle"
   const attention = a.todo.find(t => t.kind === "attention")
 
@@ -416,7 +418,7 @@ export function ScoutActivity({ onOpenList }: { onOpenList: (listId: string) => 
                         className={`${wrap} line-clamp-2 text-lg font-semibold leading-snug`}>{status}</motion.p>
             </AnimatePresence>
             {attention && (
-              <button type="button" onClick={() => { if (!open) toggle() }} className={`${wrap} mt-1 line-clamp-2 text-left text-xs text-amber-800 hover:underline`}>
+              <button type="button" onClick={() => { if (!open) toggle() }} className={`${wrap} mt-1 line-clamp-2 text-left text-xs text-muted-foreground hover:underline`}>
                 {attention.label}
               </button>
             )}
