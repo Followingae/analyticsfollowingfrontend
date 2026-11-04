@@ -42,7 +42,6 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import { StandardMetricCard } from "@/components/ui/standard-metric-card"
-import { Progress } from "@/components/ui/progress"
 import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
 import { formatCurrency, formatCount, formatDate, proposalMotion, chartColorVar, sellFor, costFor } from "@/components/proposals/proposal-utils"
 import { motion, useInView } from "motion/react"
@@ -433,54 +432,39 @@ export default function ProposalDetailPage() {
         {/* ================================================================= */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Financial Summary</CardTitle>
+            <CardTitle className="text-lg">Budget and picks</CardTitle>
           </CardHeader>
           <CardContent>
             <motion.div
               variants={proposalMotion.staggerContainer}
               initial="hidden"
               animate="visible"
-              className={showCost ? "grid grid-cols-2 md:grid-cols-4 gap-4" : "grid grid-cols-2 gap-4"}
+              className="grid grid-cols-1 sm:grid-cols-3 gap-4"
             >
-              {/* A money total the server did not send is not AED 0, and a margin it did
-                  not send is not 0.0%. An en dash says the figure never arrived. */}
-              {showSell && (
-                <motion.div variants={proposalMotion.staggerItem}>
-                  <StandardMetricCard icon={Coins} label="Total Sell"
-                    value={financials.total_sell == null ? "–" : formatCurrency(financials.total_sell)} />
-                </motion.div>
-              )}
-              {showCost && (
-                <motion.div variants={proposalMotion.staggerItem}>
-                  <StandardMetricCard icon={Coins} label="Total Cost"
-                    value={financials.total_cost == null ? "–" : formatCurrency(financials.total_cost)} />
-                </motion.div>
-              )}
-              {showCost && (
-                <motion.div variants={proposalMotion.staggerItem}>
-                  <StandardMetricCard icon={TrendingUp} label="Margin %"
-                    value={financials.margin_percentage == null ? "–" : `${financials.margin_percentage.toFixed(1)}%`} />
-                </motion.div>
-              )}
-              <motion.div variants={proposalMotion.staggerItem}>
-                <StandardMetricCard icon={Users} label="Influencers" value={influencers.length} />
-              </motion.div>
+              {/* Budget, what the client picked, and the margin. "Total Sell / Total Cost"
+                  added up every creator on the roster we showed them (White Friday read
+                  AED 953,477 on a 58,150 budget), a figure nobody agreed to. */}
+              {(() => {
+                const pickedCount = financials.picked_count ?? 0
+                const rosterCount = financials.roster_count ?? influencers.length
+                const cards: Array<{ icon: typeof Coins; label: string; value: string; subtitle?: string }> = []
+                cards.push({ icon: Coins, label: "Budget",
+                  value: financials.budget == null ? "–" : formatCurrency(financials.budget),
+                  subtitle: "the client's" })
+                cards.push({ icon: Users, label: "Picked",
+                  value: !pickedCount ? "None yet"
+                    : (showSell && financials.picked_value != null ? formatCurrency(financials.picked_value) : `${pickedCount}`),
+                  subtitle: `${pickedCount} of ${rosterCount} creators` })
+                if (showCost) cards.push({ icon: TrendingUp, label: "Avg margin",
+                  value: financials.avg_margin_pct == null ? "–" : `${financials.avg_margin_pct.toFixed(1)}%`,
+                  subtitle: pickedCount ? "on what they picked" : "across the roster" })
+                return cards.map((c) => (
+                  <motion.div key={c.label} variants={proposalMotion.staggerItem}>
+                    <StandardMetricCard icon={c.icon} label={c.label} value={c.value} subtitle={c.subtitle} />
+                  </motion.div>
+                ))
+              })()}
             </motion.div>
-            {showCost && (
-              <Card className="mt-4">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-muted-foreground">Profit Margin</span>
-                    <span className="text-sm font-medium">
-                      {financials.margin_percentage == null
-                        ? <Dash reason="unmeasured" what="the margin on this proposal" />
-                        : `${financials.margin_percentage.toFixed(1)}%`}
-                    </span>
-                  </div>
-                  <Progress value={financials.margin_percentage ?? 0} />
-                </CardContent>
-              </Card>
-            )}
           </CardContent>
         </Card>
 

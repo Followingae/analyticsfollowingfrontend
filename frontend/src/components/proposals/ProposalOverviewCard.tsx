@@ -17,6 +17,7 @@ interface ProposalListItem {
   total_influencers: number
   selected_count: number
   total_sell_amount?: number
+  total_budget?: number | null
   deadline_at?: string
   created_at: string
   sent_at?: string
@@ -77,8 +78,9 @@ export function ProposalOverviewCard({
     if (proposal.total_influencers > 0) {
       tags.push(`${proposal.total_influencers} creators`)
     }
-    if (proposal.total_sell_amount && proposal.total_sell_amount > 0) {
-      tags.push(formatCurrency(proposal.total_sell_amount))
+    // The budget, not the roster total (the price of every creator shown, picked or not).
+    if (proposal.total_budget && proposal.total_budget > 0) {
+      tags.push(`Budget ${formatCurrency(proposal.total_budget)}`)
     }
     if (hasNewBatch) {
       tags.push("New batch")

@@ -901,7 +901,7 @@ function ClientDetailPage() {
                         <TableCell className="font-medium">{p.campaign_name || p.title}</TableCell>
                         <TableCell><Badge variant="outline">{String(p.status).replace(/_/g, ' ')}</Badge></TableCell>
                         <TableCell>{p.influencer_count}</TableCell>
-                        <TableCell className="tabular-nums"><Money value={p.total_sell_amount ?? p.total_budget} /></TableCell>
+                        <TableCell className="tabular-nums"><Money value={p.total_budget} /></TableCell>
                         <TableCell className="text-right">
                           <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); router.push(`/work/proposals/${p.id}/approval`); }}>
                             Workflow <ChevronRight className="ml-1 h-3.5 w-3.5" />

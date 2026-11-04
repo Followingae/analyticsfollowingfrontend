@@ -161,11 +161,13 @@ export default function SuperadminProposalsPage() {
               {showMargin && (
                 <motion.div variants={proposalMotion.staggerItem}>
                   {/* A margin the server did not send is not AED 0. */}
+                  {/* The average margin per proposal. The AED total this used to show added up
+                      every roster we ever showed a client, picked or not. */}
                   <StandardMetricCard
                     icon={Coins}
-                    label="Margin"
-                    value={stats.total_margin == null ? "–" : `AED ${stats.total_margin.toLocaleString()}`}
-                    subtitle={stats.avg_margin_percentage == null ? undefined : `avg ${stats.avg_margin_percentage.toFixed(1)}%`}
+                    label="Avg margin"
+                    value={stats.avg_margin_percentage == null ? "–" : `${stats.avg_margin_percentage.toFixed(1)}%`}
+                    subtitle="per proposal"
                   />
                 </motion.div>
               )}
@@ -225,8 +227,8 @@ export default function SuperadminProposalsPage() {
                     <TableHead>Brand</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Creators</TableHead>
-                    <TableHead className="text-right">Sell</TableHead>
-                    {showMargin && <TableHead className="text-right">Margin</TableHead>}
+                    <TableHead className="text-right">Budget</TableHead>
+                    {showMargin && <TableHead className="text-right">Avg margin</TableHead>}
                     <TableHead>Deadline</TableHead>
                     <TableHead className="text-right w-[60px]">Actions</TableHead>
                   </TableRow>
@@ -298,8 +300,9 @@ export default function SuperadminProposalsPage() {
                           <span className="text-muted-foreground">/{p.total_influencers}</span>
                         </TableCell>
                         <TableCell className="text-right tabular-nums text-sm font-medium">
-                          {p.total_sell_amount
-                            ? `AED ${p.total_sell_amount.toLocaleString()}`
+                          {/* The client's budget. The roster total is not a figure anyone agreed to. */}
+                          {p.budget
+                            ? `AED ${p.budget.toLocaleString()}`
                             : "--"}
                         </TableCell>
                         {showMargin && (

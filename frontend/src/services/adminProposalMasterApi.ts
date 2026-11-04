@@ -28,6 +28,8 @@ export interface AdminProposal {
   total_influencers: number
   selected_count: number
   total_sell_amount?: number
+  /** The client's budget (total_budget, else the contract value). What the list shows. */
+  budget?: number | null
   total_cost_amount?: number
   margin_percentage?: number
   deadline_at?: string
@@ -157,6 +159,14 @@ export interface AdminProposalDetail {
     total_cost: number | null
     margin_percentage: number | null
     margin_amount: number | null
+    /** What a person reads: the client's budget, what they picked and its value, and the
+     *  margin (on the picks once there are any, else the roster's). */
+    budget?: number | null
+    roster_count?: number
+    picked_count?: number
+    picked_value?: number | null
+    picked_cost?: number | null
+    avg_margin_pct?: number | null
   }
   timeline: Array<{
     event: string

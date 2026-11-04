@@ -43,6 +43,7 @@ interface ProposalListItem {
   total_influencers: number
   selected_count: number
   total_sell_amount?: number
+  total_budget?: number | null
   deadline_at?: string
   cover_image_url?: string
   created_at: string
@@ -110,7 +111,8 @@ function ProposalsPageContent() {
   const totalValue = useMemo(
     () => proposals
       .filter((p) => !["approved", "rejected"].includes(p.status))
-      .reduce((sum, p) => sum + (p.total_sell_amount || 0), 0),
+      // Budgets, not the roster total: every creator we showed you is not what you spend.
+      .reduce((sum, p) => sum + (p.total_budget || 0), 0),
     [proposals]
   )
 
@@ -118,7 +120,7 @@ function ProposalsPageContent() {
     { icon: FileText, label: "Active Proposals", value: activeProposals.length },
     { icon: Clock, label: "Pending Review", value: pendingCount },
     { icon: Users, label: "Total Creators", value: totalCreators },
-    { icon: TrendingUp, label: "Total Value", value: totalValue, isCurrency: true },
+    { icon: TrendingUp, label: "Open budgets", value: totalValue, isCurrency: true },
   ]
 
   if (authLoading) {

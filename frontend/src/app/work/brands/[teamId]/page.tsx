@@ -397,8 +397,8 @@ export default function BrandBrowsePage() {
                 meta={
                   <>
                     {String(p.status || '').replace(/_/g, ' ')}
-                    {p.total_sell_amount != null
-                      ? <> · <Money value={p.total_sell_amount} /></>
+                    {p.total_budget != null
+                      ? <> · budget <Money value={p.total_budget} /></>
                       : null}
                     {` · updated ${when(p.updated_at)}`}
                   </>
