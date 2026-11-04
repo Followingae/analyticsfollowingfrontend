@@ -76,7 +76,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { ArrowUpRight, Compass, GitBranch, RefreshCw, Search } from 'lucide-react'
+import { ArrowUpRight, Compass, Eye, EyeOff, GitBranch, RefreshCw, Search } from 'lucide-react'
+import { HIDDEN_MONEY, useHiddenMoney } from '@/lib/useHiddenMoney'
 import { toast } from 'sonner'
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
@@ -504,6 +505,7 @@ function ElsewhereRow({ row }: { row: Flight }) {
 
 export default function Today() {
   const router = useRouter()
+  const { hidden: moneyHidden, toggle: toggleMoney } = useHiddenMoney()
   const { user } = useEnhancedAuth()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -638,6 +640,17 @@ export default function Today() {
             reason sits under each one and turns amber when it is bad news, which is the only
             thing colour is allowed to mean here. Every figure that leads somewhere is a
             button: a number you cannot open is a number you cannot act on. */}
+        {figures.length > 0 && figures.some((h: any) => h.format === 'aed') && (
+          /* Money is hidden until the eye is tapped, like a bank balance. */
+          <div className="-mb-ds-2 flex justify-end">
+            <Button variant="ghost" size="sm" onClick={toggleMoney}
+              aria-label={moneyHidden ? 'Show amounts' : 'Hide amounts'}
+              className="h-8 gap-1.5 text-muted-foreground">
+              {moneyHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              {moneyHidden ? 'Show amounts' : 'Hide amounts'}
+            </Button>
+          </div>
+        )}
         {figures.length > 0 && (
           <StatGrid cols={figures.length === 3 ? 3 : 4}>
             {figures.map((h: any) => {
@@ -647,7 +660,7 @@ export default function Today() {
                 ? <Dash reason="unmeasured" what={String(h.label).toLowerCase()} />
                 : h.format === 'aed'
                   ? (Number.isFinite(n)
-                      ? <Aed>{money(n)}</Aed>
+                      ? <span className={moneyHidden ? HIDDEN_MONEY : undefined} aria-hidden={moneyHidden || undefined}><Aed>{money(n)}</Aed></span>
                       : <Dash reason="unmeasured" what={String(h.label).toLowerCase()} />)
                   : h.value
               return (
@@ -657,7 +670,8 @@ export default function Today() {
                   value={value}
                   tone={(h.tone as Tone) || 'neutral'}
                   hint={h.hint
-                    ? <span className={REASON_INK[h.tone as string]}>{h.hint}</span>
+                    ? <span className={cn(REASON_INK[h.tone as string],
+                        moneyHidden && h.format === 'aed' && /AED|\d{3}/.test(String(h.hint)) && HIDDEN_MONEY)}>{h.hint}</span>
                     : undefined}
                   onClick={h.href ? () => router.push(h.href) : undefined}
                 />
