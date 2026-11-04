@@ -5,7 +5,7 @@
  * or that it is offline, paused, or needs attention.
  */
 import * as React from "react"
-import { AlertTriangle, Pause } from "lucide-react"
+import { Pause } from "lucide-react"
 import type { ScoutWorker } from "@/services/scoutApi"
 
 export function compact(n?: number | null) {
@@ -30,7 +30,10 @@ export function workerTone(w: ScoutWorker): WorkerTone {
 
 export function workerLabel(w: ScoutWorker): string {
   const tone = workerTone(w)
-  if (tone === "warning") return w.warning!.text
+  // Never the bot's full alert: a rest Instagram asked for is routine (founder, 4 Nov).
+  if (tone === "warning") return w.resume_at
+    ? `Resting until ${new Date(w.resume_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Dubai" })}`
+    : "Paused for now"
   if (tone === "offline") return "Bot offline"
   if (tone === "paused") return "Paused"
   return `${w.ig_username ? `@${w.ig_username}` : "Bot"} · ${w.sent_today} of ${w.daily_cap} today`
@@ -38,15 +41,13 @@ export function workerLabel(w: ScoutWorker): string {
 
 export function WorkerPill({ w, className = "" }: { w: ScoutWorker; className?: string }) {
   const tone = workerTone(w)
-  const cls = tone === "warning" ? "border-red-200 bg-red-50 text-red-700"
-    : tone === "paused" ? "border-amber-200 bg-amber-50 text-amber-800"
+  const cls = tone === "warning" || tone === "paused" ? "bg-muted/60 text-muted-foreground"
     : tone === "offline" ? "bg-muted/60 text-muted-foreground"
     : "bg-background text-foreground"
   return (
     <span title={workerLabel(w)}
           className={`inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${cls} ${className}`}>
-      {tone === "warning" ? <AlertTriangle className="h-3 w-3 shrink-0" />
-        : tone === "paused" ? <Pause className="h-3 w-3 shrink-0" />
+      {tone === "warning" || tone === "paused" ? <Pause className="h-3 w-3 shrink-0" />
         : tone === "offline" ? <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50" />
         : <span className="relative flex h-1.5 w-1.5 shrink-0">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />

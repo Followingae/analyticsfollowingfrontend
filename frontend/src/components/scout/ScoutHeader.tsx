@@ -36,7 +36,7 @@ function BotRow({ b, canEdit, onChanged }: { b: ScoutBot; canEdit: boolean; onCh
     catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
   }
   const pct = b.cap_today ? Math.min(100, (b.sent_today / b.cap_today) * 100) : 0
-  const dot = b.warning ? "bg-red-500" : !b.online ? "bg-muted-foreground/40" : b.paused ? "bg-amber-500" : "bg-emerald-500"
+  const dot = !b.online || b.warning || b.paused ? "bg-muted-foreground/40" : "bg-emerald-500"
   return (
     <div className="flex flex-col gap-2 rounded-xl border p-3">
       <div className="flex flex-wrap items-center gap-3">
