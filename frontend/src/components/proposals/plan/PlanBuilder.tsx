@@ -945,7 +945,9 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                   <Check className="size-3.5" />Already confirmed · {lockedList.length}
                 </p>
                 {lockedList.map(c => (
-                  <div key={c.id} className="flex items-center gap-3 py-1.5">
+                  <button key={c.id} type="button" onClick={() => openAnalytics(c)}
+                    className="flex w-full items-center gap-3 rounded-lg py-1.5 text-left transition hover:bg-emerald-500/10"
+                    aria-label={`See ${c.full_name || c.username}'s analytics`}>
                     <img src={cdnAvatar(c.profile_image_url || undefined)} alt="" className="size-8 shrink-0 rounded-full object-cover ring-2 ring-emerald-500" />
                     <b className="min-w-0 flex-1 truncate text-[12.5px] font-semibold">{c.full_name || c.username}</b>
                     {showPricing && (
@@ -953,7 +955,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                         {aed(creatorCost(c, modifier, tookModifier(c, modifier)))}
                       </span>
                     )}
-                  </div>
+                  </button>
                 ))}
               </div>
             )}

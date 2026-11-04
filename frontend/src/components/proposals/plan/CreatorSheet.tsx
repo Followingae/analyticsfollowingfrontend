@@ -209,14 +209,21 @@ export function CreatorSheet({
             </section>
           )}
 
-          <Button
-            size="lg"
-            variant={chosen ? "outline" : "default"}
-            className="w-full gap-2"
-            onClick={() => onToggle(c)}
-          >
-            {chosen ? <><Check className="size-4" />In your line-up</> : <><Plus className="size-4" />Add to line-up</>}
-          </Button>
+          {c.locked ? (
+            /* Booked: the numbers stay open to the client, the line-up button does not. */
+            <div className="flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600/10 py-2.5 text-sm font-bold text-emerald-700 dark:text-emerald-400">
+              <Check className="size-4" />Confirmed on your campaign
+            </div>
+          ) : (
+            <Button
+              size="lg"
+              variant={chosen ? "outline" : "default"}
+              className="w-full gap-2"
+              onClick={() => onToggle(c)}
+            >
+              {chosen ? <><Check className="size-4" />In your line-up</> : <><Plus className="size-4" />Add to line-up</>}
+            </Button>
+          )}
 
           {c.username && (
             <a href={`/creator-analytics/${c.username}`} className="text-center text-[12.5px] font-semibold text-muted-foreground underline underline-offset-4 hover:text-foreground">

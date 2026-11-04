@@ -79,10 +79,12 @@ export const CreatorTile = memo(function CreatorTile({
     >
       <button
         type="button"
-        onClick={() => !declined && onToggle(c)}
-        className={cn("block w-full text-left", locked && "cursor-default")}
+        // A confirmed creator still opens their numbers: being booked is no reason to stop
+        // showing a client the analytics of who they booked.
+        onClick={() => (locked ? onOpen(c) : !declined && onToggle(c))}
+        className="block w-full text-left"
         aria-label={
-          locked ? `${c.full_name || c.username} is already confirmed`
+          locked ? `${c.full_name || c.username} is confirmed. See their analytics`
             : chosen ? `Remove ${c.full_name || c.username}`
             : `Add ${c.full_name || c.username}`
         }
@@ -179,9 +181,13 @@ export const CreatorTile = memo(function CreatorTile({
       </button>
 
       {locked && (
-        <div className="absolute inset-x-0 bottom-0 z-[5] flex items-center justify-center gap-1.5 bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white">
-          <Lock className="size-3.5" />Confirmed
-        </div>
+        <button
+          type="button"
+          onClick={() => onOpen(c)}
+          className="absolute inset-x-0 bottom-0 z-[5] flex items-center justify-center gap-1.5 bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700"
+        >
+          <Lock className="size-3.5" />Confirmed · Analytics
+        </button>
       )}
 
       {!declined && !locked && (
