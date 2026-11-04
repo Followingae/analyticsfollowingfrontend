@@ -3,9 +3,10 @@
 /**
  * /discover — the creator directory.
  *
- * This replaces a full-page "Coming soon" placeholder that sat over the best
- * creator database in the region. Nothing else on this route existed, so nothing
- * else on this route changes.
+ * BRANDS SEE "COMING SOON", NOT THE GALLERY. Discovery is not sold to clients yet
+ * (founder, 4 Nov 2026): a brand user gets the full-page Coming Soon state that
+ * sat here before, and nothing is fetched for them. Internal admins see the
+ * directory gallery below so we can use it ourselves.
  *
  * WHAT IS RENDERED IS WHAT A DIRECTORY ROW HOLDS — handle, picture, followers,
  * country/city, category, an indicative engagement rate, verified/business flags.
@@ -21,10 +22,12 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { motion } from "motion/react"
-import { RotateCw, Search, SearchX, TriangleAlert, X } from "lucide-react"
+import { RotateCw, Search, SearchX, Sparkles, TriangleAlert, UserSearch, X, Zap } from "lucide-react"
 
 import { AuthGuard } from "@/components/AuthGuard"
 import { BrandUserInterface } from "@/components/brand/BrandUserInterface"
+import { EmptyState } from "@/components/ui/empty-state"
+import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { Button } from "@/components/ui/button"
 import { Combobox } from "@/components/ui2/combobox"
 import {
@@ -82,6 +85,8 @@ function useDebounced<T>(value: T, delay = 350): T {
 
 export default function DiscoverPage() {
   const router = useRouter()
+  // Only internal admins get the live directory; see the note at the top.
+  const { isAdmin } = useEnhancedAuth()
 
   const [searchInput, setSearchInput] = React.useState("")
   const search = useDebounced(searchInput)
@@ -119,6 +124,7 @@ export default function DiscoverPage() {
     placeholderData: keepPreviousData,
     staleTime: 60_000,
     retry: 1,
+    enabled: isAdmin,
   })
 
   const facetsQuery = useQuery({
@@ -126,6 +132,7 @@ export default function DiscoverPage() {
     queryFn: fetchDirectoryFacets,
     staleTime: 10 * 60_000,
     retry: 1,
+    enabled: isAdmin,
   })
 
   const rows = directoryQuery.data?.rows ?? []
@@ -171,6 +178,33 @@ export default function DiscoverPage() {
 
   const isFirstLoad = directoryQuery.isLoading && !directoryQuery.data
   const hasFailed = directoryQuery.isError
+
+  if (!isAdmin) {
+    // The Coming Soon page brands have always had here. Future tense on purpose.
+    return (
+      <AuthGuard requireAuth={true}>
+        <BrandUserInterface>
+          <div className="flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-6 p-4 md:p-6">
+              <header className="flex flex-col gap-2">
+                <h1 className="text-ds-title">Discover creators</h1>
+              </header>
+              <div className="flex min-h-[70vh] items-center justify-center px-4">
+                <EmptyState
+                  title="Discovery Powered by AI"
+                  description={`Coming soon.
+
+A smarter way to find the right creators for your brand, surfacing authentic voices and the best engagement fit. We're putting the finishing touches on it.`}
+                  icons={[Sparkles, UserSearch, Zap]}
+                  className="max-w-4xl p-20 text-lg"
+                />
+              </div>
+            </div>
+          </div>
+        </BrandUserInterface>
+      </AuthGuard>
+    )
+  }
 
   return (
     <AuthGuard requireAuth={true}>
