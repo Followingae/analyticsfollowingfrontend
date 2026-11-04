@@ -439,7 +439,7 @@ export default function ProposalDetailPage() {
               variants={proposalMotion.staggerContainer}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-4"
             >
               {/* Budget, what the client picked, and the margin. "Total Sell / Total Cost"
                   added up every creator on the roster we showed them (White Friday read
@@ -455,9 +455,6 @@ export default function ProposalDetailPage() {
                   value: !pickedCount ? "None yet"
                     : (showSell && financials.picked_value != null ? formatCurrency(financials.picked_value) : `${pickedCount}`),
                   subtitle: `${pickedCount} of ${rosterCount} creators` })
-                if (showCost) cards.push({ icon: TrendingUp, label: "Avg margin",
-                  value: financials.avg_margin_pct == null ? "–" : `${financials.avg_margin_pct.toFixed(1)}%`,
-                  subtitle: pickedCount ? "on what they picked" : "across the roster" })
                 return cards.map((c) => (
                   <motion.div key={c.label} variants={proposalMotion.staggerItem}>
                     <StandardMetricCard icon={c.icon} label={c.label} value={c.value} subtitle={c.subtitle} />

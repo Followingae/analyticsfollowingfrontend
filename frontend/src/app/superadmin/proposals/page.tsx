@@ -59,7 +59,6 @@ export default function SuperadminProposalsPage() {
      invitation to write a second copy of a quote that already exists. */
   const [failed, setFailed] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [showMargin, setShowMargin] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -75,9 +74,6 @@ export default function SuperadminProposalsPage() {
       ])
       setProposals(proposalsRes.proposals || [])
       setStats(statsRes)
-      // What we pay and what we keep is leadership's number; the backend decides and says
-      // so, and the screen drops the column rather than showing an empty one.
-      setShowMargin((statsRes.scope || proposalsRes.scope) === "leadership")
     } catch (err) {
       setFailed(true)
       setProposals([])
@@ -145,9 +141,7 @@ export default function SuperadminProposalsPage() {
               variants={proposalMotion.staggerContainer}
               initial="hidden"
               animate="visible"
-              className={showMargin
-                ? "grid gap-4 md:grid-cols-2 lg:grid-cols-4"
-                : "grid gap-4 md:grid-cols-3"}
+              className="grid gap-4 md:grid-cols-3"
             >
               <motion.div variants={proposalMotion.staggerItem}>
                 <StandardMetricCard icon={FileText} label="Total" value={stats.total_proposals} subtitle="proposals" />
@@ -158,19 +152,6 @@ export default function SuperadminProposalsPage() {
               <motion.div variants={proposalMotion.staggerItem}>
                 <StandardMetricCard icon={CheckCircle} label="Approved" value={stats.approved_proposals} subtitle={`${stats.approval_rate}% rate`} />
               </motion.div>
-              {showMargin && (
-                <motion.div variants={proposalMotion.staggerItem}>
-                  {/* A margin the server did not send is not AED 0. */}
-                  {/* The average margin per proposal. The AED total this used to show added up
-                      every roster we ever showed a client, picked or not. */}
-                  <StandardMetricCard
-                    icon={Coins}
-                    label="Avg margin"
-                    value={stats.avg_margin_percentage == null ? "–" : `${stats.avg_margin_percentage.toFixed(1)}%`}
-                    subtitle="per proposal"
-                  />
-                </motion.div>
-              )}
             </motion.div>
           ) : failed ? (
             /* Not the skeleton. A skeleton that never resolves says the figures are still
@@ -228,7 +209,6 @@ export default function SuperadminProposalsPage() {
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Creators</TableHead>
                     <TableHead className="text-right">Budget</TableHead>
-                    {showMargin && <TableHead className="text-right">Avg margin</TableHead>}
                     <TableHead>Deadline</TableHead>
                     <TableHead className="text-right w-[60px]">Actions</TableHead>
                   </TableRow>
@@ -247,7 +227,6 @@ export default function SuperadminProposalsPage() {
                         <TableCell><div className="h-5 w-16 bg-muted animate-pulse rounded-full" /></TableCell>
                         <TableCell className="text-right"><div className="h-4 w-10 bg-muted animate-pulse rounded ml-auto" /></TableCell>
                         <TableCell className="text-right"><div className="h-4 w-16 bg-muted animate-pulse rounded ml-auto" /></TableCell>
-                        <TableCell className="text-right"><div className="h-4 w-12 bg-muted animate-pulse rounded ml-auto" /></TableCell>
                         <TableCell><div className="h-4 w-20 bg-muted animate-pulse rounded" /></TableCell>
                         <TableCell className="text-right"><div className="h-8 w-8 bg-muted animate-pulse rounded ml-auto" /></TableCell>
                       </TableRow>
@@ -261,7 +240,7 @@ export default function SuperadminProposalsPage() {
                       empty={proposals.length === 0}
                       what="the proposals"
                       onRetry={loadData}
-                      colSpan={showMargin ? 8 : 7}
+                      colSpan={7}
                       nothing={
                         <span className="block py-10 text-center">
                           <FileText className="h-8 w-8 mx-auto text-muted-foreground/60 mb-3 block" />
@@ -305,13 +284,6 @@ export default function SuperadminProposalsPage() {
                             ? `AED ${p.budget.toLocaleString()}`
                             : "--"}
                         </TableCell>
-                        {showMargin && (
-                          <TableCell className="text-right tabular-nums text-sm">
-                            {p.margin_percentage
-                              ? `${p.margin_percentage.toFixed(1)}%`
-                              : "--"}
-                          </TableCell>
-                        )}
                         <TableCell className="text-sm text-muted-foreground">
                           {p.deadline_at
                             ? new Date(p.deadline_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
