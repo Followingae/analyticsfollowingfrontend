@@ -44,6 +44,7 @@ import { BrandQuotaWidget } from "@/components/brand/BrandQuotaWidget"
 import { CampaignBars } from "@/components/brand/CampaignBars"
 import { ShareCenterCard } from "@/components/brand/ShareCenterCard"
 import { ContentAwaitingPanel } from "@/components/brand/ContentAwaitingPanel"
+import { OpenQuotesCard } from "@/components/brand/OpenQuotesCard"
 
 
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton"
@@ -291,6 +292,9 @@ export function BrandDashboardContent() {
           )}
         </h1>
       </header>
+
+      {/* A quote we have sent them, straight under their name: it was only in Documents. */}
+      <OpenQuotesCard />
 
       {/* The analytics cards, in the shape shadcn draws them: the label small above, the
           figure big, one line of meaning under it. They were a Stat block inside a padded
