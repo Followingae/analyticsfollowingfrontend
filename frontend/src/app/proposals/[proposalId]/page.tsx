@@ -18,8 +18,9 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useNotifications } from "@/contexts/NotificationContext"
 import { cdnAvatar } from "@/lib/avatar"
-import { brandProposalViewApi, type BrandProposalView } from "@/services/adminProposalMasterApi"
+import { brandProposalViewApi, type BrandProposalView, type BrandInfluencer } from "@/services/adminProposalMasterApi"
 import { PlanBuilder } from "@/components/proposals/plan/PlanBuilder"
+import { CreatorSheet } from "@/components/proposals/plan/CreatorSheet"
 import { ProposalStatusBadge } from "@/components/proposals/ProposalStatusBadge"
 import { getStockImage } from "@/components/proposals/proposal-utils"
 
@@ -32,6 +33,9 @@ function ProposalPage() {
   const [data, setData] = useState<BrandProposalView | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  /* The settled view still opens each creator's analytics: being confirmed is no reason to
+     stop showing a client the numbers of who they booked. */
+  const [viewing, setViewing] = useState<BrandInfluencer | null>(null)
 
   const load = useCallback(async () => {
     setError(null)
@@ -175,15 +179,30 @@ function ProposalPage() {
             )}
           </div>
           <div className="mx-auto mt-8 grid max-w-4xl grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
-            {data.influencers.filter(c => c.selected_by_user).map(c => (
-              <div key={c.id} className="relative overflow-hidden rounded-2xl border">
-                <img src={cdnAvatar(c.profile_image_url || undefined)} alt="" className="aspect-[3/3.6] w-full object-cover" />
-                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2.5 text-[11.5px] font-bold text-white">
-                  {c.full_name || c.username}
+            {data.influencers.filter(c => c.selected_by_user || c.locked).map(c => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setViewing(c)}
+                aria-label={`See ${c.full_name || c.username}'s analytics`}
+                className="group relative overflow-hidden rounded-2xl border text-left transition hover:shadow-lg"
+              >
+                <img src={cdnAvatar(c.profile_image_url || undefined)} alt="" className="aspect-[3/3.6] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-2.5 pt-8 text-white">
+                  <span className="block truncate text-[11.5px] font-bold">{c.full_name || c.username}</span>
+                  <span className="mt-0.5 block text-[10.5px] font-semibold text-white/75">Analytics</span>
                 </span>
-              </div>
+              </button>
             ))}
           </div>
+          <CreatorSheet
+            creator={viewing ? { ...viewing, locked: true } : null}
+            pool={data.influencers.filter(c => c.selected_by_user || c.locked)}
+            showPricing={false}
+            chosen
+            onToggle={() => {}}
+            onOpenChange={(o: boolean) => { if (!o) setViewing(null) }}
+          />
           <div className="mt-8 text-center">
             <Button variant="outline" onClick={() => router.push("/proposals")}>
               <ArrowLeft className="mr-2 size-4" />All proposals
