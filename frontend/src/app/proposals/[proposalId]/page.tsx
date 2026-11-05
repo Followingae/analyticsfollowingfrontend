@@ -163,15 +163,21 @@ function ProposalPage() {
             {/* Product is stated beside the money and never inside it. A client who agreed
                 to feed four creators has committed something real, and a screen that only
                 names the cash lets them find out at the restaurant. */}
-            {((p as { barter_total?: { value?: number; count?: number } }).barter_total?.count ?? 0) > 0 && (
-              <p className="text-muted-foreground">
-                Plus {(p as { barter_total?: { count?: number } }).barter_total?.count} creator
-                {((p as { barter_total?: { count?: number } }).barter_total?.count ?? 0) === 1 ? "" : "s"}
-                {" "}paid in product, worth AED{" "}
-                {Number((p as { barter_total?: { value?: number } }).barter_total?.value ?? 0).toLocaleString("en-US")}
-                {" "}— you provide these directly, they are not on your invoice.
-              </p>
-            )}
+            {((p as { barter_total?: { value?: number; count?: number } }).barter_total?.count ?? 0) > 0 && (() => {
+              const bt = (p as { barter_total?: { value?: number; count?: number } }).barter_total!
+              const product = (data as { selection?: { product?: string | null } }).selection?.product
+                ?? (p as { barter_product?: string | null }).barter_product
+              const cash = (p as { agreed_total_aed?: number }).agreed_total_aed != null
+              const n = bt.count ?? 0
+              return (
+                <p className="text-muted-foreground">
+                  {cash ? "Plus " : ""}{n} creator{n === 1 ? "" : "s"} paid in product
+                  {product ? ` (${product})` : ""}, worth AED{" "}
+                  {Number(bt.value ?? 0).toLocaleString("en-US")}.
+                  {" "}You provide this directly. Nothing here is invoiced.
+                </p>
+              )
+            })()}
             {p.status === "client_confirmed" && (
               <p className="text-sm text-muted-foreground">
                 Our team is setting your campaign up now and will be in touch shortly.
