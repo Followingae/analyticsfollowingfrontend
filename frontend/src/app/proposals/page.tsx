@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
+import { useCommercialAccount } from "@/hooks/useCommercialAccount"
 import { useNotifications } from "@/contexts/NotificationContext"
 import { brandProposalViewApi } from "@/services/adminProposalMasterApi"
 import { toast } from "sonner"
@@ -59,11 +60,17 @@ function ProposalsPageContent() {
   const { user, isLoading: authLoading, hasRole } = useEnhancedAuth()
   const router = useRouter()
   const { markReadByReference } = useNotifications()
-  const isFreeTier = hasRole('brand_free')
+  const { isManaged } = useCommercialAccount()
 
   const [proposals, setProposals] = useState<ProposalListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [pendingCount, setPendingCount] = useState(0)
+
+  // The upgrade wall is for a Free account that has nothing from us. A proposal our team
+  // SENT is never walled: on 5 Nov 2026 a managed client (BlackOut) sat on the Free tier,
+  // the sidebar said "1 waiting", and the page showed "Upgrade to Standard" instead of the
+  // proposal. Managed accounts never see the wall; anyone with a proposal sees the proposal.
+  const isFreeTier = hasRole('brand_free') && !isManaged && !loading && proposals.length === 0
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -75,7 +82,8 @@ function ProposalsPageContent() {
   }, [user, authLoading, router])
 
   useEffect(() => {
-    if (!authLoading && user && !user.role.startsWith("super_admin") && user.role !== "admin" && user.role !== "brand_free") {
+    // Every brand loads its proposals, Free included: the wall is decided by what comes back.
+    if (!authLoading && user && !user.role.startsWith("super_admin") && user.role !== "admin") {
       loadProposals()
     }
   }, [user, authLoading])
