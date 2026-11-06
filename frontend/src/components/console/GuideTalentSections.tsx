@@ -181,14 +181,14 @@ const SCOUT_FLOW: Step[] = [
     body: 'An Instagram DM: "Interested? Just reply here". An email with a WhatsApp button. A WhatsApp alert to creators we know.' },
   { title: 'ScoutAI chat', who: 'machine', whoText: 'ScoutAI',
     body: 'In the Instagram chat where they replied, or on WhatsApp: explains the brief, asks the screening questions and their rate.' },
-  { title: 'Rate on the roster', who: 'machine', whoText: 'ScoutAI, or talent',
-    body: 'The creator lands on the campaign roster with their rate. You send them for review.' },
+  { title: 'Review', who: 'talent', whoText: 'Talent, in Scout',
+    body: 'The creator lands in Scout’s Review column with their rate and answers. Shortlist moves them to Proposal and starts their analytics.' },
   { title: 'Founder prices', who: 'founder',
     body: 'Sets the sell price on the roster with Price. The margin shows as they type.' },
   { title: 'Ready', who: 'talent',
     body: 'Back on the roster as Ready. The confirmation has an Open roster button.' },
-  { title: 'Proposal', who: 'talent',
-    body: 'Add to proposal. When the client picks them, the row says Client picked: Book.' },
+  { title: 'Proposal', who: 'founder',
+    body: 'In Scout’s Proposal column: tick the shortlisted creators, Add to a proposal, pick which. When the client picks them, the roster row says Client picked: Book.' },
 ]
 
 const PACE: { big: string; small: string }[] = [
@@ -248,7 +248,9 @@ export function ScoutGuide() {
         <Panel icon={Radar} title="ScoutOutreach finds them and reaches them">
           <Bullets items={[
             `It works per roster, which is one client brief. Its criteria are location, follower range, language and the brief itself.`,
-            `It lives at ${scout} in the sidebar, with a live bar: ScoutAI’s face, DMs sent today, and the job it is on now. Each roster page shows its own outreach strip too.`,
+            `Everything happens at ${scout} in the sidebar. The live bar at the top shows ScoutAI’s face, DMs sent today and the job it is on now. Pick a campaign by its brand tile and its board runs left to right: Brief and fit (the open call, this round’s goal, who fits), Reach (who is being contacted and what needs a person), Review (everyone who answered, with their numbers and answers) and Proposal (shortlisted creators, added to a proposal in one go). The roster page keeps a ScoutOutreach tab with the funnel and an Open button; nothing is decided there.`,
+            'New creators the search finds wait in Reach for a yes or a skip before any DM goes out. A founder can switch a campaign to automatic in Brief and fit. A barter campaign with no follower ceiling runs on a 100K default until someone sets their own; a campaign with no ceiling at all says so in red.',
+            'When ScoutAI is not sure how to answer a reply, the draft waits in Reach beside the creator’s message. Send it as it is, edit it first, or drop it and write to them yourself.',
             'Screening: the follower range, a post in the last 60 days, a real creator and not a business, not clearly based somewhere else. Then an AI reads each creator against the brief, following the yes and no decisions the team has already made on that campaign. Every pass carries a written reason.',
             'A hashtag search reads the 40 most recent posts from up to 4 hashtags.',
             'Every creator who passes gets light analytics, at about $0.008 each.',
