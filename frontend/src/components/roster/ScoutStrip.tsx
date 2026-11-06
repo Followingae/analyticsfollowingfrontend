@@ -1,21 +1,16 @@
 "use client"
 
 /**
- * ScoutOutreach on a roster, in one calm card of three rows:
- *  1. relevant applicants against the goal, and the way into ScoutOutreach;
- *  2. the outreach funnel for this campaign, contacted to in proposal;
- *  3. what Scout is doing for this campaign right now (searches, checks, WhatsApp, DMs).
- * Every number comes from /scout/roster, /scout/campaigns and /scout/activity. Founders start a round.
+ * ScoutOutreach's tab on a roster: the funnel for this campaign in numbers, and the way into
+ * Scout, where all the work happens (criteria, reach, review, proposal). Nothing is decided
+ * here; the roster stays the talent sheet.
  */
 import * as React from "react"
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { AnimatePresence, motion } from "motion/react"
-import { ArrowRight, ChevronRight, Instagram, Loader2, RotateCcw, Target } from "lucide-react"
-import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { CountdownRing, JobTrack, WaTrack } from "@/components/scout/ScoutActivity"
-import { scoutApi, type ScoutActivity, type ScoutCampaign } from "@/services/scoutApi"
+import { motion } from "motion/react"
+import { ArrowRight, ChevronRight, Target } from "lucide-react"
+import { scoutApi, type ScoutCampaign } from "@/services/scoutApi"
 
 const visible = () => typeof document === "undefined" || !document.hidden
 
@@ -35,7 +30,7 @@ const STEPS: [keyof ScoutCampaign["funnel"], string][] = [
   ["relevant", "Relevant"], ["shortlisted", "Shortlisted"], ["in_proposal", "In proposal"],
 ]
 
-function Funnel({ c }: { c: ScoutCampaign }) {
+export function Funnel({ c }: { c: ScoutCampaign }) {
   const f = c.funnel
   return (
     <div className="-mx-1 flex items-start gap-1 overflow-x-auto px-1 pb-0.5">
@@ -57,48 +52,17 @@ function Funnel({ c }: { c: ScoutCampaign }) {
   )
 }
 
-function dmCount(label: string): number | null {
-  const m = label.match(/^([\d,]+)/)
-  return m ? Number(m[1].replace(/,/g, "")) : null
-}
-
-export function ScoutStrip({ listId, canEdit }: { listId: string; canEdit: boolean }) {
-  const [busy, setBusy] = useState(false)
-  const [tick, setTick] = useState(0)
-  const roster = usePoll(useCallback(async () => { void tick; return (await scoutApi.roster(listId)).data }, [listId, tick]), 30000)
+export function ScoutStrip({ listId }: { listId: string }) {
+  const roster = usePoll(useCallback(async () => (await scoutApi.roster(listId)).data, [listId]), 30000)
   const camps = usePoll(useCallback(async () => (await scoutApi.campaigns()).data, []), 15000)
-  const act = usePoll(useCallback(async () => (await scoutApi.activity()).data, []), 5000)
-
-  const start = async () => {
-    setBusy(true)
-    try {
-      const r = await scoutApi.createGoal({ scope: "roster", list_id: listId })
-      toast.success(`ScoutOutreach is on it: ${r.data.target} relevant applicants`)
-      setTick(t => t + 1)
-    } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
-  }
-  if (!roster) return null
-
-  const g = roster.goal && roster.goal.status !== "done" ? roster.goal : null
-  const lastDone = roster.goal && roster.goal.status === "done" ? roster.goal : null
   const camp = camps?.campaigns.find(c => c.list_id === listId) || null
-  const relevant = camp?.funnel.relevant ?? roster.funnel.relevant ?? 0
-  const target = g?.target || roster.suggested_target || 0
-  const pct = target ? Math.min(100, (relevant / target) * 100) : 0
+  if (!roster && !camp) return null
 
-  // Row 3: only what is happening for THIS campaign.
-  const a: ScoutActivity | null = act
-  const jobs = a ? a.running.filter(j => j.list_id === listId) : []
-  const wa = a ? a.whatsapp_sending.filter(w => w.list_id === listId) : []
-  const todos = a ? a.todo.filter(t => t.list_id === listId) : []
-  const dmTodo = todos.find(t => t.kind === "dm")
-  const dmWaiting = dmTodo ? (dmCount(dmTodo.label) ?? camp?.dm_queue ?? 0) : 0
-  const otherTodo = todos.find(t => t.kind !== "dm")
-  const dmState = a && dmWaiting > 0
-    ? !a.dm.online ? "bot offline" : a.dm.paused ? "bot paused" : null
-    : null
-  const idle = jobs.length === 0 && wa.length === 0
-  const hasLive = jobs.length > 0 || wa.length > 0 || dmWaiting > 0 || (idle && !!otherTodo)
+  const g = roster?.goal && roster.goal.status !== "done" ? roster.goal : null
+  const relevant = camp?.funnel.relevant ?? roster?.funnel.relevant ?? 0
+  const target = g?.target || 0
+  const pct = target ? Math.min(100, (relevant / target) * 100) : 0
+  const needs = (camp?.to_approve || 0) + (camp?.held || 0)
 
   return (
     <div className="flex min-w-0 flex-col rounded-xl border bg-background">
@@ -114,48 +78,18 @@ export function ScoutStrip({ listId, canEdit }: { listId: string; canEdit: boole
           </div>
         )}
         <div className="ml-auto flex items-center gap-3">
-          {canEdit && !g && (
-            <Button size="sm" className="h-8 gap-1.5 rounded-full bg-[#d3ff02] px-3.5 text-xs text-[#111] hover:bg-[#c4ef00]" disabled={busy} onClick={start}>
-              {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : lastDone ? <RotateCcw className="h-3 w-3" /> : <Target className="h-3 w-3" />}
-              {lastDone ? "Run another round" : `Find ${roster.suggested_target ? roster.suggested_target.toLocaleString() + " " : ""}relevant applicants`}
-            </Button>
+          {needs > 0 && (
+            <span className="rounded-full bg-[#d3ff02] px-2.5 py-0.5 text-xs font-semibold tabular-nums text-[#111]">{needs} waiting for you</span>
           )}
-          <Link href={`/work/scout?tab=campaigns&list=${listId}`}
-                className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-medium underline-offset-2 hover:underline">
+          <Link href={`/work/scout?list=${listId}`}
+                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-foreground px-3.5 py-1.5 text-sm font-medium text-background hover:opacity-90">
             Open in ScoutOutreach<ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       </div>
-
       {camp && (
         <div className="border-t px-4 py-2.5">
           <Funnel c={camp} />
-        </div>
-      )}
-
-      {hasLive && (
-        <div className="flex min-w-0 flex-col gap-1.5 border-t px-4 py-2.5">
-          <AnimatePresence initial={false}>
-            {jobs.map(j => (
-              <motion.div key={j.id} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                <JobTrack j={j} compact />
-              </motion.div>
-            ))}
-            {wa.map(w => (
-              <motion.div key={`wa-${w.list_id}`} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                <WaTrack w={w} compact />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          {dmWaiting > 0 && a && (
-            <div className="flex min-w-0 items-center gap-2 py-1 text-xs">
-              <Instagram className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="rounded-full bg-muted px-2 py-0.5 tabular-nums"><span className="font-semibold">{dmWaiting.toLocaleString()}</span> DMs waiting</span>
-              {dmState ? <span className="text-amber-700">{dmState}</span>
-                : a.dm.next_send_at ? <CountdownRing at={a.dm.next_send_at} size={16} /> : null}
-            </div>
-          )}
-          {idle && otherTodo && <p className="min-w-0 break-words text-xs text-muted-foreground [overflow-wrap:anywhere] line-clamp-2">{otherTodo.label}</p>}
         </div>
       )}
     </div>

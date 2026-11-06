@@ -50,6 +50,23 @@ export function criteriaSentence(c: ScoutCriteria) {
   return parts.join(" · ")
 }
 
+export function LiveDot() {
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700">
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />Live
+    </span>
+  )
+}
+
+export function Bar({ value, target, className = "" }: { value: number; target: number; className?: string }) {
+  const pct = target ? Math.min(100, (value / target) * 100) : 0
+  return (
+    <div className={`h-1 overflow-hidden rounded-full bg-muted ${className}`}>
+      <motion.div className="h-full rounded-full bg-[#c8f000]" initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8 }} />
+    </div>
+  )
+}
+
 export function Chip({ on, children, onClick, disabled }: { on: boolean; children: React.ReactNode; onClick?: () => void; disabled?: boolean }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled}

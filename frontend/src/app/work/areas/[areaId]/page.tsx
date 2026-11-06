@@ -45,7 +45,7 @@ import { PasteDialog } from "@/components/roster/PasteDialog"
 import { PriceClearDialog } from "@/components/roster/PriceClearDialog"
 import { ToProposalDialog } from "@/components/roster/ToProposalDialog"
 import { CreatorPanel } from "@/components/roster/CreatorPanel"
-import { OpenCallPanel } from "@/components/roster/OpenCallPanel"
+import { ScoutStrip } from "@/components/roster/ScoutStrip"
 import { aed } from "@/components/roster/rosterFormat"
 import { budgetBand } from "@/lib/areaBrief"
 
@@ -890,11 +890,14 @@ export default function ImdListDetailPage() {
                 <BriefDetail brief={list.brief} dueAt={list.due_at} />
               </section>
 
-              {/* The WhatsApp open call for this roster: talent's links, the conversations,
-                  and (superadmin) the card itself. Responses land below as ordinary rows. */}
+              {/* ScoutOutreach's tab: the funnel for this campaign and the way into Scout, where
+                  the open call, the reach, the review and adding to a proposal all happen.
+                  Responses still land below as ordinary rows. */}
               {list.kind === "client" && (
-                <OpenCallPanel listId={listId} brand={list.team_name}
-                               isSuperadmin={isSuperAdmin} isFounder={canDestroy} />
+                <section className="flex flex-col gap-ds-3 border-t pt-ds-3">
+                  <p className="text-ds-overline uppercase text-muted-foreground">ScoutOutreach</p>
+                  <ScoutStrip listId={listId} />
+                </section>
               )}
 
               {/* The gate. Anyone may stock an area; only a founder decides which of them a

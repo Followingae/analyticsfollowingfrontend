@@ -178,9 +178,28 @@ export interface ScoutActivity {
   todo: { kind: 'attention' | 'dm' | 'search' | string; label: string; list_id?: string | null }[]
 }
 
+/** ScoutAI's answer it was not sure about, waiting for a person to release or drop it. */
+export interface HeldAnswer {
+  id: string
+  outreach_id: string
+  username: string
+  body: string
+  intent: string | null
+  created_at: string
+  reply_text: string | null
+  replied_at: string | null
+  full_name: string | null
+  avatar: string | null
+  followers: number | null
+}
+
 export interface ScoutRosterPlan {
   open_call: { id: string; code: string; title: string; status: string; comp_mode: string } | null
   criteria: ScoutCriteria
+  /** The barter default (100K) is in force because nobody set a ceiling. */
+  criteria_default_ceiling: boolean
+  /** Found creators are DMed on their own (true) or wait for approval in Reach (false). */
+  auto_dm: boolean
   criteria_options: { cities: string[]; categories: string[]; languages: string[] }
   contacts: { matching: number; already_alerted: number; to_send: number; sample: ScoutCreator[] }
   template_approved: boolean
@@ -196,12 +215,20 @@ export interface ScoutCampaign {
   list_id: string
   name: string
   brand: string | null
-  open_call: { id: string; title: string; status: string } | null
+  /** The client's logo, as the brand tile shows it. */
+  logo: string | null
+  open_call: { id: string; title: string; status: string; comp_mode: string | null } | null
   goal: { target: number; round_no: number; status: string; progress: number } | null
   need: number | null
   funnel: { contacted: number; whatsapp: number; instagram: number; clicked: number; chatting: number
             applied: number; relevant: number; shortlisted: number; in_proposal: number }
   dm_queue: number
+  /** Found creators waiting for a person to approve the DM. */
+  to_approve: number
+  /** ScoutAI answers waiting for a person. */
+  held: number
+  has_ceiling: boolean
+  auto_dm: boolean
   last_activity: string | null
 }
 
@@ -289,6 +316,14 @@ export const scoutApi = {
     jfetch(`${BASE}/scout/roster/${listId}/outreach?status=${status}`),
   decide: (ids: string[], decision: 'approve' | 'skip'): Promise<{ data: { updated: number } }> =>
     jfetch(`${BASE}/scout/outreach/decide`, { method: 'POST', body: JSON.stringify({ ids, decision }) }),
+  /** Whether found creators are DMed on their own or wait for approval in Reach. Founders. */
+  setAutoDm: (listId: string, auto_dm: boolean): Promise<{ data: { auto_dm: boolean } }> =>
+    jfetch(`${BASE}/scout/roster/${listId}/auto-dm`, { method: 'POST', body: JSON.stringify({ auto_dm }) }),
+  /** ScoutAI answers held for a person, with the creator's message beside each. */
+  held: (listId: string): Promise<{ data: { items: HeldAnswer[] } }> => jfetch(`${BASE}/scout/roster/${listId}/held`),
+  /** Release a held answer (as edited) to the bot, or drop it. Talent and founders. */
+  reply: (id: string, action: 'send' | 'discard', text?: string): Promise<{ data: { status: string } }> =>
+    jfetch(`${BASE}/scout/replies/${id}`, { method: 'POST', body: JSON.stringify({ action, text }) }),
   worker: (): Promise<{ data: ScoutWorker }> => jfetch(`${BASE}/scout/worker`),
   setWorker: (body: { paused?: boolean; daily_cap?: number; bot_id?: string }): Promise<{ data?: ScoutWorker }> =>
     jfetch(`${BASE}/scout/worker`, { method: 'POST', body: JSON.stringify(body) }),
