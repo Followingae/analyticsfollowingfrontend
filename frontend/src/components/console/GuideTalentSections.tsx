@@ -197,8 +197,9 @@ const PACE: { big: string; small: string }[] = [
   { big: '3 hours', small: 'at least, between two searches on the same campaign' },
   { big: '6 a day', small: 'searches at most, across all campaigns together' },
   { big: '12', small: 'searches per campaign in total, then it stops and says so' },
-  { big: '40 a day', small: 'DMs to start, rising by 15 a day up to the account’s cap' },
-  { big: '60 to 120 s', small: 'between one DM and the next' },
+  { big: 'Your cap', small: 'DMs a day, set on the ScoutOutreach page; Instagram’s own limits pause it below that' },
+  { big: '4 to 7 min', small: 'between one DM and the next' },
+  { big: '24 h, 48 h', small: 'two follow-ups in the same chat if nobody answers, cancelled the moment they do' },
   { big: '14 days', small: 'before anybody is DMed again' },
 ]
 
@@ -251,7 +252,8 @@ export function ScoutGuide() {
             'Screening: the follower range, a post in the last 60 days, a real creator and not a business, not clearly based somewhere else. Then an AI reads each creator against the brief, following the yes and no decisions the team has already made on that campaign. Every pass carries a written reason.',
             'A hashtag search reads the 40 most recent posts from up to 4 hashtags.',
             'Every creator who passes gets light analytics, at about $0.008 each.',
-            'The DM bot sends from the company’s Instagram account, in Chrome on an office PC. The DM carries no link. It says "Interested? Just reply here", and ScoutAI holds the conversation in that Instagram chat.',
+            'The DM bot sends from the company’s Instagram account, in Chrome on an office PC. Chrome is open only while it is sending, answering or reading the inbox; the rest of the time it is closed. The DM carries no link. It says "Interested? Just reply here", and ScoutAI holds the conversation in that Instagram chat.',
+            'When Instagram stops it (a chat that will not open, a warning), it pauses itself for an hour and says so on the ScoutOutreach page, then tries one DM to see if the rest is over. A pause that needs a person (a login, a checkpoint) stays until someone presses Resume there.',
             'Creators who list an email are also emailed, automatically, from hello@following.ae. The email carries a WhatsApp button into ScoutAI.',
             'It also sends WhatsApp alerts to creators in our network whose numbers we hold, using Meta-approved templates: a barter alert and a paid alert. A paid campaign is never called barter.',
           ]} />
