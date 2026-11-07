@@ -342,7 +342,7 @@ export const MASTERY = {
         'Opening a campaign and agreeing rates afterwards. You are then negotiating with '
         + 'somebody who has already started working.',
         'Approving a creator with no sell price. They cannot be sold, so they are not real.',
-        'Letting a payment go out that the client has not funded.',
+        'Marking a payment paid before the transfer has actually left the bank.',
         'Reading the talent board as a scoreboard. It shows load, not quality.',
       ],
     },
@@ -351,7 +351,7 @@ export const MASTERY = {
                       'Then Decisions.']],
       ['The one rule', ['Nothing opens until every creator has a real rate.']],
       ['Quoted is not agreed', ['The quote is what we assumed. The rate is what you got.']],
-      ['Never', ['Never pay out beyond what the client has funded.',
+      ['Never', ['Never mark a payment paid that has not left the bank.',
                  'Never release a creator with no sell price.']],
       ['When the founder is away', ['You are the second pair of hands. Everything of his '
                            + 'comes to you.']],

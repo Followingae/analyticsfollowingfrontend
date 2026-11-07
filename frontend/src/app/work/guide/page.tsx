@@ -284,7 +284,7 @@ const SECTIONS: Section[] = [
       {
         title: 'Creator payments', href: '/work/payables', icon: Banknote,
         what: 'The payment book: what we owe every creator and whether it has gone out.',
-        why: 'Anyone internal can record what was agreed. Only the founders approve one, and only the founders mark it paid — and nothing pays out that the client has not funded.',
+        why: 'Anyone internal can record what was agreed. Only the founders approve one, and only the founders mark it paid. Whether the client has paid us yet is shown on the campaign Money page but never blocks a payment.',
         also: ['payables', 'owed', 'transfer', 'money out'],
       },
       {
