@@ -54,8 +54,10 @@ export function BoardReview({ ocId, data, brand, onOpen, onChanged }: {
     try {
       const r = await openCallsApi.review(ocId, { action: "approve", conversation_ids: approving, proposal_id: p.id })
       const blocked = r.data.blocked || []
-      toast.success(`${r.data.added || 0} added to ${p.title}`, {
-        description: blocked.length ? blocked.map(b => `@${b.username}: ${b.reason}`).join(" · ") : undefined,
+      const waiting = r.data.waiting || []
+      toast.success(r.data.added ? `${r.data.added} added to ${p.title}` : waiting.length ? `Approved for ${p.title}, analytics running` : `Nothing added to ${p.title}`, {
+        description: [waiting.length ? `${waiting.map(w => `@${w.username}`).join(", ")} ${waiting.length === 1 ? "goes" : "go"} on once analytics finish.` : null,
+                      ...blocked.map(b => `@${b.username}: ${b.reason}`)].filter(Boolean).join(" · ") || undefined,
       })
       setApproving(null); onChanged()
     } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
