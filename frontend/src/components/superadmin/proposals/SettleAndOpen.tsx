@@ -44,6 +44,10 @@ type Row = {
   cost_note?: string | null
   settled: boolean
   margin: number | null
+  /* Paid in product (a barter deal, or one creator on product inside a cash deal): no cash
+     either way, so there is no cost to agree and nothing here to block the campaign on. */
+  in_product?: boolean
+  barter_product?: string | null
 }
 
 type State = {
@@ -99,6 +103,7 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
     let cost = 0
     let missing = 0
     for (const c of state.creators) {
+      if (c.in_product) continue
       const v = parseFloat(draft[c.id] ?? '')
       if (Number.isFinite(v)) cost += v
       else { missing += 1; cost += c.quoted_cost }
@@ -114,7 +119,7 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
   const save = async () => {
     setSaving(true)
     try {
-      const costs = state.creators.map(c => ({
+      const costs = state.creators.filter(c => !c.in_product).map(c => ({
         id: c.id,
         amount_aed: draft[c.id]?.trim() === '' ? null : Number(draft[c.id]),
       }))
@@ -154,6 +159,7 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
   }
 
   const allTyped = live?.missing === 0
+  const allBarter = state.creators.length > 0 && state.creators.every(c => c.in_product)
 
   return (
     <>
@@ -164,10 +170,15 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
           The client has confirmed
         </CardTitle>
         <CardDescription>
-          {state.total} creator{state.total === 1 ? ' is' : 's are'} booked. No campaign is open
-          yet. Record what we are paying each of them. Once a cost is saved that creator can be
-          sent their enrolment link straight away, and the campaign opens when the budget is
-          spent.
+          {allBarter ? (
+            <>{state.total} creator{state.total === 1 ? ' is' : 's are'} booked on barter: they are
+            paid in product, so there is no cost to agree. Open the campaign when you are ready.</>
+          ) : (
+            <>{state.total} creator{state.total === 1 ? ' is' : 's are'} booked. No campaign is open
+            yet. Record what we are paying each of them. Once a cost is saved that creator can be
+            sent their enrolment link straight away, and the campaign opens when the budget is
+            spent.</>
+          )}
         </CardDescription>
       </CardHeader>
 
@@ -181,6 +192,28 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
             <span className="text-right">Paperwork</span>
           </div>
           {state.creators.map(c => {
+            if (c.in_product) {
+              return (
+                <div key={c.id} className="grid grid-cols-[1fr_110px_130px_110px_128px] items-center gap-2 border-b px-3 py-2.5 last:border-b-0">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <Avatar className="size-8">
+                      <AvatarImage src={cdnAvatar(c.profile_image_url || undefined)} alt="" />
+                      <AvatarFallback>{(c.username || '?')[0].toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{c.username}</p>
+                      <p className="truncate text-[11px] text-muted-foreground">
+                        {c.barter_product ? `in product · ${c.barter_product}` : 'paid in product'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-right text-sm text-muted-foreground">—</span>
+                  <span className="justify-self-end rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium">Barter</span>
+                  <span className="text-right text-sm text-muted-foreground">—</span>
+                  <span className="text-right text-[11px] text-muted-foreground">barter portal</span>
+                </div>
+              )
+            }
             const typed = parseFloat(draft[c.id] ?? '')
             const m = Number.isFinite(typed) ? c.sell - typed : null
             return (
@@ -228,7 +261,7 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
           })}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/50 p-3">
+        {!allBarter && <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/50 p-3">
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             <Wallet className="size-3.5" />Campaign margin
           </span>
@@ -241,7 +274,7 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
               <span className="ml-2 font-medium text-muted-foreground">{live.pct.toFixed(1)}%</span>
             )}
           </span>
-        </div>
+        </div>}
 
         {!allTyped && (
           <p className="text-xs text-muted-foreground">
@@ -251,10 +284,10 @@ export function SettleAndOpen({ proposalId, onDone }: { proposalId: string; onDo
         )}
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={save} disabled={saving}>
+          {!allBarter && <Button variant="outline" onClick={save} disabled={saving}>
             {saving && <Loader2 className="mr-2 size-4 animate-spin" />}
             Save costs
-          </Button>
+          </Button>}
           <Button onClick={open} disabled={opening || !state.can_open_campaign}>
             {opening ? <Loader2 className="mr-2 size-4 animate-spin" /> : <PlayCircle className="mr-2 size-4" />}
             Open the campaign
