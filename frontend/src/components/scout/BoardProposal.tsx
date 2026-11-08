@@ -8,7 +8,7 @@
 import * as React from "react"
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { ArrowUpRight, Check, Loader2, Lock } from "lucide-react"
+import { ArrowUpRight, BarChart3, Check, Loader2, Lock } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { openCallsApi, type Applicant } from "@/services/openCallsApi"
@@ -33,6 +33,25 @@ function Locked({ a, onOpen }: { a: Applicant; onOpen?: () => void }) {
   )
 }
 
+/** Approved, promised to a proposal, waiting for analytics to finish before going on it. */
+function Held({ a, onOpen, onAddAnyway }: { a: Applicant; onOpen?: () => void; onAddAnyway?: () => void }) {
+  const failed = !!a.analytics_unavailable_reason || ["failed", "unavailable", "error"].includes(a.analytics_status || "")
+  return (
+    <div className="flex items-center gap-2.5 rounded-xl border border-dashed px-3 py-2">
+      {failed ? <BarChart3 className="h-3.5 w-3.5 shrink-0 text-rose-500" /> : <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />}
+      <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
+        <span className="block truncate text-sm font-medium">@{a.handle}</span>
+        <span className="block truncate text-xs text-muted-foreground">
+          {failed ? `analytics could not run${a.analytics_unavailable_reason ? `: ${a.analytics_unavailable_reason}` : ""}` : "analysing, goes on the proposal when done"}
+        </span>
+      </button>
+      {failed && onAddAnyway && (
+        <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={onAddAnyway}>Add anyway</Button>
+      )}
+    </div>
+  )
+}
+
 export function BoardProposal({ ocId, data, brand, onOpen, onChanged }: {
   ocId: string | null; data: ApplicantsData | null; brand?: string | null; onOpen: (u: string) => void; onChanged: () => void
 }) {
@@ -41,7 +60,8 @@ export function BoardProposal({ ocId, data, brand, onOpen, onChanged }: {
   const [busy, setBusy] = useState(false)
   const all = data?.applicants || []
   const waiting = useMemo(() => all.filter(a => a.review === "shortlisted"), [all])
-  const placed = useMemo(() => all.filter(a => a.review === "approved"), [all])
+  const placed = useMemo(() => all.filter(a => a.review === "approved" && a.on_proposal !== false), [all])
+  const held = useMemo(() => all.filter(a => a.review === "approved" && a.on_proposal === false && a.proposal_id), [all])
   const ids = Object.keys(picked).filter(k => picked[k] && waiting.some(a => a.id === k && a.influencer_id))
 
   const approve = async (p: { id: string; title: string }) => {
@@ -50,11 +70,27 @@ export function BoardProposal({ ocId, data, brand, onOpen, onChanged }: {
     try {
       const r = await openCallsApi.review(ocId, { action: "approve", conversation_ids: approving, proposal_id: p.id })
       const blocked = r.data.blocked || []
-      toast.success(`${r.data.added || 0} added to ${p.title}`, {
-        description: blocked.length ? blocked.map(b => `@${b.username}: ${b.reason}`).join(" · ") : undefined,
+      const waiting = r.data.waiting || []
+      const notes = [
+        waiting.length ? `${waiting.map(w => `@${w.username}`).join(", ")} ${waiting.length === 1 ? "goes" : "go"} on once analytics finish.` : null,
+        ...blocked.map(b => `@${b.username}: ${b.reason}`),
+      ].filter(Boolean)
+      toast.success(r.data.added ? `${r.data.added} added to ${p.title}` : waiting.length ? `Approved for ${p.title}, analytics running` : `Nothing added to ${p.title}`, {
+        description: notes.length ? notes.join(" · ") : undefined,
         action: { label: "Open proposal", onClick: () => { window.location.href = `/work/proposals/${p.id}` } },
       })
       setApproving(null); setPicked({}); onChanged()
+    } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
+  }
+  const addAnyway = async (a: Applicant) => {
+    if (!ocId || !a.proposal_id) return
+    setBusy(true)
+    try {
+      const r = await openCallsApi.review(ocId, { action: "approve", conversation_ids: [a.id], proposal_id: a.proposal_id, skip_analytics: true })
+      toast.success(r.data.added ? `@${a.handle} added without analytics` : `@${a.handle} not added`, {
+        description: (r.data.blocked || []).map(b => b.reason).join(" · ") || undefined,
+      })
+      onChanged()
     } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
   }
   const pass = async (id: string) => {
@@ -97,6 +133,13 @@ export function BoardProposal({ ocId, data, brand, onOpen, onChanged }: {
             ))}
           </div>
         </>
+      )}
+      {held.length > 0 && (
+        <div className="flex flex-col gap-2 pt-2">
+          <p className="px-1 text-xs font-medium text-muted-foreground">Approved, analytics running <span className="tabular-nums">{held.length}</span></p>
+          {held.map(a => <Held key={a.id} a={a} onOpen={a.handle ? () => onOpen(a.handle!) : undefined}
+                               onAddAnyway={data.can_approve ? () => addAnyway(a) : undefined} />)}
+        </div>
       )}
       {placed.length > 0 && (
         <div className="flex flex-col gap-2 pt-2">

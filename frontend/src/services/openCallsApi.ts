@@ -91,6 +91,10 @@ export interface Applicant {
   fit_reasons: string[]
   review: 'shortlisted' | 'approved' | 'passed' | null
   analytics_status: string | null
+  /* Approved creators go on the proposal only once their analytics are in; until then the
+     conversation carries the proposal and this is false. */
+  on_proposal?: boolean
+  analytics_unavailable_reason?: string | null
   engagement_rate: number | null
   saved_nationality: string | null
   reviewed_at: string | null
@@ -153,8 +157,9 @@ export const openCallsApi = {
     jfetch(`${BASE}/open-calls/${id}/alert`, { method: 'POST', body: JSON.stringify(body) }),
   applicants: (id: string): Promise<{ data: { applicants: Applicant[]; can_approve: boolean; can_shortlist: boolean; screening: Screening; slots: Slot[] } }> =>
     jfetch(`${BASE}/open-calls/${id}/applicants`),
-  review: (id: string, body: { action: 'shortlist' | 'approve' | 'pass'; conversation_ids: string[]; proposal_id?: string; reason?: string }):
+  review: (id: string, body: { action: 'shortlist' | 'approve' | 'pass'; conversation_ids: string[]; proposal_id?: string; reason?: string; skip_analytics?: boolean }):
     Promise<{ data: { added?: number; passed?: number; shortlisted?: number; analytics_started?: number
+                      waiting?: { username: string; status: string; reason: string | null }[]
                       blocked?: { username: string; reason: string }[]; no_handle: number } }> =>
     jfetch(`${BASE}/open-calls/${id}/review`, { method: 'POST', body: JSON.stringify(body) }),
   invite: (id: string, channel: 'app' | 'whatsapp', opts: { min_followers?: number; from_list_id?: string } = {}):
