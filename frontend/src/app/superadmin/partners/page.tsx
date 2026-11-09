@@ -37,7 +37,7 @@ import { Panel } from '@/components/console/primitives'
 import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
 import { toast } from 'sonner'
 import {
-  Download, Mail, Paperclip, Phone, RefreshCw, Globe, ExternalLink,
+  Download, Mail, Paperclip, Phone, RefreshCw, Globe, ExternalLink, Send, Check, AlertCircle, Loader2, FileText,
 } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
@@ -45,6 +45,58 @@ import {
   type PartnerLead, type LeadStatus, type PartnerLeadsPayload,
 } from '@/services/partnerLeadsApi'
 import { cn } from '@/lib/utils'
+
+/* The hand-off to RFM, read from the row. Since 9 Nov 2026 a lead goes to the RFM platform
+   the moment it arrives instead of to an inbox; this is the log of whether it did. Leads
+   from before that date were worked by hand and say so rather than reading as failures. */
+const RFM_FROM = '2026-11-09'
+const RFM_OK = new Set(['queued', 'duplicate', 'opted_out', 'ok'])
+
+function rfmState(l: PartnerLead): { kind: 'sent' | 'failed' | 'waiting' | 'before' | 'no_consent'; text: string; detail?: string } {
+  if (l.rfm_sent_at) {
+    return {
+      kind: 'sent',
+      text: `Sent ${shortTime(l.rfm_sent_at)}`,
+      detail: l.rfm_status === 'duplicate' ? 'RFM already had this number'
+        : l.rfm_status === 'opted_out' ? 'This person asked RFM not to call'
+        : l.rfm_contact_id ? `RFM contact ${l.rfm_contact_id.slice(0, 8)}` : undefined,
+    }
+  }
+  if ((l.created_at || '') < RFM_FROM) return { kind: 'before', text: 'Worked by hand' }
+  if (!l.consent_at) return { kind: 'no_consent', text: 'No consent given', detail: 'The applicant did not tick the consent line, so RFM is not sent this lead.' }
+  if (l.rfm_status && !RFM_OK.has(l.rfm_status)) {
+    return { kind: 'failed', text: l.rfm_status === 'rejected' ? 'RFM refused it' : l.rfm_status === 'not_configured' ? 'Key not set' : 'Not through yet',
+             detail: l.rfm_error || undefined }
+  }
+  return { kind: 'waiting', text: 'Sending' }
+}
+
+const shortTime = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
+
+function RfmCell({ l, onSend, busy }: { l: PartnerLead; onSend?: () => void; busy?: boolean }) {
+  const st = rfmState(l)
+  const Icon = st.kind === 'sent' ? Check : st.kind === 'failed' ? AlertCircle : st.kind === 'waiting' ? Loader2 : null
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        title={st.detail}
+        className={cn('inline-flex items-center gap-1 text-[12.5px]',
+          st.kind === 'sent' ? 'text-[var(--tone-good-ink)]'
+          : st.kind === 'failed' ? 'text-[var(--tone-warn-ink)]'
+          : 'text-muted-foreground')}
+      >
+        {Icon && <Icon className={cn('size-3.5', st.kind === 'waiting' && 'animate-spin')} aria-hidden />}
+        {st.text}
+      </span>
+      {onSend && (st.kind === 'failed' || st.kind === 'waiting') && (
+        <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[12px]" disabled={busy} onClick={onSend} title="Send to RFM now">
+          <Send className="size-3" aria-hidden />
+        </Button>
+      )}
+    </div>
+  )
+}
 
 /* Status colour carries the same meaning it does everywhere else in the console: warm for
    "needs somebody", good for won, muted for closed. Lost is deliberately quiet rather than
@@ -135,6 +187,27 @@ function Leads() {
     }
   }, [])
 
+  const [sendingId, setSendingId] = useState<string | null>(null)
+  const sendToRfm = useCallback(async (l: PartnerLead) => {
+    setSendingId(l.id)
+    try {
+      const r = await partnerLeadsApi.sendToRfm(l.id)
+      setPayload(p => p && ({ ...p, leads: p.leads.map(x => (x.id === l.id ? r.data : x)) }))
+      setOpen(o => (o && o.id === l.id ? r.data : o))
+      if (r.rfm.ok) toast.success(`${l.business_name || 'Lead'} is with RFM`, { description: r.rfm.status })
+      else toast.error(`RFM did not take ${l.business_name || 'the lead'}`, { description: r.rfm.error || r.rfm.status })
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally { setSendingId(null) }
+  }, [])
+
+  const openLicence = useCallback(async (l: PartnerLead) => {
+    try {
+      const r = await partnerLeadsApi.licenceUrl(l.id)
+      window.open(r.data.url, '_blank', 'noopener')
+    } catch (e) { toast.error((e as Error).message) }
+  }, [])
+
   const columns = useMemo<ColumnDef<PartnerLead>[]>(() => [
     {
       accessorKey: 'business_name',
@@ -150,7 +223,11 @@ function Leads() {
             <div className="font-medium tracking-[-0.01em]">{l.business_name || '—'}</div>
             <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground">
               {l.business_type || 'Type not given'}
-              {l.has_licence_in_email && (
+              {l.has_licence ? (
+                <span title="Trade licence on file" className="inline-flex items-center gap-0.5">
+                  <FileText className="size-3" aria-hidden />licence
+                </span>
+              ) : l.has_licence_in_email && (
                 <span title="A trade licence was attached to the application email"
                       className="inline-flex items-center gap-0.5">
                   <Paperclip className="size-3" aria-hidden />licence
@@ -218,6 +295,13 @@ function Leads() {
       },
     },
     {
+      accessorKey: 'rfm_sent_at',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="To RFM" />,
+      cell: ({ row }) => (
+        <RfmCell l={row.original} busy={sendingId === row.original.id} onSend={() => sendToRfm(row.original)} />
+      ),
+    },
+    {
       accessorKey: 'created_at',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Applied" />,
       cell: ({ row }) => (
@@ -234,7 +318,7 @@ function Leads() {
         </Button>
       ),
     },
-  ], [patch])
+  ], [patch, sendToRfm, sendingId])
 
   const leads = payload?.leads ?? []
 
@@ -331,6 +415,9 @@ function Leads() {
         lead={open}
         onClose={() => setOpen(null)}
         onPatch={patch}
+        onSendToRfm={sendToRfm}
+        onOpenLicence={openLicence}
+        sending={!!open && sendingId === open.id}
       />
     </div>
   )
@@ -368,10 +455,13 @@ function Chip({ label, n, on, onClick, tone }: {
  * One application in full, and the two things somebody does about it: move it along, and
  * write down what happened. The note is the part the inbox could never hold.
  */
-function LeadSheet({ lead, onClose, onPatch }: {
+function LeadSheet({ lead, onClose, onPatch, onSendToRfm, onOpenLicence, sending }: {
   lead: PartnerLead | null
   onClose: () => void
   onPatch: (id: string, body: Parameters<typeof partnerLeadsApi.update>[1], say?: string) => Promise<void>
+  onSendToRfm: (l: PartnerLead) => Promise<void>
+  onOpenLicence: (l: PartnerLead) => Promise<void>
+  sending: boolean
 }) {
   const [note, setNote] = useState('')
   const [lost, setLost] = useState('')
@@ -435,9 +525,43 @@ function LeadSheet({ lead, onClose, onPatch }: {
             )}
           </section>
 
+          {/* The hand-off to RFM: when it went, what RFM said, and the one button for when it
+              did not. Older leads were worked by hand and say so. */}
+          <section className="rounded-ds-lg border px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[13px] font-medium">RFM platform</p>
+              <RfmCell l={lead} />
+            </div>
+            {(() => {
+              const st = rfmState(lead)
+              return (
+                <>
+                  {st.detail && <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{st.detail}</p>}
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
+                    {lead.consent_at && <span>Consented {shortTime(lead.consent_at)}</span>}
+                    {lead.rfm_attempts > 0 && !lead.rfm_sent_at && <span>{lead.rfm_attempts} {lead.rfm_attempts === 1 ? 'attempt' : 'attempts'}</span>}
+                  </div>
+                  {(st.kind === 'failed' || st.kind === 'waiting' || (st.kind === 'sent' && lead.rfm_status === 'duplicate')) && lead.consent_at && (
+                    <Button size="sm" variant="outline" className="mt-3 h-8" disabled={sending} onClick={() => onSendToRfm(lead)}>
+                      {sending ? <Loader2 className="mr-2 size-3.5 animate-spin" aria-hidden /> : <Send className="mr-2 size-3.5" aria-hidden />}
+                      Send to RFM now
+                    </Button>
+                  )}
+                </>
+              )
+            })()}
+          </section>
+
+          {lead.has_licence && (
+            <Button variant="outline" size="sm" className="h-8" onClick={() => onOpenLicence(lead)}>
+              <FileText className="mr-2 size-3.5" aria-hidden />
+              Open trade licence{lead.licence_filename ? ` · ${lead.licence_filename}` : ''}
+            </Button>
+          )}
+
           {/* The one thing the recovery could not bring back, said plainly rather than left
               as a silent blank that reads as "they never sent one". */}
-          {lead.has_licence_in_email && (
+          {!lead.has_licence && lead.has_licence_in_email && (
             <div className="rounded-ds-lg bg-[var(--tone-warn-wash)] px-4 py-3">
               <p className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--tone-warn-ink)]">
                 <Paperclip className="size-3.5" aria-hidden />Trade licence attached to the email

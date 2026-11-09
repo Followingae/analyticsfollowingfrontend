@@ -66,6 +66,18 @@ export interface PartnerLead {
    */
   has_licence_in_email: boolean
   licence_filename: string | null
+  /**
+   * Since 9 Nov 2026 the lead goes to the RFM platform the moment it arrives, instead of to
+   * an inbox, and the licence is a file we hold. This is the log of that hand-off.
+   */
+  has_licence: boolean
+  consent_at: string | null
+  rfm_sent_at: string | null
+  rfm_status: string | null
+  rfm_contact_id: string | null
+  rfm_error: string | null
+  rfm_attempts: number
+  rfm_last_attempt_at: string | null
   created_at: string | null
   updated_at: string | null
   contacted_at: string | null
@@ -113,6 +125,14 @@ export const partnerLeadsApi = {
     },
   ): Promise<{ data: PartnerLead }> =>
     jfetch(`${BASE}/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+
+  /** Hand the lead to RFM now, or again. RFM dedupes on our id, so nobody is rung twice. */
+  sendToRfm: (id: string): Promise<{ data: PartnerLead; rfm: { ok: boolean; status: string; error: string | null } }> =>
+    jfetch(`${BASE}/${id}/send-to-rfm`, { method: 'POST' }),
+
+  /** A ten-minute link to the trade licence in the private bucket. */
+  licenceUrl: (id: string): Promise<{ data: { url: string } }> =>
+    jfetch(`${BASE}/${id}/licence-url`),
 
   /**
    * Download the rows currently on screen.
