@@ -1,787 +1,208 @@
 'use client'
 
 /**
- * The office wall.
+ * The office wall: a deck of screens, each one picture, turning every 20 seconds.
  *
- * A rotating deck, not one dense page. Each kind of work finishes differently — barter ends
- * when the content is verified, a managed campaign when the posts are live, UGC when the
- * video is delivered — so each gets its own slide and its own completion. One shared
- * progress bar across all of them would mean nothing.
+ * Live (the feed of the last seven days with a name on every line, plus the campaign in
+ * the spotlight), Clients (on track or not, one card each), Needs attention (who has sat
+ * untouched and what for), This week (the pace against last week). Clients also sit in
+ * the header on every screen with a ring that says on track, needs a push, or waiting.
  *
- * The look follows the reference: a full-bleed photograph as the ground, dark glass cards
- * floating over it, the headline sitting on the picture rather than in a box, and lime used
- * once or twice per screen rather than everywhere. The photograph is real — it is the hero
- * image of the campaign the slide is about — so the wall shows the work, not a texture.
- *
- * It runs 24/7 on a TV with no keyboard, so: viewport units throughout (one build fits 1080p
- * and 4K), slow crossfades and nothing that blinks, and a dropped connection holds the last
- * good deck instead of blanking.
- *
- * shadcn/ui only: Card, Badge, Progress, Avatar, Separator, and the shadcn chart wrapper.
+ * For the Karachi office TV (founder, 13 Nov 2026): people and movement, never money. Every
+ * action the team takes in the product arrives as a moment (moments.ts); the big ones (a
+ * signature, a client's yes, a confirmed proposal, a post live) take the stage with confetti
+ * for nine seconds; a client asking for something takes it without. Nothing is pushed by
+ * hand. Light, 1080p, runs 24/7 with no keyboard.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { AnimatePresence, motion } from 'motion/react'
 import { API_CONFIG } from '@/config/api'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
-import { PolarAngleAxis, RadialBar, RadialBarChart } from 'recharts'
-import {
-  AlertTriangle, CalendarClock, CheckCircle2, Clapperboard, Clock, Film,
-  Gauge, Inbox, Search, Sparkles, Users,
-} from 'lucide-react'
+import { DotPattern } from '@/components/ui/dot-pattern'
+import { type Slide } from '@/components/wall/parts'
+import { AttentionScreen, BallScreen, ClientsScreen, ClientsStrip, Feed, INK, LIME, MUTED, Spotlight, WeekScreen } from '@/components/wall/board'
+import { Stage } from '@/components/wall/stage'
+import { OFF_TV, toMoment, type Moment } from '@/components/wall/moments'
+import { previewMoment } from '@/components/wall/previews'
+import type { Event } from '@/components/wall/Pulse'
 
 const FALLBACK_REFRESH_MS = 60_000
+const PULSE_MS = 6_000
 const SLIDE_MS = 20_000
-
-/** Brand lime. Pinned, not inherited: the product's dark `--primary` is lavender. */
-const LIME = '#D3FF02'
-
-const ringConfig = { v: { label: 'Done', color: LIME } } satisfies ChartConfig
-
-const dayLabel = (iso: string | null) => {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const today = new Date()
-  if (d.toDateString() === today.toDateString()) return 'Today'
-  if (new Date(today.getTime() + 86_400_000).toDateString() === d.toDateString()) return 'Tomorrow'
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-}
-
-type Slide = { key: string; title: string; rows?: any[]; totals?: Record<string, any> }
-
-/**
- * Eases a number towards its target, from wherever it currently is.
- *
- * Everything that carries a value on this screen goes through here, so a slide arriving and
- * a refresh landing under a slide that is already up both read as the same slow settle
- * rather than a jump. Ease-out, over about a second: on a wall in peripheral vision, motion
- * that decelerates is calm and motion that snaps is a distraction.
- */
-function useEased(target: number, ms = 1100) {
-  const [value, setValue] = useState(0)
-  const from = useRef(0)
-  useEffect(() => {
-    const start = from.current
-    const delta = target - start
-    if (delta === 0) return
-    let raf = 0
-    const t0 = performance.now()
-    const tick = (now: number) => {
-      const p = Math.min(1, (now - t0) / ms)
-      const eased = 1 - Math.pow(1 - p, 3)
-      const next = start + delta * eased
-      from.current = next
-      setValue(next)
-      if (p < 1) raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [target, ms])
-  return value
-}
-
-/* ── the parts everything is built from ────────────────────────────────────────────── */
-
-/** The distortion the liquid-glass panels refract their backdrop through. Declared once for
- *  the whole screen; every panel points its bend layer at it. */
-function GlassFilter() {
-  return (
-    <svg className="hidden" aria-hidden>
-      <defs>
-        <filter id="wall-glass" x="0" y="0" width="100%" height="100%" filterUnits="objectBoundingBox">
-          <feTurbulence type="fractalNoise" baseFrequency="0.003 0.007" numOctaves="1" result="turbulence" />
-          <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="90" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-      </defs>
-    </svg>
-  )
-}
-
-/**
- * Liquid glass over the photograph, built the way ui-layouts layers it: a bend layer that
- * blurs and refracts whatever is behind it, a face layer carrying the outer glow, and an
- * edge layer with the inner highlight that gives the panel a lit rim.
- *
- * The tint on the bend layer is ours, and it is deliberately heavy — the picture behind is
- * atmosphere, and the numbers on top have to stay readable from across the room.
- */
-function Glass({ className = '', children }: { className?: string; children: React.ReactNode }) {
-  const radius = '1.5vw'
-  return (
-    <Card className={`relative h-full overflow-hidden border-0 bg-transparent shadow-none ${className}`} style={{ borderRadius: radius }}>
-      {/* The bend layer is deliberately larger than the panel. A displacement map pushes
-          pixels sideways, so the layer's own edge comes out rippled — grow it past the panel
-          and let the card's rounded clip cut a clean edge out of the middle of it. */}
-      <div
-        className="absolute -inset-[3vw] z-0 backdrop-blur-xl"
-        style={{ filter: 'url(#wall-glass)', background: 'rgba(9,14,12,0.72)' }}
-      />
-      <div
-        className="absolute inset-0 z-10"
-        style={{ borderRadius: radius, boxShadow: '0 4px 4px rgba(0,0,0,0.15), 0 0 12px rgba(0,0,0,0.08), 0 0 28px rgba(255,255,255,0.06)' }}
-      />
-      <div
-        className="absolute inset-0 z-20"
-        style={{ borderRadius: radius, boxShadow: 'inset 2px 2px 2px 0 rgba(255,255,255,0.18), inset -2px -2px 2px 0 rgba(255,255,255,0.12)' }}
-      />
-      <CardContent className="relative z-30 flex h-full flex-col p-[2vw]">{children}</CardContent>
-    </Card>
-  )
-}
-
-function GlassTitle({ icon: Icon, children, right }: {
-  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
-  children: React.ReactNode
-  right?: React.ReactNode
-}) {
-  return (
-    <div className="mb-[1.6vw] flex items-center gap-[0.6vw]">
-      <Icon className="h-[1.05vw] w-[1.05vw]" style={{ color: LIME }} />
-      <span className="text-[1.05vw] font-semibold leading-none tracking-tight text-white">{children}</span>
-      <div className="ml-auto">{right}</div>
-    </div>
-  )
-}
-
-/** Caption above, number below — the reference's stat block. */
-function Stat({ caption, value, unit, tone = 'plain', size = 'md' }: {
-  caption: string
-  value: React.ReactNode
-  unit?: string
-  tone?: 'plain' | 'accent' | 'warn'
-  size?: 'md' | 'xl'
-}) {
-  const ink = tone === 'warn' ? 'text-[#FF8A7A]' : 'text-white'
-  // A count that lands on its number is the difference between a screen that is alive and a
-  // screen somebody printed. Only real numbers count; anything else is shown as it is.
-  const numeric = typeof value === 'number' ? value : null
-  const eased = useEased(numeric ?? 0)
-  const shown = numeric == null ? value : Math.round(eased)
-  return (
-    <div className="flex flex-1 flex-col justify-center rounded-[1.1vw] bg-white/[0.055] px-[1.3vw] py-[1.25vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
-      <span className={`${size === 'xl' ? 'text-[0.95vw]' : 'text-[0.72vw]'} font-medium leading-none text-white/60`}>{caption}</span>
-      <div className="mt-[0.6vw] flex items-baseline gap-[0.3vw]">
-        <span className={`${size === 'xl' ? 'text-[4.4vw]' : 'text-[2.3vw]'} font-semibold leading-none tracking-tight tabular-nums ${ink}`}
-              style={tone === 'accent' ? { color: LIME } : undefined}>{shown}</span>
-        {unit && <span className="text-[0.8vw] text-white/55">{unit}</span>}
-      </div>
-    </div>
-  )
-}
-
-/** The brand, as row identity — a logo where we have one, initials where we do not. */
-function BrandMark({ src, name, size = '2.7vw' }: { src?: string | null; name?: string | null; size?: string }) {
-  return (
-    <Avatar className="shrink-0 rounded-[0.7vw] border border-white/[0.12] bg-white/[0.07]" style={{ height: size, width: size }}>
-      {src ? <AvatarImage src={src} alt={name ?? ''} className="object-contain p-[0.18vw]" /> : null}
-      <AvatarFallback className="rounded-[0.7vw] bg-white/[0.07] text-[0.75vw] font-semibold text-white/80">
-        {String(name ?? '?').replace(/[^A-Za-z ]/g, '').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'}
-      </AvatarFallback>
-    </Avatar>
-  )
-}
-
-/** Completion, as shadcn's radial chart: a rounded bar sweeping its own full-circle track,
- *  with the reading in the hole. */
-function Ring({ pct, caption }: { pct: number | null; caption: string }) {
-  const value = useEased(Math.max(0, Math.min(100, pct ?? 0)))
-  const data = [{ name: 'v', v: value }]
-  const label = pct == null ? '—' : `${Math.round(value)}%`
-  // The hole is 79 units wide in the chart's 100-unit box. The widest line that fits inside
-  // a circle is its inscribed square, and 42 of those units leaves air on both sides of the
-  // longest reading we can show.
-  const fontSize = Math.min(28, 42 / (0.6 * Math.max(2, label.length)))
-  return (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[0.9vw]">
-      <div className="relative aspect-square h-[13vw] max-h-full">
-        <ChartContainer
-          config={ringConfig}
-          className="h-full w-full [&_.recharts-radial-bar-background-sector]:fill-white/10"
-        >
-          <RadialBarChart data={data} innerRadius="79%" outerRadius="100%" startAngle={90} endAngle={-270}>
-            {/* The value axis is what makes this a gauge rather than a bar: the track is the
-                whole circle and the bar is the share of it that is done. */}
-            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
-            <RadialBar
-              dataKey="v"
-              cornerRadius={999}
-              fill={LIME}
-              background={{ fill: 'rgba(255,255,255,0.10)' }}
-              isAnimationActive={false}
-            />
-          </RadialBarChart>
-        </ChartContainer>
-        {/* The reading is drawn in the chart's own coordinates, and its size is derived from
-            how many characters it has against the width of the hole. A CSS size cannot do
-            this: "100%" is a third wider than "35%", so a size that clears the arc for one
-            touches it for the other. */}
-        <svg viewBox="0 0 100 100" className="pointer-events-none absolute inset-0 h-full w-full">
-          <text
-            x="50" y="50" textAnchor="middle" dominantBaseline="central"
-            fill="#fff" fontSize={fontSize} fontWeight={600} letterSpacing="-0.5"
-            style={{ fontVariantNumeric: 'tabular-nums' }}
-          >
-            {label}
-          </text>
-        </svg>
-      </div>
-      <span className="whitespace-nowrap text-center text-[0.85vw] text-white/65">{caption}</span>
-    </div>
-  )
-}
-
-/** The stand-in for a ring on work that has not started: the stage it is actually stuck at,
- *  as one number the room can read. */
-function BigWait({ value, caption }: { value: number; caption: string }) {
-  const eased = useEased(value)
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center">
-      <span className="text-[6vw] font-semibold leading-none tracking-tight tabular-nums" style={{ color: LIME }}>
-        {Math.round(eased)}
-      </span>
-      <span className="mt-[0.9vw] max-w-[13vw] text-center text-[0.95vw] leading-snug text-white/70">{caption}</span>
-    </div>
-  )
-}
-
-/** Where one campaign's content has got to: verified, being checked, still owed. */
-function WorkBar({ done, checking, owed }: { done: number; checking: number; owed: number }) {
-  const total = Math.max(1, done + checking + owed)
-  const grown = useEased(1)
-  const seg = (n: number, cls: string, style?: React.CSSProperties) =>
-    n > 0 ? <div className={cls} style={{ width: `${(n / total) * 100 * grown}%`, ...style }} /> : null
-  return (
-    <div className="flex h-[0.5vw] w-full overflow-hidden rounded-full bg-white/[0.10]">
-      {seg(done, '', { background: LIME })}
-      {seg(checking, 'bg-[#F5C451]')}
-      {seg(owed, 'bg-white/22')}
-    </div>
-  )
-}
-
-/** shadcn's Progress, filling rather than appearing. */
-function EasedProgress({ value, className }: { value: number; className?: string }) {
-  return <Progress value={useEased(value)} className={className} />
-}
-
-/** Dot legend with the count under each label, the way the reference labels its bars. */
-function Legend({ items }: { items: { dot: string; label: string; value: React.ReactNode }[] }) {
-  return (
-    <div className="flex items-center gap-[1.4vw]">
-      {items.map(i => (
-        <div key={i.label}>
-          <span className="flex items-center gap-[0.35vw] text-[0.68vw] text-white/60">
-            <span className={`h-[0.42vw] w-[0.42vw] rounded-full ${i.dot}`}
-                style={i.dot ? undefined : { background: LIME }} />{i.label}
-          </span>
-          <div className="mt-[0.2vw] pl-[0.77vw] text-[0.95vw] font-semibold leading-none tabular-nums text-white">{i.value}</div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function Pill({ children, tone = 'accent' }: { children: React.ReactNode; tone?: 'accent' | 'warn' | 'quiet' }) {
-  const skin = tone === 'warn' ? 'bg-[#FF6B57] text-white'
-    : tone === 'quiet' ? 'border border-white/[0.14] bg-white/[0.08] text-white/80'
-      : 'text-black'
-  return (
-    <Badge
-      className={`rounded-full border-0 px-[0.85vw] py-[0.32vw] text-[0.72vw] font-semibold leading-none ${skin}`}
-      style={tone === 'accent' ? { background: LIME } : undefined}
-    >
-      {children}
-    </Badge>
-  )
-}
-
-/** The headline sits on the photograph, not in a card — straight from the reference. */
-function Headline({ eyebrow, title, meta }: { eyebrow: React.ReactNode; title: string; meta?: string }) {
-  return (
-    <div className="pb-[0.4vw]">
-      <div className="flex items-center gap-[0.5vw]">{eyebrow}</div>
-      <h1 className="mt-[0.7vw] text-[3.1vw] font-semibold leading-[1.02] tracking-[-0.02em] text-white">{title}</h1>
-      {meta && <div className="mt-[0.55vw] text-[0.85vw] text-white/65">{meta}</div>}
-    </div>
-  )
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-1 items-center justify-center text-[1vw] text-white/55">{children}</div>
-}
-
-/* ── slides ────────────────────────────────────────────────────────────────────────── */
-
-/**
- * App campaigns. Barter and paid share a shape — people apply, the brand decides, content
- * comes in, we verify it — but they are separate slides because they stall in different
- * places and different people chase them.
- */
-function AppSlide({ slide, paid }: { slide: Slide; paid: boolean }) {
-  const t = slide.totals ?? {}
-  const rows = slide.rows ?? []
-  const measurable = (t.total_work ?? 0) > 0
-  return (
-    <div className="grid h-full grid-cols-12 gap-[1.6vw]">
-      <div className="col-span-4 flex min-h-0 flex-col gap-[1.6vw]">
-        <Headline
-          eyebrow={<><Pill>Live now</Pill><Pill tone="quiet">{paid ? 'Paid' : 'Barter'}</Pill></>}
-          title="Mobile app"
-          meta={`${rows.length} campaign${rows.length === 1 ? '' : 's'} running · ${t.creators_active ?? 0} creators working on them`}
-        />
-        <div className="min-h-0 flex-1">
-          <Glass>
-            <GlassTitle icon={Gauge}>{measurable ? 'Content verified' : 'Waiting to start'}</GlassTitle>
-            {measurable
-              ? <Ring pct={t.pct ?? null} caption={`${t.verified ?? 0} of ${t.total_work ?? 0} deliverables`} />
-              : <BigWait value={t.awaiting_brand ?? 0} caption="creators waiting on the brand before any content is owed" />}
-          </Glass>
-        </div>
-        <Glass className="!h-auto">
-            <div className="grid grid-cols-2 gap-[1vw]">
-              <Stat caption="Brand to decide" value={t.awaiting_brand ?? 0} tone={t.awaiting_brand ? 'accent' : 'plain'} />
-              <Stat caption="Applications" value={t.applications_pending ?? 0} />
-              <Stat caption="Content to check" value={t.to_check ?? 0} />
-              <Stat caption="Missed" value={t.missed ?? 0} tone={t.missed ? 'warn' : 'plain'} />
-            </div>
-        </Glass>
-      </div>
-
-      <div className="col-span-8 min-h-0">
-        <Glass>
-          <GlassTitle
-            icon={Sparkles}
-            right={<Legend items={[
-              { dot: '', label: 'Verified', value: t.verified ?? 0 },
-              { dot: 'bg-[#F5C451]', label: 'To check', value: t.to_check ?? 0 },
-              { dot: 'bg-white/25', label: 'Owed', value: t.pending ?? 0 },
-            ]} />}
-          >
-            {paid ? 'Paid campaigns' : 'Barter campaigns'}
-          </GlassTitle>
-          <div className="flex min-h-0 flex-1 flex-col content-start gap-[1vw] overflow-hidden">
-            {rows.map((c: any) => (
-              <div key={c.id} className="flex min-h-0 max-h-[11vw] flex-1 flex-col justify-center rounded-[1.2vw] bg-white/[0.05] px-[1.4vw] py-[1.25vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
-                <div className="flex items-center gap-[0.9vw]">
-                  <BrandMark src={c.brand_logo_url} name={c.brand_name} />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[1.2vw] font-semibold leading-tight tracking-tight text-white">{c.name}</div>
-                    <div className="truncate text-[0.78vw] text-white/60">{c.brand_name}</div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-[0.6vw]">
-                    {c.awaiting_brand > 0 && <Pill>{c.awaiting_brand} for brand</Pill>}
-                    {c.missed > 0 && <Pill tone="warn">{c.missed} missed</Pill>}
-                    <span className="w-[4vw] text-right text-[1.8vw] font-semibold leading-none tabular-nums text-white">
-                      {c.pct == null ? '—' : `${c.pct}%`}
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-[0.75vw] flex items-center gap-[1vw]">
-                  <WorkBar done={c.verified} checking={c.to_check} owed={c.pending} />
-                  <span className="shrink-0 text-[0.78vw] tabular-nums text-white/60">
-                    {c.verified}/{c.total_work} done · {c.creators_active} creators
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Glass>
-      </div>
-    </div>
-  )
-}
-
-/** Managed campaigns. Booked from proposals, so completion is people booked and posts live —
- *  counting verified deliverables here would read 0% forever. */
-function ManagedSlide({ slide }: { slide: Slide }) {
-  const t = slide.totals ?? {}
-  const rows = slide.rows ?? []
-  return (
-    <div className="grid h-full grid-cols-12 gap-[1.6vw]">
-      <div className="col-span-4 flex min-h-0 flex-col gap-[1.6vw]">
-        <Headline
-          eyebrow={<><Pill>Live now</Pill><Pill tone="quiet">Proposals</Pill></>}
-          title="Managed"
-          meta={`${rows.length} campaign${rows.length === 1 ? '' : 's'} we run for clients`}
-        />
-        <div className="min-h-0 flex-1">
-          <Glass>
-            <GlassTitle icon={Users}>Roster booked</GlassTitle>
-            <Ring pct={t.pct ?? null} caption={`${t.booked_against_target ?? 0} of ${t.target ?? 0} against target`} />
-          </Glass>
-        </div>
-        <Glass className="!h-auto">
-          <div className="grid grid-cols-2 gap-[1vw]">
-            <Stat caption="Creators booked" value={t.booked ?? 0} tone="accent" />
-            <Stat caption="Posts live" value={t.posts ?? 0} />
-          </div>
-        </Glass>
-      </div>
-      <div className="col-span-8 min-h-0">
-        <Glass>
-          <GlassTitle icon={CheckCircle2}>Campaigns</GlassTitle>
-          <div className="flex min-h-0 flex-1 flex-col content-start gap-[1vw] overflow-hidden">
-            {rows.map((c: any) => (
-              <div key={c.id} className="flex min-h-0 max-h-[11vw] flex-1 flex-col justify-center rounded-[1.2vw] bg-white/[0.05] px-[1.4vw] py-[1.25vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
-                <div className="flex items-center gap-[0.9vw]">
-                  <BrandMark src={c.brand_logo_url} name={c.brand_name} />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[1.2vw] font-semibold leading-tight tracking-tight text-white">{c.name}</div>
-                    <div className="truncate text-[0.78vw] text-white/60">{c.brand_name}</div>
-                  </div>
-                  <span className="shrink-0 text-[0.85vw] tabular-nums text-white/70">
-                    {c.booked}{c.target ? ` / ${c.target}` : ''} creators
-                  </span>
-                  <span className="w-[6.5vw] shrink-0 text-right text-[0.85vw] tabular-nums text-white/70">
-                    {c.posts} posts live
-                  </span>
-                </div>
-                {c.pct == null ? (
-                  <div className="mt-[0.8vw] text-[0.78vw] text-white/50">No roster target set</div>
-                ) : (
-                  <EasedProgress
-                    value={c.pct}
-                    className="mt-[0.8vw] h-[0.5vw] bg-white/[0.10] [&>div]:bg-[#D3FF02]"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </Glass>
-      </div>
-    </div>
-  )
-}
-
-/** UGC. No creators and no deadlines — concepts become videos, so the slide is that funnel. */
-function UgcSlide({ slide }: { slide: Slide }) {
-  const t = slide.totals ?? {}
-  const funnel = [
-    { stage: 'Proposed', v: t.proposed ?? 0 },
-    { stage: 'Approved', v: t.approved ?? 0 },
-    { stage: 'In production', v: t.in_production ?? 0 },
-    { stage: 'Delivered', v: t.delivered ?? 0 },
-  ]
-  const grown = useEased(1)
-  return (
-    <div className="grid h-full grid-cols-12 gap-[1.6vw]">
-      <div className="col-span-4 flex min-h-0 flex-col gap-[1.6vw]">
-        <Headline
-          eyebrow={<><Pill>Live now</Pill><Pill tone="quiet">Studio</Pill></>}
-          title="UGC"
-          meta="Concepts we write, shoot and hand over"
-        />
-        <div className="min-h-0 flex-1">
-          <Glass>
-            <GlassTitle icon={Film}>Approved work delivered</GlassTitle>
-            <Ring pct={t.pct ?? null} caption={`${t.delivered ?? 0} of ${t.approved ?? 0} approved concepts`} />
-          </Glass>
-        </div>
-        <Glass className="!h-auto">
-          <div className="grid grid-cols-2 gap-[1vw]">
-            <Stat caption="In production" value={t.in_production ?? 0} tone="accent" />
-            <Stat caption="Videos delivered" value={t.delivered ?? 0} />
-          </div>
-        </Glass>
-      </div>
-      <div className="col-span-8 min-h-0">
-        <Glass>
-          <GlassTitle icon={Clapperboard}>Concept through to video</GlassTitle>
-          <div className="flex min-h-0 flex-1 flex-col justify-center gap-[1.6vw] py-[0.5vw]">
-            {funnel.map((f, i) => {
-              const top = Math.max(1, funnel[0].v)
-              const last = i === funnel.length - 1
-              return (
-                <div key={f.stage} className="flex min-h-0 max-h-[3.4vw] flex-1 items-center gap-[1.1vw]">
-                  <span className="w-[9vw] shrink-0 text-[0.95vw] text-white/70">{f.stage}</span>
-                  <div className="h-[2.6vw] flex-1 overflow-hidden rounded-full bg-white/[0.07]">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.max(2, (f.v / top) * 100) * grown}%`,
-                        background: last ? LIME : `rgba(255,255,255,${0.14 + i * 0.06})`,
-                        transition: 'background 600ms ease',
-                      }}
-                    />
-                  </div>
-                  <span
-                    className="w-[4vw] shrink-0 text-right text-[1.6vw] font-semibold leading-none tabular-nums"
-                    style={last ? { color: LIME } : { color: '#fff' }}
-                  >{f.v}</span>
-                </div>
-              )
-            })}
-          </div>
-        </Glass>
-      </div>
-    </div>
-  )
-}
-
-/** Everything sitting on us right now, across every campaign type — the one slide that is a
- *  to-do list rather than a status. */
-function WaitingSlide({ slide }: { slide: Slide }) {
-  const t = slide.totals ?? {}
-  const rows = slide.rows ?? []
-  return (
-    <div className="grid h-full grid-cols-12 gap-[1.6vw]">
-      <div className="col-span-6 flex min-h-0 flex-col gap-[1.6vw]">
-        <Headline
-          eyebrow={<><Pill>Right now</Pill><Pill tone="quiet">Everyone</Pill></>}
-          title="Waiting on us"
-          meta="Nothing here moves until somebody in this room touches it"
-        />
-        <div className="min-h-0 flex-1">
-          <Glass>
-            <GlassTitle icon={Inbox}>The queue</GlassTitle>
-            <div className="grid flex-1 grid-cols-3 gap-[1.1vw]">
-              <Stat size="xl" caption="Applications to review" value={t.applications ?? 0} tone={t.applications ? 'accent' : 'plain'} />
-              <Stat size="xl" caption="Waiting on the brand" value={t.brand_approvals ?? 0} />
-              <Stat size="xl" caption="Content to check" value={t.content_to_check ?? 0} />
-              <Stat size="xl" caption="Due today" value={t.due_today ?? 0} />
-              <Stat size="xl" caption="Due tomorrow" value={t.due_tomorrow ?? 0} />
-              <Stat size="xl" caption="Missed" value={t.missed ?? 0} tone={t.missed ? 'warn' : 'plain'} />
-            </div>
-          </Glass>
-        </div>
-      </div>
-      <div className="col-span-6 min-h-0">
-        <Glass>
-          <GlassTitle
-            icon={CalendarClock}
-            right={<span className="text-[1.3vw] font-semibold leading-none tabular-nums text-white">{rows.length}</span>}
-          >
-            Due today and tomorrow
-          </GlassTitle>
-          {rows.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-[0.7vw]">
-              <CheckCircle2 className="h-[3vw] w-[3vw]" style={{ color: LIME }} />
-              <span className="text-[2.2vw] font-semibold leading-none tracking-tight text-white">All clear</span>
-              <span className="text-[0.9vw] text-white/60">Nothing due today or tomorrow</span>
-            </div>
-          ) : (
-            <div className="flex min-h-0 flex-1 flex-col gap-[0.9vw] overflow-hidden">
-              {rows.map((d: any) => (
-                <div key={d.id} className="flex min-h-0 max-h-[8vw] flex-1 items-center gap-[0.85vw] rounded-[1.1vw] bg-white/[0.05] px-[1.2vw] py-[1vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
-                  <BrandMark src={d.brand_logo_url} name={d.campaign_name} size="2.2vw" />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[1.02vw] font-semibold leading-tight text-white">
-                      {d.creator ? `@${d.creator}` : 'Unassigned'}
-                    </div>
-                    <div className="truncate text-[0.75vw] text-white/60">
-                      {d.campaign_name ?? '—'}{d.deliverable_type ? ` · ${d.deliverable_type}` : ''}
-                    </div>
-                  </div>
-                  {d.missed
-                    ? <Pill tone="warn">Missed</Pill>
-                    : dayLabel(d.due_at) === 'Today'
-                      ? <Pill>Today</Pill>
-                      : <Pill tone="quiet">{dayLabel(d.due_at)}</Pill>}
-                </div>
-              ))}
-            </div>
-          )}
-        </Glass>
-      </div>
-    </div>
-  )
-}
-
-function SourcingSlide({ slide }: { slide: Slide }) {
-  const rows = slide.rows ?? []
-  return (
-    <div className="grid h-full grid-cols-12 gap-[1.6vw]">
-      <div className="col-span-4 flex min-h-0 flex-col justify-start gap-[1.2vw]">
-        <Headline
-          eyebrow={<><Pill>Right now</Pill><Pill tone="quiet">Talent</Pill></>}
-          title="Sourcing"
-          meta={`${rows.length} area${rows.length === 1 ? '' : 's'} open`}
-        />
-      </div>
-      <div className="col-span-8 min-h-0">
-        <Glass>
-          <GlassTitle icon={Search}>Areas open</GlassTitle>
-          {rows.length === 0 ? <Empty>No areas open</Empty> : (
-            <div className="grid flex-1 grid-cols-2 content-start gap-[1.1vw]">
-              {rows.map((r: any) => {
-                const pct = r.target > 0 ? Math.min(100, Math.round((r.found / r.target) * 100)) : null
-                return (
-                  <div key={r.id} className="flex min-h-0 max-h-[11vw] flex-1 flex-col justify-center rounded-[1.2vw] bg-white/[0.05] px-[1.4vw] py-[1.25vw] shadow-[inset_1px_1px_1px_0_rgba(255,255,255,0.16),inset_-1px_-1px_1px_0_rgba(255,255,255,0.10)]">
-                    <div className="flex items-baseline gap-[0.6vw]">
-                      <span className="truncate text-[1.15vw] font-semibold leading-tight tracking-tight text-white">{r.title}</span>
-                      <span className="ml-auto shrink-0 text-[0.9vw] tabular-nums text-white/70">
-                        {r.found}/{r.target || '—'}
-                      </span>
-                    </div>
-                    <div className="mt-[0.4vw] truncate text-[0.76vw] text-white/60">
-                      {r.client_name ?? '—'}{(r.round_no ?? 1) > 1 ? ` · Round ${r.round_no}` : ''}
-                    </div>
-                    <EasedProgress value={pct ?? 0} className="mt-[0.8vw] h-[0.45vw] bg-white/[0.10] [&>div]:bg-[#D3FF02]" />
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </Glass>
-      </div>
-    </div>
-  )
-}
-
-function renderSlide(s: Slide) {
-  switch (s.key) {
-    case 'app_barter': return <AppSlide slide={s} paid={false} />
-    case 'app_paid': return <AppSlide slide={s} paid />
-    case 'managed': return <ManagedSlide slide={s} />
-    case 'ugc': return <UgcSlide slide={s} />
-    case 'waiting': return <WaitingSlide slide={s} />
-    case 'sourcing': return <SourcingSlide slide={s} />
-    default: return null
-  }
-}
-
-const KNOWN = new Set(['app_barter', 'app_paid', 'managed', 'ugc', 'waiting', 'sourcing'])
-
-/* ── the wall ──────────────────────────────────────────────────────────────────────── */
+/** Some screens need longer: Live to be read, Campaigns to turn through three. */
+const SLIDE_MS_BY_KEY: Record<string, number> = { live: 30_000, spotlight: 45_000 }
+const STAGE_MS = 9_000
 
 export default function WallPage() {
   const { token } = useParams<{ token: string }>()
+  // Read from the URL by hand: useSearchParams would need a Suspense boundary at build time.
+  const [preview, setPreview] = useState<string | null>(null)
+  const [previewed, setPreviewed] = useState<Moment | null>(null)
+  useEffect(() => { setPreview(new URLSearchParams(window.location.search).get('preview')) }, [])
   const [data, setData] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [stale, setStale] = useState(false)
   const [clock, setClock] = useState('')
   const [today, setToday] = useState('')
   const [index, setIndex] = useState(0)
+  const [moments, setMoments] = useState<Moment[]>([])
+  const [stage, setStage] = useState<Moment | null>(null)
+  const seen = useRef<Set<string> | null>(null)
+  const fresh = useRef<Map<string, number>>(new Map())
+  const queue = useRef<Moment[]>([])
+  const previewOnce = useRef(false)
+  const logosRef = useRef<Record<string, string>>({})
+  const [logosReady, setLogosReady] = useState(false)
+
+  // A preview (?preview=signed and the like, from the buttons on /work/tv) is one made-up
+  // moment played once, two seconds after the wall is up, as if it had just landed. It is
+  // never written anywhere.
+  useEffect(() => {
+    if (!preview || !logosReady || previewOnce.current) return
+    previewOnce.current = true
+    const pm = previewMoment(preview, logosRef.current)
+    if (!pm) return
+    const t = setTimeout(() => {
+      setPreviewed(pm)
+      fresh.current.set(pm.id, Date.now())
+      seen.current?.add(pm.id)
+      if (pm.tier === 'celebrate' || pm.tier === 'stage') queue.current.push(pm)
+      setMoments(ms => ms.some(x => x.id === pm.id) ? ms : [pm, ...ms])
+    }, 1800)
+    return () => clearTimeout(t)
+  }, [preview, logosReady])
+  const base = API_CONFIG.BASE_URL
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`${API_CONFIG.BASE_URL}/api/v1/display/${token}`)
+      const res = await fetch(`${base}/api/v1/display/${token}`)
       if (!res.ok) {
-        // 404/410 are terminal: the screen is unknown or switched off, and no amount of
-        // waiting will fix it. Anything else is treated as a blip.
-        if (res.status === 404 || res.status === 410) {
-          setError(res.status === 404 ? 'Unknown screen' : 'This screen was switched off')
-        } else setStale(true)
+        if (res.status === 404 || res.status === 410) setError(res.status === 404 ? 'Unknown screen' : 'This screen was switched off')
+        else setStale(true)
         return
       }
       setData((await res.json()).data)
       setError(null)
       setStale(false)
-    } catch {
-      setStale(true)
-    }
-  }, [token])
+    } catch { setStale(true) }
+  }, [base, token])
 
-  useEffect(() => { load() }, [load])
+  const loadPulse = useCallback(async () => {
+    try {
+      const res = await fetch(`${base}/api/v1/display/${token}/pulse`)
+      if (!res.ok) return
+      const d = (await res.json()).data
+      const logos: Record<string, string> = d.logos ?? {}
+      logosRef.current = logos
+      setLogosReady(true)
+      const ordered: Moment[] = ((d.events ?? []) as Event[]).filter(e => !OFF_TV.has(e.kind)).map(e => toMoment(e as any, logos))
+        .sort((a, b) => (a.at < b.at ? 1 : -1))
+      if (seen.current == null) seen.current = new Set(ordered.map(m => m.id))
+      else for (const m of ordered) if (!seen.current.has(m.id)) {
+        seen.current.add(m.id)
+        fresh.current.set(m.id, Date.now())
+        // Only the big moments take the stage; the rest land in the feed.
+        if (m.tier === 'celebrate' || m.tier === 'stage') queue.current.push(m)
+      }
+      setMoments(previewed && !ordered.some(m => m.id === previewed.id) ? [previewed, ...ordered] : ordered)
+    } catch { /* the last feed stays up */ }
+  }, [base, token, previewed])
 
-  // The server decides how often the screen comes back, so a wall can be slowed down
-  // without a deploy.
+  useEffect(() => { load(); loadPulse() }, [load, loadPulse])
   useEffect(() => {
     const ms = data?.refresh_seconds ? data.refresh_seconds * 1000 : FALLBACK_REFRESH_MS
     const t = setInterval(load, ms)
     return () => clearInterval(t)
   }, [load, data?.refresh_seconds])
+  useEffect(() => { const t = setInterval(loadPulse, PULSE_MS); return () => clearInterval(t) }, [loadPulse])
+  useEffect(() => { if (!stage) { const next = queue.current.shift(); if (next) setStage(next) } }, [stage, moments])
+  useEffect(() => { if (!stage) return; const t = setTimeout(() => setStage(null), STAGE_MS); return () => clearTimeout(t) }, [stage])
 
   useEffect(() => {
     const tick = () => {
       const now = new Date()
       setClock(now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }))
-      setToday(now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }))
+      setToday(now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }))
     }
     tick()
     const t = setInterval(tick, 20_000)
     return () => clearInterval(t)
   }, [])
 
-  const slides: Slide[] = useMemo(
-    () => (data?.slides ?? []).filter((s: Slide) => KNOWN.has(s.key)),
-    [data],
-  )
+  const slides: Slide[] = data?.slides ?? []
+  const by = (k: string) => slides.find(s => s.key === k)
+  const clients = by('clients')?.rows ?? []
+  const journeys = useMemo(() => (by('journey')?.rows ?? []).filter((r: any) => r.health !== 'done'), [data])
+  const creators = clients.reduce((n: number, r: any) => n + (r.creators ?? 0), 0)
 
-  // Rotation is modulo the live count, so a deck that shrinks between refreshes keeps
-  // turning instead of parking on an index that no longer exists.
+  const deck = useMemo(() => {
+    const out: { key: string; node: React.ReactNode }[] = []
+    out.push({ key: 'live', node: <Feed moments={moments} fresh={fresh.current} logos={logosRef.current} /> })
+    if (journeys.length) out.push({ key: 'spotlight', node: <Spotlight rows={journeys} /> })
+    if (by('ball')) out.push({ key: 'ball', node: <BallScreen ball={by('ball')} /> })
+    if (clients.length) out.push({ key: 'clients', node: <ClientsScreen rows={clients} /> })
+    if (by('stuck')) out.push({ key: 'attention', node: <AttentionScreen stuck={by('stuck')} /> })
+    if (by('week')) out.push({ key: 'week', node: <WeekScreen week={by('week')} creators={creators} /> })
+    return out
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, moments])
+
+  const currentKey = deck.length ? deck[index % deck.length].key : ''
+  const currentMs = SLIDE_MS_BY_KEY[currentKey] ?? SLIDE_MS
   useEffect(() => {
-    if (slides.length < 2) return
-    const t = setInterval(() => setIndex(i => (i + 1) % slides.length), SLIDE_MS)
-    return () => clearInterval(t)
-  }, [slides.length])
+    if (deck.length < 2) return
+    const t = setTimeout(() => setIndex(i => (i + 1) % deck.length), currentMs)
+    return () => clearTimeout(t)
+  }, [deck.length, index, currentMs])
 
   if (error) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#070A09] text-white/70">
-        <span className="text-[1.4vw] tracking-tight">{error}</span>
-      </div>
-    )
+    return <div className="flex h-screen w-screen items-center justify-center bg-[#F6F6F2]" style={{ color: MUTED }}><span className="text-[22px] tracking-tight">{error}</span></div>
   }
-
-  const current = slides.length ? slides[index % slides.length] : null
+  const current = deck.length ? deck[index % deck.length] : null
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-[#070A09] text-white">
-      <GlassFilter />
-      {/* The ground: our own loop, the one on the sign-in screen. It sits under a fallback
-          gradient so a browser that will not decode the file still lands on brand colour
-          rather than black. */}
-      <div
-        className="absolute inset-0"
-        style={{ background: 'radial-gradient(80% 60% at 15% 0%, rgba(150,190,45,0.40) 0%, rgba(7,10,9,0) 60%), radial-gradient(70% 70% at 90% 100%, rgba(60,120,85,0.38) 0%, rgba(7,10,9,0) 55%), #070A09' }}
-      />
-      <video
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-        src="/abstract-green-gradient-glass-background-following-influencers-platform.mp4"
-        autoPlay muted loop playsInline
-      />
-      {/* Dark on the left, where the headline sits on the picture; open on the right, where
-          the panels carry their own ground. */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ background: 'linear-gradient(100deg, rgba(4,8,6,0.92) 0%, rgba(4,8,6,0.72) 38%, rgba(4,8,6,0.30) 100%)' }}
-      />
+    <div className="relative h-screen w-screen overflow-hidden bg-[#F6F6F2]" style={{ color: INK, fontFeatureSettings: '"ss01", "cv11"' }}>
+      <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(70% 60% at 0% 0%, rgba(211,255,2,0.35) 0%, rgba(246,246,242,0) 60%), radial-gradient(60% 50% at 100% 100%, rgba(170,230,200,0.35) 0%, rgba(246,246,242,0) 60%)' }} />
+      <DotPattern width={22} height={22} cr={1.1} className="pointer-events-none absolute inset-0 fill-[#15181A]/[0.07] [mask-image:radial-gradient(60%_50%_at_100%_0%,#000,transparent)]" />
 
-      <div className="relative flex h-full flex-col gap-[1.6vw] p-[2.2vw]">
-        <header className="flex items-center gap-[1vw]">
+      <div className="relative flex h-full flex-col gap-4 px-10 pb-8 pt-6">
+        <header className="flex h-12 items-center gap-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/Following Logo Dark Mode.svg" alt="Following" className="h-[1.5vw] w-auto" />
-
-          <div className="ml-auto flex items-center gap-[1.1vw]">
-            {/* Where we are in the deck — slow, quiet, the only moving chrome. */}
-            <div className="flex items-center gap-[0.4vw]">
-              {slides.map((s, i) => (
-                <span
-                  key={s.key}
-                  className={`h-[0.38vw] rounded-full transition-all duration-700 ${
-                    i === index % Math.max(1, slides.length) ? 'w-[2.2vw] bg-[#D3FF02]' : 'w-[0.38vw] bg-white/25'
-                  }`}
-                />
-              ))}
-            </div>
-            <Badge className="gap-[0.45vw] rounded-full border border-white/[0.14] bg-white/[0.08] px-[0.9vw] py-[0.35vw] text-[0.72vw] font-medium text-white/85">
-              {stale
-                ? <><AlertTriangle className="h-[0.75vw] w-[0.75vw] text-[#F5C451]" />Reconnecting</>
-                : <><span className="h-[0.45vw] w-[0.45vw] rounded-full" style={{ background: LIME }} />Live</>}
-            </Badge>
-            <span className="flex items-center gap-[0.45vw] text-[0.82vw] text-white/65">
-              <Clock className="h-[0.85vw] w-[0.85vw]" />
-              {today}
+          <img src="/followinglogo.svg" alt="Following" className="h-6 w-auto" />
+          <div className="flex items-center gap-1.5">
+            {deck.map((s, i) => {
+              const active = i === index % Math.max(1, deck.length)
+              return (
+                <span key={s.key} className="relative h-1.5 overflow-hidden rounded-full transition-all duration-700" style={{ width: active ? 44 : 6, background: 'rgba(21,24,26,0.14)' }}>
+                  {active && <motion.span key={`${s.key}-${index}`} className="absolute inset-y-0 left-0 rounded-full" style={{ background: INK }} initial={{ width: '0%' }} animate={{ width: '100%' }} transition={{ duration: deck.length > 1 ? currentMs / 1000 : 0, ease: 'linear' }} />}
+                </span>
+              )
+            })}
+          </div>
+          <ClientsStrip rows={clients} />
+          <div className="ml-auto flex items-center gap-4">
+            <span className="flex items-center gap-2 text-[14px]" style={{ color: MUTED }}>
+              <motion.span className="h-2.5 w-2.5 rounded-full" style={{ background: stale ? '#F5C451' : LIME, boxShadow: '0 0 0 2px rgba(21,24,26,0.15)' }} animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 2.4, repeat: Infinity }} />
+              {stale ? 'reconnecting' : 'live'}
             </span>
-            <span className="text-[1.4vw] font-semibold tabular-nums tracking-tight text-white">{clock}</span>
+            {preview && <span className="rounded-full px-3 py-1 text-[13px] font-semibold uppercase tracking-[0.12em]" style={{ background: INK, color: '#fff' }}>preview</span>}
+            <span className="text-[16px]" style={{ color: MUTED }}>{today}</span>
+            <span className="text-[26px] font-semibold leading-none tabular-nums tracking-[-0.03em]" style={{ color: INK }}>{clock}</span>
           </div>
         </header>
 
-        {/* One slide at a time. The key restarts the crossfade on every change. */}
-        <main className="min-h-0 flex-1">
-          {current ? (
-            <div key={current.key} className="h-full animate-in fade-in duration-[1200ms]">
-              {renderSlide(current)}
-            </div>
-          ) : (
-            <Glass><Empty>{data ? 'Nothing running right now' : 'Loading'}</Empty></Glass>
-          )}
+        <main className="relative min-h-0 flex-1">
+          <AnimatePresence mode="wait">
+            {current && (
+              <motion.div key={current.key} className="h-full" initial={{ opacity: 0, y: 16, filter: 'blur(10px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} exit={{ opacity: 0, scale: 0.985, filter: 'blur(8px)' }} transition={{ duration: 0.8, ease: [0.2, 0.8, 0.2, 1] }}>
+                {current.node}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
       </div>
+
+      <Stage m={stage} />
     </div>
   )
 }
