@@ -137,8 +137,11 @@ export default function OfficeWallPage() {
                         <Tv className="mr-1.5 h-4 w-4" />{playing === `${t.id}:${p.key}` ? "Playing" : tvs.filter(x => x.paired).length > 1 ? (t.name || "TV") : "Play on TV"}
                       </Button>
                     ))}
-                    <Button asChild variant="outline" size="sm" disabled={!first}>
-                      <a href={first ? `${first.path}?preview=${p.key}` : "#"} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
+                    <Button asChild variant="outline" size="sm" disabled={!first} title="Open on the wall, in a tab">
+                      <a href={first ? `${first.path}?preview=${p.key}` : "#"} target="_blank" rel="noreferrer">v1</a>
+                    </Button>
+                    <Button asChild variant="outline" size="sm" disabled={!first} title="Open on the slides, in a tab">
+                      <a href={first ? `${first.path}/v2?preview=${p.key}` : "#"} target="_blank" rel="noreferrer">v2</a>
                     </Button>
                   </div>
                 </div>

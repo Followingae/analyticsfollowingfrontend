@@ -35,13 +35,24 @@ export default function WallV2Page() {
   const queue = useRef<Moment[]>([])
   const base = API_CONFIG.BASE_URL
   // A preview asked for from a phone (/work/tv, Play on TV): one made-up moment, played at once.
-  useTvFollow(`/tv/${token}/v2`, useCallback((key: string) => {
+  const play = useCallback((key: string) => {
     const pm = previewMoment(key, logos.current)
     if (!pm) return
     seen.current?.add(pm.id)
     if (pm.tier === 'celebrate' || pm.tier === 'stage') queue.current.push(pm)
     setMoments(ms => ms.some(x => x.id === pm.id) ? ms : [pm, ...ms])
-  }, []))
+  }, [])
+  useTvFollow(`/tv/${token}/v2`, play)
+  // ?preview=signed and the like (the tab button on /work/tv): one made-up moment, two seconds in.
+  const previewOnce = useRef(false)
+  useEffect(() => {
+    if (previewOnce.current || !moments.length) return
+    const key = new URLSearchParams(window.location.search).get('preview')
+    if (!key) return
+    previewOnce.current = true
+    const t = setTimeout(() => play(key), 1800)
+    return () => clearTimeout(t)
+  }, [moments.length, play])
 
   const load = useCallback(async () => {
     try { const r = await fetch(`${base}/api/v1/display/${token}`); if (r.ok) setData((await r.json()).data) } catch { /* keep */ }
