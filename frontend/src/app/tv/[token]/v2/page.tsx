@@ -11,6 +11,7 @@ import { Outfit } from 'next/font/google'
 import { AnimatePresence, motion } from 'motion/react'
 import { API_CONFIG } from '@/config/api'
 import { OFF_TV, toMoment, type Moment } from '@/components/wall/moments'
+import { previewMoment } from '@/components/wall/previews'
 import type { Event } from '@/components/wall/Pulse'
 import { Stage } from '@/components/wall/stage'
 import { useFullscreenOnPress, useTvFollow } from '@/components/wall/screen'
@@ -23,7 +24,6 @@ const STAGE_MS = 9_000
 
 export default function WallV2Page() {
   const { token } = useParams<{ token: string }>()
-  useTvFollow(`/tv/${token}/v2`)
   const full = useFullscreenOnPress()
   const [data, setData] = useState<any>(null)
   const [moments, setMoments] = useState<Moment[]>([])
@@ -34,6 +34,14 @@ export default function WallV2Page() {
   const seen = useRef<Set<string> | null>(null)
   const queue = useRef<Moment[]>([])
   const base = API_CONFIG.BASE_URL
+  // A preview asked for from a phone (/work/tv, Play on TV): one made-up moment, played at once.
+  useTvFollow(`/tv/${token}/v2`, useCallback((key: string) => {
+    const pm = previewMoment(key, logos.current)
+    if (!pm) return
+    seen.current?.add(pm.id)
+    if (pm.tier === 'celebrate' || pm.tier === 'stage') queue.current.push(pm)
+    setMoments(ms => ms.some(x => x.id === pm.id) ? ms : [pm, ...ms])
+  }, []))
 
   const load = useCallback(async () => {
     try { const r = await fetch(`${base}/api/v1/display/${token}`); if (r.ok) setData((await r.json()).data) } catch { /* keep */ }

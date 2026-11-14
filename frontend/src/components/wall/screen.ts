@@ -12,7 +12,7 @@
  * Full screen cannot be forced by a page: browsers need a press. So the first press of any
  * remote key (or a click) asks for it, and the hint on the wall says so for a few seconds.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { API_CONFIG } from '@/config/api'
 
 const KEY = 'following.tv'
@@ -27,7 +27,8 @@ export function writeTv(m: TvMemory | null) {
   try { m ? localStorage.setItem(KEY, JSON.stringify(m)) : localStorage.removeItem(KEY) } catch { /* private mode */ }
 }
 
-export async function tvState(m: TvMemory): Promise<{ paired: boolean; path?: string; code?: string; name?: string } | null> {
+export type TvPreview = { key: string; at: string }
+export async function tvState(m: TvMemory): Promise<{ paired: boolean; path?: string; code?: string; name?: string; preview?: TvPreview | null } | null> {
   try {
     const r = await fetch(`${API_CONFIG.BASE_URL}/api/v1/display/tv/${m.id}?key=${encodeURIComponent(m.key)}`, { cache: 'no-store' })
     if (r.status === 404) return { paired: false, code: undefined }
@@ -36,18 +37,29 @@ export async function tvState(m: TvMemory): Promise<{ paired: boolean; path?: st
   } catch { return null }
 }
 
-/** On a wall page: follow whatever the phone decides this TV should show. */
-export function useTvFollow(currentPath: string) {
+/**
+ * On a wall page: follow whatever the phone decides this TV should show, and play a preview
+ * the phone asked for (once per ask; the Preview buttons on /work/tv).
+ */
+export function useTvFollow(currentPath: string, onPreview?: (key: string) => void) {
+  const cb = useRef(onPreview)
+  cb.current = onPreview
   useEffect(() => {
     const m = readTv()
     if (!m) return
     let stop = false
+    let lastPreview = ''
     const tick = async () => {
       const s = await tvState(m)
       if (stop || !s) return
       if (!s.paired) { window.location.replace('/tv'); return }
-      if (s.path && s.path !== currentPath) window.location.replace(s.path)
+      if (s.path && s.path !== currentPath) { window.location.replace(s.path); return }
+      if (s.preview && s.preview.at !== lastPreview) {
+        cb.current?.(s.preview.key)
+        lastPreview = s.preview.at
+      }
     }
+    tick()
     const t = setInterval(tick, FOLLOW_MS)
     return () => { stop = true; clearInterval(t) }
   }, [currentPath])

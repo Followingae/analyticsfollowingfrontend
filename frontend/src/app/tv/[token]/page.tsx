@@ -36,7 +36,6 @@ const STAGE_MS = 9_000
 
 export default function WallPage() {
   const { token } = useParams<{ token: string }>()
-  useTvFollow(`/tv/${token}`)
   const full = useFullscreenOnPress()
   // Read from the URL by hand: useSearchParams would need a Suspense boundary at build time.
   const [preview, setPreview] = useState<string | null>(null)
@@ -60,20 +59,23 @@ export default function WallPage() {
   // A preview (?preview=signed and the like, from the buttons on /work/tv) is one made-up
   // moment played once, two seconds after the wall is up, as if it had just landed. It is
   // never written anywhere.
+  const play = useCallback((key: string) => {
+    const pm = previewMoment(key, logosRef.current)
+    if (!pm) return
+    setPreviewed(pm)
+    fresh.current.set(pm.id, Date.now())
+    seen.current?.add(pm.id)
+    if (pm.tier === 'celebrate' || pm.tier === 'stage') queue.current.push(pm)
+    setMoments(ms => ms.some(x => x.id === pm.id) ? ms : [pm, ...ms])
+  }, [])
   useEffect(() => {
     if (!preview || !logosReady || previewOnce.current) return
     previewOnce.current = true
-    const pm = previewMoment(preview, logosRef.current)
-    if (!pm) return
-    const t = setTimeout(() => {
-      setPreviewed(pm)
-      fresh.current.set(pm.id, Date.now())
-      seen.current?.add(pm.id)
-      if (pm.tier === 'celebrate' || pm.tier === 'stage') queue.current.push(pm)
-      setMoments(ms => ms.some(x => x.id === pm.id) ? ms : [pm, ...ms])
-    }, 1800)
+    const t = setTimeout(() => play(preview), 1800)
     return () => clearTimeout(t)
-  }, [preview, logosReady])
+  }, [preview, logosReady, play])
+  // A preview asked for from a phone (/work/tv, Play on TV) lands here and plays at once.
+  useTvFollow(`/tv/${token}`, play)
   const base = API_CONFIG.BASE_URL
 
   const load = useCallback(async () => {
