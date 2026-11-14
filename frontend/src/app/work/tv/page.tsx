@@ -22,7 +22,6 @@ import { PREVIEWS } from "@/components/wall/previews"
 
 const BASE = `${API_CONFIG.BASE_URL}/api/v1/admin/displays`
 
-const VERSION_NAME: Record<string, string> = { v1: "The wall", v2: "Slides" }
 
 function ago(iso?: string | null) {
   if (!iso) return "never seen"
@@ -59,17 +58,11 @@ function Tvs({ tvs, reload }: { tvs: any[]; reload: () => void }) {
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{t.name || "Unnamed TV"}{t.paired ? "" : " · waiting for a code"}</div>
                   <div className="text-xs text-muted-foreground">
-                    {t.paired ? `${VERSION_NAME[t.variant] ?? t.variant} · ${t.display_label}` : t.code ? `showing code ${t.code}` : "no code"} · {ago(t.last_seen_at)}
+                    {t.paired ? `Showing ${t.display_label}` : t.code ? `showing code ${t.code}` : "no code"} · {ago(t.last_seen_at)}
                   </div>
                 </div>
                 {t.paired && (
                   <>
-                    <div className="flex overflow-hidden rounded-lg border text-xs">
-                      {Object.entries(VERSION_NAME).map(([k, n]) => (
-                        <button key={k} type="button" onClick={() => k !== t.variant && act(t.id, "PATCH", { variant: k })}
-                          className="px-3 py-1.5" style={{ background: t.variant === k ? "#15181A" : "transparent", color: t.variant === k ? "#fff" : undefined }}>{n}</button>
-                      ))}
-                    </div>
                     {t.path && <Button asChild variant="ghost" size="sm"><a href={t.path} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a></Button>}
                     <Button variant="ghost" size="sm" onClick={() => { if (confirm("Unpair this TV? It goes back to showing a code.")) act(t.id, "DELETE") }}>Unpair</Button>
                   </>
@@ -137,11 +130,8 @@ export default function OfficeWallPage() {
                         <Tv className="mr-1.5 h-4 w-4" />{playing === `${t.id}:${p.key}` ? "Playing" : tvs.filter(x => x.paired).length > 1 ? (t.name || "TV") : "Play on TV"}
                       </Button>
                     ))}
-                    <Button asChild variant="outline" size="sm" disabled={!first} title="Open on the wall, in a tab">
-                      <a href={first ? `${first.path}?preview=${p.key}` : "#"} target="_blank" rel="noreferrer">v1</a>
-                    </Button>
-                    <Button asChild variant="outline" size="sm" disabled={!first} title="Open on the slides, in a tab">
-                      <a href={first ? `${first.path}/v2?preview=${p.key}` : "#"} target="_blank" rel="noreferrer">v2</a>
+                    <Button asChild variant="outline" size="sm" disabled={!first} title="Open in a tab">
+                      <a href={first ? `${first.path}?preview=${p.key}` : "#"} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
                     </Button>
                   </div>
                 </div>
