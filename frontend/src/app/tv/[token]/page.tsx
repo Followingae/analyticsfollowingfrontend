@@ -25,6 +25,7 @@ import { Stage } from '@/components/wall/stage'
 import { OFF_TV, toMoment, type Moment } from '@/components/wall/moments'
 import { previewMoment } from '@/components/wall/previews'
 import type { Event } from '@/components/wall/Pulse'
+import { useFullscreenOnPress, useTvFollow } from '@/components/wall/screen'
 
 const FALLBACK_REFRESH_MS = 60_000
 const PULSE_MS = 6_000
@@ -35,6 +36,8 @@ const STAGE_MS = 9_000
 
 export default function WallPage() {
   const { token } = useParams<{ token: string }>()
+  useTvFollow(`/tv/${token}`)
+  const full = useFullscreenOnPress()
   // Read from the URL by hand: useSearchParams would need a Suspense boundary at build time.
   const [preview, setPreview] = useState<string | null>(null)
   const [previewed, setPreviewed] = useState<Moment | null>(null)
@@ -203,6 +206,20 @@ export default function WallPage() {
       </div>
 
       <Stage m={stage} />
+      {!full && <FullscreenHint dark={false} />}
+    </div>
+  )
+}
+
+/** Shown until the TV is full screen: a press on the remote gets it there. Fades after a while. */
+function FullscreenHint({ dark }: { dark: boolean }) {
+  const [show, setShow] = useState(true)
+  useEffect(() => { const t = setTimeout(() => setShow(false), 40_000); return () => clearTimeout(t) }, [])
+  if (!show) return null
+  return (
+    <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 -translate-x-1/2 rounded-full px-4 py-1.5 text-[15px]"
+      style={{ background: dark ? 'rgba(244,244,240,0.12)' : 'rgba(21,24,26,0.08)', color: dark ? 'rgba(244,244,240,0.7)' : 'rgba(21,24,26,0.6)' }}>
+      Press OK on the remote for full screen
     </div>
   )
 }
