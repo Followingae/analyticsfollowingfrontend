@@ -160,6 +160,7 @@ function Chip({ m, now, beam }: { m: Moment; now: number; beam: boolean }) {
  */
 export function Feed({ moments, fresh, logos }: { moments: Moment[]; fresh: Map<string, number>; logos: Record<string, string> }) {
   const now = useNow(10_000)
+  const lite = typeof document !== 'undefined' && document.documentElement.classList.contains('wall-lite')
   const rows = useMemo(() => groupRows(moments, logos).slice(0, 5), [moments, logos])
   const beam = (id: string) => { const t = fresh.get(id); return t != null && now - t < 60_000 }
   return (
@@ -171,7 +172,7 @@ export function Feed({ moments, fresh, logos }: { moments: Moment[]; fresh: Map<
             // A row that just moved wears a ring for a minute and comes in with more weight.
             const hot = r.items.some(m => beam(m.id))
             return (
-            <motion.div key={r.key} layout className="flex min-h-0 flex-1 items-center gap-6 rounded-[24px] px-6 py-4"
+            <motion.div key={r.key} layout={!lite} className="flex min-h-0 flex-1 items-center gap-6 rounded-[24px] px-6 py-4"
               initial={{ opacity: 0, y: -28, scale: 0.975 }}
               animate={{ opacity: 1, y: 0, scale: 1, background: hot ? '#FBFCF2' : '#F7F8F4', boxShadow: hot ? `0 0 0 3px ${LIME}, 0 12px 40px -18px rgba(21,24,26,0.35)` : '0 0 0 0px rgba(211,255,2,0), 0 0 0 0 rgba(21,24,26,0)' }}
               exit={{ opacity: 0 }} transition={{ type: 'spring', stiffness: 220, damping: 26, boxShadow: { duration: 0.8 }, background: { duration: 0.8 } }}>
@@ -216,8 +217,13 @@ function Orbit({ c, words = true }: { c: any; words?: boolean }) {
   const nodes = useRef<Map<string, HTMLDivElement>>(new Map())
   const labels = useRef<Map<string, HTMLDivElement>>(new Map())
   const t0 = useRef<number>(0)
+  const frame = useRef(0)
   useAnimationFrame(t => {
     if (!t0.current) t0.current = t
+    // On a TV (lite mode) write the orbit every third frame: 20 steps a second reads as
+    // motion at this speed and leaves the GPU for the rest of the screen.
+    frame.current += 1
+    if (frame.current % 3 !== 0 && typeof document !== 'undefined' && document.documentElement.classList.contains('wall-lite')) return
     const sec = (t - t0.current) / 1000
     rings.forEach((people, r) => {
       const n = people.length

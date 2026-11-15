@@ -22,6 +22,7 @@ import { DotPattern } from '@/components/ui/dot-pattern'
 import { type Slide } from '@/components/wall/parts'
 import { AttentionScreen, BallScreen, ClientsScreen, ClientsStrip, Feed, INK, LIME, MUTED, Spotlight, WeekScreen } from '@/components/wall/board'
 import { Stage } from '@/components/wall/stage'
+import { BUBBLE_MS, BUBBLES_AT_ONCE, Bubbles, newBubble, type Bubble } from '@/components/wall/bubbles'
 import { OFF_TV, toMoment, type Moment } from '@/components/wall/moments'
 import { previewMoment } from '@/components/wall/previews'
 import type { Event } from '@/components/wall/Pulse'
@@ -40,9 +41,9 @@ const ENTER: Record<string, { initial: any; exit: any }> = {
 }
 const ENTER_DEFAULT = { initial: { opacity: 0, y: 18, filter: 'blur(10px)' }, exit: { opacity: 0, scale: 0.985, filter: 'blur(8px)' } }
 const LITE_CSS = `.wall-lite, .wall-lite * { filter: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }`
+/** Every screen stays 15 to 25 seconds (founder, 15 Nov 2026); Live and Campaigns get the most. */
 const SLIDE_MS = 20_000
-/** Some screens need longer: Live to be read, Campaigns to turn through three. */
-const SLIDE_MS_BY_KEY: Record<string, number> = { live: 30_000, spotlight: 45_000 }
+const SLIDE_MS_BY_KEY: Record<string, number> = { live: 25_000, spotlight: 25_000, clients: 18_000, attention: 18_000 }
 const STAGE_MS = 9_000
 
 export default function WallPage() {
@@ -63,9 +64,12 @@ export default function WallPage() {
   const [index, setIndex] = useState(0)
   const [moments, setMoments] = useState<Moment[]>([])
   const [stage, setStage] = useState<Moment | null>(null)
+  const [bubbles, setBubbles] = useState<Bubble[]>([])
   const seen = useRef<Set<string> | null>(null)
   const fresh = useRef<Map<string, number>>(new Map())
+  /** Celebrations wait here for the stage; everything else waits in `floating` for a lane. */
   const queue = useRef<Moment[]>([])
+  const floating = useRef<Moment[]>([])
   const previewOnce = useRef(false)
   const logosRef = useRef<Record<string, string>>({})
   const [logosReady, setLogosReady] = useState(false)
@@ -79,7 +83,7 @@ export default function WallPage() {
     setPreviewed(pm)
     fresh.current.set(pm.id, Date.now())
     seen.current?.add(pm.id)
-    if (pm.tier === 'celebrate' || pm.tier === 'stage') queue.current.push(pm)
+    if (pm.tier === 'celebrate') queue.current.push(pm); else floating.current.push(pm)
     setMoments(ms => ms.some(x => x.id === pm.id) ? ms : [pm, ...ms])
   }, [])
   useEffect(() => {
@@ -117,8 +121,8 @@ export default function WallPage() {
     else for (const m of ordered) if (!seen.current.has(m.id)) {
       seen.current.add(m.id)
       fresh.current.set(m.id, Date.now())
-      // Only the big moments take the stage; the rest land in the feed.
-      if (m.tier === 'celebrate' || m.tier === 'stage') queue.current.push(m)
+      // Celebrations take the stage; everything else floats across whatever screen is up.
+      if (m.tier === 'celebrate') queue.current.push(m); else floating.current.push(m)
     }
     // A TV runs for months: forget ids that left the feed and rings older than ten minutes.
     const keep = new Set(ordered.map(m => m.id))
@@ -153,6 +157,23 @@ export default function WallPage() {
     if (next) { setStage(next); chime(next.tier === 'celebrate' ? 'celebrate' : 'stage') }
   }, [stage, moments])
   useEffect(() => { if (!stage) return; const t = setTimeout(() => setStage(null), STAGE_MS); return () => clearTimeout(t) }, [stage])
+  // Bubbles: up to three afloat, each for ten seconds, released one every 1.2s so they do not
+  // rise as a clump; a bubble never launches while the stage is up.
+  useEffect(() => {
+    if (stage) return
+    if (bubbles.length >= BUBBLES_AT_ONCE || !floating.current.length) return
+    const t = setTimeout(() => {
+      const next = floating.current.shift()
+      if (next) setBubbles(bs => bs.some(b => b.m.id === next.id) ? bs : [...bs, newBubble(next, bs)])
+    }, bubbles.length ? 1200 : 0)
+    return () => clearTimeout(t)
+  }, [bubbles, moments, stage])
+  useEffect(() => {
+    if (!bubbles.length) return
+    const oldest = bubbles[0]
+    const t = setTimeout(() => setBubbles(bs => bs.filter(b => b !== oldest)), Math.max(0, oldest.at + BUBBLE_MS - Date.now()))
+    return () => clearTimeout(t)
+  }, [bubbles])
 
   // The clock ticks on the minute, not every twenty seconds somewhere inside it.
   useEffect(() => {
@@ -210,7 +231,7 @@ export default function WallPage() {
     <div className="relative h-screen w-screen overflow-hidden bg-[#F6F6F2]" style={{ color: INK, fontFeatureSettings: '"ss01", "cv11"' }}>
       <style>{LITE_CSS}</style>
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(70% 60% at 0% 0%, rgba(211,255,2,0.35) 0%, rgba(246,246,242,0) 60%), radial-gradient(60% 50% at 100% 100%, rgba(170,230,200,0.35) 0%, rgba(246,246,242,0) 60%)' }} />
-      <DotPattern width={22} height={22} cr={1.1} className="pointer-events-none absolute inset-0 fill-[#15181A]/[0.07] [mask-image:radial-gradient(60%_50%_at_100%_0%,#000,transparent)]" />
+      {!lite && <DotPattern width={22} height={22} cr={1.1} className="pointer-events-none absolute inset-0 fill-[#15181A]/[0.07] [mask-image:radial-gradient(60%_50%_at_100%_0%,#000,transparent)]" />}
 
       <div className="relative flex h-full flex-col gap-4 px-10 pb-8 pt-6">
         <header className="flex h-12 items-center gap-6">
@@ -254,6 +275,7 @@ export default function WallPage() {
         </main>
       </div>
 
+      <Bubbles items={bubbles} lite={lite} />
       <Stage m={stage} lite={lite} />
       {!full && <FullscreenHint dark={false} />}
     </div>
