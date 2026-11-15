@@ -129,10 +129,16 @@ export function useWallStream(token: string | undefined, onPulse: (data: any) =>
   return connected
 }
 
+/** Inside the Following TV app (the Android TV web view): already full screen, sound allowed. */
+export function inTvApp() {
+  return typeof navigator !== 'undefined' && /FollowingTV/.test(navigator.userAgent)
+}
+
 /** Full screen on the first press of anything; returns whether we are full screen now. */
 export function useFullscreenOnPress() {
   const [full, setFull] = useState(false)
   useEffect(() => {
+    if (inTvApp()) { setFull(true); armSound(); return }
     const sync = () => setFull(Boolean(document.fullscreenElement))
     sync()
     const go = () => {
@@ -186,7 +192,7 @@ export function useLite() {
     const tvUa = /SMART-TV|SmartTV|Tizen|Web0S|webOS|BRAVIA|AFT[A-Z0-9]|Android TV|AppleTV|HbbTV|NetCast|Roku|VIDAA|Hisense|GoogleTV|CrKey|Silk|Viera|Freebox|Opera TV|PhilipsTV/i.test(ua)
     const mem = (navigator as any).deviceMemory
     const weak = (typeof mem === 'number' && mem <= 4) || (navigator.hardwareConcurrency || 8) <= 4
-    const on = q === '1' ? true : q === '0' ? false : tvUa || weak
+    const on = q === '1' ? true : q === '0' ? false : tvUa || weak || inTvApp()
     setLite(on)
     document.documentElement.classList.toggle('wall-lite', on)
     return () => { document.documentElement.classList.remove('wall-lite') }
