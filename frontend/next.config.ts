@@ -4,14 +4,6 @@ const nextConfig: NextConfig = {
   // Stamped once per build. The office wall compares it with /tv/version and reloads itself
   // when a newer build is live, since a TV never reloads on its own.
   env: { NEXT_PUBLIC_WALL_BUILD: String(Date.now()) },
-  // Stamped once per build. The office wall compares it with /tv/version and reloads itself
-  // when a newer build is live, since a TV never reloads on its own.
-  env: { NEXT_PUBLIC_WALL_BUILD: String(Date.now()) },
-  // Local proxy mode only (see rewrites): a request like /api/v1/campaigns/ must reach the
-  // API with its trailing slash, or the API redirects to its own http address and the
-  // browser refuses the cross-origin hop. Off everywhere else, so deployed behaviour is unchanged.
-  skipTrailingSlashRedirect: process.env.NODE_ENV === 'development' && process.env.LOCAL_API_PROXY === '1',
-
   // Performance optimizations
   experimental: {
     optimizePackageImports: ['lucide-react', '@tabler/icons-react'],
@@ -126,23 +118,7 @@ const nextConfig: NextConfig = {
    * by the path.
    */
   async rewrites() {
-    // Local review against the live API. The API only allows the deployed origins, so a
-    // page on localhost cannot call it directly. With LOCAL_API_PROXY=1 in .env.local and
-    // NEXT_PUBLIC_API_BASE_URL pointing at the dev server itself, the dev server forwards
-    // /api/* to the API on the server side and the browser never crosses an origin. Inert
-    // in every build and on every deploy: the variable lives only in a local .env.local.
-    const localProxy =
-      process.env.NODE_ENV === 'development' && process.env.LOCAL_API_PROXY === '1'
-        ? (process.env.LOCAL_API_PROXY_TARGET || 'https://api.following.ae').replace(/\/$/, '')
-        : null
-    if (localProxy) console.log(`[local api proxy] /api/* and /health -> ${localProxy}`)
     return {
-      beforeFiles: localProxy
-        ? [
-            { source: '/api/:path*', destination: `${localProxy}/api/:path*` },
-            { source: '/health', destination: `${localProxy}/health` },
-          ]
-        : [],
       afterFiles: [
         {
           // Everything under /work that does NOT have a real page of its own falls through
