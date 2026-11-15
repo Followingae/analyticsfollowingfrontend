@@ -167,9 +167,14 @@ export function Feed({ moments, fresh, logos }: { moments: Moment[]; fresh: Map<
       <Kicker right={<span className="inline-flex items-center gap-2"><motion.span className="h-2.5 w-2.5 rounded-full" style={{ background: LIME, boxShadow: '0 0 0 2px rgba(21,24,26,0.15)' }} animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 2.2, repeat: Infinity }} />this week, newest first</span>}>Live</Kicker>
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-6 pb-6">
         <AnimatePresence initial={false}>
-          {rows.map(r => (
-            <motion.div key={r.key} layout className="flex min-h-0 flex-1 items-center gap-6 rounded-[24px] px-6 py-4" style={{ background: '#F7F8F4' }}
-              initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ type: 'spring', stiffness: 220, damping: 26 }}>
+          {rows.map(r => {
+            // A row that just moved wears a ring for a minute and comes in with more weight.
+            const hot = r.items.some(m => beam(m.id))
+            return (
+            <motion.div key={r.key} layout className="flex min-h-0 flex-1 items-center gap-6 rounded-[24px] px-6 py-4"
+              initial={{ opacity: 0, y: -28, scale: 0.975 }}
+              animate={{ opacity: 1, y: 0, scale: 1, background: hot ? '#FBFCF2' : '#F7F8F4', boxShadow: hot ? `0 0 0 3px ${LIME}, 0 12px 40px -18px rgba(21,24,26,0.35)` : '0 0 0 0px rgba(211,255,2,0), 0 0 0 0 rgba(21,24,26,0)' }}
+              exit={{ opacity: 0 }} transition={{ type: 'spring', stiffness: 220, damping: 26, boxShadow: { duration: 0.8 }, background: { duration: 0.8 } }}>
               <div className="flex w-[380px] shrink-0 items-center gap-4">
                 {r.kind === 'applied' ? <span className="inline-flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[18px] bg-white text-[24px] font-semibold" style={{ color: INK, boxShadow: '0 0 0 1px rgba(21,24,26,0.06)' }}>+{r.items.length}</span> : <Logo src={r.logo} name={r.title} size={72} />}
                 <div className="min-w-0">
@@ -182,7 +187,8 @@ export function Feed({ moments, fresh, logos }: { moments: Moment[]; fresh: Map<
                 {r.items.length > 5 && <span className="shrink-0 text-[15px] font-semibold" style={{ color: MUTED }}>+{r.items.length - 5}</span>}
               </div>
             </motion.div>
-          ))}
+            )
+          })}
         </AnimatePresence>
       </div>
     </Card>

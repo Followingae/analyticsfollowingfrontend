@@ -11,7 +11,7 @@
  */
 import * as React from "react"
 import { useCallback, useState } from "react"
-import { ExternalLink, Smartphone, Tv } from "lucide-react"
+import { Check, ExternalLink, Smartphone, Tv } from "lucide-react"
 import { SuperadminLayout } from "@/components/layouts/SuperadminLayout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -88,11 +88,38 @@ export default function OfficeWallPage() {
   }, [])
   usePoll(load, 15000)
   const first = screens[0]
-  const [playing, setPlaying] = useState<string | null>(null)
+  // The handshake: "Sending" until the TV says it played it (it reports back the moment it
+  // does, usually within two seconds), then a tick; "No answer" if ten seconds pass.
+  const [playing, setPlaying] = useState<{ id: string; key: string; state: "sending" | "played" | "missed" } | null>(null)
   const playOnTv = async (id: string, key: string) => {
-    setPlaying(`${id}:${key}`)
-    try { await fetchWithAuth(`${BASE}/tv/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ preview: key }) }) } catch { /* the button comes back */ }
-    setTimeout(() => setPlaying(null), 9000)
+    setPlaying({ id, key, state: "sending" })
+    let sentAt = Date.now()
+    try {
+      const r = await fetchWithAuth(`${BASE}/tv/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ preview: key }) })
+      if (!r.ok) { setPlaying(null); return }
+      sentAt = Date.now()
+    } catch { setPlaying(null); return }
+    const until = sentAt + 10_000
+    const watch = async () => {
+      try {
+        const r = await fetchWithAuth(`${BASE}/tv`)
+        const items: any[] = r.ok ? ((await r.json()).data?.items ?? []) : []
+        const t = items.find(x => x.id === id)
+        const played = t?.preview_played_at && t?.preview_at && new Date(t.preview_played_at).getTime() >= new Date(t.preview_at).getTime() - 1000
+        if (played) { setTvs(items); setPlaying({ id, key, state: "played" }); setTimeout(() => setPlaying(null), 4000); return }
+      } catch { /* try again */ }
+      if (Date.now() < until) setTimeout(watch, 1500)
+      else { setPlaying({ id, key, state: "missed" }); setTimeout(() => setPlaying(null), 4000) }
+    }
+    setTimeout(watch, 1200)
+  }
+  const playLabel = (t: any, key: string, many: boolean) => {
+    if (playing && playing.id === t.id && playing.key === key) {
+      if (playing.state === "sending") return "Sending…"
+      if (playing.state === "played") return "On the TV"
+      return "TV did not answer"
+    }
+    return many ? (t.name || "TV") : "Play on TV"
   }
 
   return (
@@ -117,7 +144,7 @@ export default function OfficeWallPage() {
         <Card className="mt-8">
           <CardContent className="p-6">
             <h2 className="text-sm font-semibold">What each thing the team does looks like on the wall</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Play on TV makes the paired TV play that one moment with made-up names, within about eight seconds. Nothing is written anywhere. The small button opens it in a tab instead.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Play on TV makes the paired TV play that one moment with made-up names, about a second later; the button turns into a tick when the TV confirms. Nothing is written anywhere. The small button opens it in a tab instead.</p>
             <div className="mt-4 divide-y">
               {PREVIEWS.map(p => (
                 <div key={p.key} className="grid items-center gap-3 py-2.5 sm:grid-cols-[1.2fr_1.3fr_1.3fr_auto]">
@@ -125,11 +152,16 @@ export default function OfficeWallPage() {
                   <div className="text-xs text-muted-foreground">{p.where}</div>
                   <div className="text-xs text-muted-foreground">{p.tv}</div>
                   <div className="flex items-center gap-1.5">
-                    {tvs.filter(t => t.paired).map(t => (
-                      <Button key={t.id} size="sm" onClick={() => playOnTv(t.id, p.key)} disabled={playing === `${t.id}:${p.key}`}>
-                        <Tv className="mr-1.5 h-4 w-4" />{playing === `${t.id}:${p.key}` ? "Playing" : tvs.filter(x => x.paired).length > 1 ? (t.name || "TV") : "Play on TV"}
-                      </Button>
-                    ))}
+                    {tvs.filter(t => t.paired).map(t => {
+                      const mine = playing && playing.id === t.id && playing.key === p.key ? playing : null
+                      return (
+                        <Button key={t.id} size="sm" onClick={() => playOnTv(t.id, p.key)} disabled={Boolean(mine)}
+                          style={mine?.state === "played" ? { background: "#D3FF02", color: "#15181A" } : mine?.state === "missed" ? { background: "#F5C451", color: "#15181A" } : undefined}>
+                          {mine?.state === "played" ? <Check className="mr-1.5 h-4 w-4" /> : <Tv className="mr-1.5 h-4 w-4" />}
+                          {playLabel(t, p.key, tvs.filter(x => x.paired).length > 1)}
+                        </Button>
+                      )
+                    })}
                     <Button asChild variant="outline" size="sm" disabled={!first} title="Open in a tab">
                       <a href={first ? `${first.path}?preview=${p.key}` : "#"} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
                     </Button>

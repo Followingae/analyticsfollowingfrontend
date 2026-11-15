@@ -25,10 +25,21 @@ import { Stage } from '@/components/wall/stage'
 import { OFF_TV, toMoment, type Moment } from '@/components/wall/moments'
 import { previewMoment } from '@/components/wall/previews'
 import type { Event } from '@/components/wall/Pulse'
-import { useFullscreenOnPress, useTvFollow } from '@/components/wall/screen'
+import { useBackOnline, useFullscreenOnPress, useLite, useSelfRefresh, useTvFollow, useWakeLock, useWallStream } from '@/components/wall/screen'
+import { chime } from '@/components/wall/sound'
 
 const FALLBACK_REFRESH_MS = 60_000
+/** The pulse poll is the fallback: quick when the stream is down, lazy while it is up. */
 const PULSE_MS = 6_000
+const PULSE_MS_STREAMING = 60_000
+/** How each screen comes in. The blur is dropped in lite mode (TV browsers) by the stylesheet. */
+const ENTER: Record<string, { initial: any; exit: any }> = {
+  live: { initial: { opacity: 0, x: -28, filter: 'blur(8px)' }, exit: { opacity: 0, x: 18, filter: 'blur(6px)' } },
+  spotlight: { initial: { opacity: 0, scale: 0.965, filter: 'blur(10px)' }, exit: { opacity: 0, scale: 1.015, filter: 'blur(8px)' } },
+  week: { initial: { opacity: 0, x: 28, filter: 'blur(8px)' }, exit: { opacity: 0, x: -18, filter: 'blur(6px)' } },
+}
+const ENTER_DEFAULT = { initial: { opacity: 0, y: 18, filter: 'blur(10px)' }, exit: { opacity: 0, scale: 0.985, filter: 'blur(8px)' } }
+const LITE_CSS = `.wall-lite, .wall-lite * { filter: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }`
 const SLIDE_MS = 20_000
 /** Some screens need longer: Live to be read, Campaigns to turn through three. */
 const SLIDE_MS_BY_KEY: Record<string, number> = { live: 30_000, spotlight: 45_000 }
@@ -37,6 +48,9 @@ const STAGE_MS = 9_000
 export default function WallPage() {
   const { token } = useParams<{ token: string }>()
   const full = useFullscreenOnPress()
+  const lite = useLite()
+  useWakeLock()
+  const reloadDue = useSelfRefresh()
   // Read from the URL by hand: useSearchParams would need a Suspense boundary at build time.
   const [preview, setPreview] = useState<string | null>(null)
   const [previewed, setPreviewed] = useState<Moment | null>(null)
@@ -75,7 +89,7 @@ export default function WallPage() {
     return () => clearTimeout(t)
   }, [preview, logosReady, play])
   // A preview asked for from a phone (/work/tv, Play on TV) lands here and plays at once.
-  useTvFollow(`/tv/${token}`, play)
+  const follow = useTvFollow(`/tv/${token}`, play)
   const base = API_CONFIG.BASE_URL
 
   const load = useCallback(async () => {
@@ -92,26 +106,39 @@ export default function WallPage() {
     } catch { setStale(true) }
   }, [base, token])
 
+  // One pulse, from the stream or from a poll: shape it, notice what is new, keep the memory small.
+  const applyPulse = useCallback((d: any) => {
+    const logos: Record<string, string> = d.logos ?? {}
+    logosRef.current = logos
+    setLogosReady(true)
+    const ordered: Moment[] = ((d.events ?? []) as Event[]).filter(e => !OFF_TV.has(e.kind)).map(e => toMoment(e as any, logos))
+      .sort((a, b) => (a.at < b.at ? 1 : -1))
+    if (seen.current == null) seen.current = new Set(ordered.map(m => m.id))
+    else for (const m of ordered) if (!seen.current.has(m.id)) {
+      seen.current.add(m.id)
+      fresh.current.set(m.id, Date.now())
+      // Only the big moments take the stage; the rest land in the feed.
+      if (m.tier === 'celebrate' || m.tier === 'stage') queue.current.push(m)
+    }
+    // A TV runs for months: forget ids that left the feed and rings older than ten minutes.
+    const keep = new Set(ordered.map(m => m.id))
+    const cutoff = Date.now() - 10 * 60_000
+    for (const [id, at] of fresh.current) if (at < cutoff && !keep.has(id)) fresh.current.delete(id)
+    for (const id of seen.current) if (!keep.has(id) && !fresh.current.has(id)) seen.current.delete(id)
+    setMoments(previewed && !ordered.some(m => m.id === previewed.id) ? [previewed, ...ordered] : ordered)
+  }, [previewed])
+
   const loadPulse = useCallback(async () => {
     try {
       const res = await fetch(`${base}/api/v1/display/${token}/pulse`)
       if (!res.ok) return
-      const d = (await res.json()).data
-      const logos: Record<string, string> = d.logos ?? {}
-      logosRef.current = logos
-      setLogosReady(true)
-      const ordered: Moment[] = ((d.events ?? []) as Event[]).filter(e => !OFF_TV.has(e.kind)).map(e => toMoment(e as any, logos))
-        .sort((a, b) => (a.at < b.at ? 1 : -1))
-      if (seen.current == null) seen.current = new Set(ordered.map(m => m.id))
-      else for (const m of ordered) if (!seen.current.has(m.id)) {
-        seen.current.add(m.id)
-        fresh.current.set(m.id, Date.now())
-        // Only the big moments take the stage; the rest land in the feed.
-        if (m.tier === 'celebrate' || m.tier === 'stage') queue.current.push(m)
-      }
-      setMoments(previewed && !ordered.some(m => m.id === previewed.id) ? [previewed, ...ordered] : ordered)
+      applyPulse((await res.json()).data)
     } catch { /* the last feed stays up */ }
-  }, [base, token, previewed])
+  }, [base, token, applyPulse])
+
+  // The live wire: pulses and the phone's instructions arrive the second they happen.
+  const live = useWallStream(token, applyPulse, follow.onTv)
+  useEffect(() => { follow.setStreaming(live) }, [live, follow])
 
   useEffect(() => { load(); loadPulse() }, [load, loadPulse])
   useEffect(() => {
@@ -119,20 +146,29 @@ export default function WallPage() {
     const t = setInterval(load, ms)
     return () => clearInterval(t)
   }, [load, data?.refresh_seconds])
-  useEffect(() => { const t = setInterval(loadPulse, PULSE_MS); return () => clearInterval(t) }, [loadPulse])
-  useEffect(() => { if (!stage) { const next = queue.current.shift(); if (next) setStage(next) } }, [stage, moments])
+  useEffect(() => { const t = setInterval(loadPulse, live ? PULSE_MS_STREAMING : PULSE_MS); return () => clearInterval(t) }, [loadPulse, live])
+  useEffect(() => {
+    if (stage) return
+    const next = queue.current.shift()
+    if (next) { setStage(next); chime(next.tier === 'celebrate' ? 'celebrate' : 'stage') }
+  }, [stage, moments])
   useEffect(() => { if (!stage) return; const t = setTimeout(() => setStage(null), STAGE_MS); return () => clearTimeout(t) }, [stage])
 
+  // The clock ticks on the minute, not every twenty seconds somewhere inside it.
   useEffect(() => {
+    let t: ReturnType<typeof setTimeout>
     const tick = () => {
       const now = new Date()
       setClock(now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }))
       setToday(now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }))
+      t = setTimeout(tick, 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()) + 50)
     }
     tick()
-    const t = setInterval(tick, 20_000)
-    return () => clearInterval(t)
+    return () => clearTimeout(t)
   }, [])
+
+  const offline = stale && !live
+  const back = useBackOnline(offline)
 
   const slides: Slide[] = data?.slides ?? []
   const by = (k: string) => slides.find(s => s.key === k)
@@ -156,8 +192,13 @@ export default function WallPage() {
   const currentMs = SLIDE_MS_BY_KEY[currentKey] ?? SLIDE_MS
   useEffect(() => {
     if (deck.length < 2) return
-    const t = setTimeout(() => setIndex(i => (i + 1) % deck.length), currentMs)
+    const t = setTimeout(() => {
+      // A newer build is live (or it is four in the morning): take the reload between slides.
+      if (reloadDue.current && !stage) { window.location.reload(); return }
+      setIndex(i => (i + 1) % deck.length)
+    }, currentMs)
     return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deck.length, index, currentMs])
 
   if (error) {
@@ -167,6 +208,7 @@ export default function WallPage() {
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#F6F6F2]" style={{ color: INK, fontFeatureSettings: '"ss01", "cv11"' }}>
+      <style>{LITE_CSS}</style>
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(70% 60% at 0% 0%, rgba(211,255,2,0.35) 0%, rgba(246,246,242,0) 60%), radial-gradient(60% 50% at 100% 100%, rgba(170,230,200,0.35) 0%, rgba(246,246,242,0) 60%)' }} />
       <DotPattern width={22} height={22} cr={1.1} className="pointer-events-none absolute inset-0 fill-[#15181A]/[0.07] [mask-image:radial-gradient(60%_50%_at_100%_0%,#000,transparent)]" />
 
@@ -187,8 +229,13 @@ export default function WallPage() {
           <ClientsStrip rows={clients} />
           <div className="ml-auto flex items-center gap-4">
             <span className="flex items-center gap-2 text-[14px]" style={{ color: MUTED }}>
-              <motion.span className="h-2.5 w-2.5 rounded-full" style={{ background: stale ? '#F5C451' : LIME, boxShadow: '0 0 0 2px rgba(21,24,26,0.15)' }} animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 2.4, repeat: Infinity }} />
-              {stale ? 'reconnecting' : 'live'}
+              <motion.span className="h-2.5 w-2.5 rounded-full" style={{ background: offline ? '#F5C451' : LIME, boxShadow: '0 0 0 2px rgba(21,24,26,0.15)' }} animate={{ opacity: offline ? [1, 0.3, 1] : live ? 1 : [1, 0.3, 1] }} transition={{ duration: 2.4, repeat: Infinity }} />
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span key={back ? 'back' : offline ? 'off' : 'on'} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.3 }}
+                  className={back ? 'rounded-full px-2.5 py-0.5 font-semibold' : ''} style={back ? { background: LIME, color: INK } : undefined}>
+                  {back ? 'back online' : offline ? 'reconnecting' : 'live'}
+                </motion.span>
+              </AnimatePresence>
             </span>
             {preview && <span className="rounded-full px-3 py-1 text-[13px] font-semibold uppercase tracking-[0.12em]" style={{ background: INK, color: '#fff' }}>preview</span>}
             <span className="text-[16px]" style={{ color: MUTED }}>{today}</span>
@@ -199,7 +246,7 @@ export default function WallPage() {
         <main className="relative min-h-0 flex-1">
           <AnimatePresence mode="wait">
             {current && (
-              <motion.div key={current.key} className="h-full" initial={{ opacity: 0, y: 16, filter: 'blur(10px)' }} animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }} exit={{ opacity: 0, scale: 0.985, filter: 'blur(8px)' }} transition={{ duration: 0.8, ease: [0.2, 0.8, 0.2, 1] }}>
+              <motion.div key={current.key} className="h-full" initial={(ENTER[current.key] ?? ENTER_DEFAULT).initial} animate={{ opacity: 1, x: 0, y: 0, scale: 1, filter: 'blur(0px)' }} exit={(ENTER[current.key] ?? ENTER_DEFAULT).exit} transition={{ duration: lite ? 0.5 : 0.8, ease: [0.2, 0.8, 0.2, 1] }}>
                 {current.node}
               </motion.div>
             )}
@@ -207,7 +254,7 @@ export default function WallPage() {
         </main>
       </div>
 
-      <Stage m={stage} />
+      <Stage m={stage} lite={lite} />
       {!full && <FullscreenHint dark={false} />}
     </div>
   )
