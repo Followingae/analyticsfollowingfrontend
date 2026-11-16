@@ -1,8 +1,5 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<title>Account Management, Following</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Account Management, Following</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300..800&family=Playfair+Display:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
 <style>
 /* ⚠️ THE PAGE MARGIN LIVES HERE, AND NOTHING ELSE CAN SUPPLY IT.
@@ -56,7 +53,7 @@ em, .ser { font-family: "Playfair Display", Georgia, serif; font-style: italic;
 .cover .contents .lbl { font-size: 8.6pt; letter-spacing: .24em; text-transform: uppercase;
   font-weight: 700; color: #9c9ca4; margin-bottom: 5mm; }
 .cover .contents ol { margin: 0; padding: 0; list-style: none; counter-reset: c;
-  columns: 2; column-gap: 12mm; max-width: 134mm; }
+  columns: 2; column-gap: 12mm; max-width: 112mm; }
 .cover .contents li { counter-increment: c; font-size: 10pt; line-height: 1.9;
   color: #666666; display: flex; gap: 10px; break-inside: avoid; }
 .cover .contents li::before { content: counter(c, decimal-leading-zero);
@@ -244,8 +241,8 @@ h2 em { color: #111111; }
 .menu .ds { color: #666666; font-size: 9.4pt; }
 
 /* ── A job ──────────────────────────────────────────────────────────────────────────── */
-.job { border: 1px solid rgba(0,0,0,0.10); border-left: 5px solid #d3ff02; padding: 7mm 9mm;
-  margin-bottom: 8mm; break-inside: avoid; }
+.job { border: 1px solid rgba(0,0,0,0.10); border-left: 5px solid #d3ff02; padding: 5.5mm 8mm;
+  margin-bottom: 6mm; break-inside: avoid; }
 .job .top { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 4mm; }
 .job .badge { width: 28px; height: 28px; background: #d3ff02; color: #111111;
   display: flex; align-items: center; justify-content: center; font-weight: 800;
@@ -255,7 +252,7 @@ h2 em { color: #111111; }
 .job .when { color: #666666; font-size: 9.2pt; margin-top: 2px; }
 ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; }
 ol.steps > li { counter-increment: s; position: relative; padding-left: 28px;
-  margin-bottom: 3.5mm; font-size: 10pt; line-height: 1.65; }
+  margin-bottom: 2.6mm; font-size: 10pt; line-height: 1.55; }
 ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .22em;
   width: 15px; height: 15px; background: #f5f5f5; color: #666666; font-size: 7.4pt;
   font-weight: 700; display: flex; align-items: center; justify-content: center; }
@@ -310,10 +307,10 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 .vs .col.good li::before { background: #d3ff02; }
 
 /* ── Words we use ───────────────────────────────────────────────────────────────────── */
-.gloss { columns: 2; column-gap: 14mm; }
-.gloss .t { break-inside: avoid; margin-bottom: 6mm; }
-.gloss .w { font-weight: 700; font-size: 9.8pt; letter-spacing: -.01em; }
-.gloss .d { font-size: 9.2pt; color: #666666; line-height: 1.5; }
+.gloss { columns: 3; column-gap: 9mm; }
+.gloss .t { break-inside: avoid; margin-bottom: 4.2mm; }
+.gloss .w { font-weight: 700; font-size: 9.4pt; letter-spacing: -.01em; }
+.gloss .d { font-size: 8.8pt; color: #666666; line-height: 1.5; }
 
 /* ── Rules ──────────────────────────────────────────────────────────────────────────── */
 .rules { border: 1px solid #111111; border-left: 7mm solid #d3ff02; padding: 8mm 9mm;
@@ -357,120 +354,621 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   font-size: 9pt; color: #9c9ca4; display: flex;
   justify-content: space-between; letter-spacing: .04em; }
 
-/* ── The two seat-only chapters ───────────────────────────────────────────────────────
-   A swimlane drawn in SVG at its true size in mm, then panels, a stat strip, a table and a
-   "your part" box. Every box is square and lime is only ever a field or a rule. */
-.lanes { display: block; width: 100%; height: auto; border: 1px solid #111111;
-  break-inside: avoid; margin: 0 0 4mm; }
-.lkey { display: flex; flex-wrap: wrap; gap: 3mm 7mm; font-size: 8.8pt; color: #666666;
-  margin: 0 0 7mm; }
-.lkey span { display: inline-flex; align-items: center; gap: 7px; }
-.lkey .sw { width: 14px; height: 10px; flex: none; display: inline-block; }
-.lkey .sw.lime { background: #d3ff02; }
-.lkey .sw.out { border: 1px solid #111111; background: #ffffff; }
-.lkey .sw.dash { border: 1px dashed #111111; background: #ffffff; }
-.cont { font-size: 8pt; letter-spacing: .22em; text-transform: uppercase; font-weight: 700;
-  color: #9c9ca4; margin: 0 0 5mm; display: flex; align-items: center; gap: 10px; }
-.cont::before { content: ''; width: 18px; height: 8px; background: #d3ff02; flex: none; }
-h2.h2s { font-size: 24pt; margin-bottom: 6mm; max-width: none; }
-.sub.tight { margin-bottom: 6mm; }
-.hh { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 11.5pt;
-  letter-spacing: -.025em; margin: 0 0 3.5mm; break-after: avoid; }
-.hh.gap { margin-top: 8mm; }
-.two { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
-.two.gap { margin-top: 7mm; }
-.panel { border: 1px solid rgba(0,0,0,0.10); border-top: 4px solid #d3ff02; padding: 5mm 5.5mm;
-  break-inside: avoid; }
-ul.bl { margin: 0; padding: 0; list-style: none; }
-ul.bl li { position: relative; padding-left: 14px; font-size: 9pt; line-height: 1.5;
-  margin-bottom: 2mm; }
-ul.bl li:last-child { margin-bottom: 0; }
-ul.bl li::before { content: ''; position: absolute; left: 0; top: .55em; width: 6px;
-  height: 6px; background: #d3ff02; box-shadow: 0 0 0 .6px #111111; }
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #111111;
-  break-inside: avoid; }
-.stat { padding: 4mm 4mm; border-right: 1px solid rgba(0,0,0,0.10); border-bottom: 1px solid rgba(0,0,0,0.10); }
-.stat:nth-child(4n) { border-right: 0; }
-.stat:nth-last-child(-n+4) { border-bottom: 0; }
-.stat .b { font-size: 15pt; font-weight: 700; letter-spacing: -.04em; line-height: 1.05;
-  white-space: nowrap; }
-.stat .s { font-size: 8.4pt; color: #666666; line-height: 1.45; margin-top: 1.5mm; }
-table.says { width: 100%; border-collapse: collapse; font-size: 9.2pt; break-inside: avoid;
-  border: 1px solid #111111; }
-table.says th { text-align: left; font-size: 7.2pt; letter-spacing: .16em;
-  text-transform: uppercase; color: #666666; font-weight: 700; padding: 2.4mm 3.5mm;
-  background: #f5f5f5; border-bottom: 1px solid rgba(0,0,0,0.10); }
-table.says td { padding: 1.9mm 3.5mm; border-bottom: 1px solid rgba(0,0,0,0.10); vertical-align: middle; }
-table.says tr:last-child td { border-bottom: 0; }
-table.says .w { font-weight: 700; }
-table.says .m { color: #666666; }
-table.says .btn { display: inline-block; border: 1px solid #111111; padding: .4mm 2.4mm;
-  font-size: 8.2pt; font-weight: 700; white-space: nowrap; }
-table.says .none { color: #9c9ca4; font-size: 8.6pt; }
-.srcs { display: flex; flex-wrap: wrap; align-items: center; gap: 2mm 3mm; margin-top: 4mm;
-  font-size: 8.6pt; }
-.srcs .lbl { font-size: 7.2pt; letter-spacing: .18em; text-transform: uppercase;
-  font-weight: 700; color: #666666; margin-right: 1mm; }
-.srcs .src { border: 1px solid rgba(0,0,0,0.10); padding: .6mm 2.4mm; color: #666666; }
-.srcs .src b { color: #111111; }
-.rest { display: flex; flex-wrap: wrap; align-items: center; gap: 2mm; }
-.rest .r { border: 1px solid #111111; padding: 1.6mm 3.6mm; font-weight: 700; font-size: 9.2pt;
-  letter-spacing: -.01em; }
-.rest .r.go { background: #d3ff02; border-color: #d3ff02; }
-.rest .sep { color: #9c9ca4; display: flex; }
-.callout { border: 1px solid #111111; border-left: 6mm solid #d3ff02; padding: 4mm 6mm;
-  margin-top: 5mm; font-size: 9.8pt; line-height: 1.6; break-inside: avoid; }
-.yours { border: 1px solid rgba(0,0,0,0.10); border-left: 5px solid #d3ff02; padding: 6mm 8mm 3mm;
-  margin-top: 6mm; break-inside: avoid; }
-.yours .path { margin-bottom: 4mm; }
-.cre { border-top: 1px solid #111111; }
-.cre .cs { display: flex; gap: 6mm; padding: 3.2mm 0; border-bottom: 1px solid rgba(0,0,0,0.10);
-  break-inside: avoid; }
-.cre .k { width: 34mm; flex: none; font-weight: 700; font-size: 10.4pt; display: flex;
-  align-items: center; gap: 9px; letter-spacing: -.02em; align-self: flex-start; }
-.cre .k .n { width: 18px; height: 18px; background: #d3ff02; display: flex;
-  align-items: center; justify-content: center; font-size: 8pt; font-weight: 800; flex: none; }
-.cre .t { font-size: 9.6pt; line-height: 1.6; padding-top: .1em; }
-.where { margin-top: 2mm; border: 1px solid #111111; break-inside: avoid; }
-.where .wr { display: flex; gap: 6mm; padding: 3mm 5mm; border-bottom: 1px solid rgba(0,0,0,0.10); }
-.where .wr:last-child { border-bottom: 0; }
-.where .w { width: 50mm; flex: none; font-weight: 700; font-size: 9.4pt; }
-.where .t { font-size: 9.2pt; color: #666666; }
-.note.warn { display: flex; align-items: center; gap: 8px; margin-top: 5mm; color: #111111; }
-
 /* ── Small print ────────────────────────────────────────────────────────────────────── */
 .note { font-size: 9.4pt; color: #666666; max-width: 56ch; }
 /* The closing note qualifies the rules above it, so it rides on their page. It used to be
    its own <section>, which under one-section-one-page would spend a whole sheet on a
    single sentence. */
 .tail { margin-top: 12mm; padding-top: 6mm; border-top: 1px solid rgba(0,0,0,0.10); }
-</style></head>
-<body>
 
+/* ══ 16 Nov 2026: the SOP chapters, in the same look ═══════════════════════════════ */
+
+/* The day and the flow share a sheet. The spine no longer stretches over 160mm. */
+section.two > .tl { margin-bottom: 10mm; }
+section.two .sub { margin-bottom: 7mm; }
+section.two .flow .st { padding: 4.5mm 5mm; }
+section.two .tl .mo { margin-bottom: 6mm; }
+section.two h3.sub2 { font-size: 9.5pt; letter-spacing: .24em; text-transform: uppercase;
+  font-weight: 700; margin: 0 0 5mm; display: flex; align-items: center; gap: 11px; }
+section.two h3.sub2::before { content: ''; width: 26px; height: 10px; background: #d3ff02; }
+
+/* A role's own opener inside the one document: the cover, without the contents. */
+.cover { break-before: page; }
+body > .cover:first-child { break-before: auto; }
+.cover.role .contents { display: none; }
+.cover.role .mid { margin-top: 30mm; }
+.cover.role .foot { margin-top: auto; }
+.cover .contents .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12mm; }
+.cover .contents .two .lbl { margin-bottom: 3mm; }
+.cover .contents .two ol { columns: 1; max-width: none; }
+.cover .contents li { line-height: 1.62; font-size: 9.4pt; }
+
+/* ── Tables. One border, square, tiny caps header, bold first column. ──────────── */
+.tb { border: 1px solid #111111; }
+.tb .h, .tb .r { display: grid; grid-template-columns: var(--c, 1fr 1fr); gap: 5mm;
+  padding: 2.6mm 5mm; align-items: start; }
+.tb .h { background: #f5f5f5; color: #666666; font-size: 7.4pt; letter-spacing: .18em;
+  text-transform: uppercase; font-weight: 700; border-bottom: 1px solid #111111; }
+.tb .r { border-bottom: 1px solid rgba(0,0,0,0.10); font-size: 9.4pt; line-height: 1.5;
+  break-inside: avoid; }
+.tb .r:last-child { border-bottom: 0; }
+.tb .k { font-weight: 700; letter-spacing: -.01em; }
+.tb .k small { display: block; font-weight: 400; color: #666666; font-size: 8.3pt;
+  margin-top: .4mm; line-height: 1.4; }
+.tb .m { color: #666666; }
+.tb .t { display: inline-block; background: #d3ff02; color: #111111; font-weight: 800;
+  font-size: 8.6pt; padding: 1px 7px; white-space: nowrap; letter-spacing: -.01em; }
+.tb .t.out { background: #ffffff; border: 1px solid #111111; font-weight: 700; }
+.tb .who { font-size: 7.4pt; letter-spacing: .14em; text-transform: uppercase;
+  font-weight: 700; color: #666666; white-space: nowrap; }
+.tb .who b { color: #111111; }
+.tb.tight .r { padding: 1.6mm 5mm; }
+.tb.tight .r, .tb.tight .h { gap: 3mm; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; align-items: start; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5mm; align-items: start; }
+.gap { margin-top: 7mm; }
+.gap2 { margin-top: 10mm; }
+h3.lbl { font-size: 8pt; letter-spacing: .22em; text-transform: uppercase; font-weight: 700;
+  color: #111111; margin: 0 0 3.5mm; display: flex; align-items: center; gap: 9px; }
+h3.lbl::before { content: ''; width: 18px; height: 8px; background: #d3ff02; flex: none; }
+p.note { margin: 5mm 0 0; }
+p.note strong { color: #111111; }
+
+/* ── The team: six seats. ────────────────────────────────────────────────────────── */
+.seats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; }
+.seat { border: 1px solid #111111; padding: 5mm 5.5mm; break-inside: avoid; }
+.seat .ab { display: inline-flex; align-items: center; justify-content: center;
+  min-width: 11mm; height: 8mm; padding: 0 2.5mm; background: #d3ff02; color: #111111;
+  font-weight: 800; font-size: 10pt; letter-spacing: .04em; margin-bottom: 3mm; }
+.seat.client .ab { background: #111111; color: #f6f3ef; }
+.seat .nm { font-weight: 700; font-size: 11.5pt; letter-spacing: -.025em; line-height: 1.2; }
+.seat .man { font-size: 8pt; color: #666666; margin-top: .5mm; }
+.seat .own { font-size: 9pt; color: #666666; margin-top: 2.5mm; line-height: 1.5; }
+.seat .own b { color: #111111; }
+
+/* ── Urgent or not: one question, two answers. ───────────────────────────────────── */
+.ask { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 5mm; align-items: stretch;
+  break-inside: avoid; }
+.ask .q { background: #111111; color: #f6f3ef; padding: 7mm 7mm; display: flex;
+  flex-direction: column; }
+.ask .q .lbl { font-size: 7.4pt; letter-spacing: .22em; text-transform: uppercase;
+  color: #d3ff02; font-weight: 700; margin-bottom: 4mm; }
+.ask .q .big { font-size: 16pt; font-weight: 700; letter-spacing: -.03em; line-height: 1.2; }
+.ask .q .big em { color: #f6f3ef; }
+.ask .q .s { margin-top: auto; padding-top: 6mm; font-size: 8.8pt; color: rgba(246,243,239,.7);
+  line-height: 1.5; }
+.ask .a { border: 1px solid #111111; padding: 6mm 6mm; }
+.ask .a.yes { background: #d3ff02; }
+.ask .a .ans { font-size: 7.4pt; letter-spacing: .22em; text-transform: uppercase;
+  font-weight: 700; color: #666666; }
+.ask .a.yes .ans { color: rgba(17,17,17,.6); }
+.ask .a .hd { font-size: 15pt; font-weight: 700; letter-spacing: -.03em; margin: 1mm 0 2.5mm; }
+.ask .a .do { font-size: 9.6pt; line-height: 1.5; font-weight: 600; }
+.ask .a ul { margin: 4mm 0 0; padding: 0; list-style: none; }
+.ask .a li { font-size: 8.8pt; line-height: 1.45; padding-left: 12px; position: relative;
+  margin-bottom: 1.6mm; color: #111111; }
+.ask .a li::before { content: ''; position: absolute; left: 0; top: .55em; width: 5px;
+  height: 5px; background: #111111; }
+.ask .a.no li::before { background: rgba(0,0,0,0.10); }
+
+/* ── The clock across a day, and the week. ───────────────────────────────────────── */
+.clock { display: grid; grid-template-columns: 8fr 1fr 8fr 6fr 1fr; height: 9mm;
+  border: 1px solid #111111; margin-bottom: 2.5mm; }
+.clock > div { display: flex; align-items: center; justify-content: center; font-size: 7.4pt;
+  letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: #666666;
+  border-right: 1px solid rgba(0,0,0,0.10); }
+.clock > div:last-child { border-right: 0; }
+.clock .office { background: #111111; color: #f6f3ef; }
+.clock .call { background: #d3ff02; color: #111111; }
+.clock-key { display: flex; justify-content: space-between; font-size: 7.6pt; color: #666666;
+  letter-spacing: .06em; margin-bottom: 8mm; padding: 0 1mm; }
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2mm; break-inside: avoid; }
+.week .d { border: 1px solid #111111; padding: 3mm 3mm 3.5mm; min-height: 34mm; }
+.week .d .n { font-size: 7.6pt; letter-spacing: .2em; text-transform: uppercase;
+  font-weight: 700; color: #666666; margin-bottom: 2.5mm; }
+.week .blk { font-size: 7.6pt; font-weight: 700; padding: 1.4mm 2mm; margin-bottom: 1.5mm;
+  line-height: 1.3; letter-spacing: -.01em; }
+.week .blk.office { background: #111111; color: #f6f3ef; }
+.week .blk.call { background: #d3ff02; color: #111111; }
+.week .blk.off { border: 1px dashed rgba(0,0,0,0.10); color: #666666; font-weight: 600; }
+.week .d .note { font-size: 7.4pt; color: #666666; margin-top: 2mm; line-height: 1.35; }
+
+/* ── How a campaign runs: eight stages, four checks. ─────────────────────────────── */
+.stages { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #111111;
+  break-inside: avoid; }
+.stages .st { padding: 4.5mm 4.5mm 5mm; border-right: 1px solid rgba(0,0,0,0.10);
+  border-bottom: 1px solid rgba(0,0,0,0.10); min-height: 42mm; display: flex; flex-direction: column; }
+.stages .st:nth-child(4n) { border-right: 0; }
+.stages .st:nth-last-child(-n+4) { border-bottom: 0; }
+.stages .st .top { display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 2.5mm; }
+.stages .st .n { width: 7mm; height: 7mm; background: #111111; color: #f6f3ef;
+  display: flex; align-items: center; justify-content: center; font-weight: 800;
+  font-size: 9pt; }
+.stages .st .t { background: #d3ff02; font-weight: 800; font-size: 8.4pt; padding: 1px 6px; }
+.stages .st .t.client { background: #ffffff; border: 1px solid #111111; font-weight: 700; }
+.stages .st .wt { font-weight: 700; font-size: 12pt; letter-spacing: -.03em; line-height: 1.15; }
+.stages .st .who { font-size: 7pt; letter-spacing: .16em; text-transform: uppercase;
+  font-weight: 700; color: #666666; margin: 1.2mm 0 2mm; }
+.stages .st .x { font-size: 8.6pt; line-height: 1.45; color: #111111; }
+.stages .st .chk { margin-top: auto; padding-top: 2.5mm; font-size: 7.8pt; line-height: 1.4;
+  color: #666666; display: flex; gap: 5px; align-items: flex-start; }
+.stages .st .chk .ic { color: #111111; flex: none; margin-top: .15em; }
+.stages .st .chk b { color: #111111; }
+
+/* ── Bars: fastest brief to first post. ──────────────────────────────────────────── */
+.bars { break-inside: avoid; }
+.bars .row { display: grid; grid-template-columns: 34mm 1fr 18mm; align-items: center;
+  gap: 4mm; margin-bottom: 2.5mm; font-size: 9.2pt; }
+.bars .row .lab { font-weight: 700; letter-spacing: -.01em; }
+.bars .row .bar { height: 7mm; background: #f5f5f5; border: 1px solid rgba(0,0,0,0.10); position: relative; }
+.bars .row .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: #d3ff02; }
+.bars .row .v { font-weight: 800; text-align: right; letter-spacing: -.02em; }
+.bars .axis { display: grid; grid-template-columns: 34mm 1fr 18mm; gap: 4mm; font-size: 7.4pt;
+  color: #666666; letter-spacing: .06em; }
+.bars .axis .ticks { display: flex; justify-content: space-between; }
+
+/* ── The month strip. ────────────────────────────────────────────────────────────── */
+.cal { display: grid; grid-template-columns: repeat(32, 1fr); border: 1px solid #111111;
+  break-inside: avoid; margin-bottom: 3mm; }
+.cal .c { height: 8mm; display: flex; align-items: center; justify-content: center;
+  font-size: 6.6pt; color: #666666; border-right: 1px solid rgba(0,0,0,0.10); font-weight: 600; }
+.cal .c:last-child { border-right: 0; }
+.cal .c.on { background: #d3ff02; color: #111111; font-weight: 800; }
+.cal .c.live { background: #111111; color: #f6f3ef; font-weight: 800; }
+.cal-key { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; margin-bottom: 8mm; }
+.cal-key .k { border-top: 2px solid #111111; padding-top: 2mm; font-size: 8.6pt; line-height: 1.4; }
+.cal-key .k b { display: block; font-size: 10.5pt; letter-spacing: -.02em; }
+
+/* ── Escalation: three levels, and the quiet-creator ladder. ─────────────────────── */
+.levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; break-inside: avoid; }
+.levels .lv { border: 1px solid #111111; padding: 5mm 5.5mm 5.5mm; display: flex;
+  flex-direction: column; min-height: 52mm; }
+.levels .lv:nth-child(2) { border-top: 6px solid #d3ff02; }
+.levels .lv:nth-child(3) { border-top: 6px solid #111111; }
+.levels .lv .n { font-size: 7.4pt; letter-spacing: .22em; text-transform: uppercase;
+  color: #666666; font-weight: 700; }
+.levels .lv .w { font-size: 13pt; font-weight: 700; letter-spacing: -.03em; margin: 1mm 0 2.5mm;
+  line-height: 1.15; }
+.levels .lv .x { font-size: 9pt; line-height: 1.5; color: #111111; }
+.levels .lv .t { margin-top: auto; padding-top: 4mm; font-size: 8pt; color: #666666;
+  letter-spacing: .06em; text-transform: uppercase; font-weight: 700; }
+.levels .lv .t b { display: inline-block; background: #d3ff02; color: #111111; padding: 1px 7px;
+  font-size: 9.5pt; letter-spacing: 0; text-transform: none; margin-left: 4px; }
+.ladder { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid #111111;
+  break-inside: avoid; }
+.ladder .s { padding: 4.5mm 5mm; border-right: 1px solid rgba(0,0,0,0.10); position: relative; }
+.ladder .s:last-child { border-right: 0; }
+.ladder .s .h { font-size: 14pt; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+.ladder .s .h small { font-size: 7.4pt; letter-spacing: .16em; text-transform: uppercase;
+  color: #666666; font-weight: 700; margin-left: 2px; }
+.ladder .s .w { font-weight: 700; font-size: 10.2pt; margin: 2.5mm 0 1mm; letter-spacing: -.02em; }
+.ladder .s .x { font-size: 8.6pt; color: #666666; line-height: 1.45; }
+.ladder .s:last-child { background: #d3ff02; }
+.ladder .s:last-child .x { color: #111111; }
+
+/* ── Eight writing rules, as cards. ──────────────────────────────────────────────── */
+.eight { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; break-inside: avoid; }
+.eight .e { border: 1px solid rgba(0,0,0,0.10); border-top: 3px solid #111111; padding: 4mm 4mm 4.5mm;
+  min-height: 34mm; }
+.eight .e .n { font-size: 7.2pt; letter-spacing: .2em; font-weight: 700; color: #666666; }
+.eight .e .w { font-weight: 700; font-size: 10.4pt; letter-spacing: -.025em; line-height: 1.2;
+  margin: 1.5mm 0 2mm; }
+.eight .e .x { font-size: 8.6pt; color: #666666; line-height: 1.45; }
+.eight .e .x em { color: #111111; }
+
+/* ── Columns of checks. ──────────────────────────────────────────────────────────── */
+.cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; break-inside: avoid; }
+.cols .col { border: 1px solid rgba(0,0,0,0.10); padding: 5mm 5.5mm; }
+.cols .col.on { border-color: #111111; border-top: 4px solid #d3ff02; }
+.cols .col.off { border-color: #111111; border-top: 4px solid #111111; }
+.cols .ttl { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 10.2pt;
+  margin-bottom: 3.5mm; letter-spacing: -.02em; }
+.cols ul { margin: 0; padding: 0; list-style: none; }
+.cols li { font-size: 9.2pt; line-height: 1.55; margin-bottom: 2.6mm; padding-left: 14px;
+  position: relative; }
+.cols li:last-child { margin-bottom: 0; }
+.cols li::before { content: ''; position: absolute; left: 0; top: .6em; width: 6px; height: 6px;
+  background: #d3ff02; }
+.cols .col.off li::before { background: #111111; }
+
+/* ── Scout: swimlane, pace, roster rows. ─────────────────────────────────────────── */
+.lanes { display: block; width: 100%; height: auto; border: 1px solid #111111; }
+.lkey { display: flex; flex-wrap: wrap; gap: 2mm 6mm; font-size: 8.4pt; color: #666666;
+  margin: 3mm 0 7mm; }
+.lkey span { display: inline-flex; align-items: center; gap: 6px; }
+.lkey i { width: 12px; height: 8px; display: inline-block; }
+.lkey i.lime { background: #d3ff02; }
+.lkey i.out { border: 1px solid #111111; }
+.lkey i.dash { border: 1px dashed #111111; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; break-inside: avoid; }
+.stats .s { border: 1px solid rgba(0,0,0,0.10); padding: 2.6mm 3.5mm; }
+.stats .s .b { font-size: 12.5pt; font-weight: 800; letter-spacing: -.035em; line-height: 1; }
+.stats .s .x { font-size: 7.6pt; color: #666666; margin-top: 1.2mm; line-height: 1.35; }
+.rest { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 3mm 0 0; }
+.rest .chip { border: 1px solid rgba(0,0,0,0.10); padding: 2px 8px; font-size: 8.6pt; font-weight: 700; }
+.rest .chip.act { background: #d3ff02; border-color: #d3ff02; }
+.rest .sep { color: #9c9ca4; display: flex; }
+.yours { border: 1px solid #111111; border-left: 5px solid #d3ff02; padding: 5mm 6mm; break-inside: avoid; }
+.grid2, .stats { break-inside: avoid; }
+.yours ol.steps > li { margin-bottom: 1.8mm; }
+.yours .ttl { font-weight: 700; font-size: 11pt; letter-spacing: -.02em; margin-bottom: 3mm;
+  display: flex; align-items: center; gap: 8px; }
+.warn { display: flex; gap: 8px; align-items: flex-start; font-size: 9pt; font-weight: 700;
+  margin-top: 5mm; }
+.warn .ic { flex: none; margin-top: .2em; }
+
+/* ── The training checklist. ─────────────────────────────────────────────────────── */
+.chk { columns: 2; column-gap: 10mm; }
+.chk .blk { break-inside: avoid; margin-bottom: 5mm; }
+.chk .blk .lbl { font-size: 7.6pt; letter-spacing: .22em; text-transform: uppercase;
+  font-weight: 700; margin-bottom: 2mm; display: flex; align-items: center; gap: 8px; }
+.chk .blk .lbl::before { content: ''; width: 16px; height: 7px; background: #d3ff02; }
+.chk ul { margin: 0; padding: 0; list-style: none; }
+.chk li { font-size: 8.6pt; line-height: 1.4; padding-left: 16px; position: relative;
+  margin-bottom: 1.4mm; }
+.chk li::before { content: ''; position: absolute; left: 0; top: .25em; width: 8px; height: 8px;
+  border: 1px solid #111111; }
+
+.plain { margin: 0; padding-left: 16px; font-size: 9.2pt; line-height: 1.55; }
+.plain li { margin-bottom: 1.2mm; }
+.tb .path { margin: 0; }
+.tb .path .chip { font-size: 8pt; padding: 2px 6px; }
+.stages .path .chip { font-size: 7.6pt; padding: 1px 5px; }
+</style></head><body>
   <div class="cover">
     <div class="brand"><span class="dot"></span>Following</div>
-    <div class="contents">
-      <div class="lbl">Inside</div>
-      <ol><li>How a day goes</li><li>Where your work sits</li><li>The screen you will live in</li><li>Where things live</li><li>What you actually do</li><li>A real one, start to finish</li><li>Right and wrong</li><li>Words we use</li><li>Rules that cost money</li></ol>
+    <div class="contents"><div class="two">
+      <div><div class="lbl">How we work</div><ol><li>The team</li><li>Handoffs</li><li>Urgent or not</li><li>Hours</li><li>Evenings and weekends</li><li>How a campaign runs</li><li>Our turnaround times</li><li>The client’s times</li><li>The month</li><li>Store visits</li><li>Approvals</li><li>Barter and paid</li><li>Escalation</li><li>Writing to clients</li><li>The wall</li><li>Words we use</li></ol></div>
+      <div><div class="lbl">Your desk</div><ol><li>How a day goes, and where your work sits</li><li>The screen you will live in</li><li>Where things live</li><li>What you actually do</li><li>A real one, start to finish</li><li>Right and wrong</li><li>Rules that cost money</li><li>Quick card</li></ol></div>
+    </div></div>
+    <div class="mid">
+      <div class="kicker">Team manual · FOL-OPS-SOP-001 v1.5</div>
+      <h1>Account Management</h1>
+      <p class="for"><span class="ser">The client’s whole experience of us</span></p>
+      <p class="lede">How we work, in one book: who talks to the client, what moves between us and when, the turnaround times we promise, and then your desk: you own the client. You know what they bought, what they are owed, and what they have been told, and you tell them before they have to ask.</p>
     </div>
+    <div class="foot">
+      <div><div class="who">Following FZC</div>Internal, not for clients</div>
+      <div>16 November 2026</div>
+    </div>
+  </div><section>
+    <div class="opener"><span class="n">01 · The team</span><span class="bar"></span></div><h2>Who does what, and who talks to the <em>client</em></h2><p class="sub">Every client has one Account Manager, one Talent Manager and one BDM. Only the AM talks to the client. Everyone else talks to the AM.</p>
+    <div class="seats">
+      <div class="seat"><span class="ab">CEO</span>
+        <div class="nm">CEO</div><div class="man">The Founder &amp; CEO manual</div><div class="own"><strong>Client, quality, money.</strong> Sends every proposal and quote. Raises and records invoices. Level 2 for clients.</div></div>
+      <div class="seat"><span class="ab">HT</span>
+        <div class="nm">Head of Talent</div><div class="man">The Co-Founder manual</div><div class="own"><strong>Creator escalations.</strong> Prices rosters, gives each campaign to a talent manager, releases money. Level 2 for creators.</div></div>
+      <div class="seat"><span class="ab">BDM</span>
+        <div class="nm">Business Development</div><div class="man">The Business Development manual</div><div class="own"><strong>Agreements and scope changes.</strong> Brings the brand in, hands over in writing, explains barter against paid at kickoff.</div></div>
+      <div class="seat"><span class="ab">AM</span>
+        <div class="nm">Account Manager</div><div class="man">The Account Management manual</div><div class="own"><strong>Timelines, quality, reports.</strong> The only person who talks to the client. One per client. Logs every ask as a Request.</div></div>
+      <div class="seat"><span class="ab">TM</span>
+        <div class="nm">Talent Manager</div><div class="man">The Talent manual</div><div class="own"><strong>Creators, contracts, drafts.</strong> Sources and prices, sends enrolment links, chases content, prepares payments.</div></div>
+      <div class="seat client"><span class="ab">C</span>
+        <div class="nm">Client</div><div class="man">Pages C1 and C2 of the SOP</div><div class="own"><strong>One named approver.</strong> Confirms the list once, inside the proposal. One round of feedback per draft.</div></div>
+    </div>
+    <p class="note gap">Solid lines in the SOP show reporting and escalation; the arrows show daily coordination in the internal ops group. The AM and the TM go through open items at 09:30 every day. The BDM joins on Mondays.</p>
+  </section><section>
+    <div class="opener"><span class="n">02 · Handoffs</span><span class="bar"></span></div><h2>What moves between us, and where it <em>lands</em></h2><p class="sub">Done in the internal ops group, never in the client group. Each handoff has a screen. If it is not on that screen, the next person cannot see it.</p>
+    
+  <div class="tb " style="--c: 1.3fr .6fr 19mm 1.2fr">
+    <div class="h"><span>What</span><span>From, to</span><span>When</span><span>Where it lands</span></div>
+    <div class="r"><span class="k">Handover note<small>Scope, budget, dates, payment terms, brand rules, handles.</small></span><span class="who"><b>BDM</b> → AM, TM</span><span><span class="t">Day of signing</span></span><span><div class="path"><span class="lbl"></span><span class="chip start">Clients</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Brands</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open the brand</span></div></span></div><div class="r"><span class="k">Full brief<small>With the creator requirements. The brand writes it; the CEO sets it up and presses Ask talent.</small></span><span class="who"><b>AM</b> → CEO, then TM</span><span><span class="t">2 hours</span></span><span><div class="path"><span class="lbl"></span><span class="chip start">Clients</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Sales</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Ask talent</span></div></span></div><div class="r"><span class="k">Shortlist ready<small>Priced on the roster and sent up. The CEO sends it to the client as a proposal.</small></span><span class="who"><b>TM</b> → CEO</span><span><span class="t">Page 07</span></span><span><div class="path"><span class="lbl"></span><span class="chip start">Creators</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Rosters</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Send for review</span></div></span></div><div class="r"><span class="k">Client confirmed the list<small>The client confirms inside the proposal. The platform tells everyone; nobody forwards an email.</small></span><span class="who"><b>Platform</b> → AM, TM, BDM</span><span><span class="t">1 hour</span></span><span><div class="path"><span class="lbl"></span><span class="chip start">Clients</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Quotes</span></div></span></div><div class="r"><span class="k">Creator details, drafts, risks<small>Every creator on their rung, every draft on the campaign.</small></span><span class="who"><b>TM</b> → AM</span><span><span class="t">1 hour</span></span><span><div class="path"><span class="lbl"></span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Delivery</span></div></span></div><div class="r"><span class="k">Scope, rate or deliverable change<small>Asked for by the client. Raised as a Request the same day, whoever heard it.</small></span><span class="who"><b>AM</b> → BDM</span><span><span class="t">Same day</span></span><span><div class="path"><span class="lbl"></span><span class="chip start">Requests</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Raise one</span></div></span></div><div class="r"><span class="k">Payment status<small>Post, or hold. Only the CEO raises and records invoices.</small></span><span class="who"><b>CEO</b> → AM</span><span><span class="t">Every Monday</span></span><span><div class="path"><span class="lbl"></span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Money</span></div></span></div>
+  </div>
+  </section><section>
+    <div class="opener"><span class="n">03 · Urgent or not</span><span class="bar"></span></div><h2>Clients will call many things <em>urgent</em></h2><p class="sub">Ask one question. The answer sets the reply time, and nothing else does.</p>
+    <div class="ask">
+      <div class="q"><div class="lbl">The one question</div><div class="big">Will a visit or a post suffer if this waits until 09:00 tomorrow?</div>
+        <div class="s">A new request arrives in the client group. Whoever reads it answers it, then asks this.</div></div>
+      <div class="a yes"><div class="ans">Yes</div><div class="hd">Urgent</div><div class="do">Drop planned work. Reply in 15 to 30 minutes.</div>
+        <ul><li>A creator is at the store and something is wrong</li><li>A mistake on a post that is live</li><li>Tomorrow’s post or visit is blocked</li><li>A creator is unreachable on a live day</li><li>Wrong claim, wrong product, bad comments</li></ul></div>
+      <div class="a no"><div class="ans">No</div><div class="hd">Not urgent</div><div class="do">Reply in 15 minutes with a time. Deliver within our times.</div>
+        <ul><li>A new shortlist or more options</li><li>Scripts, changes, new ideas</li><li>Reports, insights, screenshots</li><li>Changes to next week’s plan</li><li>Invoices and payments, by email</li></ul></div>
+    </div>
+    <div class="yours gap2"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg> Then log it, the same day</div>
+      <p style="margin:0 0 3mm;font-size:9.6pt;line-height:1.6">Every client request is raised on the platform as a <strong>Request</strong> the same day, whoever answers it. Answer the client first, as a person. Then log it, so somebody owns it and a date exists.</p>
+      <div class="path"><span class="lbl">Go to</span><span class="chip start">Requests</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Raise one</span></div></div>
+  </section><section>
+    <div class="opener"><span class="n">04 · Hours</span><span class="bar"></span></div><h2>What gets answered after 17:00, and how <em>fast</em></h2><p class="sub">Office hours are 09:00 to 17:00, Monday to Friday. One Account Manager is on call until 23:00 and at weekends. Everyone else is off.</p>
+    <div class="clock"><div>Off</div><div></div><div class="office">Office 09:00 to 17:00</div><div class="call">On call to 23:00</div><div></div></div>
+    <div class="clock-key"><span>00:00</span><span>08:00</span><span>09:00</span><span>17:00</span><span>23:00</span></div>
+    
+  <div class="tb tight" style="--c: 20mm 1fr 20mm 26mm 30mm">
+    <div class="h"><span>Type</span><span>What it is</span><span>Office hours</span><span>On call, to 23:00</span><span>23:00 to 08:00</span></div>
+    <div class="r"><span class="k">Live</span><span class="m">A creator at the store, a post going live, an error on a live post</span><span><span class="t">30 min</span></span><span><span class="t">30 min</span></span><span class="m">Agreed launches only</span></div><div class="r"><span class="k">Urgent</span><span class="m">Tomorrow’s visit or post is blocked</span><span><span class="t">15 min</span></span><span><span class="t">1 hour</span></span><span class="m">By 09:00</span></div><div class="r"><span class="k">Planned</span><span class="m">Shortlists, scripts, reports</span><span><span class="t">15 min</span></span><span><span class="t">Next day, 12:00</span></span><span class="m">Next working day</span></div><div class="r"><span class="k">Money</span><span class="m">Invoices, payments, rates, agreements</span><span><span class="t">Same day</span></span><span><span class="t">Next working day</span></span><span class="m">Next working day</span></div>
+  </div>
+    <p class="note">Planned items seen after hours get a reply with a time. The work is delivered the next working day by 12:00.</p>
+  </section><section>
+    <div class="opener"><span class="n">05 · Cover</span><span class="bar"></span></div><h2>Evenings and <em>weekends</em></h2><p class="sub">One Account Manager is on call. Everyone else is off. The rota is posted on Thursday; Friday 16:00 is the handover.</p>
+    <h3 class="lbl">The week</h3>
+    <div class="week">
+      <div class="d"><div class="n">Mon</div><div class="blk office">Office<br>09 to 17</div><div class="blk call">On call<br>to 23:00</div>
+        </div>
+      <div class="d"><div class="n">Tue</div><div class="blk office">Office<br>09 to 17</div><div class="blk call">On call<br>to 23:00</div>
+        </div>
+      <div class="d"><div class="n">Wed</div><div class="blk office">Office<br>09 to 17</div><div class="blk call">On call<br>to 23:00</div>
+        </div>
+      <div class="d"><div class="n">Thu</div><div class="blk office">Office<br>09 to 17</div><div class="blk call">On call<br>to 23:00</div>
+        <div class="note">Rota posted</div></div>
+      <div class="d"><div class="n">Fri</div><div class="blk office">Office<br>09 to 17</div><div class="blk call">On call<br>to 23:00</div>
+        <div class="note">16:00 handover</div></div>
+      <div class="d"><div class="n">Sat</div><div class="blk call">On call<br>08 to 23</div><div class="blk off">Everyone else off</div>
+        </div>
+      <div class="d"><div class="n">Sun</div><div class="blk call">On call<br>08 to 23</div><div class="blk off">Everyone else off</div>
+        </div>
+    </div>
+    <div class="cols gap">
+      <div class="col on"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg> The on-call AM</div><ul><li>Covers every client. Checks all groups: weekdays 19:00 and 21:30; weekends 10:00, 14:00, 18:00, 21:30.</li><li>Handles live and urgent. Planned work gets a time, and is delivered the next working day by 12:00.</li><li>Logs after-hours work on the platform the next morning: the rung moved, the Request raised.</li></ul></div>
+      <div class="col"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg> Friday 16:00 handover</div><ul><li>Weekend visits and posts, with contacts.</li><li>Approvals in hand and pending, read off each campaign’s Content tab.</li><li>Vouchers confirmed at branches.</li><li>Creators at risk, with backups, read off Chasing.</li></ul></div>
+      <div class="col"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg> Everyone else</div><ul><li>No replies expected after 17:00 or at weekends.</li><li>A talent manager takes calls only for their own creators’ visits.</li><li>After-hours work is logged the next morning.</li></ul></div>
+    </div>
+  </section><section>
+    <div class="opener"><span class="n">06 · The campaign</span><span class="bar"></span></div><h2>How a campaign <em>runs</em></h2><p class="sub">Eight stages, four checks. Outlined times are the client’s. A check must be done before the next stage starts. Under each stage, the screen it runs on.</p>
+    <div class="stages">
+      <div class="st"><div class="top"><span class="n">1</span><span class="t">2 hours</span></div>
+        <div class="wt">Brief</div><div class="who">AM</div><div class="x">The client sends the brief. The AM checks it is complete, then forwards it to the CEO.</div>
+        <div class="chk"><svg class="ic" width="12" height="12"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Check 1: brief complete before outreach.</span></div>
+        <div style="margin-top:2.5mm"><div class="path"><span class="lbl"></span><span class="chip start">Clients</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Sales</span></div></div></div>
+      <div class="st"><div class="top"><span class="n">2</span><span class="t">24 hours</span></div>
+        <div class="wt">Shortlist</div><div class="who">TM, CEO</div><div class="x">The TM sources and prices creators on the roster. The CEO sends the proposal.</div>
+        
+        <div style="margin-top:2.5mm"><div class="path"><span class="lbl"></span><span class="chip start">Creators</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Rosters</span></div></div></div>
+      <div class="st"><div class="top"><span class="n">3</span><span class="t client">24 hours</span></div>
+        <div class="wt">Selection</div><div class="who">Client</div><div class="x">The client confirms the full list once, inside the proposal.</div>
+        <div class="chk"><svg class="ic" width="12" height="12"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Check 2: list confirmed and agreement signed.</span></div>
+        <div style="margin-top:2.5mm"><div class="path"><span class="lbl"></span><span class="chip start">Clients</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Quotes</span></div></div></div>
+      <div class="st"><div class="top"><span class="n">4</span><span class="t">Same day</span></div>
+        <div class="wt">Contracts</div><div class="who">TM, CEO</div><div class="x">The TM sends each creator their enrolment link. The CEO sends the invoice.</div>
+        
+        <div style="margin-top:2.5mm"><div class="path"><span class="lbl"></span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Enrolments</span></div></div></div>
+      <div class="st"><div class="top"><span class="n">5</span><span class="t client">24 hours</span></div>
+        <div class="wt">Logistics</div><div class="who">Client, TM</div><div class="x">The client ships products or confirms visits. The TM gets creator details.</div>
+        
+        <div style="margin-top:2.5mm"><div class="path"><span class="lbl"></span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Delivery</span></div></div></div>
+      <div class="st"><div class="top"><span class="n">6</span><span class="t">3 days</span></div>
+        <div class="wt">Production</div><div class="who">TM, AM</div><div class="x">Scripts and shoot. The AM checks quality before the client sees anything.</div>
+        <div class="chk"><svg class="ic" width="12" height="12"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Check 3: our quality check before the client sees it.</span></div>
+        <div style="margin-top:2.5mm"><div class="path"><span class="lbl"></span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Content</span></div></div></div>
+      <div class="st"><div class="top"><span class="n">7</span><span class="t client">24 hours</span></div>
+        <div class="wt">Approval</div><div class="who">Client</div><div class="x">One round of feedback from one named person, inside the platform.</div>
+        <div class="chk"><svg class="ic" width="12" height="12"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Check 4: written go-ahead and posting date.</span></div>
+        <div style="margin-top:2.5mm"><div class="path"><span class="lbl"></span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Content</span></div></div></div>
+      <div class="st"><div class="top"><span class="n">8</span><span class="t">Client date</span></div>
+        <div class="wt">Live</div><div class="who">AM</div><div class="x">The link goes on the creator’s row and in the group within 1 hour. Results at 48 hours.</div>
+        
+        <div style="margin-top:2.5mm"><div class="path"><span class="lbl"></span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Performance</span></div></div></div>
+    </div>
+    <p class="note gap">If a step on the client’s side runs late, posting dates move by the same amount, confirmed in writing by the AM.</p>
+  </section><section>
+    <div class="opener"><span class="n">07 · Our times</span><span class="bar"></span></div><h2>Our turnaround <em>times</em></h2><p class="sub">Office hours unless live. Same day means by 17:00. These are promises to the client, so they are also what Chasing and Requests count against.</p>
+    <div class="grid2">
+      <div><h3 class="lbl">Replies and setup</h3>
+  <div class="tb tight" style="--c: 1fr 15mm 20mm">
+    
+    <div class="r"><span class="k">Reply with a time</span><span class="who">AM</span><span><span class="t">15 min</span></span></div><div class="r"><span class="k">Live issue</span><span class="who">AM</span><span><span class="t">30 min</span></span></div><div class="r"><span class="k">Profile, insights, address</span><span class="who">AM, TM</span><span><span class="t">2 hours</span></span></div><div class="r"><span class="k">Express shortlist, 6 creators</span><span class="who">TM</span><span><span class="t">4 hours</span></span></div><div class="r"><span class="k">Shortlist, 10 creators</span><span class="who">TM</span><span><span class="t">24 hours</span></span></div><div class="r"><span class="k">Bigger or multi-market</span><span class="who">TM</span><span><span class="t">48 hours</span></span></div><div class="r"><span class="k">Contracts and invoice</span><span class="who">TM, CEO</span><span><span class="t">Same day</span></span></div><div class="r"><span class="k">Creator details</span><span class="who">TM</span><span><span class="t">24 hours</span></span></div><div class="r"><span class="k">Month plan</span><span class="who">AM</span><span><span class="t">48 hours</span></span></div>
+  </div></div>
+      <div><h3 class="lbl">Content and results</h3>
+  <div class="tb tight" style="--c: 1fr 15mm 20mm">
+    
+    <div class="r"><span class="k">Drop-out: tell the client</span><span class="who">AM</span><span><span class="t">2 hours</span></span></div><div class="r"><span class="k">New options or replacements</span><span class="who">TM</span><span><span class="t">Same day</span></span></div><div class="r"><span class="k">Script or revision</span><span class="who">TM</span><span><span class="t">24 hours</span></span></div><div class="r"><span class="k">First video</span><span class="who">TM</span><span><span class="t">3 days</span></span></div><div class="r"><span class="k">Store-visit stories</span><span class="who">TM</span><span><span class="t">2 hours</span></span></div><div class="r"><span class="k">Fix a live post</span><span class="who">AM</span><span><span class="t">2 hours</span></span></div><div class="r"><span class="k">Post link, on the platform and in the group</span><span class="who">AM</span><span><span class="t">1 hour</span></span></div><div class="r"><span class="k">48-hour results</span><span class="who">AM</span><span><span class="t">Same day</span></span></div><div class="r"><span class="k">Weekly update</span><span class="who">AM</span><span><span class="t">Mon 12:00</span></span></div>
+  </div></div>
+    </div>
+  </section><section>
+    <div class="opener"><span class="n">08 · The client’s times</span><span class="bar"></span></div><h2>What we need from the client, and <em>when</em></h2><p class="sub">Agreed at kickoff. If the client is late, our dates move by the same amount, confirmed in writing.</p>
+    <div class="grid2">
+      <div>
+  <div class="tb tight" style="--c: 1fr 28mm">
+    <div class="h"><span>From the client</span><span>Time</span></div>
+    <div class="r"><span class="k">Complete brief, as on page C1</span><span><span class="t out">Before we start</span></span></div><div class="r"><span class="k">Brief changed after we start</span><span><span class="t out">Dates restart</span></span></div><div class="r"><span class="k">Next month’s calendar</span><span><span class="t out">By the 20th</span></span></div><div class="r"><span class="k">Choose creators</span><span><span class="t out">24 hours</span></span></div><div class="r"><span class="k">Confirm the full list</span><span><span class="t out">Once</span></span></div><div class="r"><span class="k">Confirm visit branch and time</span><span><span class="t out">Same day</span></span></div><div class="r"><span class="k">Ship products, with tracking</span><span><span class="t out">24 hours</span></span></div><div class="r"><span class="k">Approve scripts</span><span><span class="t out">Same day</span></span></div><div class="r"><span class="k">Approve videos</span><span><span class="t out">24 hours</span></span></div><div class="r"><span class="k">Agreement, PO and documents</span><span><span class="t out">48 hours</span></span></div>
+  </div></div>
+      <div>
+        <h3 class="lbl">Fastest brief to first post</h3>
+        <div class="bars"><div class="row"><span class="lab">Barter stories</span><span class="bar"><i style="width:40%"></i></span><span class="v">4 days</span></div><div class="row"><span class="lab">Store-visit videos</span><span class="bar"><i style="width:70%"></i></span><span class="v">7 days</span></div><div class="row"><span class="lab">Shipped videos</span><span class="bar"><i style="width:100%"></i></span><span class="v">10 days</span></div>
+          <div class="axis"><span></span><span class="ticks"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span></span><span>working days</span></div></div>
+        <div class="yours gap"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg> Less notice than this?</div>
+          <p style="margin:0;font-size:9.4pt;line-height:1.55">The AM replies within 15 minutes with what is possible, and raises it as a Request so the new date is on the record.</p></div>
+      </div>
+    </div>
+  </section><section>
+    <div class="opener"><span class="n">09 · The month</span><span class="bar"></span></div><h2>Monthly campaign <em>calendar</em></h2><p class="sub">For monthly and ongoing clients. Next month is locked by the 20th, so promotions do not arrive days before they start.</p>
+    <div class="cal"><div class="c ">1</div><div class="c ">2</div><div class="c ">3</div><div class="c ">4</div><div class="c ">5</div><div class="c ">6</div><div class="c ">7</div><div class="c ">8</div><div class="c ">9</div><div class="c ">10</div><div class="c ">11</div><div class="c ">12</div><div class="c ">13</div><div class="c ">14</div><div class="c on">15</div><div class="c ">16</div><div class="c ">17</div><div class="c ">18</div><div class="c ">19</div><div class="c on">20</div><div class="c ">21</div><div class="c on">22</div><div class="c ">23</div><div class="c ">24</div><div class="c ">25</div><div class="c ">26</div><div class="c ">27</div><div class="c ">28</div><div class="c ">29</div><div class="c ">30</div><div class="c ">31</div><div class="c live">1</div></div>
+    <div class="cal-key">
+      <div class="k"><b>15th</b>Reminder to the client.</div><div class="k"><b>20th</b>Calendar due from the client.</div>
+      <div class="k"><b>22nd</b>Month plan sent by the AM.</div><div class="k"><b>1st</b>Live.</div>
+    </div>
+    <div class="grid2">
+      <div class="cols" style="grid-template-columns:1fr"><div class="col on"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg> The client sends, by the 20th</div><ul><li>Each campaign, offer and goal</li><li>Start, end and posting dates</li><li>Branches, with allowed days and hours</li><li>Products, vouchers or menu items</li><li>Barter or paid, and the number of creators</li><li>Deliverables, key messages, handles</li></ul></div></div>
+      <div>
+  <div class="tb tight" style="--c: 1fr 34mm">
+    <div class="h"><span>Request outside the calendar</span><span>What happens</span></div>
+    <div class="r"><span class="k">Enough notice, as on page 08</span><span><span class="t out">Accepted</span></span></div><div class="r"><span class="k">Less notice</span><span><span class="t out">Options in 15 minutes</span></span></div><div class="r"><span class="k">Date or offer change, 3 or more working days out</span><span><span class="t out">Accepted</span></span></div><div class="r"><span class="k">Change inside 3 working days</span><span><span class="t out">Dates may move</span></span></div>
+  </div></div>
+    </div>
+  </section><section>
+    <div class="opener"><span class="n">10 · Store visits</span><span class="bar"></span></div><h2>Each step has an <em>owner</em></h2><p class="sub">Most live-day problems are branch, voucher or timing gaps. The visit plan goes out 48 hours ahead; the creator is on their rung on the campaign.</p>
+    
+  <div class="tb tight" style="--c: 1fr 24mm">
+    <div class="h"><span>Must be in the brief</span><span>Who</span></div>
+    <div class="r"><span class="k">Allowed branches, days and hours, and any blackout times</span><span class="who">Client</span></div><div class="r"><span class="k">Branch inside the allowed area before the plan goes out</span><span class="who">AM</span></div><div class="r"><span class="k">On the evening of the visit, a short summary of the day</span><span class="who">On-call AM</span></div>
+  </div>
+    <div class="gap"></div>
+    
+  <div class="tb " style="--c: 22mm 1fr 1fr">
+    <div class="h"><span>When</span><span>Following</span><span>Client</span></div>
+    <div class="r"><span class="k">48 hrs before</span><span><span class="who">AM</span><br>Visit plan: creator, branch, time.</span><span class="m"><span class="who">Same day</span><br>Confirms. No reply means the plan stands.</span></div><div class="r"><span class="k">24 hrs before</span><span><span class="who">TM, AM</span><br>Creator on track, recorded on the campaign.</span><span class="m">Branch ready: staff told, vouchers or products in place.</span></div><div class="r"><span class="k">Visit day</span><span><span class="who">TM</span><br>Issues raised within 30 minutes.</span><span class="m"></span></div><div class="r"><span class="k">2 hrs</span><span><span class="who">TM</span><br>Stories to the client.</span><span class="m">Approves stories.</span></div><div class="r"><span class="k">3 days</span><span><span class="who">TM, AM</span><br>Video draft, quality-checked on the Content tab.</span><span class="m"><span class="who">24 hrs</span><br>Approves the video.</span></div><div class="r"><span class="k">Posting</span><span><span class="who">AM</span><br>Link in 1 hour, on the creator’s row. Results at 48 hours.</span><span class="m"></span></div>
+  </div>
+    <div style="margin-top:5mm"><div class="path"><span class="lbl">Recorded on</span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Delivery</span></div></div>
+  </section><section>
+    <div class="opener"><span class="n">11 · Approvals</span><span class="bar"></span></div><h2>One round of feedback, from one <em>person</em></h2><p class="sub">Nothing goes live without a written go-ahead. The client answers inside the platform, and their yes moves the creator by itself.</p>
+    <div class="rest" style="margin:0 0 7mm"><span class="chip">Draft · TM, 3 days</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Quality check · AM, before the client</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Client review · 24 hours</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Approved · In writing</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Go-ahead · Date and time set</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Live · Link in 1 hour</span></div>
+    <div class="cols">
+      <div class="col on"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Approval rules</div><ul><li>Scripts approved the same day, videos within 24 hours.</li><li>One message of feedback per draft, from one named person.</li><li>Posting time shared with the client a day ahead.</li><li>Mistakes on a live post fixed within 2 hours, any day.</li><li>Changes: paid gets 2 rounds, barter gets small edits.</li></ul></div>
+      <div class="col off"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg> Counts as a new request</div><ul><li>New shots, products or messages after script approval.</li><li>Feedback after a draft is approved.</li><li>A second person’s comments after sign-off.</li><li>Each gets a new time, and may cost a creator fee.</li></ul></div>
+      <div class="yours"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3ZM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/></svg> Where it happens</div><p style="margin:0 0 3mm;font-size:9.2pt;line-height:1.55">The draft lives on the campaign’s <strong>Content</strong> tab. <strong>Send for review</strong> puts it in front of the client, who answers inside the platform. Their yes moves the creator’s rung on <strong>Delivery</strong> by itself.</p><div class="path"><span class="lbl">Go to</span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Content</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Send for review</span></div></div>
+    </div>
+  </section><section>
+    <div class="opener"><span class="n">12 · Barter and paid</span><span class="bar"></span></div><h2>Two ways a creator is <em>paid</em></h2><p class="sub">The client should know which one they bought.</p>
+    <p class="note" style="margin:0 0 6mm">The BDM explains the difference at kickoff, so the client knows what they bought. If a barter client needs specific profiles by a fixed date, the BDM offers paid creators for that part.</p>
+    
+  <div class="tb tight" style="--c: 1fr 1fr 1fr">
+    <div class="h"><span></span><span>Barter</span><span>Paid</span></div>
+    <div class="r"><span class="k">Creators are paid in</span><span class="m">Products or vouchers</span><span class="m">A fee, at a blended rate</span></div><div class="r"><span class="k">How creators are found</span><span class="m">They apply</span><span class="m">Hand-picked by talent, priced and sent by the CEO</span></div><div class="r"><span class="k">Nationality, language, niche</span><span class="m">Natural mix, not guaranteed</span><span class="m">Can be specified</span></div><div class="r"><span class="k">Followers</span><span class="m">As per the package</span><span class="m">As per the package</span></div><div class="r"><span class="k">Changes to content</span><span class="m">Small edits only</span><span class="m">2 rounds</span></div><div class="r"><span class="k">Analytics</span><span class="m">Light</span><span class="m">Detailed</span></div><div class="r"><span class="k">Proof of creator payment</span><span class="m">Not applicable</span><span class="m">On request</span></div>
+  </div>
+  </section><section>
+    <div class="opener"><span class="n">13 · Escalation</span><span class="bar"></span></div><h2>Each level has a trigger and a <em>time</em></h2><p class="sub">It follows the reporting lines on page 01. The quiet-creator ladder underneath is what Chasing counts.</p>
+    <div class="levels">
+      <div class="lv"><div class="n">Level 1</div><div class="w">Account team</div><div class="x">Led by the AM. Every request.</div><div class="t">Responds in <b>Our times</b></div></div>
+      <div class="lv"><div class="n">Level 2</div><div class="w">CEO or Head of Talent</div><div class="x">A time will be missed, the client has chased twice, or a quality complaint. CEO for clients, Head of Talent for creators.</div><div class="t">Responds in <b>1 hour</b></div></div>
+      <div class="lv"><div class="n">Level 3</div><div class="w">CEO and Head of Talent</div><div class="x">Cancellation, contract or payment dispute.</div><div class="t">Responds in <b>4 hours</b></div></div>
+    </div>
+    <h3 class="lbl gap2">When a creator goes quiet</h3>
+    <div class="ladder"><div class="s"><div class="h">0<small>hours</small></div><div class="w">Task due</div><div class="x">Brief and deadline sent. The row on Chasing starts counting.</div></div><div class="s"><div class="h">4<small>hours</small></div><div class="w">TM calls</div><div class="x">Call and message, logged on the creator’s row.</div></div><div class="s"><div class="h">24<small>hours</small></div><div class="w">Head of Talent</div><div class="x">Contacts the creator. The AM tells the client.</div></div><div class="s"><div class="h">48<small>hours</small></div><div class="w">Replace</div><div class="x">Two options to the client the same day, from the roster.</div></div></div>
+    <div style="margin-top:5mm"><div class="path"><span class="lbl">Counted on</span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Chasing</span></div></div>
+  </section><section>
+    <div class="opener"><span class="n">14 · Writing to clients</span><span class="bar"></span></div><h2>Eight rules for every <em>message</em></h2><p class="sub">And when we review as a team.</p>
+    <div class="eight"><div class="e"><div class="n">01</div><div class="w">Give a time, not “shortly”</div><div class="x">“Six profiles by 15:00 today.”</div></div><div class="e"><div class="n">02</div><div class="w">Late? Say so before the time passes</div><div class="x">New time, one line on why.</div></div><div class="e"><div class="n">03</div><div class="w">“Noted” is not a reply</div><div class="x">Say what happens next, and when.</div></div><div class="e"><div class="n">04</div><div class="w">Money and contracts by email</div><div class="x">Never in the client group.</div></div><div class="e"><div class="n">05</div><div class="w">Tight deadline? Reply in 15 minutes</div><div class="x">The fastest option and what it needs.</div></div><div class="e"><div class="n">06</div><div class="w">Creators talk to us, not the client</div><div class="x">Ask clients to send them back to us.</div></div><div class="e"><div class="n">07</div><div class="w">Calls on Google Meet, with an invite</div><div class="x">Recap with actions the same day.</div></div><div class="e"><div class="n">08</div><div class="w">Log it before you leave</div><div class="x">Anything a client asks for in the group is a Request on the platform the same day.</div></div></div>
+    <h3 class="lbl gap2">Reviews</h3>
+    
+  <div class="tb tight" style="--c: 26mm 48mm 1fr">
+    <div class="h"><span>Review</span><span>Who</span><span>What</span></div>
+    <div class="r"><span class="k">Daily 09:30</span><span class="who">AM, TM</span><span class="m">Open requests on the platform, quiet creators on Chasing.</span></div><div class="r"><span class="k">Thursday</span><span class="who">AMs</span><span class="m">Next week’s on-call rota.</span></div><div class="r"><span class="k">Friday 16:00</span><span class="who">CEO, Head of Talent, AMs, BDM</span><span class="m">Missed times, fixes, weekend handover.</span></div><div class="r"><span class="k">Monthly</span><span class="who">AM, BDM, Client</span><span class="m">Both sides’ times.</span></div><div class="r"><span class="k">Quarterly</span><span class="who">CEO</span><span class="m">Review this document.</span></div>
+  </div>
+  </section><section>
+    <div class="opener"><span class="n">15 · The wall</span><span class="bar"></span></div><h2>The TV in the <em>office</em></h2><p class="sub">It shows what the platform knows, about a second after it knows it. Nobody writes on it.</p>
+    <div class="cols">
+      <div class="col on"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2ZM17 2l-5 5-5-5"/></svg> What it shows</div><ul><li>Every live campaign as a row: who is briefed, who has content in, who has posted.</li><li>Whose move it is, with the faces. Yours is lit when it is you.</li><li>A celebration when a client confirms, a post goes live or a deal is won.</li><li>Everything else floats up for ten seconds and is gone.</li></ul></div>
+      <div class="col"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg> What puts it there</div><ul><li>You do. A rung moved, a link pasted, a request closed, a rate agreed.</li><li>Nothing is typed onto the wall and nobody can push to it. There is no button.</li><li>A thing that happened in WhatsApp and nowhere else does not exist to the wall.</li><li>If the room should see it, record it. The wall moves the same second.</li></ul></div>
+      <div class="col off"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg> Never money</div><ul><li>No fee, cost, margin or invoice on a team display.</li><li>Business development and the founders’ own work stay off it.</li><li>The wall is for the people delivering campaigns.</li></ul></div>
+    </div>
+    <div class="gap2">
+  <div class="tb " style="--c: 42mm 1fr">
+    
+    <div class="r"><span class="k">Pairing a TV</span><span class="m">The TV opens following.ae/tv and shows a six-digit code. A staff phone enters it and picks the display. The TV remembers it through power off and on.</span></div><div class="r"><span class="k">Choosing what a screen shows</span><span class="m">Admin, Company, Office displays. Each display is a scope: the team, or leadership.</span></div><div class="r"><span class="k">Playing a preview</span><span class="m">Office displays can play one on the paired TV so you see what the room sees.</span></div>
+  </div></div>
+  </section><section>
+    <div class="opener"><span class="n">16 · Vocabulary</span><span class="bar"></span></div><h2>Words we <em>use</em></h2><p class="sub">They mean something specific. A roster is not a list, and cost is not sell.</p>
+    
+  <div class="gloss"><div class="t"><div class="w">Brand</div><div class="d">A company we are talking to. Becomes a client when a deal is won.</div></div><div class="t"><div class="w">Client</div><div class="d">A brand that has bought something. They have an account and can log in.</div></div><div class="t"><div class="w">Deal</div><div class="d">One conversation about money. A brand can have many, over years.</div></div><div class="t"><div class="w">Campaign</div><div class="d">A deal that was won and opened. Real creators, real money.</div></div><div class="t"><div class="w">Roster</div><div class="d">The creators sourced for one brand, for its whole life. It replaced the sheet.</div></div><div class="t"><div class="w">Skip</div><div class="d">Not for this campaign. Still in the database; the reason follows them.</div></div><div class="t"><div class="w">Open call</div><div class="d">A campaign card creators answer on WhatsApp. The agent collects their price.</div></div><div class="t"><div class="w">ScoutOutreach</div><div class="d">Finds creators for a brief, screens them, and DMs or emails them.</div></div><div class="t"><div class="w">ScoutAI</div><div class="d">Talks to creators on Instagram or WhatsApp and puts their rate on the roster.</div></div><div class="t"><div class="w">Following Track</div><div class="d">Short links per creator. Clicks, carts and sales, shown to the brand once released.</div></div><div class="t"><div class="w">List</div><div class="d">A standing question: "fashion, UAE". Answers itself. Never client-specific.</div></div><div class="t"><div class="w">Cost</div><div class="d">What we pay a creator. Founders and talent only. Never shown to a brand.</div></div><div class="t"><div class="w">Sell</div><div class="d">What we charge a client. A creator with no sell price cannot be sold.</div></div><div class="t"><div class="w">Quoted cost</div><div class="d">What we assumed when pricing. Rarely what we end up paying.</div></div><div class="t"><div class="w">Agreed rate</div><div class="d">What a creator actually accepted. The only number that is real.</div></div><div class="t"><div class="w">Request</div><div class="d">Something somebody is waiting on, with an owner and a date.</div></div><div class="t"><div class="w">Proposal</div><div class="d">A priced roster the Founder &amp; CEO sends a client to choose from.</div></div><div class="t"><div class="w">Share link</div><div class="d">A /p/ link a client opens without logging in. Only the Founder &amp; CEO sends one.</div></div><div class="t"><div class="w">Enrolment link</div><div class="d">A founder creates it, talent sends it, the creator signs and gives their own bank.</div></div><div class="t"><div class="w">The ladder</div><div class="d">The rungs a booked creator climbs: briefed, content in, posted, paid.</div></div><div class="t"><div class="w">Held</div><div class="d">Stopped until a founder answers. Nothing has happened yet.</div></div><div class="t"><div class="w">Owner</div><div class="d">The one name on a creator, a request or a client. It decides whose Today it is on.</div></div><div class="t"><div class="w">The wall</div><div class="d">The office TV. It shows what the platform records, a second later. Never money. Nothing goes on it by hand.</div></div></div>
+  </section>
+  <div class="cover role">
+    <div class="brand"><span class="dot"></span>Following</div>
     <div class="mid">
       <div class="kicker">Role manual</div>
       <h1>Account Management</h1>
-      
       <p class="for"><span class="ser">The client’s whole experience of us</span></p>
       <p class="lede">You own the client. You know what they bought, what they are owed, and what they have been told, and you tell them before they have to ask.</p>
     </div>
     <div class="foot">
-      <div><div class="who">Following FZC</div>Internal, not for clients</div>
-      <div>7 November 2026</div>
+      <div><div class="who">Your desk</div>What you open, what you do, what to click</div>
+      <div>16 November 2026</div>
     </div>
-  </div>
-
-  <section class="fill">
-    <div class="opener"><span class="n">01 · Your day</span>
-  <span class="bar"></span></div>
-    <h2>How a day <em>goes</em></h2>
-    <p class="sub">Three moments. Everything else finds you.</p>
+  </div><section class="two">
+    <div class="opener"><span class="n">01 · Your day</span><span class="bar"></span></div><h2>How a day <em>goes</em></h2><p class="sub">Three moments. Everything else finds you.</p>
     
   <div class="tl">
     <div class="mo">
@@ -495,14 +993,7 @@ table.says .none { color: #9c9ca4; font-size: 8.6pt; }
       <ul><li>No client waiting on an answer from you overnight.</li><li>Anything you promised today is written down.</li></ul>
     </div>
   </div>
-  </section>
-
-  <section class="fill">
-    <div class="opener"><span class="n">02 · The whole flow</span>
-  <span class="bar"></span></div>
-    <h2>Where your work <em>sits</em></h2>
-    <p class="sub">Talent hands you a booked roster. You hand the client their content, their answers and their results.</p>
-    
+    <h3 class="sub2">Where your work sits</h3><p class="sub" style="margin-bottom:6mm">Talent hands you a booked roster. You hand the client their content, their answers and their results.</p>
   <div class="flow">
     <div class="st">
       <div class="who">Business dev</div>
@@ -538,23 +1029,11 @@ table.says .none { color: #9c9ca4; font-size: 8.6pt; }
     </div>
   </div>
   <p class="flow-key"><span class="sw"></span> Your part</p>
-  </section>
-
-  <section class="page-break">
-    <div class="opener"><span class="n">03 · Your screen</span>
-  <span class="bar"></span></div>
-    <h2>The screen you will live <em>in</em></h2>
-    <p class="sub">Drawn, not photographed, so it stays true when a button moves.
-      The numbers are explained underneath.</p>
-    
+  </section><section><div class="opener"><span class="n">02 · Your screen</span><span class="bar"></span></div><h2>The screen you will live <em>in</em></h2><p class="sub">Drawn, not photographed, so it stays true when a button moves. The numbers are explained underneath.</p>
   <div class="shot">
-    <div class="bar">
-      <span class="d"></span><span class="d"></span><span class="d"></span>
-      <span class="u">platform.following.ae/work/campaigns</span>
-    </div>
+    <div class="bar"><span class="d"></span><span class="d"></span><span class="d"></span><span class="u">platform.following.ae/work/campaigns</span></div>
     <div class="body">
       <div class="side">
-        
         <div class="it">Today</div>
         <div class="it">Waiting on me</div>
         <div class="it">Requests</div>
@@ -564,142 +1043,71 @@ table.says .none { color: #9c9ca4; font-size: 8.6pt; }
       </div>
       <div class="main">
         <div style="position:relative;display:inline-block">
-          <div class="h1">Lago Italian Wafers</div>
-          <div class="h2">Barakat Fresh · Running</div>
+          <div class="h1">Lago Italian Wafers</div><div class="h2">Barakat Fresh · Running</div>
           <span class="pin" style="top:-6px;right:-22px">1</span>
         </div>
         <div class="cards">
+          <div class="card" style="position:relative"><span class="pin" style="top:-7px;right:-7px">3</span>
+            <div class="k">Booked</div><div class="v">12</div><div class="s">of 12 confirmed</div></div>
           <div class="card" style="position:relative">
-            <span class="pin" style="top:-7px;right:-7px">3</span>
-            <div class="k">Booked</div>
-            <div class="v">12</div>
-            <div class="s">of 12 confirmed</div>
-          </div>
+            <div class="k">Delivered</div><div class="v">8</div><div class="s">2 waiting on the client</div></div>
           <div class="card" style="position:relative">
-            
-            <div class="k">Delivered</div>
-            <div class="v">8</div>
-            <div class="s">2 waiting on the client</div>
-          </div>
-          <div class="card" style="position:relative">
-            
-            <div class="k">Live</div>
-            <div class="v">5</div>
-            <div class="s">3 released to them</div>
-          </div>
+            <div class="k">Live</div><div class="v">5</div><div class="s">3 released to them</div></div>
         </div>
         <div class="rowz">
-          <div class="r" style="position:relative">
-            <span class="pin" style="top:50%;left:-8px;transform:translateY(-50%)">2</span>
-            <span class="nm">Story   Delivery   Content   Performance</span>
-            <span class="tag hot">the five tabs</span>
-          </div>
-          <div class="r" style="position:relative">
-            <span class="pin" style="top:50%;left:-8px;transform:translateY(-50%)">4</span>
-            <span class="nm">@tasha.tries.it  ·  content delivered</span>
-            <span class="tag">send to client</span>
-          </div>
-          <div class="r" style="position:relative">
-            <span class="pin" style="top:50%;left:-8px;transform:translateY(-50%)">5</span>
-            <span class="nm">@firaskazma  ·  posted</span>
-            <span class="tag">paste the link</span>
-          </div>
+          <div class="r" style="position:relative"><span class="pin" style="top:50%;left:-8px;transform:translateY(-50%)">2</span>
+            <span class="nm">Story   Delivery   Content   Performance</span><span class="tag hot">the five tabs</span></div>
+          <div class="r" style="position:relative"><span class="pin" style="top:50%;left:-8px;transform:translateY(-50%)">4</span>
+            <span class="nm">@tasha.tries.it  ·  content delivered</span><span class="tag">send to client</span></div>
+          <div class="r" style="position:relative"><span class="pin" style="top:50%;left:-8px;transform:translateY(-50%)">5</span>
+            <span class="nm">@firaskazma  ·  posted</span><span class="tag">paste the link</span></div>
         </div>
       </div>
     </div>
   </div>
-  <ul class="keys">
-    <li><span class="n">1</span><span>One campaign, five tabs. The campaign stays open while you move between them.</span></li>
-    <li><span class="n">2</span><span>Story is the whole history. Open it when somebody asks how we got here.</span></li>
-    <li><span class="n">3</span><span>Delivery is every creator and the rung they are on. This is your chasing list.</span></li>
-    <li><span class="n">4</span><span>Content is what they have filmed. You send it; the client approves it here.</span></li>
-    <li><span class="n">5</span><span>Performance is where you paste a live post. Leadership releases it to the client.</span></li>
-    <li><span class="n">6</span><span>Money is only there if you are allowed to see it. It is not part of your job.</span></li>
-  </ul>
-  </section>
-
-  <section class="fill">
-    <div class="opener"><span class="n">04 · The menu</span>
-  <span class="bar"></span></div>
-    <h2>Where things <em>live</em></h2>
-    <p class="sub">The menu down the left of the screen. This is all of it.</p>
-    
+  <ul class="keys"><li><span class="n">1</span><span>One campaign, five tabs. The campaign stays open while you move between them.</span></li><li><span class="n">2</span><span>Story is the whole history. Open it when somebody asks how we got here.</span></li><li><span class="n">3</span><span>Delivery is every creator and the rung they are on. This is your chasing list.</span></li><li><span class="n">4</span><span>Content is what they have filmed. You send it; the client approves it here.</span></li><li><span class="n">5</span><span>Performance is where you paste a live post. Leadership releases it to the client.</span></li><li><span class="n">6</span><span>Money is only there if you are allowed to see it. It is not part of your job.</span></li></ul></section><section><div class="opener"><span class="n">03 · The menu</span><span class="bar"></span></div><h2>Where things <em>live</em></h2><p class="sub">The menu down the left of the screen. This is all of it, for your login.</p>
   <div class="menu">
-    
-    
-      <div class="row">
-        <span class="nm"><svg class="ic" width="14" height="14"
+      <div class="row"><span class="nm"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Today</span>
-        <span class="ds">What your day is made of</span>
-      </div>
-      <div class="row">
-        <span class="nm"><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Today</span><span class="ds">What your day is made of</span></div>
+      <div class="row"><span class="nm"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>Decisions</span>
-        <span class="ds">Everything waiting on a decision from you</span>
-      </div>
-      <div class="row">
-        <span class="nm"><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></svg>Waiting on me</span><span class="ds">Everything waiting on a decision from you</span></div>
+      <div class="row"><span class="nm"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>Requests</span>
-        <span class="ds">What clients and colleagues have asked for</span>
-      </div>
-      <div class="row">
-        <span class="nm"><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>Requests</span><span class="ds">What clients and colleagues have asked for</span></div>
+      <div class="row"><span class="nm"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></svg>Guide</span>
-        <span class="ds">What every screen is for</span>
-      </div>
-    <div class="grp">Work</div>
-    
-      <div class="row">
-        <span class="nm"><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></svg>Guide</span><span class="ds">What every screen is for</span></div><div class="grp">Work</div>
+      <div class="row"><span class="nm"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1ZM9 14l2 2 4-4"/></svg>Pipeline</span>
-        <span class="ds">Every creator we owe something, and what happens next</span>
-      </div>
-      <div class="row">
-        <span class="nm"><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1ZM9 14l2 2 4-4"/></svg>Pipeline</span><span class="ds">Every creator we owe something, and what happens next</span></div>
+      <div class="row"><span class="nm"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18ZM6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>Clients</span>
-        <span class="ds">The brands we run</span>
-      </div>
-      <div class="row">
-        <span class="nm"><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18ZM6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>Clients</span><span class="ds">The brands we run</span></div>
+      <div class="row"><span class="nm"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Creators</span>
-        <span class="ds">The master database, with cost and sell pricing</span>
-      </div>
-      <div class="row">
-        <span class="nm"><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Creators</span><span class="ds">The master database, with cost and sell pricing</span></div>
+      <div class="row"><span class="nm"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3ZM11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Campaigns</span>
-        <span class="ds">Live work and where each creator has got to</span>
-      </div>
-      <div class="row">
-        <span class="nm"><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3ZM11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>Campaigns</span><span class="ds">Live work and where each creator has got to</span></div>
+      <div class="row"><span class="nm"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Affiliate links</span>
-        <span class="ds">Every campaign's short links, clicks and sales in one place</span>
-      </div>
+    stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Affiliate links</span><span class="ds">Every campaign's short links, clicks and sales in one place</span></div>
   </div>
-  </section>
-
-  <section class="page-break">
-    <div class="opener"><span class="n">05 · Your jobs</span>
-  <span class="bar"></span></div>
-    <h2>What you actually <em>do</em></h2>
-    <p class="sub">In order. The strip on each card is what to click, as you click it.</p>
-    
+  <div class="grid3 gap">
+    <div class="yours"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18ZM6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"/></svg> Admin, Company</div><ul class="plain"><li>Targets</li><li>Team</li><li>Displays</li></ul></div>
+    <div class="yours"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1Z"/></svg> Admin, Settings</div><p class="note" style="margin:0">Founders only. Users, Staff, Sending, WhatsApp, System, Images.</p></div>
+    <div class="yours"><div class="ttl"><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3ZM11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg> Inside a campaign</div><p class="note" style="margin:0">Story, Delivery, Content, Performance, Links. Money only for those allowed to see it.</p></div>
+  </div></section><section><div class="opener"><span class="n">04 · Your jobs</span><span class="bar"></span></div><h2>What you actually <em>do</em></h2><p class="sub">In order. The strip on each card is what to click, as you click it.</p>
   <div class="job">
-    <div class="top">
-      <span class="badge">1</span>
-      <div>
-        <h3>Turn a client ask into something that happens</h3>
-        <div class="when">Every time a client asks for anything.</div>
-      </div>
-    </div>
+    <div class="top"><span class="badge">1</span><div><h3>Turn a client ask into something that happens</h3><div class="when">Every time a client asks for anything.</div></div></div>
     <div class="path"><span class="lbl">Go to</span><span class="chip start">Requests</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Raise one</span></div>
@@ -709,13 +1117,19 @@ table.says .none { color: #9c9ca4; font-size: 8.6pt; }
     stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> You stop being the only person who remembers it.</span></div>
   </div>
   <div class="job">
-    <div class="top">
-      <span class="badge">2</span>
-      <div>
-        <h3>Send a client their results</h3>
-        <div class="when">Once their creators have posted.</div>
-      </div>
-    </div>
+    <div class="top"><span class="badge">2</span><div><h3>Keep the campaign true</h3><div class="when">Every time a creator moves: briefed, content in, approved, posted.</div></div></div>
+    <div class="path"><span class="lbl">Go to</span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Delivery</span></div>
+    <ol class="steps"><li>Move the creator’s rung the day it happens, not on Friday.</li><li>A post that is live gets its link on the row. The client’s results read from it.</li><li>A creator the client agreed who is not in our database yet: add them by hand, with their handle.</li><li>Your clients are the ones with your name on the client record. That is what fills your Today.</li></ol>
+    <div class="next"><svg class="ic" width="13" height="13"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> Talent chase from the same ladder, and the office wall shows it the moment it moves.</span></div>
+  </div>
+  <div class="job">
+    <div class="top"><span class="badge">3</span><div><h3>Send a client their results</h3><div class="when">Once their creators have posted.</div></div></div>
     <div class="path"><span class="lbl">Go to</span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
@@ -727,13 +1141,7 @@ table.says .none { color: #9c9ca4; font-size: 8.6pt; }
     stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> They get the roll-up across every post without you building a deck.</span></div>
   </div>
   <div class="job">
-    <div class="top">
-      <span class="badge">3</span>
-      <div>
-        <h3>Take the handover</h3>
-        <div class="when">When business development closes a brand and hands it to you.</div>
-      </div>
-    </div>
+    <div class="top"><span class="badge">4</span><div><h3>Take the handover</h3><div class="when">When business development closes a brand and hands it to you.</div></div></div>
     <div class="path"><span class="lbl">Go to</span><span class="chip start">Clients</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Brands</span></div>
@@ -743,13 +1151,7 @@ table.says .none { color: #9c9ca4; font-size: 8.6pt; }
     stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> You now own this brand. Everything about them comes to you.</span></div>
   </div>
   <div class="job">
-    <div class="top">
-      <span class="badge">4</span>
-      <div>
-        <h3>Review the content</h3>
-        <div class="when">When a creator’s row on Delivery reads "Content in".</div>
-      </div>
-    </div>
+    <div class="top"><span class="badge">5</span><div><h3>Review the content</h3><div class="when">When a creator’s row on Delivery reads "Content in".</div></div></div>
     <div class="path"><span class="lbl">Go to</span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip act">Open a campaign</span><span class="sep"><svg class="ic" width="11" height="11"
@@ -761,13 +1163,7 @@ table.says .none { color: #9c9ca4; font-size: 8.6pt; }
     stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> Approved content moves the creator to "get the post link".</span></div>
   </div>
   <div class="job">
-    <div class="top">
-      <span class="badge">5</span>
-      <div>
-        <h3>Follow the proposal, never send it</h3>
-        <div class="when">Once the Founder &amp; CEO has sent the client a proposal or a quote.</div>
-      </div>
-    </div>
+    <div class="top"><span class="badge">6</span><div><h3>Follow the proposal, never send it</h3><div class="when">Once the Founder &amp; CEO has sent the client a proposal or a quote.</div></div></div>
     <div class="path"><span class="lbl">Go to</span><span class="chip start">Clients</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Quotes</span></div>
@@ -777,107 +1173,28 @@ table.says .none { color: #9c9ca4; font-size: 8.6pt; }
     stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Next:</b> Confirming locks the creators they took. More later means Reopen, not a new proposal.</span></div>
   </div>
   <div class="job">
-    <div class="top">
-      <span class="badge">6</span>
-      <div>
-        <h3>Report on the campaign</h3>
-        <div class="when">During delivery, and again at the end.</div>
-      </div>
-    </div>
+    <div class="top"><span class="badge">7</span><div><h3>Report on the campaign</h3><div class="when">During delivery, and again at the end.</div></div></div>
     <div class="path"><span class="lbl">Go to</span><span class="chip start">Campaigns</span><span class="sep"><svg class="ic" width="11" height="11"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span><span class="chip">Reports</span></div>
     <ol class="steps"><li>Share what is live as it happens, not only at the end.</li><li>Send the write-up when the campaign finishes.</li><li>Nothing goes to a client automatically. You press send.</li></ol>
     
-  </div>
-  </section>
-
-  
-  
-
-  <section class="page-break">
-    <div class="opener"><span class="n">06 · A real one</span>
-  <span class="bar"></span></div>
-    <h2>A client asks for something on <em>WhatsApp</em></h2>
-    <p class="sub">One job, followed the whole way, with the real numbers.</p>
-    
+  </div></section><section><div class="opener"><span class="n">05 · A real one</span><span class="bar"></span></div><h2>A client asks for something on <em>WhatsApp</em></h2><p class="sub">One job, followed the whole way, with the real numbers.</p>
   <div class="story">
-    
     <div class="hd"><svg class="ic" width="15" height="15"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z"/></svg> <span>Start to finish</span></div>
-    <div class="bd">
-      <div class="beat"><div class="t">Mon 7pm</div><div class="x">Barakat messages you: they want three more creators for KSA, and they need to know by Thursday.</div></div>
-      <div class="beat"><div class="t">Mon 7pm</div><div class="x">Answer them. On WhatsApp, as a person, the way you always have. Nothing about that changes.</div></div>
-      <div class="beat"><div class="t">Mon 7pm</div><div class="x">Then raise it in <strong>Requests</strong>, in their words, ticked as <strong>a client asked for this</strong>, due Thursday.</div></div>
-      <div class="beat"><div class="t">Mon</div><div class="x">Leave the owner blank if you are not sure who should do it. Unclaimed is visible, and that is the point.</div></div>
-      <div class="beat"><div class="t">Tue</div><div class="x">Talent takes it. You can see that without asking.</div></div>
-      <div class="beat"><div class="t">Thu</div><div class="x">It is marked done and you are told. You tell the client they were right to expect it today.</div></div>
-      <div class="beat"><div class="t">After</div><div class="x">It is on the client’s record forever. In six months, when they ask what we did for them, it is still there.</div></div>
-    </div>
-  </div>
-  </section>
-
-  <section class="fill">
-    <div class="opener"><span class="n">07 · Right and wrong</span>
-  <span class="bar"></span></div>
-    <h2>What good looks <em>like</em></h2>
-    <p class="sub">Everything on the right has actually happened here and cost us
-      something.</p>
-    
+    <div class="bd"><div class="beat"><div class="t">Mon 7pm</div><div class="x">Barakat messages you: they want three more creators for KSA, and they need to know by Thursday.</div></div><div class="beat"><div class="t">Mon 7pm</div><div class="x">Answer them. On WhatsApp, as a person, the way you always have. Nothing about that changes.</div></div><div class="beat"><div class="t">Mon 7pm</div><div class="x">Then raise it in <strong>Requests</strong>, in their words, ticked as <strong>a client asked for this</strong>, due Thursday.</div></div><div class="beat"><div class="t">Mon</div><div class="x">Leave the owner blank if you are not sure who should do it. Unclaimed is visible, and that is the point.</div></div><div class="beat"><div class="t">Tue</div><div class="x">Talent takes it. You can see that without asking.</div></div><div class="beat"><div class="t">Thu</div><div class="x">It is marked done and you are told. You tell the client they were right to expect it today.</div></div><div class="beat"><div class="t">After</div><div class="x">It is on the client’s record forever. In six months, when they ask what we did for them, it is still there.</div></div></div>
+  </div></section><section class="fill"><div class="opener"><span class="n">06 · Right and wrong</span><span class="bar"></span></div><h2>What good looks <em>like</em></h2><p class="sub">Everything on the right has actually happened here and cost us something.</p>
   <div class="vs">
-    <div class="col good">
-      <div class="ttl"><svg class="ic" width="14" height="14"
+    <div class="col good"><div class="ttl"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> What good looks like</div>
-      <ul><li>The client hears from you on WhatsApp within the hour, as always.</li><li>Then it is raised as a request, with a date, so it is not only in your head.</li><li>Every promise you make goes on the client record the same day.</li><li>You chase from the Delivery tab, which shows who is actually late.</li><li>Results reach the client as a grid they can read, not a deck you built at midnight.</li></ul>
-    </div>
-    <div class="col bad">
-      <div class="ttl"><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> What good looks like</div><ul><li>The client hears from you on WhatsApp within the hour, as always.</li><li>Then it is raised as a request, with a date, so it is not only in your head.</li><li>Every promise you make goes on the client record the same day.</li><li>You chase from the Delivery tab, which shows who is actually late.</li><li>Results reach the client as a grid they can read, not a deck you built at midnight.</li></ul></div>
+    <div class="col bad"><div class="ttl"><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg> What has actually gone wrong</div>
-      <ul><li>Answering on WhatsApp and nothing else. You become the only person who knows, and the only person who can be ill.</li><li>Chasing from memory. The one you forget is always the one the client remembers.</li><li>Telling a client a date that talent has not agreed to.</li><li>Sending content to a client before it has been checked internally.</li><li>Building results by hand in a spreadsheet when the platform has already counted them.</li></ul>
-    </div>
-  </div>
-  </section>
-
-  <section class="page-break">
-    <div class="opener"><span class="n">08 · Vocabulary</span>
-  <span class="bar"></span></div>
-    <h2>Words we <em>use</em></h2>
-    <p class="sub">They mean something specific. A roster is not a list, and cost is not
-      sell.</p>
-    
-  <div class="gloss">
-    <div class="t"><div class="w">Brand</div><div class="d">A company we are talking to. Becomes a client when a deal is won.</div></div>
-    <div class="t"><div class="w">Client</div><div class="d">A brand that has bought something. They have an account and can log in.</div></div>
-    <div class="t"><div class="w">Deal</div><div class="d">One conversation about money. A brand can have many, over years.</div></div>
-    <div class="t"><div class="w">Campaign</div><div class="d">A deal that was won and opened. Real creators, real money.</div></div>
-    <div class="t"><div class="w">Roster</div><div class="d">The creators sourced for one brand, for its whole life. It replaced the sheet.</div></div>
-    <div class="t"><div class="w">Skip</div><div class="d">Not for this campaign. Still in the database; the reason follows them.</div></div>
-    <div class="t"><div class="w">Open call</div><div class="d">A campaign card creators answer on WhatsApp. The agent collects their price.</div></div>
-    <div class="t"><div class="w">Following Track</div><div class="d">Short links per creator. Clicks, carts and sales, shown to the brand once released.</div></div>
-    <div class="t"><div class="w">List</div><div class="d">A standing question: "fashion, UAE". Answers itself. Never client-specific.</div></div>
-    <div class="t"><div class="w">Cost</div><div class="d">What we pay a creator. Founders and talent only. Never shown to a brand.</div></div>
-    <div class="t"><div class="w">Sell</div><div class="d">What we charge a client. A creator with no sell price cannot be sold.</div></div>
-    <div class="t"><div class="w">Quoted cost</div><div class="d">What we assumed when pricing. Rarely what we end up paying.</div></div>
-    <div class="t"><div class="w">Agreed rate</div><div class="d">What a creator actually accepted. The only number that is real.</div></div>
-    <div class="t"><div class="w">Request</div><div class="d">Something somebody is waiting on, with an owner and a date.</div></div>
-    <div class="t"><div class="w">Proposal</div><div class="d">A priced roster the Founder &amp; CEO sends a client to choose from.</div></div>
-    <div class="t"><div class="w">Share link</div><div class="d">A /p/ link a client opens without logging in. Only the Founder &amp; CEO sends one.</div></div>
-    <div class="t"><div class="w">Enrolment link</div><div class="d">A founder creates it, talent sends it, the creator signs and gives their own bank.</div></div>
-    <div class="t"><div class="w">The ladder</div><div class="d">The rungs a booked creator climbs: briefed, content in, posted, paid.</div></div>
-    <div class="t"><div class="w">Held</div><div class="d">Stopped until a founder answers. Nothing has happened yet.</div></div>
-  </div>
-  </section>
-
-  <section class="fill">
-    <div class="opener"><span class="n">09 · The hard rules</span>
-  <span class="bar"></span></div>
-    <h2>Rules that cost <em>money</em></h2>
-    <p class="sub">Each one has already cost us something.</p>
-    <div class="rules"><ul>
-      <li><svg class="ic" width="14" height="14"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg> What has actually gone wrong</div><ul><li>Answering on WhatsApp and nothing else. You become the only person who knows, and the only person who can be ill.</li><li>Chasing from memory. The one you forget is always the one the client remembers.</li><li>Telling a client a date that talent has not agreed to.</li><li>Sending content to a client before it has been checked internally.</li><li>Building results by hand in a spreadsheet when the platform has already counted them.</li></ul></div>
+  </div></section><section class="fill"><div class="opener"><span class="n">07 · The hard rules</span><span class="bar"></span></div><h2>Rules that cost <em>money</em></h2><p class="sub">Each one has already cost us something.</p>
+    <div class="rules"><ul><li><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>You never see what a creator costs us. You sell. That is deliberate.</span></li><li><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
@@ -887,51 +1204,17 @@ table.says .none { color: #9c9ca4; font-size: 8.6pt; }
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
     stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>A promise made in email belongs on the client record the same day.</span></li><li><svg class="ic" width="14" height="14"
     viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>If a brand has gone quiet for a fortnight you will be told. Act on it.</span></li>
-    </ul></div>
-    
-    <div class="tail">
-      <p class="note">
-        Every screen in the platform is explained under <strong>Guide</strong> in the menu.
-        If something here does not match what you see, the product is right and this is out
-        of date. Say so and it gets reprinted.
-      </p>
-    </div>
+    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>If a brand has gone quiet for a fortnight you will be told. Act on it.</span></li><li><svg class="ic" width="14" height="14"
+    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+    stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 4.9l14.2 14.2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><span>The status sheet is retired. A creator’s rung lives on the campaign, moved the day it changes.</span></li></ul></div>
+    <div class="tail"><p class="note">Every screen in the platform is explained under <strong>Guide</strong> in the menu. If something here does not match what you see, the product is right and this is out of date. Say so and it gets reprinted.</p></div>
   </section>
-
-  
-  <div class="card-page">
-    <div class="qr">
-      <div class="hd">
-        <h2>Account Management</h2>
-        <span class="r">Quick card</span>
-      </div>
-      
-        <div class="blk">
-          <div class="lbl">Open first</div>
-          <ul><li>Requests. What clients are waiting on.</li><li>Then Today for the rest.</li></ul>
-        </div>
-        <div class="blk">
-          <div class="lbl">The one rule</div>
-          <ul><li>A client should never be the one chasing us.</li></ul>
-        </div>
-        <div class="blk">
-          <div class="lbl">Comms do not change</div>
-          <ul><li>WhatsApp and email, from you, as a person. Then write it down here.</li></ul>
-        </div>
-        <div class="blk">
-          <div class="lbl">Never</div>
-          <ul><li>Never send a client content nobody has checked.</li><li>Never quote a date talent has not agreed.</li></ul>
-        </div>
-        <div class="blk">
-          <div class="lbl">Results</div>
-          <ul><li>Paste the live post on Performance. Leadership releases it. The client sees the roll-up themselves.</li></ul>
-        </div>
-      <div class="foot">
-        <span>Following</span>
-        <span>Pin this up. The rest of the manual explains it.</span>
-      </div>
-    </div>
-  </div>
-
-</body></html>
+  <div class="card-page"><div class="qr">
+    <div class="hd"><h2>Account Management</h2><span class="r">Quick card</span></div>
+    <div class="blk"><div class="lbl">Open first</div><ul><li>Requests. What clients are waiting on.</li><li>Then Today for the rest.</li></ul></div><div class="blk"><div class="lbl">The one rule</div><ul><li>A client should never be the one chasing us.</li></ul></div><div class="blk"><div class="lbl">Comms do not change</div><ul><li>WhatsApp and email, from you, as a person. Then write it down here.</li></ul></div><div class="blk"><div class="lbl">Never</div><ul><li>Never send a client content nobody has checked.</li><li>Never quote a date talent has not agreed.</li></ul></div><div class="blk"><div class="lbl">Results</div><ul><li>Paste the live post on Performance. Leadership releases it. The client sees the roll-up themselves.</li></ul></div>
+    <div class="foot"><span>Following</span><span>Pin this up. The rest of the manual explains it.</span></div>
+  </div></div>
+  <section>
+    <div class="opener"><span class="n">Appendix · Training</span><span class="bar"></span></div><h2>The training <em>checklist</em></h2><p class="sub">One page for whoever runs the room. Tick as you go.</p>
+    <div class="chk"><div class="blk"><div class="lbl">Before the room</div><ul><li>Everyone’s login works; the Talent Executive’s account is new.</li><li>The office TV is paired and showing the team wall.</li><li>This document is printed, one per desk, their own role.</li></ul></div><div class="blk"><div class="lbl">Open</div><ul><li>One question: will a visit or a post suffer if it waits until 09:00? That is “urgent”.</li><li>Only the AM talks to the client. Everyone else talks to the AM.</li><li>If it is not on the platform it did not happen. WhatsApp is not a record.</li></ul></div><div class="blk"><div class="lbl">Everyone</div><ul><li>Today, then Waiting on me, then Requests. Show each one.</li><li>Raise a Request in the client’s words. Give it a date.</li><li>Put your name on a row. That is what stops two people doing it twice.</li><li>The wall: what puts a thing there is you recording it.</li></ul></div><div class="blk"><div class="lbl">Talent</div><ul><li>The roster is the sheet. Add creators, Add rate, Send for review.</li><li>An enrolment link is personal. Send it on WhatsApp the same day.</li><li>Chasing: who is late, who is quiet. The 0, 4, 24, 48 hour ladder.</li><li>Prepare a payment in Payables. Cash on barter is ours, the client never sees it.</li></ul></div><div class="blk"><div class="lbl">Account management</div><ul><li>Move the rung the day it happens. The status sheet is retired.</li><li>Content tab: Send for review. The client answers inside the platform.</li><li>Performance: paste the live link. Leadership releases it to the client.</li><li>You never send a proposal or a quote. The CEO does.</li></ul></div><div class="blk"><div class="lbl">Business development</div><ul><li>Partner leads, then Sales. A deal with no next step is not being worked.</li><li>The brief goes to the CEO the day it arrives. Ask talent before the deal closes.</li><li>Hand over in writing, on the brand record.</li></ul></div><div class="blk"><div class="lbl">Leadership</div><ul><li>Rates: price what clients have said yes to, first thing.</li><li>Pipeline: give each campaign one talent manager.</li><li>Waiting on me: nothing waits more than a day.</li><li>Money never blocks a payout. It informs the call.</li></ul></div><div class="blk"><div class="lbl">Close</div><ul><li>Each person opens their own Today and names their next action.</li><li>Ask: what did you do this week that is not on the platform? Log it now.</li><li>Friday 16:00 review is in everyone’s calendar.</li></ul></div><div class="blk"><div class="lbl">Do not say in the room</div><ul><li>Cost or margin, with account management or business development present.</li><li>A creator’s fee in front of the client.</li><li>Names of investors, suppliers or the client’s competitors.</li></ul></div></div>
+  </section></body></html>
