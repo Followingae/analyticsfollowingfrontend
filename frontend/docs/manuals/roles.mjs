@@ -35,6 +35,7 @@ export const ROLES = [
       ]},
       { icon: 'clock', head: 'Through the day', items: [
         'Work from **Pipeline**, not from memory or WhatsApp.',
+        'Your campaigns are the ones with your name on the creators. Head of talent puts it there.',
         'Each row tells you the verb. Do that one thing.',
         'If it only happened in chat, nobody else can see it.',
       ]},
@@ -129,6 +130,32 @@ export const ROLES = [
         next: 'Account management reports it to the client.',
       },
       {
+        icon: 'message',
+        title: 'Tell a creator how it went',
+        when: 'When Requests says "Message @creator about …". The brand has answered their application.',
+        path: ['Requests'],
+        steps: [
+          'The brand approved them on an app or barter campaign. The request carries the handover note.',
+          'Message the creator yourself, on Instagram or WhatsApp, the same day. The platform does not.',
+          'Tell them what happens next: the visit, the product, the dates, the post we expect.',
+          'Put your name on the request, then mark it done. Open means a promise nobody has kept.',
+        ],
+        next: 'The creator is on the campaign ladder. You brief them from there.',
+      },
+      {
+        icon: 'banknote',
+        title: 'Prepare a creator payment',
+        when: 'When a creator has delivered and is owed money, by transfer or in cash.',
+        path: ['Finance', 'Payables'],
+        steps: [
+          'Every amount we owe a creator lives here, never in a sheet.',
+          'Creator, campaign, amount, what it is for. Bank details come from their own enrolment.',
+          'Cash we pay a creator on a barter campaign is ours to carry. Record it; the client never sees it.',
+          'Leadership approves it, then it joins a payout run. Nudge a payment left undecided.',
+        ],
+        next: 'Leadership releases it. Never tell a creator a payment is approved before it is.',
+      },
+      {
         icon: 'link',
         title: 'Give each creator their link',
         when: 'On a campaign that sells, once its retailers are set up.',
@@ -149,6 +176,7 @@ export const ROLES = [
       'The agreed rate is the one we use, not their published rate.',
       'A creator signs their own paperwork and enters their own bank details.',
       'Nothing is real until it is on the screen. WhatsApp is not a record.',
+      'A request with your name on it is yours until it is done. Leave none open overnight without a note.',
     ],
   },
 
@@ -191,6 +219,19 @@ export const ROLES = [
           'It shows on their day until it is done, and they are told when it is.',
         ],
         next: 'You stop being the only person who remembers it.',
+      },
+      {
+        icon: 'clipboard',
+        title: 'Keep the campaign true',
+        when: 'Every time a creator moves: briefed, content in, approved, posted.',
+        path: ['Campaigns', 'Open a campaign', 'Delivery'],
+        steps: [
+          'Move the creator’s rung the day it happens, not on Friday.',
+          'A post that is live gets its link on the row. The client’s results read from it.',
+          'A creator the client agreed who is not in our database yet: add them by hand, with their handle.',
+          'Your clients are the ones with your name on the client record. That is what fills your Today.',
+        ],
+        next: 'Talent chase from the same ladder, and the office wall shows it the moment it moves.',
       },
       {
         icon: 'chart',
@@ -261,6 +302,7 @@ export const ROLES = [
       'No automated email ever reaches your client. Every one is sent by a person.',
       'A promise made in email belongs on the client record the same day.',
       'If a brand has gone quiet for a fortnight you will be told. Act on it.',
+      'The status sheet is retired. A creator’s rung lives on the campaign, moved the day it changes.',
     ],
   },
 
@@ -296,6 +338,7 @@ export const ROLES = [
         path: ['Clients', 'Partner leads'],
         steps: [
           'Everybody who filled in the form on the website is here, newest first.',
+          'Card-terminal enquiries go to the partner’s platform by themselves. The row says if it got through, with **Resend** if not.',
           'Open the one you are taking and write down what they asked for.',
           'Put your name on it so nobody answers it twice.',
         ],
@@ -415,6 +458,19 @@ export const ROLES = [
         next: 'Rates land on the roster. Talent sends them to you for review.',
       },
       {
+        icon: 'users',
+        title: 'Give each campaign to a talent manager',
+        when: 'The day a campaign opens, and whenever the talent team changes.',
+        path: ['Pipeline'],
+        steps: [
+          'Tick the creators on a campaign and set the owner. One person per campaign, as a rule.',
+          'That name is what puts the campaign on their Today and in their lane on the wall.',
+          'A row with no owner is nobody’s. The talent board on **Rates** calls those out.',
+          'Head of talent allocates. The Founder & CEO can too.',
+        ],
+        next: 'Talent work from Pipeline. You read the load on Rates.',
+      },
+      {
         icon: 'file',
         title: 'Keep enrolments moving',
         when: 'After a client confirms. Only the superadmin creates the links.',
@@ -445,7 +501,7 @@ export const ROLES = [
         steps: [
           'Check the work actually landed before approving.',
           'Check the creator has signed and given their own bank details.',
-          'Approve. Nothing pays out that the client has not funded.',
+          'Approve. What the client has funded shows on Money as information; it never blocks a payout.',
         ],
         next: 'The payment joins the next payout run.',
       },
@@ -555,6 +611,7 @@ export const ROLES = [
           'Open one and put the real negotiated cost against each creator.',
           'The margin moves as you type, before you commit anything.',
           'What we quoted and what we pay are rarely the same. The second one is the truth.',
+          'A creator paid in product shows as **Barter**: no cost box, no margin line, nothing to settle.',
           'When every creator has a rate, the campaign can be opened.',
         ],
         next: 'The campaign opens with a real margin instead of acquiring one later.',
@@ -646,7 +703,7 @@ export const ROLES = [
     rules: [
       'No automated email ever reaches a client. Every client email is sent by a person.',
       'A campaign is never quietly repriced. Terms are stamped when it is awarded.',
-      'Nothing pays out beyond what the client has funded, unless you approve it in writing.',
+      'A payout is never blocked by what the client has paid. Money shows the funded position; the call is yours.',
       'Cost is never visible to a brand. Only what we sell for.',
     ],
   },

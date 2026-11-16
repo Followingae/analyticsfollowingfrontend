@@ -632,4 +632,6 @@ export const GLOSSARY = [
   ['Enrolment link', 'A founder creates it, talent sends it, the creator signs and gives their own bank.'],
   ['The ladder', 'The rungs a booked creator climbs: briefed, content in, posted, paid.'],
   ['Held', 'Stopped until a founder answers. Nothing has happened yet.'],
+  ['Owner', 'The one name on a creator, a request or a client. It decides whose Today it is on.'],
+  ['The wall', 'The office TV. It shows what the platform records, a second later. Never money. Nothing goes on it by hand.'],
 ];

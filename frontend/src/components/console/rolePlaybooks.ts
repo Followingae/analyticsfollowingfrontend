@@ -186,9 +186,21 @@ export const PLAYBOOKS: Playbook[] = [
         ],
       },
       {
+        title: 'Tell a creator how it went',
+        when: 'Requests says "Message @creator about …": a brand has approved their application on an app or barter campaign.',
+        steps: [
+          'The request carries the campaign’s handover note. Read it first.',
+          'Message the creator yourself, on Instagram or WhatsApp, the same day. The platform does not message them.',
+          'Tell them what happens next: the visit or the product, the dates, and the post we expect.',
+          'Put your name on the request and mark it done. An open one is a promise nobody has kept, and the whole team can see it.',
+        ],
+        handover: 'The creator is on the campaign ladder, and you brief them from there. Head of talent allocates campaigns to talent; the creators with your name on them are yours.',
+      },
+      {
         title: 'Prepare a creator payment',
         steps: [
           'Keep every amount we owe a creator in payables, not in a spreadsheet.',
+          'Cash paid to a creator on a barter campaign is ours to carry. Record it like any other payable; the client never sees it.',
           'Leadership approves it. You raise it.',
           'Approved payables are paid in a payout run, which is where the bank file comes from. A line with no bank details on file cannot go into a run, and the screen says so per line.',
           'If a payment is sitting undecided, nudge it. It emails the person who decides, they can answer without logging in, and it tells you how many times they have already been asked.',
@@ -200,6 +212,7 @@ export const PLAYBOOKS: Playbook[] = [
       'Never show a brand our cost. You can see what we pay. The brand sees only what we charge.',
       'Never paste an internal rate sheet into a client email.',
       'Never promise a payment date you have not been given.',
+      'The office wall shows only what is recorded here, a second after it is recorded. Nothing goes on it by hand and money never does. If the room should see it, record it.',
       'Treat an export as a last resort: a spreadsheet takes phone numbers, addresses and bank details with it, and none of the platform’s rules travel with it.',
     ],
   },
@@ -247,6 +260,17 @@ export const PLAYBOOKS: Playbook[] = [
         ],
       },
       {
+        title: 'Keep the campaign true',
+        when: 'Every time a creator moves: briefed, content in, approved, posted.',
+        steps: [
+          'Move the creator’s rung on the campaign the day it happens, not at the end of the week. The status sheet is retired.',
+          'When a post is live, put its link on the creator’s row. The client’s results read from that link.',
+          'A creator the client agreed who is not in our database yet is added by hand, with their handle, so nothing is missing from the ladder.',
+          'Your clients are the ones with your name on the client record. That is what puts their campaigns on your Today.',
+        ],
+        handover: 'Talent chase from the same ladder, and the office wall shows the move the moment it is made.',
+      },
+      {
         title: 'Run the campaign',
         steps: [
           'Read the delivery board daily. It shows each creator and the one step they are on.',
@@ -279,6 +303,7 @@ export const PLAYBOOKS: Playbook[] = [
       'Never show a client our cost. You see sell prices, and that is deliberate.',
       'Never send a client a sheet nobody has read.',
       'Never give a date without opening the board first. A date you give a client is a promise from the whole company.',
+      'The office wall shows only what is recorded here, a second after it is recorded. Nothing goes on it by hand and money never does. If the room should see it, record it.',
     ],
   },
 
@@ -347,6 +372,7 @@ export const PLAYBOOKS: Playbook[] = [
     never: [
       'Never show a brand our cost. Not in a sheet, not in a screenshot, not to show them the maths.',
       'Never promise creator numbers or dates the team has not confirmed.',
+      'The office wall shows only what is recorded here, a second after it is recorded. Nothing goes on it by hand and money never does. If the room should see it, record it.',
       'Never discount on the spot. Any change to agreed pricing goes to leadership first.',
       'Never leave a lead without a next step. Either a date, or a written reason it was dropped.',
     ],
@@ -437,6 +463,16 @@ export const PLAYBOOKS: Playbook[] = [
         ],
       },
       {
+        title: 'Give each campaign to a talent manager',
+        when: 'The day a campaign opens, and whenever the talent team changes.',
+        steps: [
+          'On Pipeline, tick the creators on a campaign and set the owner. One talent manager per campaign, as a rule.',
+          'That name is what puts the campaign on their Today and in their lane on the office wall. A row with no owner is nobody’s.',
+          'Head of talent allocates; the Founder & CEO can too. The talent board under Rates shows who is holding what.',
+        ],
+        handover: 'Talent work from Pipeline. You read the load, not the people, on the talent board.',
+      },
+      {
         title: 'Release money',
         when: 'Talent have raised it. Only leadership can release it.',
         steps: [
@@ -476,6 +512,7 @@ export const PLAYBOOKS: Playbook[] = [
     never: [
       'Cost never reaches a client. The platform hides it; an export does not, which is why a roster export now asks you to confirm.',
       'No money moves without leadership.',
+      'The office wall shows only what is recorded here. Nothing goes on it by hand, and money never appears on a team display; only leadership can pair a TV to the display that carries money.',
       'No voucher or product goes to a creator before the client has confirmed in writing.',
       'A screen that failed to load is not an all clear. "Nothing is late" and "we could not read your queue" are different sentences, and the platform says which one it means.',
     ],

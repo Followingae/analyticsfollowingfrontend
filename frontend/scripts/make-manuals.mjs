@@ -505,6 +505,49 @@ function enrolChapter(role, op) {
   </section>`;
 }
 
+/* The office wall: one page, the same for every seat, because the lesson is the same. The
+   wall is a mirror of the tables; the only way to put something on it is to record it. */
+function wallChapter(role) {
+  const leader = role.slug === 'co-founder' || role.slug === 'founder-ceo';
+  return `
+  <div class="two">
+    <div class="panel">
+      <div class="hh">${icon('tv', 14)}What it shows</div>
+      ${bullets([
+        'Every live campaign as a row: who is briefed, who has content in, who has posted.',
+        'Whose move it is, with the faces. Yours is lit when it is you.',
+        'The week so far, and the day’s moments as they happen.',
+        'A celebration when something good lands: a client confirms, a post goes live, a deal is won.',
+        'Everything else floats up for ten seconds and is gone. Three at a time.',
+      ])}
+    </div>
+    <div class="panel">
+      <div class="hh">${icon('hand', 14)}What puts it there</div>
+      ${bullets([
+        'You do. Every moment is something recorded in the platform: a rung moved, a link pasted, a request closed, a rate agreed.',
+        'Nothing is typed onto the wall and nobody can push to it. There is no button.',
+        'A thing that happened in WhatsApp and nowhere else does not exist to the wall, or to anyone else.',
+        'So if the room should see it, record it. The wall moves the same second.',
+      ])}
+    </div>
+  </div>
+  <div class="callout">
+    <strong>Never money.</strong> No fee, cost, margin or invoice ever appears on a team display,
+    and business development and the founders’ own work stay off it. The wall is for the people
+    delivering campaigns.${leader ? ` A display that carries money exists, and only leadership can
+    pair a TV to it.` : ''}
+  </div>
+  <div class="where">
+    <div class="wr"><div class="w">Pairing a TV</div><div class="t">The TV opens following.ae/tv
+      and shows a six-digit code. A staff phone enters the code and picks the display. The TV
+      remembers it through power off and on.</div></div>
+    <div class="wr"><div class="w">Choosing what a screen shows</div><div class="t">Admin,
+      Company, Office displays. Each display is a scope: the team, or leadership.</div></div>
+    <div class="wr"><div class="w">Playing a preview</div><div class="t">The office displays
+      screen can play one on the paired TV so you see what the room sees.</div></div>
+  </div>`;
+}
+
 function page(role) {
   const m = MASTERY[role.slug];
   const scoutOn = SCOUT.for.includes(role.slug);
@@ -516,6 +559,7 @@ function page(role) {
     m && ['flow', 'Where your work sits', 'The whole flow'],
     m && ['screen', 'The screen you will live in', 'Your screen'],
     ['menu', 'Where things live', 'The menu'],
+    ['wall', 'The wall in the office', 'The wall'],
     ['jobs', 'What you actually do', 'Your jobs'],
     scoutOn && ['scout', 'ScoutOutreach and ScoutAI', 'ScoutOutreach'],
     enrolOn && ['enrol', 'Enrolments', 'Enrolments'],
@@ -587,6 +631,14 @@ function page(role) {
     <h2>${serifLast('Where things live')}</h2>
     <p class="sub">The menu down the left of the screen. This is all of it.</p>
     ${menuMap(role.slug)}
+  </section>
+
+  <section class="fill">
+    ${op('wall')}
+    <h2>${serifLast('The wall in the office')}</h2>
+    <p class="sub">The TV in the office shows what the platform knows, about a second after
+      it knows it. Nobody writes on it.</p>
+    ${wallChapter(role)}
   </section>
 
   <section class="page-break">
