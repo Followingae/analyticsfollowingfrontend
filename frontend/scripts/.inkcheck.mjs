@@ -66,10 +66,12 @@ for (const file of process.argv.slice(2)) {
   console.log('\n' + basename(file));
   for (const r of rows) {
     const mm = (v, span, real) => +(v / span * real).toFixed(1);
-    const top = mm(r.top, r.h, A4_H);
-    const bottom = +(A4_H - mm(r.bottom, r.h, A4_H)).toFixed(1);
-    const left = mm(r.left, r.w, A4_W);
-    const right = +(A4_W - mm(r.right, r.w, A4_W)).toFixed(1);
+    // A landscape sheet is wider than it is tall; the real dimensions follow the page.
+    const PW = r.w > r.h ? A4_H : A4_W, PH = r.w > r.h ? A4_W : A4_H;
+    const top = mm(r.top, r.h, PH);
+    const bottom = +(PH - mm(r.bottom, r.h, PH)).toFixed(1);
+    const left = mm(r.left, r.w, PW);
+    const right = +(PW - mm(r.right, r.w, PW)).toFixed(1);
     // A full-bleed page is MEANT to touch the edge, so it is reported and not judged.
     const bleed = top < 2 && bottom < 2 && left < 2;
     const bad = !bleed && (top < WANT.top || bottom < WANT.bottom

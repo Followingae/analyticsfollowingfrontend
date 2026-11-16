@@ -56,7 +56,7 @@ export const LIME_DEEP = '#6f8600';
    an office printer, which has an unprintable edge of its own, so a bleed design comes out
    with ragged white borders. A cover page is the CONTENT BOX, same as every other page.
    297 less the 22mm head and 20mm foot. */
-export const PAGE_H = '255mm';
+export const PAGE_H = '176mm';
 
 /**
  * Lucide paths, inlined.
@@ -121,7 +121,7 @@ export const CSS = `
    first page and the BOTTOM of the last, and NOWHERE IN BETWEEN. Measured result: ink at
    1.8mm from the top of every page, 0.2mm on one of them. Type was touching the trim.
    Measure with scripts/.inkcheck.mjs rather than trusting how a render looks. */
-@page { size: A4; margin: 22mm 24mm 20mm; }
+@page { size: A4 landscape; margin: 18mm 20mm 16mm; }
 
 /* ⚠️ EVERY SECTION AVOIDS BREAKING ACROSS A PAGE unless it genuinely cannot fit. The last
    set let a drawn screen split down the middle of a page, which is what "overflowing"
@@ -162,30 +162,30 @@ em, .ser { font-family: "Playfair Display", Georgia, serif; font-style: italic;
 .cover .mid { margin-top: auto; position: relative; }
 /* The contents, in the space the title was leaving empty. Useful rather than decorative:
    a nine-section document deserves to say what is in it. */
-.cover .contents { margin-top: 16mm; position: relative; }
+.cover .contents { margin-top: 8mm; position: relative; }
 .cover .contents .lbl { font-size: 8.6pt; letter-spacing: .24em; text-transform: uppercase;
   font-weight: 700; color: ${FAINT}; margin-bottom: 5mm; }
 .cover .contents ol { margin: 0; padding: 0; list-style: none; counter-reset: c;
-  columns: 2; column-gap: 12mm; max-width: 134mm; }
+  columns: 3; column-gap: 12mm; max-width: 215mm; }
 .cover .contents li { counter-increment: c; font-size: 10pt; line-height: 1.9;
   color: ${MUTED}; display: flex; gap: 10px; break-inside: avoid; }
 .cover .contents li::before { content: counter(c, decimal-leading-zero);
   color: ${INK}; font-weight: 700; font-size: 8.4pt; letter-spacing: .08em;
   padding-top: .28em; }
 /* The one human line on the page, and the only place the serif earns its keep here. */
-.cover .for { font-size: 26pt; line-height: 1; margin: 6mm 0 0; color: ${INK};
+.cover .for { font-size: 22pt; line-height: 1; margin: 4mm 0 0; color: ${INK};
   letter-spacing: -.02em; }
 .cover .kicker { font-size: 9.4pt; letter-spacing: .26em; text-transform: uppercase;
-  color: ${MUTED}; font-weight: 700; margin-bottom: 9mm; display: flex;
+  color: ${MUTED}; font-weight: 700; margin-bottom: 5mm; display: flex;
   align-items: center; gap: 10px; }
 .cover .kicker::before { content: ''; width: 22px; height: 9px; background: ${LIME};
   flex: none; }
-.cover h1 { font-size: 86pt; line-height: .92; letter-spacing: -.05em; margin: 0;
+.cover h1 { font-size: 64pt; line-height: .92; letter-spacing: -.05em; margin: 0;
   font-weight: 700; max-width: 11ch; }
 .cover h1 em { color: ${INK}; }
-.cover .lede { font-size: 12.5pt; line-height: 1.55; max-width: 40ch; margin-top: 8mm;
+.cover .lede { font-size: 11.5pt; line-height: 1.55; max-width: 60ch; margin-top: 5mm;
   color: ${MUTED}; font-weight: 400; }
-.cover .foot { margin-top: 14mm; display: flex; justify-content: space-between;
+.cover .foot { margin-top: 7mm; display: flex; justify-content: space-between;
   align-items: flex-end; font-size: 9.5pt; position: relative;
   border-top: 1px solid ${LINE}; padding-top: 6mm;
   color: ${FAINT}; letter-spacing: .04em; }
@@ -213,51 +213,49 @@ section:first-of-type { break-before: auto; }
    left two thirds of its sheet bare, which is the same fault as cramming seen from the
    other end. These stretch their block over the full height instead. The stretch is opt-in
    per section: the job cards and the glossary already run long and must not be pulled. */
-section.fill { min-height: 248mm; display: flex; flex-direction: column; }
+section.fill { min-height: 172mm; display: flex; flex-direction: column; }
 section.fill > .flow, section.fill > .menu, section.fill > .rules, section.fill > .vs {
   flex: 1; }
 /* The closing note rides on the rules page and never stretches. */
 section.fill > .tail { flex: none; }
 /* The strip is two rows; stretched over a whole sheet each cell became a 70mm slab with a
    line of type adrift in it. It takes half the page and the key sits under it. */
-section.fill > .flow { max-height: 130mm; }
+section.fill > .flow { flex: none; }
+.flow .st { min-height: 30mm; }
 /* Five short lines spread over a whole sheet become a poster rather than a list, but
    they still leave the closing note room to breathe under them. */
-section.fill > .rules { max-height: 155mm; }
-section.fill > .vs { max-height: 185mm; }
+section.fill > .rules { flex: none; }
+section.fill > .vs { max-height: 120mm; }
 /* The three moments of a day spread down the sheet rather than huddling in its top
    third. The spine draws itself between them, so a taller block reads as a longer day. */
 /* space-BETWEEN, not space-evenly: evenly leaves a gap above the first marker and below
    the last, and the spine then draws past both ends into nothing. */
-section.fill > .tl { flex: 1; display: flex; flex-direction: column;
-  justify-content: space-between; max-height: 160mm; }
+section.fill > .tl { flex: 1; max-height: 120mm; }
 section.fill > .flow-key { flex: none; margin-top: 5mm; }
 .page-break { break-before: page; }
 /* A lime block and then the words, rather than lime BEHIND the words. Highlighter pen
    is what a tint looks like; the brand uses the accent as a field. */
-.opener { display: flex; align-items: center; gap: 14px; margin: 0 0 9mm; }
+.opener { display: flex; align-items: center; gap: 14px; margin: 0 0 6mm; }
 .opener .n { font-size: 9.5pt; font-weight: 700; letter-spacing: .24em;
   text-transform: uppercase; color: ${INK}; display: flex; align-items: center;
   gap: 11px; }
 .opener .n::before { content: ''; width: 26px; height: 10px; background: ${LIME};
   flex: none; }
 .opener .bar { flex: 1; height: 1px; background: ${LINE}; }
-h2 { font-size: 34pt; line-height: 1.02; letter-spacing: -.045em; font-weight: 700;
-  margin: 0 0 4mm; break-after: avoid; max-width: 18ch; }
+h2 { font-size: 28pt; line-height: 1.02; letter-spacing: -.045em; font-weight: 700;
+  margin: 0 0 3mm; break-after: avoid; max-width: 18ch; }
 /* Ink. #6f8600 is a derived olive that exists nowhere in the brand, and it read as a
    muddy smear next to the real accent. The serif IS the emphasis; it needs no colour. */
 h2 em { color: ${INK}; }
-.sub { color: ${MUTED}; font-size: 11pt; margin: 0 0 13mm; max-width: 50ch;
+.sub { color: ${MUTED}; font-size: 10.5pt; margin: 0 0 8mm; max-width: 70ch;
   line-height: 1.7; }
 
 /* ── The day ─────────────────────────────────────────────────────────────────────────
    A spine with three moments. Square markers, not circles. */
-.tl { position: relative; padding-left: 34px; }
-.tl::before { content: ''; position: absolute; left: 10px; top: 10px; bottom: 10px;
-  width: 1px; background: ${LINE}; }
-.tl .mo { position: relative; margin-bottom: 9mm; break-inside: avoid; }
-.tl .mo:last-child { margin-bottom: 0; }
-.tl .dot { position: absolute; left: -32px; top: 0; width: 22px; height: 22px;
+.tl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 12mm;
+  align-items: start; border-top: 1px solid ${INK}; padding-top: 7mm; }
+.tl .mo { position: relative; break-inside: avoid; }
+.tl .dot { width: 22px; height: 22px; margin-bottom: 4mm;
   background: ${LIME}; display: flex; align-items: center; justify-content: center;
   color: ${INK}; }
 .tl .hd { font-weight: 700; font-size: 12pt; margin-bottom: 4px; letter-spacing: -.02em; }
@@ -270,21 +268,18 @@ h2 em { color: ${INK}; }
 /* Eight columns across 174mm gave each stage 19mm, so "Book and paper them" broke onto
    three lines and the strip read as rubble. Two rows of four gives each stage 43mm, which
    fits the longest label on one line. */
-.flow { display: grid; grid-template-columns: repeat(4, 1fr); break-inside: avoid;
+.flow { display: grid; grid-template-columns: repeat(8, 1fr); break-inside: avoid;
   margin: 0 0 5mm; border: 1px solid ${INK}; }
 /* Top-aligned, NOT centred. Centring each cell independently put the labels of one
    row at four different heights, because the cells hold one, two and three lines. */
-.flow .st { padding: 6mm 5mm; display: flex; flex-direction: column;
-  justify-content: flex-start; border-right: 1px solid ${LINE};
-  border-bottom: 1px solid ${LINE}; background: ${PAPER}; }
-.flow .st:nth-child(4n) { border-right: 0; }
-.flow .st:nth-last-child(-n+4) { border-bottom: 0; }
+.flow .st { padding: 5mm 4mm; display: flex; flex-direction: column;
+  justify-content: flex-start; border-right: 1px solid ${LINE}; background: ${PAPER}; }
 .flow .st:last-child { border-right: 0; }
 .flow .st.on { background: ${LIME}; }
 .flow .who { font-size: 7.2pt; letter-spacing: .16em; text-transform: uppercase;
   font-weight: 700; color: ${MUTED}; margin-bottom: 3px; }
 .flow .st.on .who { color: rgba(17,17,17,.6); }
-.flow .wt { font-size: 10.4pt; font-weight: 700; line-height: 1.3; letter-spacing: -.025em; }
+.flow .wt { font-size: 9.6pt; font-weight: 700; line-height: 1.3; letter-spacing: -.025em; }
 .flow-key { font-size: 9pt; color: ${MUTED}; display: flex; align-items: center; gap: 8px;
   letter-spacing: .02em; }
 .flow-key .sw { width: 14px; height: 10px; background: ${LIME}; flex: none; }
@@ -292,6 +287,7 @@ h2 em { color: ${INK}; }
 /* ── A drawn screen ──────────────────────────────────────────────────────────────────
    A DRAWING, not a screenshot: a screenshot of a product that ships weekly is wrong in a
    month and nobody reprints a manual because a button moved. Square, like the product. */
+.shotwrap { display: grid; grid-template-columns: 1.25fr 1fr; gap: 10mm; align-items: start; }
 .shot { border: 1px solid ${INK}; break-inside: avoid; background: ${WASH}; }
 .shot .bar { display: flex; align-items: center; gap: 6px; padding: 7px 10px;
   background: ${WASH}; border-bottom: 1px solid ${LINE}; }
@@ -330,8 +326,8 @@ h2 em { color: ${INK}; }
 .pin { position: absolute; width: 16px; height: 16px; background: ${LIME}; color: ${INK};
   font-size: 7.6pt; font-weight: 800; display: flex; align-items: center;
   justify-content: center; box-shadow: 0 0 0 1px ${INK}; }
-.keys { margin: 8mm 0 0; padding: 0; list-style: none; display: grid;
-  grid-template-columns: 1fr 1fr; gap: 6mm 12mm; }
+.keys { margin: 0; padding: 0; list-style: none; display: grid;
+  grid-template-columns: 1fr; gap: 4.5mm; }
 .keys li { display: flex; gap: 9px; font-size: 9.6pt; line-height: 1.55;
   break-inside: avoid; }
 .keys .n { width: 16px; height: 16px; background: ${LIME}; color: ${INK}; font-size: 7.6pt;
@@ -339,14 +335,13 @@ h2 em { color: ${INK}; }
   flex: none; margin-top: .2em; box-shadow: 0 0 0 1px ${INK}; }
 
 /* ── Where things live ──────────────────────────────────────────────────────────────── */
-.menu { border: 1px solid ${INK}; break-inside: avoid; }
+.menu { border-top: 1px solid ${INK}; columns: 2; column-gap: 12mm; }
 .menu .grp { background: ${WASH}; color: ${MUTED}; font-size: 7.6pt; letter-spacing: .2em;
   font-weight: 700; text-transform: uppercase; padding: 6px 12px;
   border-top: 1px solid ${LINE}; border-bottom: 1px solid ${LINE}; }
-.menu { display: flex; flex-direction: column; }
-.menu .grp { flex: none; }
-.menu .row { display: flex; align-items: center; gap: 16px; padding: 9px 16px;
-  border-bottom: 1px solid ${LINE}; flex: 1; }
+.menu .grp { break-inside: avoid; }
+.menu .row { display: flex; align-items: center; gap: 16px; padding: 9px 4px;
+  border-bottom: 1px solid ${LINE}; break-inside: avoid; }
 .menu .row:last-child { border-bottom: 0; }
 .menu .nm { font-weight: 700; width: 120px; flex: none; display: flex; align-items: center;
   gap: 8px; font-size: 9.8pt; letter-spacing: -.01em; }
@@ -354,8 +349,8 @@ h2 em { color: ${INK}; }
 .menu .ds { color: ${MUTED}; font-size: 9.4pt; }
 
 /* ── A job ──────────────────────────────────────────────────────────────────────────── */
-.job { border: 1px solid ${LINE}; border-left: 5px solid ${LIME}; padding: 7mm 9mm;
-  margin-bottom: 8mm; break-inside: avoid; }
+.jobs { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm 12mm; align-items: start; }
+.job { border-top: 2px solid ${INK}; padding: 5mm 0 0; break-inside: avoid; }
 .job .top { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 4mm; }
 .job .badge { width: 28px; height: 28px; background: ${LIME}; color: ${INK};
   display: flex; align-items: center; justify-content: center; font-weight: 800;
@@ -365,7 +360,7 @@ h2 em { color: ${INK}; }
 .job .when { color: ${MUTED}; font-size: 9.2pt; margin-top: 2px; }
 ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; }
 ol.steps > li { counter-increment: s; position: relative; padding-left: 28px;
-  margin-bottom: 3.5mm; font-size: 10pt; line-height: 1.65; }
+  margin-bottom: 2.5mm; font-size: 9.6pt; line-height: 1.6; }
 ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .22em;
   width: 15px; height: 15px; background: ${WASH}; color: ${MUTED}; font-size: 7.4pt;
   font-weight: 700; display: flex; align-items: center; justify-content: center; }
@@ -386,13 +381,13 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
   color: ${MUTED}; font-weight: 700; margin-right: 3px; }
 
 /* ── Worked example ─────────────────────────────────────────────────────────────────── */
-.story { border: 1px solid ${INK}; break-inside: avoid; }
-.story .hd { background: ${PAPER}; color: ${INK}; padding: 5mm 6mm; display: flex;
-  align-items: center; gap: 9px; font-weight: 700; font-size: 12.5pt;
-  letter-spacing: -.03em; border-bottom: 3px solid ${LIME}; }
+.story { border-top: 1px solid ${INK}; }
+.story .hd { background: ${PAPER}; color: ${INK}; padding: 4mm 0; display: flex;
+  align-items: center; gap: 9px; font-weight: 700; font-size: 11.5pt;
+  letter-spacing: -.03em; }
 .story .hd .ic { color: ${INK}; }
-.story .bd { padding: 7mm 9mm; }
-.story .beat { display: flex; gap: 16px; margin-bottom: 5mm; break-inside: avoid; }
+.story .bd { padding: 2mm 0 0; columns: 2; column-gap: 14mm; }
+.story .beat { display: flex; gap: 16px; margin-bottom: 4mm; break-inside: avoid; }
 .story .beat:last-child { margin-bottom: 0; }
 .story .t { width: 58px; flex: none; font-size: 7.8pt; font-weight: 700; color: ${INK};
   letter-spacing: .1em; text-transform: uppercase; padding-top: .3em; }
@@ -400,9 +395,9 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 
 /* ── Good and bad ───────────────────────────────────────────────────────────────────── */
 .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; break-inside: avoid; }
-.vs .col { border: 1px solid ${LINE}; padding: 7mm; }
-.vs .col.good { border-color: ${INK}; border-top: 4px solid ${LIME}; }
-.vs .col.bad { border-top: 4px solid ${LINE}; }
+.vs .col { padding: 5mm 0 0; }
+.vs .col.good { border-top: 4px solid ${LIME}; }
+.vs .col.bad { border-top: 4px solid ${INK}; }
 .vs .ttl { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 10pt;
   margin-bottom: 4mm; letter-spacing: -.02em; }
 .vs .col.good .ttl .ic { color: ${INK}; }
@@ -420,20 +415,19 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
 .vs .col.good li::before { background: ${LIME}; }
 
 /* ── Words we use ───────────────────────────────────────────────────────────────────── */
-.gloss { columns: 2; column-gap: 14mm; }
-.gloss .t { break-inside: avoid; margin-bottom: 6mm; }
+.gloss { columns: 3; column-gap: 12mm; }
+.gloss .t { break-inside: avoid; margin-bottom: 3.2mm; }
 .gloss .w { font-weight: 700; font-size: 9.8pt; letter-spacing: -.01em; }
-.gloss .d { font-size: 9.2pt; color: ${MUTED}; line-height: 1.5; }
+.gloss .d { font-size: 8.8pt; color: ${MUTED}; line-height: 1.5; }
 
 /* ── Rules ──────────────────────────────────────────────────────────────────────────── */
-.rules { border: 1px solid ${INK}; border-left: 7mm solid ${LIME}; padding: 8mm 9mm;
-  break-inside: avoid; display: flex; flex-direction: column; justify-content: space-evenly; }
+.rules { border-top: 1px solid ${INK}; border-left: 7mm solid ${LIME}; padding: 6mm 9mm;
+  break-inside: avoid; }
 /* The UL is the rules block's only child, so letting the BLOCK distribute its
    children just parked one centred lump in the middle of a tall box. The LIST spreads. */
-.rules ul { margin: 0; padding: 0; list-style: none; flex: 1; display: flex;
-  flex-direction: column; justify-content: space-evenly; }
-.rules li { display: flex; gap: 12px; margin-bottom: 0; font-size: 11.5pt;
-  line-height: 1.5; letter-spacing: -.01em; }
+.rules ul { margin: 0; padding: 0; list-style: none; columns: 2; column-gap: 14mm; }
+.rules li { display: flex; gap: 12px; margin-bottom: 5mm; font-size: 10.8pt;
+  line-height: 1.5; letter-spacing: -.01em; break-inside: avoid; }
 .rules li:last-child { margin-bottom: 0; }
 .rules .ic { color: ${INK}; margin-top: .25em; }
 
@@ -443,33 +437,37 @@ ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: .
    is the first thing to disappear. White, big type, lime only as the rule and the marker. */
 .card-page { break-before: page; height: ${PAGE_H}; margin: 0; padding: 0;
   display: flex; flex-direction: column; background: ${PAPER}; color: ${INK}; }
-.qr { border: 1px solid ${INK}; border-top: 8mm solid ${LIME}; padding: 10mm 11mm;
-  flex: 1; display: flex; flex-direction: column; }
-.qr .hd { display: flex; align-items: baseline; justify-content: space-between;
-  border-bottom: 2px solid ${INK}; padding-bottom: 5mm; margin-bottom: 8mm; }
-.qr .hd h2 { font-size: 40pt; margin: 0; letter-spacing: -.05em; color: ${INK};
+.qr { border: 1px solid ${INK}; border-top: 8mm solid ${LIME}; padding: 8mm 11mm;
+  flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 12mm;
+  grid-template-rows: auto 1fr 1fr auto; }
+.qr .hd { grid-column: 1 / -1; display: flex; align-items: baseline; justify-content: space-between;
+  border-bottom: 2px solid ${INK}; padding-bottom: 4mm; margin-bottom: 5mm; }
+.qr .hd h2 { font-size: 32pt; margin: 0; letter-spacing: -.05em; color: ${INK};
   max-width: none; }
 .qr .hd .r { font-size: 10pt; letter-spacing: .24em; text-transform: uppercase;
   font-weight: 700; color: ${MUTED}; }
-.qr .blk { flex: 1; display: flex; flex-direction: column; justify-content: center;
-  padding: 3mm 0; border-bottom: 1px solid ${LINE}; }
-.qr .blk:last-of-type { border-bottom: 0; }
+.qr .blk { display: flex; flex-direction: column; justify-content: flex-start;
+  padding: 3mm 0; border-top: 1px solid ${LINE}; }
 .qr .blk .lbl { font-size: 8.6pt; letter-spacing: .24em; text-transform: uppercase;
   font-weight: 700; color: ${INK}; margin-bottom: 4mm; display: flex;
   align-items: center; gap: 10px; }
 .qr .blk .lbl::before { content: ''; width: 20px; height: 9px; background: ${LIME};
   flex: none; }
 .qr ul { margin: 0; padding-left: 18px; }
-.qr li { font-size: 14pt; line-height: 1.45; margin-bottom: 2.5mm; font-weight: 500;
+.qr li { font-size: 11.5pt; line-height: 1.45; margin-bottom: 2mm; font-weight: 500;
   letter-spacing: -.02em; }
 .qr li::marker { color: ${INK}; }
-.qr .foot { margin-top: auto; border-top: 1px solid ${LINE}; padding-top: 5mm;
+.qr .foot { grid-column: 1 / -1; align-self: end; border-top: 1px solid ${LINE}; padding-top: 4mm;
   font-size: 9pt; color: ${FAINT}; display: flex;
   justify-content: space-between; letter-spacing: .04em; }
 
 /* ── The two seat-only chapters ───────────────────────────────────────────────────────
    A swimlane drawn in SVG at its true size in mm, then panels, a stat strip, a table and a
    "your part" box. Every box is square and lime is only ever a field or a rule. */
+.side2 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 10mm; align-items: start; }
+.side2.even { grid-template-columns: 1fr 1fr; }
+.side2 .lanes { max-width: 132mm; }
+.side2 .hh:first-child { margin-top: 0; }
 .lanes { display: block; width: 100%; height: auto; border: 1px solid ${INK};
   break-inside: avoid; margin: 0 0 4mm; }
 .lkey { display: flex; flex-wrap: wrap; gap: 3mm 7mm; font-size: 8.8pt; color: ${MUTED};
@@ -486,10 +484,10 @@ h2.h2s { font-size: 24pt; margin-bottom: 6mm; max-width: none; }
 .sub.tight { margin-bottom: 6mm; }
 .hh { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 11.5pt;
   letter-spacing: -.025em; margin: 0 0 3.5mm; break-after: avoid; }
-.hh.gap { margin-top: 8mm; }
+.hh.gap { margin-top: 6mm; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
-.two.gap { margin-top: 7mm; }
-.panel { border: 1px solid ${LINE}; border-top: 4px solid ${LIME}; padding: 5mm 5.5mm;
+.two.gap { margin-top: 6mm; }
+.panel { border-top: 4px solid ${LIME}; padding: 4mm 0 0;
   break-inside: avoid; }
 ul.bl { margin: 0; padding: 0; list-style: none; }
 ul.bl li { position: relative; padding-left: 14px; font-size: 9pt; line-height: 1.5;
@@ -497,12 +495,11 @@ ul.bl li { position: relative; padding-left: 14px; font-size: 9pt; line-height: 
 ul.bl li:last-child { margin-bottom: 0; }
 ul.bl li::before { content: ''; position: absolute; left: 0; top: .55em; width: 6px;
   height: 6px; background: ${LIME}; box-shadow: 0 0 0 .6px ${INK}; }
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid ${INK};
+.stats { display: grid; grid-template-columns: repeat(8, 1fr); border-top: 1px solid ${INK};
   break-inside: avoid; }
-.stat { padding: 4mm 4mm; border-right: 1px solid ${LINE}; border-bottom: 1px solid ${LINE}; }
-.stat:nth-child(4n) { border-right: 0; }
-.stat:nth-last-child(-n+4) { border-bottom: 0; }
-.stat .b { font-size: 15pt; font-weight: 700; letter-spacing: -.04em; line-height: 1.05;
+.stat { padding: 4mm 3mm 0 0; border-right: 1px solid ${LINE}; margin-right: 3mm; }
+.stat:last-child { border-right: 0; }
+.stat .b { font-size: 13pt; font-weight: 700; letter-spacing: -.04em; line-height: 1.05;
   white-space: nowrap; }
 .stat .s { font-size: 8.4pt; color: ${MUTED}; line-height: 1.45; margin-top: 1.5mm; }
 table.says { width: 100%; border-collapse: collapse; font-size: 9.2pt; break-inside: avoid;
@@ -528,9 +525,9 @@ table.says .none { color: ${FAINT}; font-size: 8.6pt; }
   letter-spacing: -.01em; }
 .rest .r.go { background: ${LIME}; border-color: ${LIME}; }
 .rest .sep { color: ${FAINT}; display: flex; }
-.callout { border: 1px solid ${INK}; border-left: 6mm solid ${LIME}; padding: 4mm 6mm;
+.callout { border-top: 1px solid ${INK}; border-left: 6mm solid ${LIME}; padding: 4mm 6mm;
   margin-top: 5mm; font-size: 9.8pt; line-height: 1.6; break-inside: avoid; }
-.yours { border: 1px solid ${LINE}; border-left: 5px solid ${LIME}; padding: 6mm 8mm 3mm;
+.yours { border-top: 1px solid ${INK}; border-left: 5px solid ${LIME}; padding: 5mm 8mm 2mm;
   margin-top: 6mm; break-inside: avoid; }
 .yours .path { margin-bottom: 4mm; }
 .cre { border-top: 1px solid ${INK}; }
@@ -541,10 +538,10 @@ table.says .none { color: ${FAINT}; font-size: 8.6pt; }
 .cre .k .n { width: 18px; height: 18px; background: ${LIME}; display: flex;
   align-items: center; justify-content: center; font-size: 8pt; font-weight: 800; flex: none; }
 .cre .t { font-size: 9.6pt; line-height: 1.6; padding-top: .1em; }
-.where { margin-top: 2mm; border: 1px solid ${INK}; break-inside: avoid; }
-.where .wr { display: flex; gap: 6mm; padding: 3mm 5mm; border-bottom: 1px solid ${LINE}; }
+.where { margin-top: 2mm; border-top: 1px solid ${INK}; break-inside: avoid; }
+.where .wr { display: flex; gap: 6mm; padding: 3mm 0; border-bottom: 1px solid ${LINE}; }
 .where .wr:last-child { border-bottom: 0; }
-.where .w { width: 50mm; flex: none; font-weight: 700; font-size: 9.4pt; }
+.where .w { width: 42mm; flex: none; font-weight: 700; font-size: 9.4pt; }
 .where .t { font-size: 9.2pt; color: ${MUTED}; }
 .note.warn { display: flex; align-items: center; gap: 8px; margin-top: 5mm; color: ${INK}; }
 
@@ -553,6 +550,6 @@ table.says .none { color: ${FAINT}; font-size: 8.6pt; }
 /* The closing note qualifies the rules above it, so it rides on their page. It used to be
    its own <section>, which under one-section-one-page would spend a whole sheet on a
    single sentence. */
-.tail { margin-top: 12mm; padding-top: 6mm; border-top: 1px solid ${LINE}; }
+.tail { margin-top: 8mm; padding-top: 5mm; border-top: 1px solid ${LINE}; }
 `;
 

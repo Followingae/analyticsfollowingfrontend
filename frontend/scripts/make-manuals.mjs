@@ -70,7 +70,11 @@ if (Object.keys(DEST).length < 40) {
   throw new Error(`Only parsed ${Object.keys(DEST).length} destinations — the registry format moved.`);
 }
 
+/* The sidebar hard-codes two labels that differ from the registry's short names. The
+   manual must say what the screen says, so those two are taken from the sidebar. */
+const SIDEBAR_LABELS = { '/work/today': 'Today', '/work/inbox': 'Waiting on me' };
 const nameOf = (path) => {
+  if (SIDEBAR_LABELS[path]) return SIDEBAR_LABELS[path];
   const d = DEST[path];
   if (!d?.short) throw new Error(`No name in destinations.ts for ${path}`);
   return d.short;
@@ -184,6 +188,7 @@ function drawnScreen(sc) {
     ? `<span class="pin" style="${style}">${n[region]}</span>` : '';
 
   return `
+  <div class="shotwrap">
   <div class="shot">
     <div class="bar">
       <span class="d"></span><span class="d"></span><span class="d"></span>
@@ -222,7 +227,8 @@ function drawnScreen(sc) {
   </div>
   <ul class="keys">${sc.keys.map(([, text], idx) => `
     <li><span class="n">${idx + 1}</span><span>${md(text)}</span></li>`).join('')}
-  </ul>`;
+  </ul>
+  </div>`;
 }
 
 /** One real job, followed the whole way, with real numbers. */
@@ -418,14 +424,20 @@ function scoutChapter(role, op) {
     ${op}
     <h2>${serifLast(S.title)}</h2>
     <p class="sub tight">${esc(S.sub)}</p>
-    ${swimlane(S)}
-    ${laneKey('Runs itself', 'Your own outreach, beside it')}
-    <div class="hh">${icon('moon', 15)} When Instagram slows it down, it rests by itself</div>
-    <div class="rest">${S.rests.map((r) => `<span class="r">${esc(r)}</span>`).join(`<span class="sep">${icon('chevron', 11)}</span>`)}
-      <span class="sep">${icon('chevron', 11)}</span><span class="r go">Carries on</span></div>
-    <div class="callout"><b>The one time it needs a person.</b> If Instagram logs the account
-      out or asks for a check, the bot stops and says so on ScoutOutreach. Somebody signs in to
-      Instagram on that office PC, then presses <b>Resume</b>.</div>
+    <div class="side2">
+      <div>
+        ${swimlane(S)}
+        ${laneKey('Runs itself', 'Your own outreach, beside it')}
+      </div>
+      <div>
+        <div class="hh">${icon('moon', 15)} When Instagram slows it down, it rests by itself</div>
+        <div class="rest">${S.rests.map((r) => `<span class="r">${esc(r)}</span>`).join(`<span class="sep">${icon('chevron', 11)}</span>`)}
+          <span class="sep">${icon('chevron', 11)}</span><span class="r go">Carries on</span></div>
+        <div class="callout"><b>The one time it needs a person.</b> If Instagram logs the account
+          out or asks for a check, the bot stops and says so on ScoutOutreach. Somebody signs in to
+          Instagram on that office PC, then presses <b>Resume</b>.</div>
+      </div>
+    </div>
   </section>
 
   <section>
@@ -453,17 +465,23 @@ function scoutChapter(role, op) {
     <p class="sub tight">Every row says its next step and carries one button for it, plus
       <strong>Skip</strong> and a <strong>&hellip;</strong> menu. Skip means not for this
       campaign; the creator stays in the database.</p>
-    <table class="says">
-      <thead><tr><th>The row says</th><th>Button</th><th>Who moves it</th></tr></thead>
-      <tbody>${S.roster.map(([says, btn, who]) => `
-        <tr><td class="w">${esc(says)}</td>
-          <td>${btn === 'Nothing' ? '<span class="none">Nothing to press</span>' : `<span class="btn">${esc(btn)}</span>`}</td>
-          <td class="m">${esc(who)}</td></tr>`).join('')}
-      </tbody>
-    </table>
-    <div class="srcs"><span class="lbl">Source tabs</span>${S.sources.map(([n, w]) => `
-      <span class="src"><b>${esc(n)}</b> ${esc(w)}</span>`).join('')}</div>
-    ${yours(S.yours[role.slug], 'Your part', pathStrip(['ScoutOutreach'], `${role.title} / Scout`))}
+    <div class="side2">
+      <div>
+        <table class="says">
+          <thead><tr><th>The row says</th><th>Button</th><th>Who moves it</th></tr></thead>
+          <tbody>${S.roster.map(([says, btn, who]) => `
+            <tr><td class="w">${esc(says)}</td>
+              <td>${btn === 'Nothing' ? '<span class="none">Nothing to press</span>' : `<span class="btn">${esc(btn)}</span>`}</td>
+              <td class="m">${esc(who)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+        <div class="srcs"><span class="lbl">Source tabs</span>${S.sources.map(([n, w]) => `
+          <span class="src"><b>${esc(n)}</b> ${esc(w)}</span>`).join('')}</div>
+      </div>
+      <div>
+        ${yours(S.yours[role.slug], 'Your part', pathStrip(['ScoutOutreach'], `${role.title} / Scout`)).replace('margin-top: 6mm', '')}
+      </div>
+    </div>
   </section>`;
 }
 
@@ -475,33 +493,45 @@ function enrolChapter(role, op) {
     ${op}
     <h2>${serifLast(E.title)}</h2>
     <p class="sub tight">${esc(E.sub)}</p>
-    ${swimlane(E)}
-    ${laneKey('The platform does this')}
-    <div class="where">${E.where.map(([w, t]) => `
-      <div class="wr"><div class="w">${esc(w)}</div><div class="t">${md(t)}</div></div>`).join('')}
+    <div class="side2">
+      <div>
+        ${swimlane(E)}
+        ${laneKey('The platform does this')}
+      </div>
+      <div>
+        <div class="where">${E.where.map(([w, t]) => `
+          <div class="wr"><div class="w">${esc(w)}</div><div class="t">${md(t)}</div></div>`).join('')}
+        </div>
+        <p class="note warn">${icon('ban', 13)} A link is personal. Never post one in a group,
+          a story or anywhere public.</p>
+      </div>
     </div>
-    <p class="note warn">${icon('ban', 13)} A link is personal. Never post one in a group,
-      a story or anywhere public.</p>
   </section>
 
   <section>
     <div class="cont">${esc(E.title)}, continued</div>
     <h2 class="h2s">What <em>the creator</em> does</h2>
-    <div class="cre">${E.creator.map(([k, t], i) => `
-      <div class="cs"><div class="k"><span class="n">${i + 1}</span>${esc(k)}</div>
-        <div class="t">${md(t)}</div></div>`).join('')}
-    </div>
-    <div class="two gap">
-      <div class="panel">
-        <div class="hh">${icon('banknote', 15)} The payee confirms itself when</div>
-        ${bullets(E.payee)}
+    <div class="side2 even">
+      <div>
+        <div class="cre">${E.creator.map(([k, t], i) => `
+          <div class="cs"><div class="k"><span class="n">${i + 1}</span>${esc(k)}</div>
+            <div class="t">${md(t)}</div></div>`).join('')}
+        </div>
       </div>
-      <div class="panel">
-        <div class="hh">${icon('shield', 15)} Passports</div>
-        ${bullets(E.passport)}
+      <div>
+        <div class="two">
+          <div class="panel">
+            <div class="hh">${icon('banknote', 15)} The payee confirms itself when</div>
+            ${bullets(E.payee)}
+          </div>
+          <div class="panel">
+            <div class="hh">${icon('shield', 15)} Passports</div>
+            ${bullets(E.passport)}
+          </div>
+        </div>
+        ${yours(E.yours[role.slug], 'Your part', pathStrip(['Campaigns', 'Enrolments'], `${role.title} / Enrolments`))}
       </div>
     </div>
-    ${yours(E.yours[role.slug], 'Your part', pathStrip(['Campaigns', 'Enrolments'], `${role.title} / Enrolments`))}
   </section>`;
 }
 
@@ -645,7 +675,7 @@ function page(role) {
     ${op('jobs')}
     <h2>${serifLast('What you actually do')}</h2>
     <p class="sub">In order. The strip on each card is what to click, as you click it.</p>
-    ${role.jobs.map((j, i) => jobCard(j, i + 1, role.title)).join('')}
+    <div class="jobs">${role.jobs.map((j, i) => jobCard(j, i + 1, role.title)).join('')}</div>
   </section>
 
   ${scoutOn ? scoutChapter(role, op('scout')) : ''}
@@ -707,23 +737,35 @@ for (const role of ROLES) {
   const html = page(role);
   const name = `Manual - ${role.file}`;
   await tab.setContent(html, { waitUntil: 'networkidle' });
+  /* A section taller than the content box (176mm) spills onto a second sheet, which is
+     exactly what a landscape layout exists to prevent. Say so, with the height, instead of
+     printing it and hoping. */
+  const tall = await tab.evaluate(() => {
+    const mm = (px) => Math.round(px / 96 * 25.4);
+    return [...document.querySelectorAll('section')]
+      .map((el, i) => ({ i: i + 1, h: mm(el.getBoundingClientRect().height),
+        t: (el.querySelector('h2')?.textContent || '').trim().slice(0, 40) }))
+      .filter((x) => x.h > 176);
+  });
+  for (const t of tall) console.warn(`  ! ${name}: section ${t.i} "${t.t}" is ${t.h}mm, over 176mm`);
   await tab.pdf({
     path: join(OUT, `${name}.pdf`),
     format: 'A4',
+    landscape: true,
     printBackground: true,
     displayHeaderFooter: true,
     headerTemplate: '<div></div>',
     // No footer on the cover: a page number under a cover is the clearest sign a document
     // was generated by something that did not look at it.
     footerTemplate:
-      `<div style="width:100%;padding:0 24mm;font:7.5pt Manrope,Arial,sans-serif;color:#9A9A9A;
-        display:flex;justify-content:space-between;padding-bottom:10mm;">
+      `<div style="width:100%;padding:0 20mm;font:7.5pt Manrope,Arial,sans-serif;color:#9A9A9A;
+        display:flex;justify-content:space-between;padding-bottom:9mm;">
         <span>Following &middot; ${esc(role.title)}</span>
         <span class="pageNumber"></span>
       </div>`,
     // Kept in step with the @page rule in design.mjs, which is what actually wins;
     // Chromium positions the running footer from these.
-    margin: { top: '22mm', bottom: '20mm', left: '24mm', right: '24mm' },
+    margin: { top: '18mm', bottom: '16mm', left: '20mm', right: '20mm' },
   });
   writeFileSync(join(OUT, `${name}.html`), html, 'utf8');
 
@@ -753,16 +795,17 @@ for (const role of ROLES) {
   await tab.pdf({
     path: join(OUT, `${name}.pdf`),
     format: 'A4',
+    landscape: true,
     printBackground: true,
     displayHeaderFooter: true,
     headerTemplate: '<div></div>',
     footerTemplate:
-      `<div style="width:100%;padding:0 24mm;font:7.5pt Manrope,Arial,sans-serif;color:#9A9A9A;
-        display:flex;justify-content:space-between;padding-bottom:10mm;">
+      `<div style="width:100%;padding:0 20mm;font:7.5pt Manrope,Arial,sans-serif;color:#9A9A9A;
+        display:flex;justify-content:space-between;padding-bottom:9mm;">
         <span>Following &middot; How work moves</span>
         <span class="pageNumber"></span>
       </div>`,
-    margin: { top: '22mm', bottom: '20mm', left: '24mm', right: '24mm' },
+    margin: { top: '18mm', bottom: '16mm', left: '20mm', right: '20mm' },
   });
   if (PUBLIC) copyFileSync(join(OUT, `${name}.pdf`), join(PUBLIC, 'how-work-moves.pdf'));
   if (DESKTOP) {

@@ -77,7 +77,7 @@ export const PLAYBOOK_FOR: Record<string, RoleKey> = {
 const MORNING_LEADERSHIP = [
   { what: 'Today', href: '/work/today',
     why: 'The four numbers, then what is waiting on you and what is running without you.' },
-  { what: 'Decisions', href: '/work/inbox',
+  { what: 'Waiting on me', href: '/work/inbox',
     why: 'Every approval anywhere in the platform, oldest first. A long list here means work has stopped, and this screen says where.' },
   { what: 'Pipeline', href: '/work/pipeline',
     why: 'Every creator across every brand with the next action on each. Red means late and nothing else.' },
@@ -92,7 +92,7 @@ export const PLAYBOOKS: Playbook[] = [
     pdf: '/guides/talent-manager.pdf',
     morning: [
       { what: 'Today', href: '/work/today', why: 'Work waiting on you, oldest first.' },
-      { what: 'Decisions', href: '/work/inbox', why: 'Anything needing an answer or a chase from you, pulled from every queue at once.' },
+      { what: 'Waiting on me', href: '/work/inbox', why: 'Anything needing an answer or a chase from you, pulled from every queue at once.' },
       { what: 'Pipeline', href: '/work/pipeline', why: 'Every creator you owe something, with the verb for each one. Work from this, not from memory.' },
     ],
     jobs: [
@@ -225,7 +225,7 @@ export const PLAYBOOKS: Playbook[] = [
     pdf: '/guides/account-manager.pdf',
     morning: [
       { what: 'Today', href: '/work/today', why: 'Work waiting on you, oldest first.' },
-      { what: 'Decisions', href: '/work/inbox', why: 'Anything needing an answer from you, from anywhere in the platform.' },
+      { what: 'Waiting on me', href: '/work/inbox', why: 'Anything needing an answer from you, from anywhere in the platform.' },
       { what: 'Clients', href: '/work/clients', why: 'Open the ones with live campaigns and see where they are, before they email you.' },
     ],
     jobs: [

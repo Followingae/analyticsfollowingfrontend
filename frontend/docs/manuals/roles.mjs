@@ -416,7 +416,7 @@ export const ROLES = [
     day: [
       { icon: 'sunrise', head: 'First thing', items: [
         'Open **Rates**. Clients have said yes; these campaigns cannot open until you price them.',
-        'Open **Decisions**. Everything held for you, oldest first.',
+        'Open **Waiting on me**. Everything held for you, oldest first.',
       ]},
       { icon: 'clock', head: 'Through the day', items: [
         'Clear rosters quickly. Talent cannot move until you do.',
@@ -536,7 +536,7 @@ export const ROLES = [
     day: [
       { icon: 'sunrise', head: 'First thing', items: [
         'Open **Today**. The whole company on one screen.',
-        'Open **Decisions**. Only what is held for you.',
+        'Open **Waiting on me**. Only what is held for you.',
       ]},
       { icon: 'clock', head: 'Through the day', items: [
         'Release what you want chased. Talent cannot start until you do.',

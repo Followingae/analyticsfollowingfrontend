@@ -348,7 +348,7 @@ export const MASTERY = {
     },
     card: [
       ['Open first', ['Rates. Clients who said yes and cannot start.',
-                      'Then Decisions.']],
+                      'Then Waiting on me.']],
       ['The one rule', ['Nothing opens until every creator has a real rate.']],
       ['Quoted is not agreed', ['The quote is what we assumed. The rate is what you got.']],
       ['Never', ['Never mark a payment paid that has not left the bank.',
