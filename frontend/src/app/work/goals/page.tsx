@@ -91,7 +91,11 @@ export default function GoalsPage() {
         : null)
       setToday(t?.data ?? null)
       setTeam(tm?.data?.people || [])
-      setRule((r?.data?.rules || []).find((x: any) => x.role_key === 'talent_manager') || null)
+      // No rule for this role yet (a fresh month before the fallback, or a fresh database):
+      // leadership still gets the editor, with sensible defaults, so Save can create the
+      // first one. A hidden editor read as "the superadmin cannot set targets".
+      setRule((r?.data?.rules || []).find((x: any) => x.role_key === 'talent_manager')
+              || { role_key: 'talent_manager', per_open_campaign: 5, baseline_daily: 3, quality_required: true, missing: true })
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not load goals')
     } finally { setLoading(false) }
@@ -253,7 +257,7 @@ export default function GoalsPage() {
           </Panel>
 
           {canSet && rule && (
-            <Panel title="Sourcing rules" description="Applies to every talent manager this month">
+            <Panel title="Sourcing rules" description={rule.missing ? 'Not set yet. Save to set this month’s numbers' : rule.inherited ? 'Carried over from an earlier month. Save to set them for this month' : 'Applies to every talent manager this month'}>
               <div className="space-y-ds-4">
                 {([
                   ['per_open_campaign', 'Per open roster, per day', 'Until that roster closes'],
