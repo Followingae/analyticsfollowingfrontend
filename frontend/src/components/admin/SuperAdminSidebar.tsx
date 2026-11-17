@@ -306,12 +306,16 @@ export function SuperAdminSidebar({ ...props }: React.ComponentProps<typeof Side
   // App campaigns, App users and Reliability are also hub screens (Campaigns, Creators). Now
   // that hubs list their screens here too, a screen this viewer can already reach under its
   // hub is not listed a second time under Creator app: one name, one place, one highlight.
+  // Talent reviews applications and content on App campaigns; that is the whole of their
+  // creator-app work. Merchants, App users, Reliability, Activity, Banners and App messages
+  // are the app's own administration and stay with leadership (founder, 17 Nov 2026).
   const appChildren = !accessLoading && can("fa") && (isSuperAdmin || !accountOnly)
-    ? [
-        "/work/fa/campaigns", "/work/fa/merchants", "/work/fa/members",
-        "/work/fa/reliability", "/work/fa/activity", "/work/fa/ad-banners",
-        "/work/fa/notifications",
-      ].filter(url => !workUrls.has(url)).map(url => ({ title: shortName(url), url }))
+    ? (leadership
+        ? ["/work/fa/campaigns", "/work/fa/merchants", "/work/fa/members",
+           "/work/fa/reliability", "/work/fa/activity", "/work/fa/ad-banners",
+           "/work/fa/notifications"]
+        : ["/work/fa/campaigns"]
+      ).filter(url => !workUrls.has(url)).map(url => ({ title: shortName(url), url }))
     : []
 
   const settingsChildren = [

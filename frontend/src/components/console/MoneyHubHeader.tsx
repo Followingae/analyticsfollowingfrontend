@@ -42,15 +42,19 @@ export function moneyTabs(access: TabAccess): HubTab[] {
        reads are now open to them, scrubbed of our fee and the client's invoice, because
        chasing a creator to sign is their job and they were being asked to do it from a screen
        they could not open. */
-    { label: 'Creator Contracting', href: '/work/mor', module: 'billing', when: canSeeCost },
-    // Cost, not just creators — see the note above.
+    { label: 'Creator Contracting', href: '/work/mor', module: 'billing', when: canSeeMargin },
+    /* Payables is the ONE money screen talent keeps: the SOP has them prepare what a creator
+       is owed. Everything else under Finance (payout runs, contracting, wallets, rates,
+       approvals, client credits) is leadership, by the same test that gates margin. The
+       founder asked on 17 Nov 2026 why talent could see what was owed and the finance detail;
+       the answer was that three tabs were opened on `canSeeCost` when they should not be. */
     { href: '/work/payables', module: 'influencers', when: canSeeCost },
     /* Paying what is owed: approved payments gathered into one bank file. It had a screen
        and no way to reach it except by typing the URL. */
-    { href: '/work/payouts', module: 'influencers', when: canSeeCost },
+    { href: '/work/payouts', module: 'influencers', when: canSeeMargin },
     /* Named from destinations.ts like every other tab; it said "Creator app balances" here
        and "Creator wallets" on the page itself. */
-    { href: '/work/fa/wallets', module: 'fa', when: canSeeCost },
+    { href: '/work/fa/wallets', module: 'fa', when: canSeeMargin },
     /* Enrolments moved to the Campaigns hub (2026-11-03): they are the paperwork for a
        booking. Creator payments stay here, and each one links back to its enrolment. */
     /* The founders' desk: prices to set, creators to release, payments to approve. Every

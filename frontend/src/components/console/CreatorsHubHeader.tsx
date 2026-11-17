@@ -48,8 +48,10 @@ export function creatorsTabs(access: TabAccess, waiting?: number): HubTab[] {
     { href: '/work/lists', module: 'influencers' },
     { href: '/work/areas', module: 'influencers' },
     { href: '/work/coverage', module: 'influencers' },
-    { href: '/work/fa/members', module: 'fa' },
-    { href: '/work/fa/reliability', module: 'fa' },
+    // App users and Reliability are the creator app's own administration: leadership only,
+    // by the margin test (founder, 17 Nov 2026).
+    { href: '/work/fa/members', module: 'fa', when: access.canSeeMargin },
+    { href: '/work/fa/reliability', module: 'fa', when: access.canSeeMargin },
   ], access)
 }
 
