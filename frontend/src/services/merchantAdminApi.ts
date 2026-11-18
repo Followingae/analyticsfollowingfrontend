@@ -115,6 +115,35 @@ export interface MerchantTrial {
 
 export type MerchantCampaignStatus = 'draft' | 'in_review' | 'live' | 'active' | 'approved' | 'rejected' | 'completed' | 'closed' | string
 
+/** The moments the server logs on a merchant (merchant_events). Order is the order they happen. */
+export type MerchantEventKind =
+  | 'invited' | 'welcome_resent' | 'reminder_sent' | 'password_set' | 'first_login'
+  | 'campaign_submitted' | 'campaign_approved' | 'campaign_sent_back' | 'quote_requested'
+  | string
+
+export interface MerchantEvent {
+  kind: MerchantEventKind
+  at: string | null
+  campaign_id?: string | null
+  payload: Record<string, unknown>
+}
+
+/** One timestamp per moment; null when it has not happened (or was never recorded). */
+export interface MerchantLog {
+  invited_at: string | null
+  welcome_resent_at: string | null
+  reminder_sent_at: string | null
+  password_set_at: string | null
+  first_login_at: string | null
+  campaign_submitted_at: string | null
+  campaign_approved_at: string | null
+  campaign_sent_back_at: string | null
+}
+
+/** Where a merchant is, as the server works it out from the log and the latest campaign. */
+export type MerchantStage = 'invited' | 'reminded' | 'signed_up' | 'campaign_in_review' | 'sent_back' | 'live'
+export const MERCHANT_STAGES: MerchantStage[] = ['invited', 'reminded', 'signed_up', 'campaign_in_review', 'sent_back', 'live']
+
 export interface OnboardedMerchant {
   merchant_id: string
   business_name: string
@@ -127,7 +156,24 @@ export interface OnboardedMerchant {
   created_at: string
   last_login: string | null
   trial: MerchantTrial
-  campaign: { id: string; name: string; status: MerchantCampaignStatus; submitted_at: string | null } | null
+  campaign: { id: string; name: string; status: MerchantCampaignStatus; submitted_at: string | null; review_note?: string | null } | null
+  log: MerchantLog
+  stage: MerchantStage
+  timeline: MerchantEvent[]
+}
+
+const EMPTY_LOG: MerchantLog = {
+  invited_at: null, welcome_resent_at: null, reminder_sent_at: null, password_set_at: null,
+  first_login_at: null, campaign_submitted_at: null, campaign_approved_at: null, campaign_sent_back_at: null,
+}
+
+/** An older server answers without the log: the stage is then read off what it does send. */
+function stageFallback(m: Partial<OnboardedMerchant>): MerchantStage {
+  const st = m.campaign?.status
+  if (st === 'in_review') return 'campaign_in_review'
+  if (st && ['live', 'active', 'approved', 'paused', 'completed', 'closed'].includes(st)) return 'live'
+  if (st === 'rejected') return 'sent_back'
+  return m.last_login ? 'signed_up' : 'invited'
 }
 
 /* ─── Review queue ───────────────────────────────────────────────────────────── */
@@ -262,6 +308,9 @@ export const merchantAdminApi = {
         creators_per_month: 5, used_total: 0, total_creators: 15,
       },
       campaign: m.campaign ?? null,
+      log: { ...EMPTY_LOG, ...(isObj(m.log) ? (m.log as Partial<MerchantLog>) : {}), invited_at: (m.log?.invited_at ?? m.created_at) || null },
+      stage: MERCHANT_STAGES.includes(m.stage as MerchantStage) ? (m.stage as MerchantStage) : stageFallback(m),
+      timeline: arr<MerchantEvent>(m.timeline).filter(e => isObj(e) && typeof e.kind === 'string'),
     }))
   },
 
