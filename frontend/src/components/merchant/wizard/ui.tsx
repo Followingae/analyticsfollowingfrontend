@@ -5,7 +5,7 @@
  */
 import * as React from 'react'
 import { useState } from 'react'
-import { X, Plus, type LucideIcon } from 'lucide-react'
+import { X, Plus, Check, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function Question({
@@ -138,6 +138,7 @@ export function ListEditor({
   placeholder,
   prefix,
   max = 12,
+  showItems = true,
 }: {
   items: string[]
   onChange: (items: string[]) => void
@@ -145,6 +146,8 @@ export function ListEditor({
   /** '@' or '#': typed once by us, never twice by them. */
   prefix?: string
   max?: number
+  /** False when the caller shows the items itself (as chips, say) and only wants the add box. */
+  showItems?: boolean
 }) {
   const [draft, setDraft] = useState('')
 
@@ -162,7 +165,7 @@ export function ListEditor({
 
   return (
     <div className="flex flex-col gap-2.5">
-      {items.length > 0 ? (
+      {showItems && items.length > 0 ? (
         <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
           {items.map((item) => (
             <li key={item} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-muted pl-3.5 pr-1.5 text-sm">
@@ -207,6 +210,53 @@ export function ListEditor({
           <Plus className="size-4" />
         </button>
       </div>
+    </div>
+  )
+}
+
+/** The red (or green) badge that sits where a rule bites. Short, with an icon, never a paragraph. */
+export function Badge({ children, tone = 'bad', className }: { children: React.ReactNode; tone?: 'bad' | 'good' | 'muted'; className?: string }) {
+  return (
+    <span
+      role={tone === 'bad' ? 'alert' : undefined}
+      className={cn(
+        'inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium',
+        tone === 'bad' && 'bg-destructive/10 text-destructive',
+        tone === 'good' && 'bg-[var(--tone-good-dot)]/15 text-[var(--tone-good-ink)]',
+        tone === 'muted' && 'bg-muted text-muted-foreground',
+        className,
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
+/** The input border and ring when the value breaks a rule. Add to INPUT. */
+export const INPUT_BAD = 'border-destructive/70 focus-visible:border-destructive focus-visible:ring-destructive/25 bg-destructive/[0.03]'
+
+/** Tappable suggestions that drop into a list. A chip already in the list reads as ticked. */
+export function Chips({ options, items, onToggle }: { options: string[]; items: string[]; onToggle: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((o) => {
+        const on = items.includes(o)
+        return (
+          <button
+            key={o}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onToggle(o)}
+            className={cn(
+              'inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-[13px] transition-colors',
+              on ? 'border-foreground bg-foreground text-background' : 'border-border bg-card text-foreground hover:bg-muted/60',
+            )}
+          >
+            {on ? <Check className="size-3.5" strokeWidth={2.5} /> : <Plus className="size-3.5" />}
+            {o}
+          </button>
+        )
+      })}
     </div>
   )
 }
