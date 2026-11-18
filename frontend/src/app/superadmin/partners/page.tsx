@@ -45,6 +45,7 @@ import {
   type PartnerLead, type LeadStatus, type PartnerLeadsPayload,
 } from '@/services/partnerLeadsApi'
 import { cn } from '@/lib/utils'
+import { OnboardMerchantDialog } from '@/components/superadmin/merchants/OnboardMerchantDialog'
 
 /* The hand-off to RFM, read from the row. Since 9 Nov 2026 a lead goes to the RFM platform
    the moment it arrives instead of to an inbox; this is the log of whether it did. Leads
@@ -187,6 +188,12 @@ function Leads() {
     }
   }, [])
 
+  /* Putting a lead on the platform. RFM has signed them; this creates their account and
+     sends the welcome. The lead record has no field for it yet, so the rows that went
+     through in this sitting are remembered here and read "On the platform". */
+  const [onboardLead, setOnboardLead] = useState<PartnerLead | null>(null)
+  const [onPlatform, setOnPlatform] = useState<Set<string>>(() => new Set())
+
   const [sendingId, setSendingId] = useState<string | null>(null)
   const sendToRfm = useCallback(async (l: PartnerLead) => {
     setSendingId(l.id)
@@ -311,14 +318,29 @@ function Leads() {
     {
       id: 'open',
       header: '',
-      cell: ({ row }) => (
-        <Button variant="ghost" size="sm" className="h-7 px-2"
-                onClick={() => setOpen(row.original)}>
-          Open
-        </Button>
-      ),
+      cell: ({ row }) => {
+        const l = row.original
+        return (
+          <div className="flex items-center justify-end gap-1">
+            {onPlatform.has(l.id) ? (
+              <span className="inline-flex items-center gap-1 rounded-ds-full bg-[var(--tone-good-wash)] px-2 py-0.5 text-[12px] font-medium text-[var(--tone-good-ink)]">
+                <Check className="size-3" aria-hidden />On the platform
+              </span>
+            ) : (
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-[12.5px]"
+                      onClick={() => setOnboardLead(l)} title="Create their merchant account and send the welcome">
+                Onboard to trial
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" className="h-7 px-2"
+                    onClick={() => setOpen(l)}>
+              Open
+            </Button>
+          </div>
+        )
+      },
     },
-  ], [patch, sendToRfm, sendingId])
+  ], [patch, sendToRfm, sendingId, onPlatform])
 
   const leads = payload?.leads ?? []
 
@@ -418,6 +440,22 @@ function Leads() {
         onSendToRfm={sendToRfm}
         onOpenLicence={openLicence}
         sending={!!open && sendingId === open.id}
+      />
+
+      <OnboardMerchantDialog
+        open={!!onboardLead}
+        onOpenChange={(o: boolean) => { if (!o) setOnboardLead(null) }}
+        prefill={onboardLead ? {
+          partner_lead_id: onboardLead.id,
+          business_name: onboardLead.business_name,
+          contact_name: onboardLead.contact_name,
+          email: onboardLead.email,
+          phone: onboardLead.phone,
+          business_type: onboardLead.business_type,
+        } : null}
+        onCreated={() => {
+          if (onboardLead) setOnPlatform(s => new Set(s).add(onboardLead.id))
+        }}
       />
     </div>
   )
