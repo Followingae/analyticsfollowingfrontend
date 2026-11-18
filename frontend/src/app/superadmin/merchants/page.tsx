@@ -16,7 +16,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Loader2, Mail, Plus, RefreshCw, Store, ArrowUpRight } from 'lucide-react'
+import { Loader2, Mail, Plus, RefreshCw, Store, ArrowUpRight, FileText, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Button } from '@/components/ui/button'
@@ -25,9 +25,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Panel, PageHead } from '@/components/console/primitives'
 import { Failed } from '@/components/console/surfaces'
 import { OnboardMerchantDialog } from '@/components/superadmin/merchants/OnboardMerchantDialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import {
-  merchantAdminApi, type MerchantApiError, type MerchantCampaignStatus, type OnboardedMerchant,
+  merchantAdminApi, QUOTE_STATUSES, type MerchantApiError, type MerchantCampaignStatus, type MerchantQuote,
+  type OnboardedMerchant, type QuoteStatus,
 } from '@/services/merchantAdminApi'
+import { quoteQuestionLabel } from '@/content/merchantQuoteQuestions'
 import { cn } from '@/lib/utils'
 
 const shortDate = (iso: string | null | undefined) =>
@@ -74,6 +78,11 @@ function Merchants() {
   const [notBuilt, setNotBuilt] = useState(false)
   const [onboarding, setOnboarding] = useState(false)
   const [resending, setResending] = useState<string | null>(null)
+  /* Quote requests off the trial-complete home. null until read; [] when the route is not built. */
+  const [quotes, setQuotes] = useState<MerchantQuote[] | null>(null)
+  const [quoteCounts, setQuoteCounts] = useState<Record<QuoteStatus | 'all', number> | null>(null)
+  const [quotesOn, setQuotesOn] = useState(true)
+  const [quoteFilter, setQuoteFilter] = useState<QuoteStatus | 'all'>('new')
 
   const load = useCallback(async () => {
     try {
@@ -90,7 +99,39 @@ function Merchants() {
     }
   }, [])
 
+  const loadQuotes = useCallback(async (filter: QuoteStatus | 'all') => {
+    try {
+      const r = await merchantAdminApi.listQuotes(filter)
+      setQuotes(r.items)
+      setQuoteCounts(r.counts)
+      setQuotesOn(true)
+    } catch (e) {
+      const err = e as MerchantApiError
+      if (err.status === 404) { setQuotesOn(false); setQuotes([]) }
+      else toast.error(err.message || 'The quote requests did not load')
+    }
+  }, [])
+
   useEffect(() => { load() }, [load])
+  useEffect(() => { loadQuotes(quoteFilter) }, [loadQuotes, quoteFilter])
+
+  const changeQuote = async (q: MerchantQuote, patch: { status?: QuoteStatus; quote_note?: string }) => {
+    try {
+      const fresh = await merchantAdminApi.updateQuote(q.id, patch)
+      setQuotes(prev => (prev ?? []).map(x => (x.id === q.id ? fresh : x)))
+      if (patch.status && patch.status !== q.status) {
+        const to = patch.status
+        setQuoteCounts(prev => prev ? {
+          ...prev,
+          [q.status]: Math.max(0, (prev[q.status] ?? 0) - 1),
+          [to]: (prev[to] ?? 0) + 1,
+        } : prev)
+      }
+      toast.success(patch.status ? `Marked ${patch.status}` : 'Note saved')
+    } catch (e) {
+      toast.error((e as Error).message || 'That did not save')
+    }
+  }
 
   const resend = async (m: OnboardedMerchant) => {
     setResending(m.merchant_id)
@@ -122,7 +163,23 @@ function Merchants() {
         sub={sub}
         action={
           <>
-            <Button variant="outline" size="sm" onClick={() => { setLoading(true); load() }}>
+            {quotesOn && quoteCounts && (
+              <a
+                href="#quote-requests"
+                className={cn(
+                  'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-medium',
+                  quoteCounts.new > 0
+                    ? 'border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]'
+                    : 'text-muted-foreground',
+                )}
+                title="Quote requests waiting on us"
+              >
+                <FileText className="size-3.5" aria-hidden />
+                Quotes
+                <span className="tabular-nums">{quoteCounts.new}</span>
+              </a>
+            )}
+            <Button variant="outline" size="sm" onClick={() => { setLoading(true); load(); loadQuotes(quoteFilter) }}>
               <RefreshCw className="mr-2 size-4" aria-hidden />Refresh
             </Button>
             <Button size="sm" onClick={() => setOnboarding(true)}>
@@ -238,6 +295,61 @@ function Merchants() {
         </Panel>
       )}
 
+      {quotesOn && (
+        <div id="quote-requests">
+          <Panel
+            title="Quote requests"
+            description="A merchant finished the trial and told us what they want next. They were promised a quote within two business days."
+            action={
+              <Select value={quoteFilter} onValueChange={(v: string) => setQuoteFilter(v as QuoteStatus | 'all')}>
+                <SelectTrigger className="h-8 w-[150px] text-[12.5px]" aria-label="Which quote requests">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">New{quoteCounts ? ` (${quoteCounts.new})` : ''}</SelectItem>
+                  <SelectItem value="quoted">Quoted{quoteCounts ? ` (${quoteCounts.quoted})` : ''}</SelectItem>
+                  <SelectItem value="won">Won{quoteCounts ? ` (${quoteCounts.won})` : ''}</SelectItem>
+                  <SelectItem value="lost">Lost{quoteCounts ? ` (${quoteCounts.lost})` : ''}</SelectItem>
+                  <SelectItem value="all">All{quoteCounts ? ` (${quoteCounts.all})` : ''}</SelectItem>
+                </SelectContent>
+              </Select>
+            }
+            flush
+          >
+            {quotes === null ? (
+              <div className="space-y-2 px-6 py-2">
+                {[0, 1].map(n => <Skeleton key={n} className="h-14 w-full rounded-ds-lg" />)}
+              </div>
+            ) : quotes.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+                <FileText className="size-6 text-muted-foreground" aria-hidden />
+                <p className="text-sm text-muted-foreground">
+                  {quoteFilter === 'new' ? 'Nothing waiting. Every request has been quoted.' : 'No requests here.'}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[13.5px]">
+                  <thead>
+                    <tr className="border-b text-[12px] font-medium text-muted-foreground">
+                      <th className="px-6 py-2.5">Business</th>
+                      <th className="px-3 py-2.5">Wants</th>
+                      <th className="px-3 py-2.5">Answers</th>
+                      <th className="px-3 py-2.5">Contact</th>
+                      <th className="px-3 py-2.5">Sent</th>
+                      <th className="px-6 py-2.5">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {quotes.map(q => <QuoteRow key={q.id} q={q} onChange={(patch) => changeQuote(q, patch)} />)}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Panel>
+        </div>
+      )}
+
       <OnboardMerchantDialog
         open={onboarding}
         onOpenChange={setOnboarding}
@@ -282,5 +394,97 @@ function TrialMeter({ trial: t }: { trial: OnboardedMerchant['trial'] }) {
         <span className="ml-1.5 text-[11.5px] tabular-nums text-muted-foreground">{used}/{per}</span>
       </div>
     </div>
+  )
+}
+
+const QUOTE_CHIP: Record<QuoteStatus, string> = {
+  new: 'bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]',
+  quoted: 'bg-[var(--tone-info-wash)] text-[var(--tone-info-ink)]',
+  won: 'bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]',
+  lost: 'bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]',
+}
+
+/** One request. The status select writes at once; the note on a quoted one saves on blur. */
+function QuoteRow({ q, onChange }: { q: MerchantQuote; onChange: (patch: { status?: QuoteStatus; quote_note?: string }) => void }) {
+  const [note, setNote] = useState(q.quote_note ?? '')
+  useEffect(() => { setNote(q.quote_note ?? '') }, [q.quote_note])
+  const managed = q.answers?.managed === 'yes'
+  const answerLines = Object.entries(q.answers || {})
+    .filter(([k]) => k !== 'managed')
+    .map(([k, v]) => ({ k, label: quoteQuestionLabel(k).replace(/\?$/, ''), value: Array.isArray(v) ? v.join(', ') : String(v) }))
+  return (
+    <tr className="border-b align-top last:border-0 hover:bg-black/[0.02] dark:hover:bg-white/[0.03]">
+      <td className="px-6 py-3">
+        <div className="flex items-center gap-3">
+          <Logo url={q.merchant.logo_url} name={q.merchant.name || '?'} />
+          <div className="min-w-0">
+            <div className="truncate font-medium">{q.merchant.name || <span className="text-muted-foreground">Unnamed merchant</span>}</div>
+            <div className="truncate text-[12px] text-muted-foreground">{q.merchant.category || 'No category'}</div>
+          </div>
+        </div>
+      </td>
+      <td className="px-3 py-3">
+        <div className="font-medium">{q.offering_label}</div>
+        {managed && <div className="text-[12px] text-muted-foreground">Managed by Following</div>}
+      </td>
+      <td className="px-3 py-3">
+        {answerLines.length === 0 ? (
+          <span className="text-muted-foreground">No answers</span>
+        ) : (
+          <dl className="m-0 space-y-0.5 text-[12.5px]">
+            {answerLines.map(a => (
+              <div key={a.k} className="flex gap-1.5">
+                <dt className="m-0 shrink-0 text-muted-foreground">{a.label}:</dt>
+                <dd className="m-0 max-w-[260px] truncate">{a.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        {q.notes && (
+          <p className="mt-1.5 max-w-[320px] text-[12.5px] italic leading-snug text-muted-foreground">{q.notes}</p>
+        )}
+      </td>
+      <td className="px-3 py-3">
+        <div>{q.contact.name || <span className="text-muted-foreground">No name</span>}</div>
+        {q.contact.email && (
+          <a href={`mailto:${q.contact.email}`} className="inline-flex max-w-[200px] items-center gap-1 truncate text-[12px] text-muted-foreground hover:text-foreground">
+            <Mail className="size-3 shrink-0" aria-hidden /><span className="truncate">{q.contact.email}</span>
+          </a>
+        )}
+        {q.contact.phone && (
+          <a href={`tel:${q.contact.phone}`} className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground">
+            <Phone className="size-3 shrink-0" aria-hidden />{q.contact.phone}
+          </a>
+        )}
+      </td>
+      <td className="px-3 py-3 text-[12.5px] text-muted-foreground" title={q.created_at}>
+        {ago(q.created_at)}
+      </td>
+      <td className="px-6 py-3">
+        <div className="flex w-[200px] flex-col gap-1.5">
+          <Select value={q.status} onValueChange={(v: string) => onChange({ status: v as QuoteStatus })}>
+            <SelectTrigger className={cn('h-8 border-transparent text-[12.5px] font-medium', QUOTE_CHIP[q.status])} aria-label="Status">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {QUOTE_STATUSES.map(st => (
+                <SelectItem key={st} value={st}>{st.charAt(0).toUpperCase() + st.slice(1)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {q.status !== 'new' && (
+            <Textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              onBlur={() => { if (note.trim() !== (q.quote_note ?? '').trim()) onChange({ quote_note: note.trim() }) }}
+              placeholder="What was quoted, in a line"
+              rows={2}
+              className="min-h-[52px] resize-none text-[12.5px]"
+            />
+          )}
+          {q.quoted_at && <span className="text-[11.5px] text-muted-foreground">Quoted {ago(q.quoted_at)}</span>}
+        </div>
+      </td>
+    </tr>
   )
 }

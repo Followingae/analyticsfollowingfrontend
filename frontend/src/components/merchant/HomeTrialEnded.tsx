@@ -1,32 +1,24 @@
 'use client'
 
 /**
- * The home after the third month: what the trial did, and three ways to keep going.
+ * The home after the third month: what the trial did, and how to keep going.
  *
- * Prices are placeholders until the plans exist server-side. The third option
- * is a conversation, not a checkout.
+ * No prices here (founder decision, 18 Nov 2026). The keep-going tile is a short
+ * quote request: what they want next, three questions, where to send the quote.
+ * A person writes back within two business days.
  */
 import Link from 'next/link'
-import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import type { MerchantHomeData } from '@/services/merchantApi'
 import { ShellHeader } from './MerchantShell'
 import { Tile, Eyebrow, StatusPill, Face, Money, FOREST, Quiet, compact, longDate } from './bits'
 import { Thumb } from './tiles'
-
-const PLANS = [
-  { key: 'barter', title: 'Barter, 5 creators a month', sub: 'Creators keep coming, you keep approving', price: '[PRICE]' },
-  { key: 'barter_paid', title: 'Barter plus paid creators', sub: 'Add bigger names with a budget you set', price: '[PRICE]' },
-  { key: 'managed', title: 'Managed by Following', sub: 'We run it. You see the results.', price: 'Talk to us' },
-] as const
-
-type PlanKey = (typeof PLANS)[number]['key']
+import { QuoteRequestCard } from './QuoteRequestCard'
 
 const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen']
 const word = (n: number) => NUMBER_WORDS[n] ?? String(n)
 
 export function HomeTrialEnded({ data }: { data: MerchantHomeData }) {
-  const [plan, setPlan] = useState<PlanKey>('barter')
   const { trial, content, creators } = data
   const pieces = (content?.reels || 0) + (content?.stories || 0) + (content?.posts || 0)
   const best = [...(content?.latest || [])].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 3)
@@ -67,65 +59,7 @@ export function HomeTrialEnded({ data }: { data: MerchantHomeData }) {
 
         {/* Keep going */}
         <Tile className="gap-4 p-6 md:col-span-2 lg:col-span-5 lg:row-span-2">
-          <div className="flex flex-col gap-1.5">
-            <Eyebrow>Keep going</Eyebrow>
-            <h2 className="m-0 text-[22px] font-semibold leading-tight tracking-[-0.02em]">
-              {trial.creators_per_month} creators a month, every month
-            </h2>
-            <p className="m-0 text-sm leading-relaxed text-muted-foreground">
-              Same barter campaign, same approval flow, nothing new to learn. Pause any month.
-            </p>
-          </div>
-
-          <div role="radiogroup" aria-label="Plan" className="flex min-h-0 flex-1 flex-col gap-2.5">
-            {PLANS.map((p) => {
-              const selected = plan === p.key
-              return (
-                <label
-                  key={p.key}
-                  className={cn(
-                    'flex cursor-pointer items-center gap-3.5 rounded-[14px] border bg-card px-4 py-3.5 transition-colors',
-                    selected ? 'border-2 border-foreground bg-muted/30' : 'border-border hover:bg-muted/40',
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="plan"
-                    value={p.key}
-                    checked={selected}
-                    onChange={() => setPlan(p.key)}
-                    className="size-[18px] accent-[var(--foreground)]"
-                  />
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="text-sm font-semibold">{p.title}</span>
-                    <span className="text-xs text-muted-foreground">{p.sub}</span>
-                  </span>
-                  <span className={cn('shrink-0 text-[15px] font-semibold', p.key === 'managed' && 'text-[13px] font-medium text-muted-foreground')}>
-                    {p.price}
-                  </span>
-                </label>
-              )
-            })}
-          </div>
-
-          <div className="flex flex-col gap-2.5">
-            {plan === 'managed' ? (
-              <a
-                href="mailto:partners@following.ae?subject=Managed%20campaigns"
-                className="inline-flex h-[46px] items-center justify-center rounded-full bg-foreground text-sm font-semibold text-background hover:opacity-90"
-              >
-                Talk to us
-              </a>
-            ) : (
-              <Link
-                href="/pricing"
-                className="inline-flex h-[46px] items-center justify-center rounded-full bg-foreground text-sm font-semibold text-background hover:opacity-90"
-              >
-                {plan === 'barter' ? 'Continue with barter' : 'Continue with barter and paid'}
-              </Link>
-            )}
-            <span className="text-center text-xs text-muted-foreground">No contract. First charge when your next campaign goes live.</span>
-          </div>
+          <QuoteRequestCard businessName={data.merchant?.name} />
         </Tile>
 
         {/* Best content */}

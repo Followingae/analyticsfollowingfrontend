@@ -192,6 +192,46 @@ export interface SaveCampaignResult {
   value_per_creator_aed: number
 }
 
+export type QuoteRequestStatus = 'new' | 'quoted' | 'won' | 'lost'
+
+/** One answer set: question id to the chosen option, options, or typed text. */
+export type QuoteAnswers = Record<string, string | string[]>
+
+export interface QuoteRequest {
+  id: string
+  offering: string
+  offering_label: string
+  answers: QuoteAnswers
+  notes: string | null
+  contact_name: string | null
+  contact_email: string | null
+  contact_phone: string | null
+  status: QuoteRequestStatus
+  quoted_at: string | null
+  created_at: string
+}
+
+export interface QuotePrefill {
+  contact_name: string | null
+  contact_email: string | null
+  contact_phone: string | null
+}
+
+/** `request` is null until the merchant has asked. `prefill` is what we already know about them. */
+export interface QuoteRequestState {
+  request: QuoteRequest | null
+  prefill: QuotePrefill
+}
+
+export interface QuoteRequestBody {
+  offering: string
+  answers: QuoteAnswers
+  notes?: string
+  contact_name?: string
+  contact_email?: string
+  contact_phone?: string
+}
+
 export interface AccessLink {
   valid: boolean
   email: string | null
@@ -281,6 +321,22 @@ export const merchantApi = {
 
   saveSettings: (settings: { creator_approval_mode: ApprovalMode }) =>
     request<{ creator_approval_mode: ApprovalMode }>('/api/v1/merchant/settings', { method: 'PUT', ...json(settings) }),
+
+  /**
+   * The team's latest quote request, or null. A 404 here is "not switched on yet" as much
+   * as "not a merchant", and either way the card simply shows the form, so it is swallowed.
+   */
+  getQuoteRequest: async (): Promise<QuoteRequestState | null> => {
+    try {
+      return await request<QuoteRequestState>('/api/v1/merchant/quote-request')
+    } catch (e) {
+      if (e instanceof NotMerchantError) return null
+      throw e
+    }
+  },
+
+  submitQuoteRequest: (body: QuoteRequestBody) =>
+    request<QuoteRequestState>('/api/v1/merchant/quote-request', { method: 'POST', ...json(body) }),
 
   // Public, no auth header. The token in the URL is the only authorisation.
   accessLink: async (token: string): Promise<AccessLink> => {

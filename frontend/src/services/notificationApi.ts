@@ -49,6 +49,7 @@ export type ServerNotificationType =
   | 'low_balance'
   | 'managed_content_due'
   | 'managed_content_missed'
+  | 'merchant_quote_requested'
   | 'mor_order_received'
   | 'opportunity_logged'
   | 'payable_overdue'
@@ -135,6 +136,7 @@ export const NOTIFICATION_CATEGORIES = {
   ],
   clients: [
     'brand_gone_quiet',
+    'merchant_quote_requested',
     'share_ready_to_send',
   ],
   deliverables: [
@@ -264,6 +266,7 @@ export const EVENT_LABEL: Partial<Record<ServerNotificationType, string>> = {
   low_balance: "Low credit balance",
   managed_content_due: "Content due on a managed campaign",
   managed_content_missed: "Content missed on a managed campaign",
+  merchant_quote_requested: "A merchant asked for a quote",
   mor_order_received: "A brand instructed a payment",
   opportunity_logged: "A brand was logged as worth chasing",
   payable_overdue: "Creator payment overdue",

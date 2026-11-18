@@ -17,6 +17,7 @@ import { fetchWithAuth } from '@/utils/apiInterceptor'
 
 const MERCHANTS = `${API_CONFIG.BASE_URL}/api/v1/admin/merchants`
 const CAMPAIGNS = `${API_CONFIG.BASE_URL}/api/v1/admin/merchant-campaigns`
+const QUOTES = `${API_CONFIG.BASE_URL}/api/v1/admin/merchant-quotes`
 
 /** Thrown with the status on it, so a screen can tell "not built yet" (404) from "broken". */
 export class MerchantApiError extends Error {
@@ -178,6 +179,35 @@ export interface MerchantCampaignsPayload {
   counts: { in_review: number; all: number }
 }
 
+/* ─── Quote requests ─────────────────────────────────────────────────────────── */
+
+export type QuoteStatus = 'new' | 'quoted' | 'won' | 'lost'
+export const QUOTE_STATUSES: QuoteStatus[] = ['new', 'quoted', 'won', 'lost']
+
+export interface MerchantQuote {
+  id: string
+  status: QuoteStatus
+  /** The website's product slug: campaigns-barter, campaigns-paid, influencer-cashback, ugc. */
+  offering: string
+  offering_label: string
+  /** Question id to the chosen option, options, or typed text. */
+  answers: Record<string, string | string[]>
+  notes: string | null
+  contact: { name: string | null; email: string | null; phone: string | null }
+  merchant: { id: string | null; name: string | null; logo_url: string | null; category: string | null }
+  team_id: string | null
+  quoted_at: string | null
+  quote_note: string | null
+  handled_by: string | null
+  created_at: string
+  updated_at: string | null
+}
+
+export interface MerchantQuotesPayload {
+  items: MerchantQuote[]
+  counts: Record<QuoteStatus | 'all', number>
+}
+
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : [])
 
 /** Every list field arrives as a list, whatever the server sent. */
@@ -194,6 +224,23 @@ function normaliseCampaign(raw: unknown): MerchantCampaign {
     mandatory_hashtags: arr<string>(c.mandatory_hashtags),
     content_requirements: arr<string>(c.content_requirements),
     things_to_avoid: arr<string>(c.things_to_avoid),
+  }
+}
+
+function normaliseQuote(raw: unknown): MerchantQuote {
+  const q = (isObj(raw) ? raw : {}) as Partial<MerchantQuote> & Loose
+  const answers = isObj(q.answers) ? (q.answers as Record<string, string | string[]>) : {}
+  return {
+    ...(q as MerchantQuote),
+    status: (QUOTE_STATUSES.includes(q.status as QuoteStatus) ? q.status : 'new') as QuoteStatus,
+    offering: String(q.offering ?? ''),
+    offering_label: String(q.offering_label ?? q.offering ?? ''),
+    answers,
+    notes: q.notes ?? null,
+    contact: q.contact || { name: null, email: null, phone: null },
+    merchant: q.merchant || { id: null, name: null, logo_url: null, category: null },
+    quote_note: q.quote_note ?? null,
+    quoted_at: q.quoted_at ?? null,
   }
 }
 
@@ -243,4 +290,26 @@ export const merchantAdminApi = {
     unwrap(await jfetch(`${CAMPAIGNS}/${id}/reject`, {
       method: 'POST', body: JSON.stringify({ reason }),
     })),
+
+  /** `new` by default: the ones nobody has quoted yet. `all` for the full history. */
+  listQuotes: async (status: QuoteStatus | 'all' = 'new'): Promise<MerchantQuotesPayload> => {
+    const j = unwrap<unknown>(await jfetch(`${QUOTES}?status=${status}`))
+    const raw = Array.isArray(j) ? j : arr<unknown>(isObj(j) ? (j.quotes ?? j.items) : [])
+    const items = raw.map(normaliseQuote)
+    const c = isObj(j) && isObj(j.counts) ? j.counts : {}
+    const n = (k: string, fallback: number) => (typeof c[k] === 'number' ? (c[k] as number) : fallback)
+    const by = (st: QuoteStatus) => items.filter(q => q.status === st).length
+    return {
+      items,
+      counts: {
+        new: n('new', by('new')), quoted: n('quoted', by('quoted')),
+        won: n('won', by('won')), lost: n('lost', by('lost')), all: n('all', items.length),
+      },
+    }
+  },
+
+  updateQuote: async (id: string, patch: { status?: QuoteStatus; quote_note?: string }): Promise<MerchantQuote> =>
+    normaliseQuote(unwrap<unknown>(await jfetch(`${QUOTES}/${id}`, {
+      method: 'PATCH', body: JSON.stringify(patch),
+    }))),
 }
