@@ -14,7 +14,8 @@
  * "Where they are" is one chip per merchant (Invited, Reminded, Signed up, Campaign in review,
  * Sent back, Live) with the moment it happened underneath; the chip opens the merchant's log,
  * every recorded moment with its date, read off merchant_events on the server (founder, 18 Nov
- * 2026: an accurate log, not a last-sign-in guess).
+ * 2026: an accurate log, not a last-sign-in guess). The chip, the log and the trial meter are
+ * shared pieces (components/superadmin/merchants/) also used by the lead panel on Partners.
  *
  * Density tier: OPERATING. A worklist, so the table is the page.
  */
@@ -22,6 +23,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Loader2, Mail, Plus, RefreshCw, Store, ArrowUpRight, FileText, Phone, ChevronDown } from 'lucide-react'
+import { StageChip, neverSignedIn, stageAt, stageLabel } from '@/components/superadmin/merchants/StageChip'
+import { MerchantTimeline, ago, timelineItems } from '@/components/superadmin/merchants/MerchantTimeline'
+import { TrialMeter } from '@/components/superadmin/merchants/TrialMeter'
 import { toast } from 'sonner'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Button } from '@/components/ui/button'
@@ -34,8 +38,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
-  merchantAdminApi, QUOTE_STATUSES, type MerchantApiError, type MerchantCampaignStatus, type MerchantEvent,
-  type MerchantQuote, type MerchantStage, type OnboardedMerchant, type QuoteStatus,
+  merchantAdminApi, QUOTE_STATUSES, type MerchantApiError, type MerchantCampaignStatus,
+  type MerchantQuote, type OnboardedMerchant, type QuoteStatus,
 } from '@/services/merchantAdminApi'
 import { quoteQuestionLabel } from '@/content/merchantQuoteQuestions'
 import { cn } from '@/lib/utils'
@@ -43,112 +47,11 @@ import { cn } from '@/lib/utils'
 const shortDate = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : null
 
-const ago = (iso: string | null | undefined) => {
-  if (!iso) return null
-  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
-  if (!Number.isFinite(mins)) return null
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  if (mins < 1440) return `${Math.floor(mins / 60)}h ago`
-  const d = Math.floor(mins / 1440)
-  return d < 30 ? `${d}d ago` : shortDate(iso)
-}
-
-const fullDate = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : null
-
-/**
- * Where they are: the stage chip's words, its colour, and which timestamp sits under it.
- * "Invited 2d ago" is the invite date; "Signed up" is when the password was set; the campaign
- * stages carry the moment the campaign changed hands.
- */
-const STAGE: Record<MerchantStage, { label: string; cls: string; at: (m: OnboardedMerchant) => string | null }> = {
-  invited: {
-    label: 'Invited',
-    cls: 'bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]',
-    at: m => m.log.invited_at,
-  },
-  reminded: {
-    label: 'Reminded',
-    cls: 'bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]',
-    at: m => m.log.reminder_sent_at,
-  },
-  signed_up: {
-    label: 'Signed up',
-    cls: 'bg-[var(--tone-info-wash)] text-[var(--tone-info-ink)]',
-    at: m => m.log.password_set_at || m.log.first_login_at || m.last_login,
-  },
-  campaign_in_review: {
-    label: 'Campaign in review',
-    cls: 'bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]',
-    at: m => m.log.campaign_submitted_at || m.campaign?.submitted_at || null,
-  },
-  sent_back: {
-    label: 'Sent back',
-    cls: 'bg-[var(--tone-info-wash)] text-[var(--tone-info-ink)]',
-    at: m => m.log.campaign_sent_back_at,
-  },
-  live: {
-    label: 'Live',
-    cls: 'bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]',
-    at: m => m.log.campaign_approved_at,
-  },
-}
-
-/** What each logged moment is called on the timeline. */
-const EVENT_LABEL: Record<string, string> = {
-  invited: 'Invited',
-  welcome_resent: 'Welcome sent again',
-  reminder_sent: 'Reminder sent',
-  password_set: 'Password set',
-  first_login: 'First sign-in',
-  campaign_submitted: 'Campaign submitted',
-  campaign_approved: 'Campaign approved',
-  campaign_sent_back: 'Campaign sent back',
-  quote_requested: 'Quote requested',
-}
-
-/**
- * The timeline a chip opens. Logged events first; when the server has no rows for an older
- * merchant, the eight log timestamps stand in so the list is never empty for someone who is
- * plainly past "invited".
- */
-function timelineFor(m: OnboardedMerchant): { kind: string; at: string | null; note: string | null }[] {
-  if (m.timeline.length) {
-    return m.timeline.map((e: MerchantEvent) => {
-      const p = e.payload || {}
-      let note: string | null = null
-      if (e.kind === 'invited' || e.kind === 'welcome_resent' || e.kind === 'reminder_sent') {
-        if (p.email_sent === false) note = p.held_back ? 'No email sent, link held back' : 'Email did not go'
-        else if (typeof p.to === 'string') note = `to ${p.to}`
-      } else if (e.kind === 'campaign_sent_back' && typeof p.reason === 'string') {
-        note = p.reason
-      } else if ((e.kind === 'campaign_submitted' || e.kind === 'campaign_approved') && typeof p.name === 'string') {
-        note = p.name
-      } else if (e.kind === 'quote_requested' && typeof p.offering === 'string') {
-        note = String(p.offering).replace(/-/g, ' ')
-      }
-      return { kind: e.kind, at: e.at, note }
-    })
-  }
-  const l = m.log
-  return ([
-    ['invited', l.invited_at], ['welcome_resent', l.welcome_resent_at], ['reminder_sent', l.reminder_sent_at],
-    ['password_set', l.password_set_at], ['first_login', l.first_login_at],
-    ['campaign_submitted', l.campaign_submitted_at], ['campaign_sent_back', l.campaign_sent_back_at],
-    ['campaign_approved', l.campaign_approved_at],
-  ] as [string, string | null][])
-    .filter(([, at]) => !!at)
-    .sort((a, b) => new Date(a[1] as string).getTime() - new Date(b[1] as string).getTime())
-    .map(([kind, at]) => ({ kind, at, note: null }))
-}
-
 /** The stage chip with its date underneath; click it and the merchant's timeline opens. */
 function WhereTheyAre({ m }: { m: OnboardedMerchant }) {
-  const s = STAGE[m.stage] ?? STAGE.invited
-  const at = s.at(m)
-  const items = timelineFor(m)
-  const neverIn = m.stage === 'invited' || m.stage === 'reminded'
+  const at = stageAt(m.stage, m.log, { last_login: m.last_login, campaign_submitted_at: m.campaign?.submitted_at })
+  const items = timelineItems(m.timeline, m.log)
+  const neverIn = neverSignedIn(m.stage)
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -156,12 +59,11 @@ function WhereTheyAre({ m }: { m: OnboardedMerchant }) {
           type="button"
           className="group inline-flex flex-col items-start gap-0.5 rounded-ds-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
           title="Open the log"
-          aria-label={`${s.label}. Open the log for ${m.business_name}`}
+          aria-label={`${stageLabel(m.stage)}. Open the log for ${m.business_name}`}
         >
-          <Badge variant="outline" className={cn('border-transparent font-medium', s.cls)}>
-            {s.label}
+          <StageChip stage={m.stage}>
             <ChevronDown className="ml-1 size-3 opacity-60 transition-transform group-data-[state=open]:rotate-180" aria-hidden />
-          </Badge>
+          </StageChip>
           <span className={cn('text-[12px]', neverIn ? 'text-[var(--tone-warn-ink)]' : 'text-muted-foreground')} title={at || undefined}>
             {at ? ago(at) : (neverIn ? 'Never signed in' : 'No date')}
             {neverIn && at ? ', not signed in' : ''}
@@ -175,26 +77,7 @@ function WhereTheyAre({ m }: { m: OnboardedMerchant }) {
             {items.length} {items.length === 1 ? 'moment' : 'moments'} on record
           </div>
         </div>
-        {items.length === 0 ? (
-          <p className="px-3 py-3 text-[12.5px] text-muted-foreground">Nothing logged yet.</p>
-        ) : (
-          <ol className="m-0 max-h-[300px] list-none overflow-y-auto p-0">
-            {items.map((e, i) => (
-              <li key={`${e.kind}-${e.at}-${i}`} className="flex gap-2.5 border-b px-3 py-2 last:border-0">
-                <span className="mt-[6px] size-1.5 shrink-0 rounded-full bg-[var(--tone-info-ink)]" aria-hidden />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-[12.5px] font-medium">{EVENT_LABEL[e.kind] || e.kind.replace(/_/g, ' ')}</span>
-                    <span className="shrink-0 text-[11.5px] tabular-nums text-muted-foreground" title={e.at || undefined}>
-                      {fullDate(e.at) || 'No date'}
-                    </span>
-                  </div>
-                  {e.note && <div className="truncate text-[11.5px] text-muted-foreground" title={e.note}>{e.note}</div>}
-                </div>
-              </li>
-            ))}
-          </ol>
-        )}
+        <MerchantTimeline items={items} className="max-h-[300px] overflow-y-auto" />
       </PopoverContent>
     </Popover>
   )
@@ -523,32 +406,6 @@ function Logo({ url, name }: { url: string | null; name: string }) {
     <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-ds-md border bg-muted text-[12px] font-semibold text-muted-foreground">
       {(name || '?').slice(0, 2).toUpperCase()}
     </span>
-  )
-}
-
-/** Month x of 3 in words, this month's creators as five pills. */
-function TrialMeter({ trial: t }: { trial: OnboardedMerchant['trial'] }) {
-  const per = Math.max(1, t.creators_per_month || 5)
-  const used = Math.min(per, Math.max(0, t.used_this_month || 0))
-  const months = t.months || 3
-  const line = t.status === 'pending'
-    ? 'Not started'
-    : t.status === 'complete'
-      ? `Done, ${t.used_total} of ${t.total_creators} creators`
-      : `Month ${Math.max(1, t.month)} of ${months}`
-  return (
-    <div className="space-y-1">
-      <div className="text-[12.5px]">{line}</div>
-      <div className="flex items-center gap-1" aria-label={`${used} of ${per} creators used this month`}>
-        {Array.from({ length: per }).map((_, i) => (
-          <span key={i} className={cn(
-            'h-1.5 w-4 rounded-full',
-            i < used ? 'bg-[var(--tone-good-dot)]' : 'bg-black/[0.08] dark:bg-white/[0.12]',
-          )} />
-        ))}
-        <span className="ml-1.5 text-[11.5px] tabular-nums text-muted-foreground">{used}/{per}</span>
-      </div>
-    </div>
   )
 }
 

@@ -276,7 +276,14 @@ type DataTableProps<TData, TValue> = {
   toolbar?: React.ReactNode
   emptyState?: React.ReactNode
   className?: string
+  /**
+   * Called when a row is clicked anywhere that is not itself a control (a button, a link, a
+   * select, an input). Rows with it are pointer-cursor and keyboard reachable.
+   */
+  onRowClick?: (row: TData) => void
 }
+
+const CONTROL = 'button, a, input, textarea, select, [role="combobox"], [role="menuitem"], [data-no-row-click]'
 
 function DataTable<TData, TValue>({
   columns,
@@ -287,6 +294,7 @@ function DataTable<TData, TValue>({
   toolbar,
   emptyState = "No results.",
   className,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -361,6 +369,16 @@ function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className={onRowClick ? "cursor-pointer" : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onClick={onRowClick ? (e) => {
+                    if ((e.target as HTMLElement).closest(CONTROL)) return
+                    onRowClick(row.original)
+                  } : undefined}
+                  onKeyDown={onRowClick ? (e) => {
+                    if (e.target !== e.currentTarget) return
+                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onRowClick(row.original) }
+                  } : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

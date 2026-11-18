@@ -14,6 +14,11 @@
  * looking at those twelve. A chip whose number changes when you click it is a chip you cannot
  * use to decide what to click.
  *
+ * ONE PLACE (founder, 18 Nov 2026). Clicking a row opens LeadPanel: the lead, the merchant it
+ * became, its stage and log, the campaign waiting for a yes (approve it from here), its quote
+ * requests and the note. Every row wears the merchant's stage chip. Under the leads, a second
+ * table lists merchants that were onboarded without a lead; their rows open the same panel.
+ *
  * Density tier: OPERATING. This is a worklist. Rows are scanned and acted on, so the table is
  * the page and everything else gets out of its way.
  */
@@ -21,83 +26,29 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import {
-  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
-} from '@/components/ui/sheet'
 import { DataTable, DataTableColumnHeader } from '@/components/ui2/data-table'
 import { Panel } from '@/components/console/primitives'
 import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
 import { toast } from 'sonner'
 import {
-  Download, Mail, Paperclip, Phone, RefreshCw, Globe, ExternalLink, Send, Check, AlertCircle, Loader2, FileText,
+  Download, Mail, Paperclip, Phone, RefreshCw, Check, FileText, Store,
 } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import {
   partnerLeadsApi, LEAD_STATUSES, STATUS_LABEL,
   type PartnerLead, type LeadStatus, type PartnerLeadsPayload,
 } from '@/services/partnerLeadsApi'
+import { merchantAdminApi, type MerchantApiError, type OnboardedMerchant } from '@/services/merchantAdminApi'
 import { cn } from '@/lib/utils'
 import { OnboardMerchantDialog } from '@/components/superadmin/merchants/OnboardMerchantDialog'
-
-/* The hand-off to RFM, read from the row. Since 9 Nov 2026 a lead goes to the RFM platform
-   the moment it arrives instead of to an inbox; this is the log of whether it did. Leads
-   from before that date were worked by hand and say so rather than reading as failures. */
-const RFM_FROM = '2026-11-09'
-const RFM_OK = new Set(['queued', 'duplicate', 'opted_out', 'ok'])
-
-function rfmState(l: PartnerLead): { kind: 'sent' | 'failed' | 'waiting' | 'before' | 'no_consent'; text: string; detail?: string } {
-  if (l.rfm_sent_at) {
-    return {
-      kind: 'sent',
-      text: `Sent ${shortTime(l.rfm_sent_at)}`,
-      detail: l.rfm_status === 'duplicate' ? 'RFM already had this number'
-        : l.rfm_status === 'opted_out' ? 'This person asked RFM not to call'
-        : l.rfm_contact_id ? `RFM contact ${l.rfm_contact_id.slice(0, 8)}` : undefined,
-    }
-  }
-  if ((l.created_at || '') < RFM_FROM) return { kind: 'before', text: 'Worked by hand' }
-  if (!l.consent_at) return { kind: 'no_consent', text: 'No consent given', detail: 'The applicant did not tick the consent line, so RFM is not sent this lead.' }
-  if (l.rfm_status && !RFM_OK.has(l.rfm_status)) {
-    return { kind: 'failed', text: l.rfm_status === 'rejected' ? 'RFM refused it' : l.rfm_status === 'not_configured' ? 'Key not set' : 'Not through yet',
-             detail: l.rfm_error || undefined }
-  }
-  return { kind: 'waiting', text: 'Sending' }
-}
-
-const shortTime = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
-
-function RfmCell({ l, onSend, busy }: { l: PartnerLead; onSend?: () => void; busy?: boolean }) {
-  const st = rfmState(l)
-  const Icon = st.kind === 'sent' ? Check : st.kind === 'failed' ? AlertCircle : st.kind === 'waiting' ? Loader2 : null
-  return (
-    <div className="flex items-center gap-2">
-      <span
-        title={st.detail}
-        className={cn('inline-flex items-center gap-1 text-[12.5px]',
-          st.kind === 'sent' ? 'text-[var(--tone-good-ink)]'
-          : st.kind === 'failed' ? 'text-[var(--tone-warn-ink)]'
-          : 'text-muted-foreground')}
-      >
-        {Icon && <Icon className={cn('size-3.5', st.kind === 'waiting' && 'animate-spin')} aria-hidden />}
-        {st.text}
-      </span>
-      {onSend && (st.kind === 'failed' || st.kind === 'waiting') && (
-        <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[12px]" disabled={busy} onClick={onSend} title="Send to RFM now">
-          <Send className="size-3" aria-hidden />
-        </Button>
-      )}
-    </div>
-  )
-}
+import { StageChip, neverSignedIn, stageAt } from '@/components/superadmin/merchants/StageChip'
+import { ago } from '@/components/superadmin/merchants/MerchantTimeline'
+import { RfmCell } from '@/components/superadmin/partners/rfm'
+import { LeadPanel, type LeadPanelTarget } from '@/components/superadmin/partners/LeadPanel'
 
 /* Status colour carries the same meaning it does everywhere else in the console: warm for
    "needs somebody", good for won, muted for closed. Lost is deliberately quiet rather than
@@ -132,7 +83,11 @@ function Leads() {
   const [status, setStatus] = useState<string>('all')
   const [campaign, setCampaign] = useState<string>('all')
   const [search, setSearch] = useState('')
-  const [open, setOpen] = useState<PartnerLead | null>(null)
+  /* What the panel is open on: a lead, or a merchant that has no lead. */
+  const [target, setTarget] = useState<LeadPanelTarget>(null)
+  /* Merchants onboarded without a lead: the second table. null until read, [] when none or
+     when the server does not know the flag yet. */
+  const [orphans, setOrphans] = useState<OnboardedMerchant[] | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -148,6 +103,18 @@ function Leads() {
   }, [status, campaign, search])
 
   useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t) }, [load])
+
+  const loadOrphans = useCallback(async () => {
+    try {
+      const rows = await merchantAdminApi.listOnboarded({ withoutLead: true })
+      setOrphans(rows.filter(m => m.has_lead === false))
+    } catch (e) {
+      const err = e as MerchantApiError
+      if (err.status !== 404) toast.error(err.message || 'The merchants without a lead did not load')
+      setOrphans([])
+    }
+  }, [])
+  useEffect(() => { loadOrphans() }, [loadOrphans])
 
   /* A lead arrives while somebody is looking at this screen, and until now the screen had
      no way of knowing. It reloads itself every half minute, and again the moment the tab is
@@ -181,7 +148,6 @@ function Leads() {
         // though the row did not leave the list.
         counts: recount(p, id, r.data.status),
       }))
-      setOpen(o => (o && o.id === id ? r.data : o))
       if (say) toast.success(say)
     } catch (e) {
       toast.error((e as Error).message)
@@ -200,7 +166,6 @@ function Leads() {
     try {
       const r = await partnerLeadsApi.sendToRfm(l.id)
       setPayload(p => p && ({ ...p, leads: p.leads.map(x => (x.id === l.id ? r.data : x)) }))
-      setOpen(o => (o && o.id === l.id ? r.data : o))
       if (r.rfm.ok) toast.success(`${l.business_name || 'Lead'} is with RFM`, { description: r.rfm.status })
       else toast.error(`RFM did not take ${l.business_name || 'the lead'}`, { description: r.rfm.error || r.rfm.status })
     } catch (e) {
@@ -208,12 +173,18 @@ function Leads() {
     } finally { setSendingId(null) }
   }, [])
 
-  const openLicence = useCallback(async (l: PartnerLead) => {
-    try {
-      const r = await partnerLeadsApi.licenceUrl(l.id)
-      window.open(r.data.url, '_blank', 'noopener')
-    } catch (e) { toast.error((e as Error).message) }
+  /* The panel patched a row (status, note, RFM): mirror it in the table without a reload. */
+  const rowPatched = useCallback((lead: PartnerLead) => {
+    setPayload(p => p && ({
+      ...p,
+      leads: p.leads.map(l => (l.id === lead.id ? { ...l, ...lead } : l)),
+      counts: recount(p, lead.id, lead.status),
+    }))
   }, [])
+
+  /* Something happened on the server that changes a row's chip (an onboarding, a campaign
+     decision): re-read both lists quietly. */
+  const changed = useCallback(() => { load(); loadOrphans() }, [load, loadOrphans])
 
   const columns = useMemo<ColumnDef<PartnerLead>[]>(() => [
     {
@@ -222,11 +193,7 @@ function Leads() {
       cell: ({ row }) => {
         const l = row.original
         return (
-          <button
-            type="button"
-            onClick={() => setOpen(l)}
-            className="text-left focus-visible:outline-none focus-visible:underline"
-          >
+          <div className="text-left">
             <div className="font-medium tracking-[-0.01em]">{l.business_name || '—'}</div>
             <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground">
               {l.business_type || 'Type not given'}
@@ -241,7 +208,7 @@ function Leads() {
                 </span>
               )}
             </div>
-          </button>
+          </div>
         )
       },
     },
@@ -256,7 +223,7 @@ function Leads() {
             {/* Tappable, because the next action on most of these rows is to ring them. */}
             <div className="mt-0.5 flex items-center gap-2.5 text-[12px] text-muted-foreground">
               {l.phone && (
-                <a href={`tel:${l.phone}`} className="inline-flex items-center gap-1 hover:text-foreground">
+                <a href={`tel:${l.phone}`} className="inline-flex items-center gap-1 hover:text-foreground" data-no-row-click>
                   <Phone className="size-3" aria-hidden />{l.phone}
                 </a>
               )}
@@ -287,7 +254,7 @@ function Leads() {
            down a list marking people contacted; making them open each one to do it would
            rebuild the inbox this replaces. */
         return (
-          <Select value={l.status} onValueChange={v => patch(l.id, { status: v as LeadStatus },
+          <Select value={l.status} onValueChange={(v: string) => patch(l.id, { status: v as LeadStatus },
             `${l.business_name || 'Lead'} marked ${STATUS_LABEL[v as LeadStatus].toLowerCase()}`)}>
             <SelectTrigger className={cn('h-7 w-[120px] border-0 text-[12px] font-medium', TONE[l.status])}>
               <SelectValue />
@@ -298,6 +265,22 @@ function Leads() {
               ))}
             </SelectContent>
           </Select>
+        )
+      },
+    },
+    {
+      accessorKey: 'stage',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="On the platform" />,
+      cell: ({ row }) => {
+        const l = row.original
+        if (!l.merchant_id) {
+          return <span className="text-[12px] text-muted-foreground">{onPlatform.has(l.id) ? 'Just onboarded' : 'Not yet'}</span>
+        }
+        return (
+          <div className="inline-flex flex-col items-start gap-0.5">
+            {l.stage ? <StageChip stage={l.stage} /> : <span className="text-[12px] text-muted-foreground">Merchant, no programme</span>}
+            {l.stage && neverSignedIn(l.stage) && <span className="text-[11.5px] text-[var(--tone-warn-ink)]">Not signed in</span>}
+          </div>
         )
       },
     },
@@ -322,18 +305,18 @@ function Leads() {
         const l = row.original
         return (
           <div className="flex items-center justify-end gap-1">
-            {onPlatform.has(l.id) ? (
+            {l.merchant_id || onPlatform.has(l.id) ? (
               <span className="inline-flex items-center gap-1 rounded-ds-full bg-[var(--tone-good-wash)] px-2 py-0.5 text-[12px] font-medium text-[var(--tone-good-ink)]">
                 <Check className="size-3" aria-hidden />On the platform
               </span>
-            ) : (
+            ) : l.status !== 'lost' && (
               <Button variant="ghost" size="sm" className="h-7 px-2 text-[12.5px]"
                       onClick={() => setOnboardLead(l)} title="Create their merchant account and send the welcome">
                 Onboard to trial
               </Button>
             )}
             <Button variant="ghost" size="sm" className="h-7 px-2"
-                    onClick={() => setOpen(l)}>
+                    onClick={() => setTarget({ lead_id: l.id })}>
               Open
             </Button>
           </div>
@@ -396,7 +379,7 @@ function Leads() {
 
       <Panel
         title={payload ? `${leads.length.toLocaleString()} shown` : 'Leads'}
-        description="Change a status in the row. Open a lead for the full application and to leave a note."
+        description="Change a status in the row. Click a lead for everything about it: the application, the merchant it became, its campaign and quotes."
         flush
         action={
           payload && payload.campaigns.length > 1 ? (
@@ -419,6 +402,7 @@ function Leads() {
             <DataTable
               columns={columns}
               data={leads}
+              onRowClick={l => setTarget({ lead_id: l.id })}
               filterColumn="business_name"
               filterPlaceholder="Search business, contact, email or phone"
               emptyState={
@@ -433,13 +417,89 @@ function Leads() {
         </div>
       </Panel>
 
-      <LeadSheet
-        lead={open}
-        onClose={() => setOpen(null)}
-        onPatch={patch}
-        onSendToRfm={sendToRfm}
-        onOpenLicence={openLicence}
-        sending={!!open && sendingId === open.id}
+      {/* Merchants that were onboarded without a lead: the ones the leads table cannot show.
+          Same panel, opened on the merchant. Hidden when there are none. */}
+      {orphans && orphans.length > 0 && (
+        <Panel
+          title={`${orphans.length} ${orphans.length === 1 ? 'merchant' : 'merchants'} without a lead`}
+          description="Onboarded straight from the merchants screen, so no application sits behind them. Click one for everything about it."
+          flush
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[13.5px]">
+              <thead>
+                <tr className="border-b text-[12px] font-medium text-muted-foreground">
+                  <th className="px-6 py-2.5">Business</th>
+                  <th className="px-3 py-2.5">Contact</th>
+                  <th className="px-3 py-2.5">Where they are</th>
+                  <th className="px-3 py-2.5">Campaign</th>
+                  <th className="px-6 py-2.5">Onboarded</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orphans.map(m => {
+                  const at = stageAt(m.stage, m.log, { last_login: m.last_login, campaign_submitted_at: m.campaign?.submitted_at })
+                  return (
+                    <tr
+                      key={m.merchant_id}
+                      tabIndex={0}
+                      onClick={() => setTarget({ merchant_id: m.merchant_id })}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTarget({ merchant_id: m.merchant_id }) } }}
+                      className="cursor-pointer border-b last:border-0 hover:bg-black/[0.02] focus-visible:outline-none focus-visible:bg-black/[0.03] dark:hover:bg-white/[0.03]"
+                    >
+                      <td className="px-6 py-3">
+                        <div className="flex items-center gap-3">
+                          {m.logo_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={m.logo_url} alt="" className="size-8 shrink-0 rounded-ds-md border bg-background object-contain p-0.5" />
+                          ) : (
+                            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-ds-md border bg-muted text-muted-foreground">
+                              <Store className="size-3.5" aria-hidden />
+                            </span>
+                          )}
+                          <div className="min-w-0">
+                            <div className="truncate font-medium">{m.business_name}</div>
+                            <div className="truncate text-[12px] text-muted-foreground">{m.category || 'No category'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="text-[13.5px]">{m.contact_name || <span className="text-muted-foreground">No name</span>}</div>
+                        <div className="mt-0.5 flex items-center gap-2.5 text-[12px] text-muted-foreground">
+                          {m.email && (
+                            <a href={`mailto:${m.email}`} className="inline-flex items-center gap-1 hover:text-foreground" data-no-row-click>
+                              <Mail className="size-3" aria-hidden /><span className="max-w-[180px] truncate">{m.email}</span>
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="inline-flex flex-col items-start gap-0.5">
+                          <StageChip stage={m.stage} />
+                          <span className={cn('text-[11.5px]', neverSignedIn(m.stage) ? 'text-[var(--tone-warn-ink)]' : 'text-muted-foreground')}>
+                            {at ? ago(at) : (neverSignedIn(m.stage) ? 'Never signed in' : '')}
+                            {neverSignedIn(m.stage) && at ? ', not signed in' : ''}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 text-[12.5px] text-muted-foreground">
+                        {m.campaign ? m.campaign.name : 'No campaign'}
+                      </td>
+                      <td className="px-6 py-3 text-[12.5px] text-muted-foreground">{shortDate(m.created_at)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      )}
+
+      <LeadPanel
+        target={target}
+        onClose={() => setTarget(null)}
+        onLeadPatched={rowPatched}
+        onChanged={changed}
       />
 
       <OnboardMerchantDialog
@@ -455,6 +515,7 @@ function Leads() {
         } : null}
         onCreated={() => {
           if (onboardLead) setOnPlatform(s => new Set(s).add(onboardLead.id))
+          changed()
         }}
       />
     </div>
@@ -486,204 +547,5 @@ function Chip({ label, n, on, onClick, tone }: {
       {label}
       <span className="tabular-nums opacity-70">{n.toLocaleString()}</span>
     </button>
-  )
-}
-
-/**
- * One application in full, and the two things somebody does about it: move it along, and
- * write down what happened. The note is the part the inbox could never hold.
- */
-function LeadSheet({ lead, onClose, onPatch, onSendToRfm, onOpenLicence, sending }: {
-  lead: PartnerLead | null
-  onClose: () => void
-  onPatch: (id: string, body: Parameters<typeof partnerLeadsApi.update>[1], say?: string) => Promise<void>
-  onSendToRfm: (l: PartnerLead) => Promise<void>
-  onOpenLicence: (l: PartnerLead) => Promise<void>
-  sending: boolean
-}) {
-  const [note, setNote] = useState('')
-  const [lost, setLost] = useState('')
-
-  useEffect(() => {
-    setNote(lead?.status_note ?? '')
-    setLost(lead?.lost_reason ?? '')
-  }, [lead?.id, lead?.status_note, lead?.lost_reason])
-
-  if (!lead) return null
-
-  return (
-    <Sheet open onOpenChange={o => !o && onClose()}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-[520px]">
-        <SheetHeader>
-          <SheetTitle className="pr-6">{lead.business_name || 'Application'}</SheetTitle>
-          <SheetDescription>
-            {lead.business_type || 'Type not given'}
-            {lead.campaign ? ` · ${lead.campaign}` : ''}
-            {lead.created_at ? ` · applied ${shortDate(lead.created_at)}` : ''}
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="space-y-ds-4 px-4 pb-8">
-          <section className="space-y-2">
-            <Row label="Contact" value={lead.contact_name} />
-            <Row
-              label="Phone"
-              value={lead.phone
-                ? <a href={`tel:${lead.phone}`} className="hover:underline">{lead.phone}</a>
-                : null}
-            />
-            <Row
-              label="Email"
-              value={lead.email
-                ? <a href={`mailto:${lead.email}`} className="break-all hover:underline">{lead.email}</a>
-                : null}
-            />
-            <Row label="Monthly turnover" value={lead.turnover_aed} />
-            <Row
-              label="Website"
-              value={lead.website
-                ? <a href={lead.website} target="_blank" rel="noreferrer"
-                     className="inline-flex items-center gap-1 break-all hover:underline">
-                    <Globe className="size-3 shrink-0" aria-hidden />{lead.website}
-                    <ExternalLink className="size-3 shrink-0" aria-hidden />
-                  </a>
-                : null}
-            />
-            {lead.needs.length > 0 && (
-              <Row
-                label="What they want"
-                value={
-                  <div className="flex flex-wrap gap-1">
-                    {lead.needs.map(n => (
-                      <Badge key={n} variant="secondary" className="text-[11px]">{n}</Badge>
-                    ))}
-                  </div>
-                }
-              />
-            )}
-          </section>
-
-          {/* The hand-off to RFM: when it went, what RFM said, and the one button for when it
-              did not. Older leads were worked by hand and say so. */}
-          <section className="rounded-ds-lg border px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[13px] font-medium">RFM platform</p>
-              <RfmCell l={lead} />
-            </div>
-            {(() => {
-              const st = rfmState(lead)
-              return (
-                <>
-                  {st.detail && <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">{st.detail}</p>}
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
-                    {lead.consent_at && <span>Consented {shortTime(lead.consent_at)}</span>}
-                    {lead.rfm_attempts > 0 && !lead.rfm_sent_at && <span>{lead.rfm_attempts} {lead.rfm_attempts === 1 ? 'attempt' : 'attempts'}</span>}
-                  </div>
-                  {(st.kind === 'failed' || st.kind === 'waiting' || (st.kind === 'sent' && lead.rfm_status === 'duplicate')) && lead.consent_at && (
-                    <Button size="sm" variant="outline" className="mt-3 h-8" disabled={sending} onClick={() => onSendToRfm(lead)}>
-                      {sending ? <Loader2 className="mr-2 size-3.5 animate-spin" aria-hidden /> : <Send className="mr-2 size-3.5" aria-hidden />}
-                      Send to RFM now
-                    </Button>
-                  )}
-                </>
-              )
-            })()}
-          </section>
-
-          {lead.has_licence && (
-            <Button variant="outline" size="sm" className="h-8" onClick={() => onOpenLicence(lead)}>
-              <FileText className="mr-2 size-3.5" aria-hidden />
-              Open trade licence{lead.licence_filename ? ` · ${lead.licence_filename}` : ''}
-            </Button>
-          )}
-
-          {/* The one thing the recovery could not bring back, said plainly rather than left
-              as a silent blank that reads as "they never sent one". */}
-          {!lead.has_licence && lead.has_licence_in_email && (
-            <div className="rounded-ds-lg bg-[var(--tone-warn-wash)] px-4 py-3">
-              <p className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--tone-warn-ink)]">
-                <Paperclip className="size-3.5" aria-hidden />Trade licence attached to the email
-              </p>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
-                {lead.licence_filename ? `"${lead.licence_filename}". ` : ''}
-                Attachments were not recoverable when these applications were rebuilt, so the
-                file is in the partnerships inbox rather than here.
-              </p>
-            </div>
-          )}
-
-          <section className="space-y-2">
-            <Label className="text-[13px] font-medium">Where it has got to</Label>
-            <Select
-              value={lead.status}
-              onValueChange={v => onPatch(lead.id, { status: v as LeadStatus },
-                `Marked ${STATUS_LABEL[v as LeadStatus].toLowerCase()}`)}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {LEAD_STATUSES.map(s => <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-muted-foreground">
-              {lead.contacted_at && <span>Contacted {shortDate(lead.contacted_at)}</span>}
-              {lead.approved_at && <span>Approved {shortDate(lead.approved_at)}</span>}
-              {lead.lost_at && <span>Lost {shortDate(lead.lost_at)}</span>}
-            </div>
-          </section>
-
-          {lead.status === 'lost' && (
-            <section className="space-y-2">
-              <Label className="text-[13px] font-medium">Why it was lost</Label>
-              <Input
-                value={lost}
-                onChange={e => setLost(e.target.value)}
-                onBlur={() => lost !== (lead.lost_reason ?? '')
-                  && onPatch(lead.id, { lost_reason: lost })}
-                placeholder="Went with someone else, too small, no answer"
-              />
-            </section>
-          )}
-
-          <section className="space-y-2">
-            <Label className="text-[13px] font-medium">Notes</Label>
-            <Textarea
-              rows={4}
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              onBlur={() => note !== (lead.status_note ?? '')
-                && onPatch(lead.id, { status_note: note }, 'Note saved')}
-              placeholder="What was said, what they asked for, when to chase."
-            />
-            <p className="text-[11.5px] text-muted-foreground">Saved when you click away.</p>
-          </section>
-
-          {Object.keys(lead.utm).length > 0 && (
-            <section className="space-y-2 border-t pt-4">
-              <Label className="text-[12px] font-medium text-muted-foreground">
-                Which ad brought them
-              </Label>
-              <div className="space-y-1 text-[12px] text-muted-foreground">
-                {Object.entries(lead.utm).map(([k, v]) => (
-                  <div key={k} className="flex justify-between gap-4">
-                    <span className="font-mono">{k}</span>
-                    <span className="truncate text-right text-foreground">{v}</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
-  )
-}
-
-/** A label/value pair. Absent values are a dash, never a blank line. */
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-start justify-between gap-4 text-[13.5px]">
-      <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className="text-right">{value || <span className="text-muted-foreground">—</span>}</span>
-    </div>
   )
 }
