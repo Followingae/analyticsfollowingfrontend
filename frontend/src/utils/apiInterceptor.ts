@@ -43,8 +43,23 @@ class ApiInterceptor {
     const config = { url, options }
     
     try {
-      const response = await fetch(url, options)
-      
+      let response = await fetch(url, options)
+
+      // AUTH UNAVAILABLE (503, error "auth_unavailable").
+      //
+      // The server could not read the caller's account in time. Nothing is wrong with the
+      // session, so the right move is to wait a beat and ask again, silently, up to three
+      // times. It is never a reason to log anyone out.
+      for (let attempt = 0; attempt < 3 && response.status === 503; attempt++) {
+        const body = await response.clone().json().catch(() => null)
+        const detail = body?.detail
+        const code = typeof detail === 'object' && detail ? detail.error : body?.error
+        if (code !== 'auth_unavailable') break
+        const retryAfter = Number(response.headers.get('Retry-After')) || Number(detail?.retry_after) || 2
+        await new Promise((r) => setTimeout(r, Math.min(retryAfter, 5) * 1000 * (attempt + 1)))
+        response = await fetch(url, options)
+      }
+
       // If 401, attempt token refresh and retry
       if (response.status === 401) {
         return this.handle401Error(config)
