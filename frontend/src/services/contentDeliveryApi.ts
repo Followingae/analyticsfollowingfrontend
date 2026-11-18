@@ -61,6 +61,8 @@ export interface ContentItem {
   review_note_by_name: string | null
   first_seen_at: string
   frameio_updated_at: string | null
+  /** Frame.io no longer has this file (deleted or replaced). It cannot play. */
+  frameio_missing_at?: string | null
   /** Internal only. Never present on a brand response. */
   internal_note?: string | null
   comment_count?: number

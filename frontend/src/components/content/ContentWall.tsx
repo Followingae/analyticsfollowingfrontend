@@ -83,6 +83,29 @@ function Thumb({
   item, onOpen, size = "md",
 }: { item: ContentItem; onOpen: () => void; size?: "md" | "sm" }) {
   const video = isVideo(item.media_type)
+  if (item.frameio_missing_at) {
+    return (
+      <div
+        className={cn(
+          "relative isolate overflow-hidden rounded-ds-xl bg-muted ring-1 ring-black/[0.06]",
+          "dark:ring-white/[0.08]",
+          size === "md" ? "aspect-[9/13] w-full" : "aspect-[9/13] w-[104px] shrink-0",
+        )}
+        title="This file was removed from Frame.io"
+      >
+        {item.poster_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.poster_url} alt="" loading="lazy"
+               className="absolute inset-0 h-full w-full object-cover opacity-35 grayscale" />
+        )}
+        <span className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-3
+                         text-center">
+          <Film className="h-5 w-5 text-muted-foreground" />
+          <span className="text-[11.5px] font-medium text-muted-foreground">File removed</span>
+        </span>
+      </div>
+    )
+  }
   return (
     <button
       onClick={onOpen}
@@ -509,7 +532,11 @@ export function ContentWall({
                 key={g.campaign_creator_id}
                 group={g} side={side} canDecide={canDecide} campaignId={campaignId}
                 onRefresh={onRefresh}
-                onOpen={(grp, i) => setPlayer({ items: grp.items, index: i })}
+                onOpen={(grp, i) => {
+                  const playable = grp.items.filter((x) => !x.frameio_missing_at)
+                  const at = playable.findIndex((x) => x.id === grp.items[i]?.id)
+                  setPlayer({ items: playable, index: Math.max(0, at) })
+                }}
               />
             ))}
           </div>

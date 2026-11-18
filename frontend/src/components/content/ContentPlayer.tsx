@@ -27,7 +27,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Loader2, X, ChevronLeft, ChevronRight, Check, MessageSquareWarning, Download, Lock } from "lucide-react"
 import { toast } from "sonner"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
@@ -168,6 +168,7 @@ export function ContentPlayer({
         className="max-w-[min(1100px,95vw)] gap-0 overflow-hidden border-0 bg-[#0B0B09] p-0 text-white"
         showCloseButton={false}
       >
+        <DialogTitle className="sr-only">{item.name}</DialogTitle>
         {/* Header: what this is, and where you are in the set. */}
         <div className="flex items-center justify-between gap-3 px-5 py-3.5">
           <div className="min-w-0">
