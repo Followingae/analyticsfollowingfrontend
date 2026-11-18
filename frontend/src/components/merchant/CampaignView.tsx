@@ -11,7 +11,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Pencil, Check, X, Loader2, Quote, Megaphone, ArrowRight, Gift, ShieldCheck, Camera, Users, UserPlus } from 'lucide-react'
+import { Pencil, Check, X, Loader2, Quote, Megaphone, ArrowRight, Camera, Users, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -95,6 +95,10 @@ function CampaignBody({
   const manual = (campaign?.creator_approval_mode || home.settings?.creator_approval_mode || 'manual') === 'manual'
   const live = status === 'active' || status === 'paused'
   const subtitle = home.trial.status === 'complete' ? 'Trial complete' : 'Free trial'
+  // An unsent draft is not a campaign yet. The wizard saves as it goes, so a draft can be
+  // nothing more than an opened page; it gets the same calm start screen, with Continue.
+  const unsent = !!campaign && campaign.status === 'draft' && !campaign.review_note
+  const showStart = !campaign || unsent
 
   return (
     <MerchantShell name={home.merchant.name} logoUrl={home.merchant.logo_url} subtitle={subtitle} className="lg:overflow-y-auto">
@@ -103,8 +107,8 @@ function CampaignBody({
         accent="campaign"
         right={
           <>
-            {info ? <StatusPill tone={info.tone}>{info.label}</StatusPill> : null}
-            {editable && !loading ? (
+            {info && !showStart ? <StatusPill tone={info.tone}>{info.label}</StatusPill> : null}
+            {editable && !loading && !showStart ? (
               <Link
                 href="/merchant/campaign/new"
                 className="inline-flex h-[34px] items-center gap-1.5 rounded-full bg-foreground px-4 text-[13px] font-medium text-background hover:opacity-90"
@@ -126,26 +130,19 @@ function CampaignBody({
         <Tile>
           <Quiet>We could not load your campaign just now. Reload in a moment, or email partners@following.ae.</Quiet>
         </Tile>
-      ) : !campaign ? (
+      ) : showStart ? (
         <EmptyState
           icon={Megaphone}
-          title="No campaign yet"
-          line={`Seven short questions and your offer is in front of ${programme.creators_per_month} creators a month. Nothing goes live until we have read it.`}
+          title={unsent ? 'Your draft is waiting' : 'No campaign yet'}
+          line={unsent ? 'A few questions left.' : 'Seven questions. Ten minutes.'}
           className="min-h-[60dvh]"
           action={
-            <div className="flex flex-col items-center gap-3">
-              <Button asChild className="h-11 rounded-full px-5">
-                <Link href="/merchant/campaign/new">
-                  Start your campaign
-                  <ArrowRight className="size-4" strokeWidth={2} />
-                </Link>
-              </Button>
-              <div className="flex items-center gap-5 pt-1 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5"><Gift className="size-3.5" strokeWidth={1.75} />You set the offer</span>
-                <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5" strokeWidth={1.75} />We approve it</span>
-                <span className="inline-flex items-center gap-1.5"><Camera className="size-3.5" strokeWidth={1.75} />Creators post</span>
-              </div>
-            </div>
+            <Button asChild className="h-12 rounded-full px-6">
+              <Link href="/merchant/campaign/new">
+                {unsent ? 'Continue' : 'Start'}
+                <ArrowRight className="size-4" strokeWidth={2} />
+              </Link>
+            </Button>
           }
         />
       ) : (
@@ -209,7 +206,7 @@ function CampaignBody({
         </>
       )}
 
-      {campaign ? (
+      {campaign && !showStart ? (
       <section id="creators" className="grid gap-4 lg:grid-cols-12">
         <Tile className="min-h-[220px] lg:col-span-6">
           <TileTitle>Your creators</TileTitle>
