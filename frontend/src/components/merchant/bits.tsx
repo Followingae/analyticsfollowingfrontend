@@ -110,6 +110,15 @@ export function Money({ amount, className, decimals = 0 }: { amount: number | nu
   )
 }
 
+/** Just the sign, for the left edge of a money input. The face is named on the element. */
+export function DirhamSign({ className }: { className?: string }) {
+  return (
+    <span aria-label="dirhams" className={cn('font-medium', className)} style={{ fontFamily: '"Dirham-Sans", "Dirham", sans-serif' }}>
+      {'⃃'}
+    </span>
+  )
+}
+
 export function compact(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(Number(n))) return '–'
   return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(Number(n)).toLowerCase()
