@@ -302,20 +302,40 @@ const json = (body: unknown): RequestInit => ({
 // Calls
 // ---------------------------------------------------------------------------
 
+/**
+ * GET /campaign and POST /submit answer `{ campaign, problems, tier, value_per_creator_aed }`.
+ * Screens want the campaign itself with the checks riding on it, so the envelope is folded in
+ * here; a null campaign stays null.
+ */
+function foldCampaign(payload: unknown): (MerchantCampaign & { problems?: CampaignProblem[]; tier?: ProgrammeTier | null }) | null {
+  const body = payload as (Partial<SaveCampaignResult> & { campaign?: MerchantCampaign | null }) | MerchantCampaign | null
+  if (!body) return null
+  if ('campaign' in body) {
+    if (!body.campaign) return null
+    return {
+      ...body.campaign,
+      problems: body.problems ?? [],
+      tier: body.tier ?? null,
+      value_per_creator_aed: body.value_per_creator_aed ?? body.campaign.value_per_creator_aed ?? null,
+    }
+  }
+  return body as MerchantCampaign
+}
+
 export const merchantApi = {
   home: () => request<MerchantHomeData>('/api/v1/merchant/home'),
 
-  campaign: () => request<MerchantCampaign | null>('/api/v1/merchant/campaign'),
+  campaign: async () => foldCampaign(await request<unknown>('/api/v1/merchant/campaign')),
 
   saveCampaign: (brief: CampaignBrief) =>
     request<SaveCampaignResult>('/api/v1/merchant/campaign', { method: 'PUT', ...json(brief) }),
 
-  submitCampaign: () =>
-    request<MerchantCampaign>('/api/v1/merchant/campaign/submit', { method: 'POST', ...json({}) }),
+  submitCampaign: async () =>
+    foldCampaign(await request<unknown>('/api/v1/merchant/campaign/submit', { method: 'POST', ...json({}) })),
 
   uploadCover: async (file: File) => {
     const form = new FormData()
-    form.append('file', file)
+    form.append('cover', file)
     return request<{ url: string }>('/api/v1/merchant/campaign/cover', { method: 'POST', body: form })
   },
 
