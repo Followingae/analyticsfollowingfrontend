@@ -19,6 +19,8 @@ export const ROUTE_MODULES: { screen: string; module: AdminModule | AdminModule[
   { screen: "operations", module: "operations" },
   { screen: "clients", module: "clients" },
   { screen: "brands", module: "clients" },
+  // Self-serve merchants: the people who sell to clients put them on the platform.
+  { screen: "merchants", module: "clients" },
   { screen: "staff", module: "users" },
   { screen: "users", module: "users" },
   { screen: "campaigns", module: "campaigns" },

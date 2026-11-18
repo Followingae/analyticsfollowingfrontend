@@ -46,6 +46,9 @@ const TABS: HubTab[] = [
   // what was missing was anybody knowing the link was ready.
   { href: '/work/handovers', module: 'clients' },
   { label: 'Partner leads', href: '/work/partners', module: 'clients' },
+  // Merchants we have put on the self-serve programme: what a lead becomes once RFM has
+  // signed them, and where each one's trial and campaign has got to.
+  { href: '/work/merchants', module: 'clients' },
 ]
 
 interface Headline {

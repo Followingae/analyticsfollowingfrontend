@@ -151,6 +151,11 @@ export const DESTINATIONS: Record<string, Destination> = {
     full: 'Partner leads',
     hint: 'Enquiries from the partner page on the marketing site',
   },
+  '/work/merchants': {
+    short: 'Merchants',
+    full: 'Merchants on the programme',
+    hint: 'Self-serve merchants we have put on the platform, and where each trial has got to',
+  },
   '/work/campaigns': {
     short: 'Campaigns',
     full: 'Campaigns',
