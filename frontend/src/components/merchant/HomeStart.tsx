@@ -8,11 +8,11 @@
  * cloudy, icons.
  */
 import Link from 'next/link'
-import { Megaphone, Users, Gift, ShieldCheck, CalendarDays, ArrowRight, Sparkles } from 'lucide-react'
+import { Megaphone, Users, ShieldCheck, CalendarDays, ArrowRight, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { MerchantHomeData } from '@/services/merchantApi'
 import { ShellHeader } from './MerchantShell'
-import { Tile, Money, LIME, FOREST, greetingWord } from './bits'
+import { Tile, LIME, FOREST, greetingWord } from './bits'
 
 export function HomeStart({ data }: { data: MerchantHomeData }) {
   const campaign = data.campaign
@@ -20,7 +20,6 @@ export function HomeStart({ data }: { data: MerchantHomeData }) {
   const programme = data.trial.programme
   const perMonth = programme.creators_per_month
   const months = programme.months
-  const minimum = programme.min_value_per_creator_aed
 
   return (
     <>
@@ -63,7 +62,7 @@ export function HomeStart({ data }: { data: MerchantHomeData }) {
         </Tile>
 
         {/* Four bold facts */}
-        <div className="grid flex-[2] grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid flex-[2] grid-cols-1 gap-4 sm:grid-cols-3">
           <Fact icon={Users} value={String(perMonth)} label="creators a month" tone="lime">
             <span aria-hidden="true" className="flex -space-x-2">
               {Array.from({ length: perMonth }).map((_, i) => (
@@ -76,11 +75,6 @@ export function HomeStart({ data }: { data: MerchantHomeData }) {
               {Array.from({ length: months }).map((_, i) => (
                 <span key={i} className="h-2 flex-1 rounded-full bg-foreground/15" />
               ))}
-            </span>
-          </Fact>
-          <Fact icon={Gift} value={<Money amount={minimum} />} label="minimum per creator" tone="paper">
-            <span aria-hidden="true" className="flex h-2 overflow-hidden rounded-full bg-foreground/10">
-              <span className="w-1/3 rounded-full bg-[oklch(0.9354_0.2254_121.5)]" />
             </span>
           </Fact>
           <Fact icon={ShieldCheck} value="1" label="day to approve" tone="forest">
