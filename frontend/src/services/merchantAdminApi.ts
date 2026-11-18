@@ -1,0 +1,246 @@
+/**
+ * Self-serve merchants, the staff side.
+ * Mirrors the admin merchant routes under /api/v1/admin/merchants and
+ * /api/v1/admin/merchant-campaigns.
+ *
+ * THE FLOW THIS SERVES. RFM Loyalty tells us a merchant is onboarded. A superadmin enters
+ * the merchant's email, business, logo and contact, and the platform creates the account
+ * and emails a welcome with a set-password link. The merchant then builds a barter campaign
+ * which lands in review; a superadmin approves it (creators nearby get a push) or sends it
+ * back with a reason in plain words, which the merchant reads word for word.
+ *
+ * Programme rules, for the screens to state rather than invent: five creators a month for
+ * three months, AED 350 minimum per creator, deliverable tier by value.
+ */
+import { API_CONFIG } from '@/config/api'
+import { fetchWithAuth } from '@/utils/apiInterceptor'
+
+const MERCHANTS = `${API_CONFIG.BASE_URL}/api/v1/admin/merchants`
+const CAMPAIGNS = `${API_CONFIG.BASE_URL}/api/v1/admin/merchant-campaigns`
+
+/** Thrown with the status on it, so a screen can tell "not built yet" (404) from "broken". */
+export class MerchantApiError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+  }
+}
+
+async function jfetch(url: string, options: RequestInit = {}) {
+  const method = (options.method || 'GET').toUpperCase()
+  const needsCT = ['POST', 'PUT', 'PATCH'].includes(method)
+  const res = await fetchWithAuth(url, {
+    ...options,
+    headers: { ...(needsCT ? { 'Content-Type': 'application/json' } : {}), ...options.headers },
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }))
+    const detail = typeof err.detail === 'string' ? err.detail : err.detail?.message || err.message
+    throw new MerchantApiError(detail || `Something went wrong (${res.status})`, res.status)
+  }
+  return res.json()
+}
+
+/** The envelope varies between routers: some wrap in `data`, some do not. Accept both. */
+type Loose = Record<string, unknown>
+const isObj = (v: unknown): v is Loose => !!v && typeof v === 'object' && !Array.isArray(v)
+
+function unwrap<T>(j: unknown): T {
+  return (isObj(j) && 'data' in j && j.data !== undefined ? j.data : j) as T
+}
+
+/* ─── Onboarding ─────────────────────────────────────────────────────────────── */
+
+/** Matches the business types a partner lead arrives with. */
+export const MERCHANT_CATEGORIES = [
+  'Restaurant', 'Café', 'Retail', 'Clinic', 'Salon', 'Gym', 'Supermarket', 'Other',
+] as const
+export type MerchantCategory = (typeof MERCHANT_CATEGORIES)[number]
+
+/** A lead's free-text business type, folded onto one of our categories. */
+export function categoryFromBusinessType(type: string | null | undefined): MerchantCategory | '' {
+  const t = (type || '').toLowerCase()
+  if (!t) return ''
+  const hit = MERCHANT_CATEGORIES.find(c => c.toLowerCase() === t)
+  if (hit) return hit
+  if (/caf|coffee|bakery|dessert/.test(t)) return 'Café'
+  if (/restaur|dining|food|kitchen|grill|eater/.test(t)) return 'Restaurant'
+  if (/retail|shop|store|boutique|fashion/.test(t)) return 'Retail'
+  if (/clinic|dental|medical|aesthetic|derma|health/.test(t)) return 'Clinic'
+  if (/salon|barber|spa|beauty|nail|hair/.test(t)) return 'Salon'
+  if (/gym|fitness|yoga|pilates|studio/.test(t)) return 'Gym'
+  if (/supermarket|grocer|hypermarket|mart/.test(t)) return 'Supermarket'
+  return 'Other'
+}
+
+export interface OnboardMerchantBody {
+  email: string
+  business_name: string
+  category: string
+  logo_url?: string
+  cover_image_url?: string
+  contact_name?: string
+  phone?: string
+  address?: string
+  /** Defaults on the server to the current RFM Loyalty programme. */
+  programme_slug?: string
+  partner_lead_id?: string
+  send_email?: boolean
+}
+
+export interface OnboardMerchantResult {
+  merchant_id: string
+  team_id: string
+  user_id: string
+  email_sent: boolean
+  /** For support only: the link the welcome email carries. */
+  set_password_url: string
+  created: boolean
+}
+
+export type TrialStatus = 'pending' | 'active' | 'complete'
+
+export interface MerchantTrial {
+  status: TrialStatus
+  /** 1-based month of the programme, 0 before the first campaign goes live. */
+  month: number
+  months: number
+  used_this_month: number
+  creators_per_month: number
+  used_total: number
+  total_creators: number
+}
+
+export type MerchantCampaignStatus = 'draft' | 'in_review' | 'live' | 'active' | 'approved' | 'rejected' | 'completed' | 'closed' | string
+
+export interface OnboardedMerchant {
+  merchant_id: string
+  business_name: string
+  logo_url: string | null
+  category: string | null
+  email: string
+  contact_name: string | null
+  team_id: string
+  user_id: string
+  created_at: string
+  last_login: string | null
+  trial: MerchantTrial
+  campaign: { id: string; name: string; status: MerchantCampaignStatus; submitted_at: string | null } | null
+}
+
+/* ─── Review queue ───────────────────────────────────────────────────────────── */
+
+export interface BarterItem {
+  name: string
+  value_aed: number
+  description?: string | null
+}
+
+export interface DeliverableRequirement {
+  type: string
+  quantity: number
+  required: boolean
+  note?: string | null
+}
+
+export interface MerchantCampaign {
+  id: string
+  name: string
+  status: MerchantCampaignStatus
+  merchant: { id: string; name: string; logo_url: string | null; category: string | null; email: string | null }
+  value_per_creator_aed: number
+  deliverable_tier: string | null
+  /** The programme floor the value is judged against. */
+  min_value: number
+  barter_items: BarterItem[]
+  deliverable_requirements: DeliverableRequirement[]
+  hero_image_url: string | null
+  fulfilment_mode: string | null
+  visit_location: string | null
+  guests_allowed: number | null
+  entitlement_cap_aed: number | null
+  max_participants: number | null
+  start_date: string | null
+  end_date: string | null
+  description: string | null
+  mandatory_tags: string[]
+  mandatory_hashtags: string[]
+  content_requirements: string[]
+  things_to_avoid: string[]
+  creator_approval_mode: string | null
+  submitted_at: string | null
+  trial_month: number | null
+}
+
+export interface MerchantCampaignsPayload {
+  items: MerchantCampaign[]
+  counts: { in_review: number; all: number }
+}
+
+const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : [])
+
+/** Every list field arrives as a list, whatever the server sent. */
+function normaliseCampaign(raw: unknown): MerchantCampaign {
+  const c = (isObj(raw) ? raw : {}) as Partial<MerchantCampaign> & Loose
+  return {
+    ...(c as MerchantCampaign),
+    merchant: c.merchant || { id: '', name: 'Unnamed merchant', logo_url: null, category: null, email: null },
+    value_per_creator_aed: Number(c.value_per_creator_aed ?? 0),
+    min_value: Number(c.min_value ?? 350),
+    barter_items: arr<BarterItem>(c.barter_items),
+    deliverable_requirements: arr<DeliverableRequirement>(c.deliverable_requirements),
+    mandatory_tags: arr<string>(c.mandatory_tags),
+    mandatory_hashtags: arr<string>(c.mandatory_hashtags),
+    content_requirements: arr<string>(c.content_requirements),
+    things_to_avoid: arr<string>(c.things_to_avoid),
+  }
+}
+
+export const merchantAdminApi = {
+  onboard: async (body: OnboardMerchantBody): Promise<OnboardMerchantResult> =>
+    unwrap<OnboardMerchantResult>(await jfetch(`${MERCHANTS}/onboard`, {
+      method: 'POST', body: JSON.stringify(body),
+    })),
+
+  listOnboarded: async (): Promise<OnboardedMerchant[]> => {
+    const j = unwrap<unknown>(await jfetch(`${MERCHANTS}/onboarded`))
+    const rows = Array.isArray(j)
+      ? (j as (Partial<OnboardedMerchant> & Loose)[])
+      : arr<Partial<OnboardedMerchant> & Loose>(isObj(j) ? (j.items ?? j.merchants) : [])
+    return rows.map(m => ({
+      ...(m as OnboardedMerchant),
+      trial: m.trial || {
+        status: 'pending', month: 0, months: 3, used_this_month: 0,
+        creators_per_month: 5, used_total: 0, total_creators: 15,
+      },
+      campaign: m.campaign ?? null,
+    }))
+  },
+
+  resendWelcome: async (merchantId: string): Promise<{ ok: boolean }> =>
+    unwrap(await jfetch(`${MERCHANTS}/${merchantId}/resend-welcome`, { method: 'POST' })),
+
+  /** `in_review` by default: the queue. `all` for the merchants page to look one up. */
+  listCampaigns: async (status: 'in_review' | 'all' = 'in_review'): Promise<MerchantCampaignsPayload> => {
+    const j = unwrap<unknown>(await jfetch(`${CAMPAIGNS}?status=${status}`))
+    const items = (Array.isArray(j) ? j : arr<unknown>(isObj(j) ? j.items : [])).map(normaliseCampaign)
+    const counts = isObj(j) && isObj(j.counts) ? j.counts : {}
+    const inReview = typeof counts.in_review === 'number'
+      ? counts.in_review
+      : items.filter(c => c.status === 'in_review').length
+    const all = typeof counts.all === 'number' ? counts.all : items.length
+    return { items, counts: { in_review: inReview, all } }
+  },
+
+  approveCampaign: async (id: string): Promise<{ ok: boolean; pushed_to: number }> => {
+    const r = unwrap<unknown>(await jfetch(`${CAMPAIGNS}/${id}/approve`, { method: 'POST' }))
+    const o = isObj(r) ? r : {}
+    return { ok: o.ok !== false, pushed_to: Number(o.pushed_to ?? 0) }
+  },
+
+  rejectCampaign: async (id: string, reason: string): Promise<{ ok: boolean }> =>
+    unwrap(await jfetch(`${CAMPAIGNS}/${id}/reject`, {
+      method: 'POST', body: JSON.stringify({ reason }),
+    })),
+}
