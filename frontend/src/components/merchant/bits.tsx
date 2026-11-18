@@ -193,6 +193,72 @@ export function Quiet({ children, className }: { children: React.ReactNode; clas
   return <p className={cn('text-[13px] leading-relaxed text-muted-foreground', className)}>{children}</p>
 }
 
+/** A small mark for an empty tile: one icon on a lime disc on a soft ring. Never a sentence alone. */
+export function EmptyMark({ icon: Icon, className, size = 'md' }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; className?: string; size?: 'sm' | 'md' | 'lg' }) {
+  const outer = size === 'lg' ? 'size-24' : size === 'sm' ? 'size-11' : 'size-16'
+  const inner = size === 'lg' ? 'size-14' : size === 'sm' ? 'size-7' : 'size-10'
+  const glyph = size === 'lg' ? 'size-6' : size === 'sm' ? 'size-3.5' : 'size-[18px]'
+  return (
+    <span aria-hidden="true" className={cn('inline-flex shrink-0 items-center justify-center rounded-full bg-muted/70', outer, className)}>
+      <span className={cn('inline-flex items-center justify-center rounded-full', LIME, inner)}>
+        <Icon className={glyph} strokeWidth={1.75} />
+      </span>
+    </span>
+  )
+}
+
+/** An empty tile body: a mark, a short line, an optional action. Fills the tile and centres. */
+export function TileEmpty({
+  icon,
+  title,
+  line,
+  action,
+  className,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+  title: string
+  line?: string
+  action?: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div className={cn('flex min-h-0 flex-1 flex-col items-center justify-center gap-2.5 py-2 text-center', className)}>
+      <EmptyMark icon={icon} size="sm" />
+      <div className="flex flex-col gap-1">
+        <span className="text-[13px] font-medium text-foreground">{title}</span>
+        {line ? <span className="max-w-[28ch] text-xs leading-relaxed text-muted-foreground">{line}</span> : null}
+      </div>
+      {action}
+    </div>
+  )
+}
+
+/** A full empty page: big mark, headline, one sentence, one button. */
+export function EmptyState({
+  icon,
+  title,
+  line,
+  action,
+  className,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+  title: string
+  line?: string
+  action?: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div className={cn('flex min-h-0 flex-1 flex-col items-center justify-center gap-5 rounded-[20px] border border-border bg-card px-6 py-14 text-center', className)}>
+      <EmptyMark icon={icon} size="lg" />
+      <div className="flex flex-col gap-2">
+        <h2 className="m-0 text-[22px] font-semibold tracking-[-0.02em] text-foreground">{title}</h2>
+        {line ? <p className="m-0 max-w-[44ch] text-sm leading-relaxed text-muted-foreground">{line}</p> : null}
+      </div>
+      {action}
+    </div>
+  )
+}
+
 export function TileSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn('flex min-h-0 flex-col gap-3 rounded-[20px] border border-border bg-card p-5', className)}>

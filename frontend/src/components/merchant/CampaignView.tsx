@@ -11,7 +11,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Pencil, Check, X, Loader2, Quote } from 'lucide-react'
+import { Pencil, Check, X, Loader2, Quote, Megaphone, ArrowRight, Gift, ShieldCheck, Camera, Users, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -20,7 +20,7 @@ import { brandCampaignApi } from '@/services/faAdminApi'
 import { useMerchantHome, useInvalidateMerchant } from '@/hooks/useMerchantHome'
 import { merchantApi, tierFor, totalValue, deliverablesLine, type MerchantHomeData } from '@/services/merchantApi'
 import { MerchantShell, ShellHeader } from './MerchantShell'
-import { Tile, TileTitle, StatusPill, Face, Dot, DOT, DOT_LABEL, Money, Quiet, shortDate, type PillTone } from './bits'
+import { Tile, TileTitle, StatusPill, Face, Dot, DOT, DOT_LABEL, Money, Quiet, EmptyState, TileEmpty, shortDate, type PillTone } from './bits'
 import { CreatorCard } from './CreatorCard'
 import { Thumb } from './tiles'
 
@@ -127,15 +127,27 @@ function CampaignBody({
           <Quiet>We could not load your campaign just now. Reload in a moment, or email partners@following.ae.</Quiet>
         </Tile>
       ) : !campaign ? (
-        <Tile className="items-start gap-4 p-7">
-          <h2 className="m-0 text-[22px] font-semibold tracking-[-0.02em]">No campaign yet</h2>
-          <Quiet className="max-w-[48ch]">
-            Seven short questions and your offer is in front of creators. Nothing goes live until we have read it.
-          </Quiet>
-          <Button asChild className="rounded-full">
-            <Link href="/merchant/campaign/new">Start your campaign</Link>
-          </Button>
-        </Tile>
+        <EmptyState
+          icon={Megaphone}
+          title="No campaign yet"
+          line={`Seven short questions and your offer is in front of ${programme.creators_per_month} creators a month. Nothing goes live until we have read it.`}
+          className="min-h-[60dvh]"
+          action={
+            <div className="flex flex-col items-center gap-3">
+              <Button asChild className="h-11 rounded-full px-5">
+                <Link href="/merchant/campaign/new">
+                  Start your campaign
+                  <ArrowRight className="size-4" strokeWidth={2} />
+                </Link>
+              </Button>
+              <div className="flex items-center gap-5 pt-1 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5"><Gift className="size-3.5" strokeWidth={1.75} />You set the offer</span>
+                <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-3.5" strokeWidth={1.75} />We approve it</span>
+                <span className="inline-flex items-center gap-1.5"><Camera className="size-3.5" strokeWidth={1.75} />Creators post</span>
+              </div>
+            </div>
+          }
+        />
       ) : (
         <>
           {campaign.review_note && (campaign.status === 'rejected' || campaign.status === 'draft') ? (
@@ -197,11 +209,12 @@ function CampaignBody({
         </>
       )}
 
+      {campaign ? (
       <section id="creators" className="grid gap-4 lg:grid-cols-12">
-        <Tile className="lg:col-span-6">
+        <Tile className="min-h-[220px] lg:col-span-6">
           <TileTitle>Your creators</TileTitle>
           {home.creators.length === 0 ? (
-            <Quiet>Creators who join your campaign are listed here with where they are up to.</Quiet>
+            <TileEmpty icon={Users} title="No creators yet" line={live ? 'Creators who apply and join show up here with where they are up to.' : 'Once your campaign is live, creators who join are listed here.'} />
           ) : (
             <div className="flex flex-col gap-2.5">
               {home.creators.map((c) => (
@@ -218,12 +231,12 @@ function CampaignBody({
           )}
         </Tile>
 
-        <Tile id="content" className="lg:col-span-6">
+        <Tile id="content" className="min-h-[220px] lg:col-span-6">
           <TileTitle aside={home.content?.views ? `${new Intl.NumberFormat('en', { notation: 'compact' }).format(home.content.views)} views` : undefined}>
             Content
           </TileTitle>
           {!home.content?.latest?.length ? (
-            <Quiet>The first reel or story lands here as soon as a creator posts it.</Quiet>
+            <TileEmpty icon={Camera} title="Nothing posted yet" line="The first reel or story lands here as soon as a creator posts it." />
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {home.content.latest.map((item) => (
@@ -233,6 +246,7 @@ function CampaignBody({
           )}
         </Tile>
       </section>
+      ) : null}
     </MerchantShell>
   )
 }
@@ -312,7 +326,7 @@ function Applications({ campaignId }: { campaignId: string }) {
       ) : state === 'failed' ? (
         <Quiet>We could not load applications just now.</Quiet>
       ) : apps.length === 0 ? (
-        <Quiet>No one has applied yet. Creators see your campaign in the app and apply from there.</Quiet>
+        <TileEmpty icon={UserPlus} title="No one has applied yet" line="Creators see your campaign in the app and apply from there." />
       ) : (
         <div className="flex flex-col gap-2">
           {[...pending, ...decided].map((a) => {

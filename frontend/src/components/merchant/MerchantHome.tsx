@@ -12,17 +12,21 @@
 import { MerchantShell } from './MerchantShell'
 import { HomeLive } from './HomeLive'
 import { HomeInReview } from './HomeInReview'
+import { HomeStart } from './HomeStart'
 import { HomeTrialEnded } from './HomeTrialEnded'
 import { TileSkeleton } from './bits'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { MerchantHomeData } from '@/services/merchantApi'
 
-type Screen = 'live' | 'before' | 'ended'
+type Screen = 'live' | 'start' | 'before' | 'ended'
 
 export function screenFor(data: MerchantHomeData): Screen {
   if (data.trial?.status === 'complete') return 'ended'
-  const s = data.campaign?.status
+  const c = data.campaign
+  const s = c?.status
   if (s === 'active' || s === 'paused' || s === 'completed') return 'live'
+  // Nothing submitted yet: no campaign, or a draft that was never sent back by us.
+  if (!c || (s === 'draft' && !c.review_note)) return 'start'
   return 'before'
 }
 
@@ -41,6 +45,7 @@ export function MerchantHome({ data }: { data: MerchantHomeData }) {
       lockedHeading={screen === 'ended' ? 'Open up' : 'After your trial'}
     >
       {screen === 'live' && <HomeLive data={data} />}
+      {screen === 'start' && <HomeStart data={data} />}
       {screen === 'before' && <HomeInReview data={data} />}
       {screen === 'ended' && <HomeTrialEnded data={data} />}
     </MerchantShell>
