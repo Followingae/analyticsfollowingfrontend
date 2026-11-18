@@ -41,6 +41,7 @@ import { ActionIcon } from "@/components/console/Glyph"
 import { MoneyHubHeader } from "@/components/console/MoneyHubHeader"
 import { approvalsApi } from "@/services/approvalsApi"
 import { HeldActions } from "@/components/console/HeldActions"
+import { MerchantCampaignReviews } from "@/components/console/MerchantCampaignReviews"
 
 interface ApprovalRow {
   id: string
@@ -208,7 +209,12 @@ export default function ApprovalsPage() {
             sub="Two queues. Things the platform stopped and is holding for you, and decisions we have asked a founder for by email."
           />
 
-          {/* First, because nothing in it has happened. The queue below is a record of
+          {/* Campaigns a self-serve merchant built and submitted. Above the held actions
+              because approving one sends a push to creators: it is the queue with a person
+              waiting at the other end of it. */}
+          <MerchantCampaignReviews />
+
+          {/* Next, because nothing in it has happened. The queue below is a record of
               decisions already asked for; this one is work that is stopped until somebody
               answers, and a person reading top to bottom should meet that first. */}
           <HeldActions />
