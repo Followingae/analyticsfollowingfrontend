@@ -10,6 +10,9 @@
  */
 import { API_CONFIG } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
+import type {
+  MerchantCampaign, MerchantEvent, MerchantLog, MerchantQuote, MerchantStage, MerchantTrial,
+} from '@/services/merchantAdminApi'
 
 const BASE = `${API_CONFIG.BASE_URL}/api/v1/admin/partner-leads`
 
@@ -83,6 +86,51 @@ export interface PartnerLead {
   contacted_at: string | null
   approved_at: string | null
   lost_at: string | null
+  /**
+   * The merchant this lead became, if it was onboarded, and where that merchant is. Filled by
+   * the list so the row can wear a stage chip without opening the panel. Older servers send
+   * none of the three, so each is optional.
+   */
+  merchant_id?: string | null
+  stage?: MerchantStage | null
+  campaign_status?: string | null
+  /** What the capture or the entry form put on the lead that has no column: area, card_sales,
+   *  branches, wants, rfm_ref, rfm_owner, rfm_stage, entered_by. The panel reads these. */
+  raw?: Record<string, unknown>
+}
+
+/**
+ * Everything about one lead and the merchant it became, in one read
+ * (GET /{lead_id}/full, or GET /admin/merchants/{merchant_id}/full for a merchant that has no
+ * lead). `stage`, `log` and `timeline` are exactly what the merchants list carries for that
+ * merchant; `campaigns` are in the review queue's shape; `quotes` in the admin quotes shape.
+ */
+export interface LeadFullView {
+  lead: PartnerLead | null
+  merchant: {
+    id: string
+    name: string
+    logo_url: string | null
+    category: string | null
+    cover_image_url: string | null
+    team_id: string | null
+    user_id: string | null
+    email: string | null
+    contact_name: string | null
+    contact_phone: string | null
+    address: string | null
+    partner_lead_id: string | null
+    last_login: string | null
+    on_programme: boolean
+    created_at: string | null
+  } | null
+  stage: MerchantStage | null
+  log: MerchantLog
+  timeline: MerchantEvent[]
+  trial: MerchantTrial & { on_programme?: boolean }
+  campaigns: MerchantCampaign[]
+  quotes: MerchantQuote[]
+  actions: { can_onboard: boolean; can_resend_welcome: boolean; can_send_reminder: boolean }
 }
 
 export interface PartnerLeadsPayload {
@@ -129,6 +177,10 @@ export const partnerLeadsApi = {
   /** Hand the lead to RFM now, or again. RFM dedupes on our id, so nobody is rung twice. */
   sendToRfm: (id: string): Promise<{ data: PartnerLead; rfm: { ok: boolean; status: string; error: string | null } }> =>
     jfetch(`${BASE}/${id}/send-to-rfm`, { method: 'POST' }),
+
+  /** One lead and the merchant it became, in one read. */
+  full: (id: string): Promise<{ data: LeadFullView }> =>
+    jfetch(`${BASE}/${id}/full`),
 
   /** A ten-minute link to the trade licence in the private bucket. */
   licenceUrl: (id: string): Promise<{ data: { url: string } }> =>

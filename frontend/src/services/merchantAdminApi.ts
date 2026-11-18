@@ -160,9 +160,13 @@ export interface OnboardedMerchant {
   log: MerchantLog
   stage: MerchantStage
   timeline: MerchantEvent[]
+  /** The partner lead this merchant came from, however it was linked. `has_lead` false puts
+   *  the merchant in the "Merchants without a lead" table on Partners. */
+  lead_id?: string | null
+  has_lead?: boolean
 }
 
-const EMPTY_LOG: MerchantLog = {
+export const EMPTY_LOG: MerchantLog = {
   invited_at: null, welcome_resent_at: null, reminder_sent_at: null, password_set_at: null,
   first_login_at: null, campaign_submitted_at: null, campaign_approved_at: null, campaign_sent_back_at: null,
 }
@@ -218,6 +222,8 @@ export interface MerchantCampaign {
   creator_approval_mode: string | null
   submitted_at: string | null
   trial_month: number | null
+  reviewed_at?: string | null
+  review_note?: string | null
 }
 
 export interface MerchantCampaignsPayload {
@@ -257,7 +263,7 @@ export interface MerchantQuotesPayload {
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : [])
 
 /** Every list field arrives as a list, whatever the server sent. */
-function normaliseCampaign(raw: unknown): MerchantCampaign {
+export function normaliseCampaign(raw: unknown): MerchantCampaign {
   const c = (isObj(raw) ? raw : {}) as Partial<MerchantCampaign> & Loose
   return {
     ...(c as MerchantCampaign),
@@ -273,7 +279,7 @@ function normaliseCampaign(raw: unknown): MerchantCampaign {
   }
 }
 
-function normaliseQuote(raw: unknown): MerchantQuote {
+export function normaliseQuote(raw: unknown): MerchantQuote {
   const q = (isObj(raw) ? raw : {}) as Partial<MerchantQuote> & Loose
   const answers = isObj(q.answers) ? (q.answers as Record<string, string | string[]>) : {}
   return {
@@ -296,8 +302,8 @@ export const merchantAdminApi = {
       method: 'POST', body: JSON.stringify(body),
     })),
 
-  listOnboarded: async (): Promise<OnboardedMerchant[]> => {
-    const j = unwrap<unknown>(await jfetch(`${MERCHANTS}/onboarded`))
+  listOnboarded: async (opts: { withoutLead?: boolean } = {}): Promise<OnboardedMerchant[]> => {
+    const j = unwrap<unknown>(await jfetch(`${MERCHANTS}/onboarded${opts.withoutLead ? '?without_lead=true' : ''}`))
     const rows = Array.isArray(j)
       ? (j as (Partial<OnboardedMerchant> & Loose)[])
       : arr<Partial<OnboardedMerchant> & Loose>(isObj(j) ? (j.items ?? j.merchants) : [])
@@ -311,8 +317,17 @@ export const merchantAdminApi = {
       log: { ...EMPTY_LOG, ...(isObj(m.log) ? (m.log as Partial<MerchantLog>) : {}), invited_at: (m.log?.invited_at ?? m.created_at) || null },
       stage: MERCHANT_STAGES.includes(m.stage as MerchantStage) ? (m.stage as MerchantStage) : stageFallback(m),
       timeline: arr<MerchantEvent>(m.timeline).filter(e => isObj(e) && typeof e.kind === 'string'),
+      has_lead: typeof m.has_lead === 'boolean' ? m.has_lead : !!m.lead_id,
     }))
   },
+
+  /** Everything about one merchant and the lead it came from. Same shape as partnerLeadsApi.full. */
+  full: async (merchantId: string): Promise<unknown> =>
+    unwrap<unknown>(await jfetch(`${MERCHANTS}/${merchantId}/full`)),
+
+  /** The 72-hour set-password reminder to this one merchant, now. 409 when it already went. */
+  sendReminder: async (merchantId: string): Promise<{ email: string; email_sent: boolean }> =>
+    unwrap(await jfetch(`${MERCHANTS}/${merchantId}/send-reminder`, { method: 'POST' })),
 
   resendWelcome: async (merchantId: string): Promise<{ ok: boolean }> =>
     unwrap(await jfetch(`${MERCHANTS}/${merchantId}/resend-welcome`, { method: 'POST' })),
