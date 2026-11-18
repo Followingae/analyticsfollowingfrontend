@@ -40,7 +40,8 @@ export function AuthGuard({
 
   // Public routes that don't require authentication
   const publicRoutes = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password', '/welcome']
-  const isPublicRoute = publicRoutes.includes(pathname)
+  // The merchant set-password link carries a token, so it is matched by prefix.
+  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/merchant/welcome/')
 
   // Use enhanced user role directly (no normalization needed)
   const userRole = user?.role || null

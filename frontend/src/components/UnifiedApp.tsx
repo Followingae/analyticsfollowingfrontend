@@ -10,6 +10,26 @@ import { AdminInterface } from '@/components/admin/AdminInterface'
 import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { BrandDashboardContent } from '@/components/brand/BrandDashboardContent'
 import { UnauthorizedAccess } from '@/components/UnauthorizedAccess'
+import { MerchantHome, MerchantHomeSkeleton } from '@/components/merchant/MerchantHome'
+import { useMerchantHome } from '@/hooks/useMerchantHome'
+
+/**
+ * A brand role covers two kinds of account. A merchant on the self-serve barter
+ * trial gets its own home; everyone else gets the brand dashboard. The server
+ * decides: GET /merchant/home answers for merchants and 404s for brands, and
+ * while it is on its way the merchant skeleton holds the screen so a brand
+ * never sees a flash of the wrong one.
+ */
+function BrandOrMerchantHome() {
+  const { loading, notMerchant, failed, data } = useMerchantHome()
+  if (loading) return <MerchantHomeSkeleton />
+  if (data && !notMerchant && !failed) return <MerchantHome data={data} />
+  return (
+    <BrandUserInterface>
+      <BrandDashboardContent />
+    </BrandUserInterface>
+  )
+}
 
 export function UnifiedApp() {
   const { user, isLoading, isAuthenticated, updateActivity } = useEnhancedAuth()
@@ -97,11 +117,7 @@ export function UnifiedApp() {
     case 'brand_premium':
     case 'brand_standard':
     case 'brand_free':
-      return (
-        <BrandUserInterface>
-          <BrandDashboardContent />
-        </BrandUserInterface>
-      )
+      return <BrandOrMerchantHome />
     
     default:
       return <UnauthorizedAccess />
