@@ -25,8 +25,8 @@ const FILTERS: { id: Filter; label: string; test: (a: Applicant) => boolean }[] 
   { id: "passed", label: "Not this time", test: a => a.review === "passed" },
 ]
 
-export function BoardReview({ ocId, data, brand, onOpen, onChanged }: {
-  ocId: string | null; data: ApplicantsData | null; brand?: string | null; onOpen: (u: string) => void; onChanged: () => void
+export function BoardReview({ ocId, data, brand, onOpen, onChanged, listId }: {
+  ocId: string | null; data: ApplicantsData | null; brand?: string | null; listId?: string; onOpen: (u: string) => void; onChanged: () => void
 }) {
   const [filter, setFilter] = useState<Filter>("review")
   const [approving, setApproving] = useState<string[] | null>(null)
@@ -90,7 +90,7 @@ export function BoardReview({ ocId, data, brand, onOpen, onChanged }: {
           ))}
         </div>
       )}
-      <ProposalPicker open={!!approving} onOpenChange={o => !o && setApproving(null)} brand={brand} count={approving?.length || 0} onPick={approve} />
+      <ProposalPicker open={!!approving} onOpenChange={o => !o && setApproving(null)} brand={brand} listId={listId} count={approving?.length || 0} onPick={approve} />
     </>
   )
 }

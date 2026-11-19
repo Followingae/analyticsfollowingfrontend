@@ -52,8 +52,8 @@ function Held({ a, onOpen, onAddAnyway }: { a: Applicant; onOpen?: () => void; o
   )
 }
 
-export function BoardProposal({ ocId, data, brand, onOpen, onChanged }: {
-  ocId: string | null; data: ApplicantsData | null; brand?: string | null; onOpen: (u: string) => void; onChanged: () => void
+export function BoardProposal({ ocId, data, brand, onOpen, onChanged, listId }: {
+  ocId: string | null; data: ApplicantsData | null; brand?: string | null; listId?: string; onOpen: (u: string) => void; onChanged: () => void
 }) {
   const [picked, setPicked] = useState<Record<string, boolean>>({})
   const [approving, setApproving] = useState<string[] | null>(null)
@@ -147,7 +147,7 @@ export function BoardProposal({ ocId, data, brand, onOpen, onChanged }: {
           {placed.map(a => <Locked key={a.id} a={a} onOpen={a.handle ? () => onOpen(a.handle!) : undefined} />)}
         </div>
       )}
-      <ProposalPicker open={!!approving} onOpenChange={o => !o && setApproving(null)} brand={brand} count={approving?.length || 0} onPick={approve} />
+      <ProposalPicker open={!!approving} onOpenChange={o => !o && setApproving(null)} brand={brand} listId={listId} count={approving?.length || 0} onPick={approve} />
     </>
   )
 }

@@ -135,12 +135,12 @@ export function Board({ listId, campaign, canEdit, isSuperAdmin, staffRole, onOp
         )}
         {cols.includes("review") && (
           <Column col="review" count={counts.review} sub={subs.review}>
-            <BoardReview ocId={ocId} data={applicants} brand={campaign?.brand} onOpen={onOpen} onChanged={refresh} />
+            <BoardReview ocId={ocId} data={applicants} brand={campaign?.brand} listId={listId} onOpen={onOpen} onChanged={refresh} />
           </Column>
         )}
         {cols.includes("proposal") && (
           <Column col="proposal" count={counts.proposal} sub={subs.proposal}>
-            <BoardProposal ocId={ocId} data={applicants} brand={campaign?.brand} onOpen={onOpen} onChanged={refresh} />
+            <BoardProposal ocId={ocId} data={applicants} brand={campaign?.brand} listId={listId} onOpen={onOpen} onChanged={refresh} />
           </Column>
         )}
       </div>

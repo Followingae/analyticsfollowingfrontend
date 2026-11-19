@@ -535,6 +535,8 @@ export class AdminProposalApiService {
   async listProposals(filters?: {
     status?: string
     user_id?: string
+    /** A roster id: only that roster's client's proposals. */
+    for_list?: string
     limit?: number
     offset?: number
   }): Promise<{

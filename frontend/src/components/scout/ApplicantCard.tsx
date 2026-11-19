@@ -126,21 +126,24 @@ export function ApplicantCard({ a, s, picked, onPick, canApprove, canShortlist, 
   )
 }
 
+// Still taking creators: being built, with the client, or the client asked for more.
 const OPEN = ["draft", "building", "internal_review", "pending_internal_review", "internal_changes_requested",
-              "internally_approved", "more_requested"]
+              "internally_approved", "sent", "in_review", "more_requested"]
 
-export function ProposalPicker({ open, onOpenChange, brand, count, onPick }: {
+export function ProposalPicker({ open, onOpenChange, brand, count, onPick, listId }: {
   open: boolean; onOpenChange: (o: boolean) => void; brand?: string | null; count: number; onPick: (p: { id: string; title: string }) => void
+  /** The roster: only its client's proposals are offered. */
+  listId?: string
 }) {
   type ProposalRow = { id: string; title: string; status?: string; brand_name?: string | null; user_email?: string | null; campaign_type_target?: string | null }
   const [all, setAll] = useState<ProposalRow[]>([])
   const [q, setQ] = useState("")
   useEffect(() => {
     if (!open) return
-    adminProposalApi.listProposals({ limit: 200 })
+    adminProposalApi.listProposals({ limit: 200, ...(listId ? { for_list: listId } : {}) })
       .then(r => setAll(((r.proposals || []) as ProposalRow[]).filter(p => OPEN.includes(p.status || ""))))
       .catch(() => toast.error("Could not load proposals"))
-  }, [open])
+  }, [open, listId])
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase(), b = (brand || "").toLowerCase()
     const hay = (p: ProposalRow) => `${p.title || ""} ${p.brand_name || ""} ${p.user_email || ""}`.toLowerCase()
@@ -159,7 +162,7 @@ export function ProposalPicker({ open, onOpenChange, brand, count, onPick }: {
           <Input className="rounded-full pl-9" placeholder="Find a proposal" value={q} onChange={e => setQ(e.target.value)} />
         </div>
         <div className="max-h-[46vh] overflow-y-auto">
-          {shown.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">No open proposals match.</p>
+          {shown.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">{listId ? "This client has no open proposal yet." : "No open proposals match."}</p>
             : shown.map(p => (
               <button key={p.id} type="button" onClick={() => onPick({ id: p.id, title: p.title })}
                       className="flex w-full flex-col rounded-xl px-2 py-2.5 text-left hover:bg-muted/40">

@@ -20,7 +20,7 @@ import { adminProposalApi } from "@/services/adminProposalMasterApi"
 import { rosterSheetApi, type ClientRejection, type ReadyRow } from "@/services/imdListsApi"
 
 const OPEN = ["draft", "building", "internal_review", "pending_internal_review", "internal_changes_requested",
-              "internally_approved", "more_requested"]
+              "internally_approved", "more_requested", "sent", "in_review"]
 
 export function ToProposalDialog({ open, onOpenChange, listId, brand, ids, onDone }: {
   open: boolean
@@ -41,7 +41,7 @@ export function ToProposalDialog({ open, onOpenChange, listId, brand, ids, onDon
 
   useEffect(() => {
     if (!open) { setPicked(null); setCheck(null); setQ(""); setRejected([]); setWhy(""); return }
-    adminProposalApi.listProposals({ limit: 200 })
+    adminProposalApi.listProposals({ limit: 200, for_list: listId })
       .then(r => setProposals((r.proposals || []).filter((p: any) => OPEN.includes(p.status))))
       .catch(() => toast.error("Could not load proposals"))
   }, [open])
