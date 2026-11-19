@@ -554,7 +554,8 @@ export function InfluencerDatabasePage() {
           bulkBarterBusy={bulkBarterBusy}
           onBulkCountry={onBulkCountry}
           onAddToListClick={() => setAddToListOpen(true)}
-          onAddToProposalClick={() => setAddToProposalOpen(true)}
+          /* One flow (founder, 19 Nov 2026): creators reach a proposal only through a round's
+             approval, so the database adds to a round, never straight to a proposal. */
         />
 
         {/* An error draws no list. "No creators found" over a failed read has had people

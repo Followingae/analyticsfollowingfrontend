@@ -12,7 +12,7 @@ import { ArrowUpRight, BarChart3, Check, Loader2, Lock } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { openCallsApi, type Applicant } from "@/services/openCallsApi"
-import { ApplicantCard, ProposalPicker } from "./ApplicantCard"
+import { ApplicantCard } from "./ApplicantCard"
 import type { ApplicantsData } from "./BoardReview"
 import { compact } from "./WorkerPill"
 
@@ -56,7 +56,6 @@ export function BoardProposal({ ocId, data, brand, onOpen, onChanged, listId }: 
   ocId: string | null; data: ApplicantsData | null; brand?: string | null; listId?: string; onOpen: (u: string) => void; onChanged: () => void
 }) {
   const [picked, setPicked] = useState<Record<string, boolean>>({})
-  const [approving, setApproving] = useState<string[] | null>(null)
   const [busy, setBusy] = useState(false)
   const all = data?.applicants || []
   const waiting = useMemo(() => all.filter(a => a.review === "shortlisted"), [all])
@@ -64,22 +63,23 @@ export function BoardProposal({ ocId, data, brand, onOpen, onChanged, listId }: 
   const held = useMemo(() => all.filter(a => a.review === "approved" && a.on_proposal === false && a.proposal_id), [all])
   const ids = Object.keys(picked).filter(k => picked[k] && waiting.some(a => a.id === k && a.influencer_id))
 
-  const approve = async (p: { id: string; title: string }) => {
-    if (!ocId || !approving) return
+  /* One flow (founder, 19 Nov 2026): a founder's approve goes straight onto the round's own
+     proposal, the same as Approve on the round. No picker, never another client's proposal. */
+  const approveNow = async (ids: string[]) => {
+    if (!ocId || !ids.length) return
     setBusy(true)
     try {
-      const r = await openCallsApi.review(ocId, { action: "approve", conversation_ids: approving, proposal_id: p.id })
+      const r = await openCallsApi.review(ocId, { action: "approve", conversation_ids: ids })
+      const title = r.data.proposal?.title || "the proposal"
       const blocked = r.data.blocked || []
       const waiting = r.data.waiting || []
-      const notes = [
-        waiting.length ? `${waiting.map(w => `@${w.username}`).join(", ")} ${waiting.length === 1 ? "goes" : "go"} on once analytics finish.` : null,
-        ...blocked.map(b => `@${b.username}: ${b.reason}`),
-      ].filter(Boolean)
-      toast.success(r.data.added ? `${r.data.added} added to ${p.title}` : waiting.length ? `Approved for ${p.title}, analytics running` : `Nothing added to ${p.title}`, {
-        description: notes.length ? notes.join(" · ") : undefined,
-        action: { label: "Open proposal", onClick: () => { window.location.href = `/work/proposals/${p.id}` } },
+      const needs = r.data.needs_price || []
+      toast.success(r.data.added ? `${r.data.added} added to ${title}` : waiting.length ? `Approved for ${title}, analytics running` : needs.length ? "Needs a sell price first" : `Nothing added to ${title}`, {
+        description: [waiting.length ? `${waiting.map(w => `@${w.username}`).join(", ")} ${waiting.length === 1 ? "goes" : "go"} on once analytics finish.` : null,
+                      needs.length ? `${needs.map(n => `@${n.username}`).join(", ")}: paid campaign, approve them on the roster with a sell price.` : null,
+                      ...blocked.map(b => `@${b.username}: ${b.reason}`)].filter(Boolean).join(" · ") || undefined,
       })
-      setApproving(null); setPicked({}); onChanged()
+      setPicked({}); onChanged()
     } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
   }
   const addAnyway = async (a: Applicant) => {
@@ -112,7 +112,7 @@ export function BoardProposal({ ocId, data, brand, onOpen, onChanged, listId }: 
           {data.can_approve && (
             <div className="flex items-center gap-2">
               <Button size="sm" className="h-8 flex-1 gap-1.5 rounded-full bg-[#111] text-white hover:bg-black" disabled={busy || ids.length === 0}
-                      onClick={() => setApproving(ids)}>
+                      onClick={() => approveNow(ids)}>
                 <Check className="h-3.5 w-3.5" />Add {ids.length || ""} to a proposal
               </Button>
               {ids.length > 0 ? (
@@ -128,7 +128,7 @@ export function BoardProposal({ ocId, data, brand, onOpen, onChanged, listId }: 
               <ApplicantCard key={a.id} a={a} s={data.screening} canApprove={data.can_approve} canShortlist={false}
                              picked={!!picked[a.id]} onPick={data.can_approve ? () => setPicked(p => ({ ...p, [a.id]: !p[a.id] })) : undefined}
                              onOpen={a.handle ? () => onOpen(a.handle!) : undefined}
-                             onApprove={data.can_approve ? () => setApproving([a.id]) : undefined}
+                             onApprove={data.can_approve ? () => approveNow([a.id]) : undefined}
                              onPass={data.can_approve ? () => pass(a.id) : undefined} />
             ))}
           </div>
@@ -147,7 +147,6 @@ export function BoardProposal({ ocId, data, brand, onOpen, onChanged, listId }: 
           {placed.map(a => <Locked key={a.id} a={a} onOpen={a.handle ? () => onOpen(a.handle!) : undefined} />)}
         </div>
       )}
-      <ProposalPicker open={!!approving} onOpenChange={o => !o && setApproving(null)} brand={brand} listId={listId} count={approving?.length || 0} onPick={approve} />
     </>
   )
 }

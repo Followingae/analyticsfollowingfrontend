@@ -10,7 +10,7 @@ import { useMemo, useState } from "react"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { openCallsApi, type Applicant, type Screening, type Slot } from "@/services/openCallsApi"
-import { ApplicantCard, ProposalPicker, decidable } from "./ApplicantCard"
+import { ApplicantCard, decidable } from "./ApplicantCard"
 import { Chip } from "./outreachParts"
 
 export type ApplicantsData = { applicants: Applicant[]; can_approve: boolean; can_shortlist: boolean; screening: Screening; slots: Slot[] }
@@ -29,7 +29,6 @@ export function BoardReview({ ocId, data, brand, onOpen, onChanged, listId }: {
   ocId: string | null; data: ApplicantsData | null; brand?: string | null; listId?: string; onOpen: (u: string) => void; onChanged: () => void
 }) {
   const [filter, setFilter] = useState<Filter>("review")
-  const [approving, setApproving] = useState<string[] | null>(null)
   const [busy, setBusy] = useState(false)
   const all = data?.applicants || []
   const counts = useMemo(() => Object.fromEntries(FILTERS.map(f => [f.id, all.filter(f.test).length])), [all])
@@ -41,25 +40,30 @@ export function BoardReview({ ocId, data, brand, onOpen, onChanged, listId }: {
     try {
       const r = await openCallsApi.review(ocId, { action, conversation_ids: ids })
       if (action === "shortlist") {
-        toast.success(`${r.data.shortlisted} shortlisted, now in Proposal`, {
+        toast.success(`${r.data.shortlisted} sent for approval`, {
           description: r.data.analytics_started ? `Analytics started for ${r.data.analytics_started}.` : undefined,
         })
       } else toast.success("Not this time")
       onChanged()
     } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
   }
-  const approve = async (p: { id: string; title: string }) => {
-    if (!ocId || !approving) return
+  /* One flow (founder, 19 Nov 2026): a founder's approve goes straight onto the round's own
+     proposal, the same as Approve on the round. No picker, never another client's proposal. */
+  const approveNow = async (ids: string[]) => {
+    if (!ocId || !ids.length) return
     setBusy(true)
     try {
-      const r = await openCallsApi.review(ocId, { action: "approve", conversation_ids: approving, proposal_id: p.id })
+      const r = await openCallsApi.review(ocId, { action: "approve", conversation_ids: ids })
+      const title = r.data.proposal?.title || "the proposal"
       const blocked = r.data.blocked || []
       const waiting = r.data.waiting || []
-      toast.success(r.data.added ? `${r.data.added} added to ${p.title}` : waiting.length ? `Approved for ${p.title}, analytics running` : `Nothing added to ${p.title}`, {
+      const needs = r.data.needs_price || []
+      toast.success(r.data.added ? `${r.data.added} added to ${title}` : waiting.length ? `Approved for ${title}, analytics running` : needs.length ? "Needs a sell price first" : `Nothing added to ${title}`, {
         description: [waiting.length ? `${waiting.map(w => `@${w.username}`).join(", ")} ${waiting.length === 1 ? "goes" : "go"} on once analytics finish.` : null,
+                      needs.length ? `${needs.map(n => `@${n.username}`).join(", ")}: paid campaign, approve them on the roster with a sell price.` : null,
                       ...blocked.map(b => `@${b.username}: ${b.reason}`)].filter(Boolean).join(" · ") || undefined,
       })
-      setApproving(null); onChanged()
+      onChanged()
     } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
   }
 
@@ -85,12 +89,11 @@ export function BoardReview({ ocId, data, brand, onOpen, onChanged, listId }: {
             <ApplicantCard key={a.id} a={a} s={data.screening} canApprove={data.can_approve} canShortlist={data.can_shortlist}
                            onOpen={a.handle ? () => onOpen(a.handle!) : undefined}
                            onShortlist={() => act("shortlist", [a.id])}
-                           onApprove={data.can_approve ? () => setApproving([a.id]) : undefined}
+                           onApprove={data.can_approve ? () => approveNow([a.id]) : undefined}
                            onPass={data.can_approve ? () => act("pass", [a.id]) : undefined} />
           ))}
         </div>
       )}
-      <ProposalPicker open={!!approving} onOpenChange={o => !o && setApproving(null)} brand={brand} listId={listId} count={approving?.length || 0} onPick={approve} />
     </>
   )
 }

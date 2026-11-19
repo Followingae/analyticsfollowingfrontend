@@ -206,6 +206,8 @@ export interface ImdListCreator {
   /* ── the sheet ─────────────────────────────────────────────────────────────────── */
   /** Talent's own pass: sent to a founder, or let go for THIS campaign (still in the database). */
   talent_state?: 'new' | 'shortlisted' | 'passed'
+  /** A founder approved them for the round's proposal (they go on once analytics are in). */
+  approved_at?: string | null
   talent_reason?: string | null
   talent_decided_at?: string | null
   /** What they asked and what we agreed, in their currency, for this campaign. */
@@ -313,7 +315,25 @@ export interface CreatorHistory {
   fx_as_of: string
 }
 
+export type RoundProposal = { id: string; title: string; status: string; barter: boolean }
+export type ApproveResult = {
+  proposal: RoundProposal; added: number
+  waiting: { influencer_id: string; username: string; status: string }[]
+  needs_price: { influencer_id: string; username: string | null }[]
+  blocked: { influencer_id: string; username: string; reason: string }[]
+}
+
 export const rosterSheetApi = {
+  /** The proposal this round feeds, and the client's open proposals to choose from. */
+  roundProposal: (id: string): Promise<{ data: { proposal: RoundProposal | null; options: RoundProposal[] } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/round-proposal`),
+  setRoundProposal: (id: string, proposal_id: string): Promise<{ data: { proposal: RoundProposal } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/round-proposal`, { method: 'PUT', body: JSON.stringify({ proposal_id }) }),
+  /** A founder's one press: price (if typed), clear, and onto the round's proposal. */
+  approve: (id: string, items: { influencer_id: string; sell_aed?: number | null }[]): Promise<{ data: ApproveResult }> =>
+    jfetch(`${BASE}/imd-lists/${id}/approve`, { method: 'POST', body: JSON.stringify({ items }) }),
+  reject: (id: string, influencer_ids: string[], reason?: string): Promise<{ data: { rejected: number } }> =>
+    jfetch(`${BASE}/imd-lists/${id}/reject`, { method: 'POST', body: JSON.stringify({ influencer_ids, reason }) }),
   meta: (): Promise<{ data: { currencies: string[]; aed_per: Record<string, number>; fx_as_of: string; bundles: { key: string; label: string }[] } }> =>
     jfetch(`${BASE}/roster-sheet/meta`),
   paste: (id: string, text: string, dry_run: boolean):

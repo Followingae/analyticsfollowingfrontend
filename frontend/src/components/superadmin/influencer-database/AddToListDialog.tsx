@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, ListPlus, Plus, Check } from "lucide-react"
 import { toast } from "sonner"
-import { imdListsApi, type ImdListSummary } from "@/services/imdListsApi"
+import { rosterSheetApi, imdListsApi, type ImdListSummary } from "@/services/imdListsApi"
 
 /**
  * Drop the current master-DB selection into a list — existing or brand new.
@@ -30,6 +30,8 @@ export function AddToListDialog({ open, onOpenChange, influencerIds, onDone }: {
   const [saving, setSaving] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState("")
+  /** Client rounds only: send them to Zain or Hajar for approval in the same press. */
+  const [sendNow, setSendNow] = useState(true)
 
   useEffect(() => {
     if (!open) return
@@ -46,7 +48,9 @@ export function AddToListDialog({ open, onOpenChange, influencerIds, onDone }: {
     try {
       const res = await imdListsApi.addItems(list.id, influencerIds)
       const { added = 0, skipped = 0 } = res?.data ?? {}
-      toast.success(`Added ${added} to "${list.name}"${skipped > 0 ? `, ${skipped} already in it` : ""}`)
+      const sent = sendNow && list.kind === "client"
+      if (sent) await rosterSheetApi.talent(list.id, influencerIds, "shortlist")
+      toast.success(`Added ${added} to "${list.name}"${skipped > 0 ? `, ${skipped} already in it` : ""}${sent ? ", sent for approval" : ""}`)
       onOpenChange(false)
       onDone?.()
     } catch (e) {
@@ -75,11 +79,15 @@ export function AddToListDialog({ open, onOpenChange, influencerIds, onDone }: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><ListPlus className="h-4 w-4" />Add to list</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><ListPlus className="h-4 w-4" />Add to a round</DialogTitle>
           <DialogDescription>
             {influencerIds.length} creator{influencerIds.length === 1 ? "" : "s"} selected.
-            Anyone already in the list is skipped.
+            Anyone already there is skipped. Client rounds go to a founder for approval, then onto that client's proposal.
           </DialogDescription>
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={sendNow} onChange={e => setSendNow(e.target.checked)} />
+            Send for approval now (client rounds)
+          </label>
         </DialogHeader>
 
         {loading ? (
@@ -97,14 +105,14 @@ export function AddToListDialog({ open, onOpenChange, influencerIds, onDone }: {
           <div className="max-h-[45vh] space-y-1.5 overflow-y-auto">
             {lists.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">No lists yet. Create the first one.</p>
-            ) : lists.map((l) => (
+            ) : [...lists].sort((a, b) => Number(b.kind === "client") - Number(a.kind === "client")).map((l) => (
               <button
                 key={l.id} type="button" disabled={saving} onClick={() => addTo(l)}
                 className="flex w-full items-center justify-between gap-2 rounded-lg border p-3 text-left transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:opacity-50"
               >
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium">{l.name}</span>
-                  {l.description && <span className="block truncate text-xs text-muted-foreground">{l.description}</span>}
+                  <span className="block truncate text-xs text-muted-foreground">{[l.kind === "client" ? (l.team_name || "Client round") : "Sample list", l.description].filter(Boolean).join(" · ")}</span>
                 </span>
                 <Badge variant="secondary" className="shrink-0">{l.items_count}</Badge>
               </button>

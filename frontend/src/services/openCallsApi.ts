@@ -160,7 +160,9 @@ export const openCallsApi = {
   review: (id: string, body: { action: 'shortlist' | 'approve' | 'pass'; conversation_ids: string[]; proposal_id?: string; reason?: string; skip_analytics?: boolean }):
     Promise<{ data: { added?: number; passed?: number; shortlisted?: number; analytics_started?: number
                       waiting?: { username: string; status: string; reason: string | null }[]
-                      blocked?: { username: string; reason: string }[]; no_handle: number } }> =>
+                      blocked?: { username: string; reason: string }[]; no_handle: number
+                      proposal?: { id: string; title: string; barter: boolean }
+                      needs_price?: { influencer_id: string; username: string | null }[] } }> =>
     jfetch(`${BASE}/open-calls/${id}/review`, { method: 'POST', body: JSON.stringify(body) }),
   invite: (id: string, channel: 'app' | 'whatsapp', opts: { min_followers?: number; from_list_id?: string } = {}):
     Promise<{ data: { channel: string; invited: number } }> =>

@@ -66,7 +66,7 @@ export function ApplicantCard({ a, s, picked, onPick, canApprove, canShortlist, 
           ) : <span className="text-sm font-semibold text-muted-foreground">No handle yet</span>}
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             {fit && <><i className={`h-1.5 w-1.5 rounded-full ${fit.dot}`} />{fit.label}</>}
-            {a.review === "shortlisted" && <><Star className="h-3 w-3" />Shortlisted</>}
+            {a.review === "shortlisted" && <><Star className="h-3 w-3" />Waiting for approval</>}
             {a.review === "approved" && <><Lock className="h-3 w-3" />{proposalTitle ? `On ${proposalTitle}` : "On the proposal"}</>}
             {a.review === "passed" && <><CircleSlash className="h-3 w-3" />Not this time</>}
             {!fit && !a.review && (["collecting", "countered"].includes(a.state) ? "Still chatting" : a.state === "declined" ? "Not interested" : "")}
@@ -110,15 +110,15 @@ export function ApplicantCard({ a, s, picked, onPick, canApprove, canShortlist, 
         <div className="mt-auto flex flex-wrap gap-2 pt-1">
           {!a.review && canShortlist && onShortlist && (
             <Button size="sm" className="flex-1 gap-1.5 rounded-full bg-[#d3ff02] text-[#111] hover:bg-[#c4ef00]" onClick={onShortlist}>
-              <Star className="h-3.5 w-3.5" />Shortlist
+              <Star className="h-3.5 w-3.5" />Send for approval
             </Button>
           )}
           {canApprove && onApprove && (
             <Button size="sm" className="flex-1 gap-1.5 rounded-full bg-[#111] text-white hover:bg-black" onClick={onApprove}>
-              <Check className="h-3.5 w-3.5" />Add to proposal
+              <Check className="h-3.5 w-3.5" />Approve
             </Button>
           )}
-          {!canApprove && a.review === "shortlisted" && <span className="flex-1 self-center text-xs text-muted-foreground">Waiting for a founder</span>}
+          {!canApprove && a.review === "shortlisted" && <span className="flex-1 self-center text-xs text-muted-foreground">Waiting for approval</span>}
           {canApprove && onPass && <Button size="sm" variant="ghost" className="rounded-full" onClick={onPass}>Not this time</Button>}
         </div>
       )}

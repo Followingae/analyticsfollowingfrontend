@@ -39,7 +39,7 @@ import { BriefDetail } from "@/components/console/BriefDetail"
 import { BriefFields } from "@/components/console/BriefFields"
 import { useConfirm } from "@/components/console/confirm"
 import type { AreaBrief } from "@/services/imdListsApi"
-import { rosterSheetApi } from "@/services/imdListsApi"
+import { rosterSheetApi, type RoundProposal } from "@/services/imdListsApi"
 import { QuoteCell } from "@/components/roster/QuoteCell"
 import { PasteDialog } from "@/components/roster/PasteDialog"
 import { PriceClearDialog } from "@/components/roster/PriceClearDialog"
@@ -193,6 +193,65 @@ export default function ImdListDetailPage() {
     }
   }, [listId])
   useEffect(() => { load() }, [load])
+
+  /* ── The one flow (founder, 19 Nov 2026) ─────────────────────────────────────────────
+     A round feeds ONE of its client's proposals. Talent sends creators for approval; a
+     founder approves (they go straight onto that proposal) or rejects, here, on the row.
+     Barter needs no sell price; paid asks for one in place when it is missing. */
+  const [roundProp, setRoundProp] = useState<{ proposal: RoundProposal | null; options: RoundProposal[] } | null>(null)
+  const loadRound = useCallback(async () => {
+    try { setRoundProp((await rosterSheetApi.roundProposal(listId)).data) } catch { setRoundProp(null) }
+  }, [listId])
+  useEffect(() => { loadRound() }, [loadRound])
+  const barterRound = !!roundProp?.proposal?.barter
+  const [approveFor, setApproveFor] = useState<ImdListCreator[] | null>(null)
+  const [approvePrices, setApprovePrices] = useState<Record<string, string>>({})
+
+  const pickRoundProposal = async (proposalId: string) => {
+    try {
+      await rosterSheetApi.setRoundProposal(listId, proposalId)
+      toast.success("This round now goes on that proposal")
+      loadRound()
+    } catch (e) { toast.error((e as Error).message || "Could not change it") }
+  }
+
+  const approveRows = async (rows: ImdListCreator[], prices?: Record<string, string>) => {
+    if (!rows.length) return
+    if (!roundProp?.proposal) { toast.error("Pick which proposal this round goes on first"); return }
+    setGateBusy(true)
+    try {
+      const items = rows.map(c => ({ influencer_id: c.id, sell_aed: prices?.[c.id] ? Number(prices[c.id]) : null }))
+      const r = (await rosterSheetApi.approve(listId, items)).data
+      const parts = [
+        r.added ? `${r.added} on ${r.proposal.title}` : null,
+        r.waiting.length ? `${r.waiting.length} go${r.waiting.length === 1 ? "es" : ""} on once analytics finish` : null,
+      ].filter(Boolean)
+      if (parts.length) toast.success(parts.join(" · "), {
+        description: r.blocked.map(b => `@${b.username}: ${b.reason}`).join(" · ") || undefined })
+      if (r.needs_price.length) {
+        // Paid round, no sell price yet: ask for it right here, then approve them.
+        setApprovePrices({})
+        setApproveFor(rows.filter(c => r.needs_price.some(n => n.influencer_id === c.id)))
+      } else {
+        setApproveFor(null)
+      }
+      setMarked({}); load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not approve them")
+    } finally { setGateBusy(false) }
+  }
+
+  const rejectRows = async (ids: string[]) => {
+    if (!ids.length) return
+    setGateBusy(true)
+    try {
+      const r = (await rosterSheetApi.reject(listId, ids)).data
+      toast.success(`${r.rejected} rejected, still in the database`)
+      setMarked({}); load()
+    } catch (e) {
+      toast.error((e as Error).message || "Could not reject them")
+    } finally { setGateBusy(false) }
+  }
 
   // Creators already in the list are excluded server-side (exclude_list_id) — the picker
   // never offers someone you already have.
@@ -397,7 +456,7 @@ export default function ImdListDetailPage() {
     setGateBusy(true)
     try {
       const res = await rosterSheetApi.talent(listId, ids, action, reason)
-      toast.success(action === "shortlist" ? `${res.data.updated} sent for review`
+      toast.success(action === "shortlist" ? `${res.data.updated} sent for approval`
         : action === "pass" ? `${res.data.updated} let go for this campaign, still in the database`
         : `${res.data.updated} back to work on`)
       setMarked({}); setPassOpen(false); setPassWhy(""); load()
@@ -413,10 +472,10 @@ export default function ImdListDetailPage() {
     setRowBusy(c.id)
     try {
       await rosterSheetApi.talent(listId, [c.id], "shortlist")
-      toast.success(`@${c.username} sent for a founder to price`)
+      toast.success(`@${c.username} sent for approval`)
       load()
     } catch (e) {
-      toast.error((e as Error).message || "Could not send them for review")
+      toast.error((e as Error).message || "Could not send them for approval")
     } finally {
       setRowBusy(null)
     }
@@ -577,8 +636,8 @@ export default function ImdListDetailPage() {
   type BandKey = "work" | "review" | "ready" | "passed" | "out"
   const BANDS: { key: BandKey; label: string }[] = [
     { key: "work", label: "Working on" },
-    { key: "review", label: "Waiting for a founder to price" },
-    { key: "ready", label: "Ready to add to a proposal" },
+    { key: "review", label: "Waiting for approval" },
+    { key: "ready", label: "On the proposal" },
     { key: "passed", label: "Not this time" },
     { key: "out", label: "Ruled out" },
   ]
@@ -615,17 +674,27 @@ export default function ImdListDetailPage() {
       return { text: `On ${c.proposal_title || "a proposal"}`, tone: "wait",
         action: <Button size="sm" variant="outline" className={btn} asChild><Link href={proposalHref}>Open</Link></Button> }
     }
-    if (c.cleared_at) {
-      return { text: "Ready", tone: "good", skip: canDestroy && !locked ? "strike" : undefined,
-        action: canStock ? <Button size="sm" className={btn} onClick={() => openProposal([c.id])}>
-          <FileText className="h-3.5 w-3.5" />Add to proposal</Button> : undefined }
+    if (c.approved_at) {
+      return { text: "Approved, goes on once analytics finish", tone: "wait" }
     }
-    if (c.talent_state === "shortlisted") {
-      return { text: "Waiting for a founder to price", tone: "wait", why: c.review_note, skip: editable ? "pass" : undefined,
-        action: canDestroy && !locked ? <Button size="sm" className={btn} onClick={() => openPrice([c])}>
-          <ShieldCheck className="h-3.5 w-3.5" />Price</Button> : undefined }
+    if (c.cleared_at || c.talent_state === "shortlisted") {
+      return { text: canDestroy ? "Waiting for your approval" : "Waiting for approval", tone: canDestroy ? "act" : "wait",
+        why: c.review_note, skip: editable && !c.cleared_at ? "pass" : undefined,
+        action: canDestroy && !locked ? (
+          <span className="flex shrink-0 gap-1">
+            <Button size="sm" className={btn} disabled={gateBusy} onClick={() => approveRows([c])}>
+              <Check className="h-3.5 w-3.5" />Approve</Button>
+            <Button size="sm" variant="outline" className={btn} disabled={gateBusy} onClick={() => rejectRows([c.id])}>
+              <X className="h-3.5 w-3.5" />Reject</Button>
+          </span>) : undefined }
     }
     const hasRate = c.quote_asked != null || c.quote_agreed != null
+    // Barter: there is no rate to wait for, so a creator goes for approval as soon as they are found.
+    if (barterRound) {
+      return { text: "Found, send for approval", tone: "act", why: c.review_note, skip: editable ? "pass" : undefined,
+        action: editable ? <Button size="sm" variant="outline" className={btn} disabled={rowBusy === c.id} onClick={() => shortlistOne(c)}>
+          {rowBusy === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}Send for approval</Button> : undefined }
+    }
     // ScoutOutreach has DMed (or is about to DM) them for this campaign's rate: that is its job,
     // not a person's. The rate lands here when they answer; Add rate stays reachable from Price.
     if (!hasRate && c.dm_status && ["proposed", "approved", "sending", "sent"].includes(c.dm_status)) {
@@ -645,17 +714,19 @@ export default function ImdListDetailPage() {
         action: editable ? <Button size="sm" variant="outline" className={btn} onClick={() => setQuoteFor(c.id)}>
           <Pencil className="h-3.5 w-3.5" />Add rate</Button> : undefined }
     }
-    return { text: "Rate in, send for review", tone: "act", why: c.review_note, skip: editable ? "pass" : undefined,
+    return { text: "Rate in, send for approval", tone: "act", why: c.review_note, skip: editable ? "pass" : undefined,
       action: editable ? <Button size="sm" variant="outline" className={btn} disabled={rowBusy === c.id} onClick={() => shortlistOne(c)}>
-        {rowBusy === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}Send for review</Button> : undefined }
+        {rowBusy === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}Send for approval</Button> : undefined }
   }
   const banded = useMemo(() => {
-    const out: Record<BandKey, ImdListCreator[]> = { work: [], review: [], ready: [], passed: [], out: [] }
-    for (const c of list?.items ?? []) {
+    const out: Record<BandKey, Row[]> = { work: [], review: [], ready: [], passed: [], out: [] }
+    for (const c of (list?.items ?? []) as Row[]) {
       if (c.dropped_at || c.struck_at) out.out.push(c)
-      else if (c.cleared_at) out.ready.push(c)
-      else if (c.talent_state === "passed") out.passed.push(c)
-      else if (c.talent_state === "shortlisted") out.review.push(c)
+      else if (c.on_proposal || (c.cleared_at && c.proposal_id)) out.ready.push(c)
+      else if (c.talent_state === "passed" && !c.cleared_at) out.passed.push(c)
+      // Sent for approval, or cleared under the old two-step and never put on: both are a
+      // founder's yes or no now, so they wait in one place.
+      else if (c.cleared_at || c.talent_state === "shortlisted" || c.approved_at) out.review.push(c)
       else out.work.push(c)
     }
     return out
@@ -764,15 +835,10 @@ export default function ImdListDetailPage() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                   {/* The founders' two steps, shown only when there is something to do. */}
-                  {canDestroy && !locked && banded.review.length > 0 && (
-                    <Button variant="outline" className="gap-2" onClick={() => openPrice(banded.review)}>
-                      <ShieldCheck className="h-4 w-4" />Price {banded.review.length} shortlisted
-                    </Button>
-                  )}
-                  {canStock && banded.ready.length > 0 && (
-                    <Button variant="outline" className="gap-2"
-                            onClick={() => openProposal(banded.ready.map(c => c.id))}>
-                      <FileText className="h-4 w-4" />Add to a proposal
+                  {canDestroy && !locked && banded.review.filter(c => !c.approved_at).length > 0 && (
+                    <Button className="gap-2" disabled={gateBusy}
+                            onClick={() => approveRows(banded.review.filter(c => !c.approved_at))}>
+                      <Check className="h-4 w-4" />Approve all {banded.review.filter(c => !c.approved_at).length}
                     </Button>
                   )}
                   {canStock && !locked && (
@@ -817,8 +883,8 @@ export default function ImdListDetailPage() {
                   <div className="mt-ds-3">
                     <FieldStrip fields={[
                       { label: 'Found', value: list.items.length },
-                      { label: 'For review', value: banded.review.length || '—' },
-                      { label: 'Ready', value: clearedCount || '—' },
+                      { label: 'Waiting for approval', value: banded.review.length || '—' },
+                      { label: 'On the proposal', value: banded.ready.length || '—' },
                       { label: 'Picked', value: pickedByClient || '—' },
                       { label: 'Turned down', value: droppedCount || '—' },
                       { label: 'Budget per creator', value: band ? band.replace(' per creator', '') : '—' },
@@ -834,6 +900,40 @@ export default function ImdListDetailPage() {
                           : '—',
                       },
                     ]} />
+                  </div>
+                  {/* Where approved creators go. One of THIS client's proposals, never anyone else's. */}
+                  <div className="mt-ds-2 flex flex-wrap items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Approved creators go on</span>
+                    {roundProp?.proposal ? (
+                      <>
+                        <Link href={`/work/proposals/${roundProp.proposal.id}`} className="font-medium hover:underline">
+                          {roundProp.proposal.title}
+                        </Link>
+                        <span className="rounded-ds-full bg-[var(--tone-neutral-wash)] px-2 py-0.5 text-ds-caption">
+                          {roundProp.proposal.barter ? "Barter, no sell price needed" : "Paid, needs a sell price"}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="font-medium">
+                        {roundProp && roundProp.options.length === 0 ? "This client has no open proposal yet" : "No proposal picked yet"}
+                      </span>
+                    )}
+                    {canDestroy && roundProp && roundProp.options.length > (roundProp.proposal ? 1 : 0) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2 text-xs">
+                            <Pencil className="h-3 w-3" />{roundProp.proposal ? "Change" : "Pick the proposal"}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {roundProp.options.map(o => (
+                            <DropdownMenuItem key={o.id} onClick={() => pickRoundProposal(o.id)}>
+                              {o.title}<span className="ml-2 text-xs text-muted-foreground">{o.barter ? "barter" : "paid"} · {o.status.replace(/_/g, " ")}</span>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                   {/* How this area came to be, in the three names the business already knows:
                       business development logged the brand, a founder released it, and it
@@ -924,7 +1024,7 @@ export default function ImdListDetailPage() {
                     </Button>
                     <Button size="sm" variant="outline" className="gap-1.5" disabled={gateBusy}
                             onClick={() => talentMarked("shortlist")}>
-                      <Send className="h-3.5 w-3.5" />Send for review
+                      <Send className="h-3.5 w-3.5" />Send for approval
                     </Button>
                     {/* Recording the client's answer is not a founder's decision, it is
                         writing down something they have already said, so anyone stocking the
@@ -936,23 +1036,17 @@ export default function ImdListDetailPage() {
                     {canDestroy && (
                       <>
                         <Button size="sm" variant="outline" className="gap-1.5" disabled={gateBusy}
-                                onClick={() => setStrikeOpen(true)}>
-                          <Ban className="h-3.5 w-3.5" />Take off the table
-                        </Button>
-                        <Button size="sm" variant="outline" className="gap-1.5" disabled={gateBusy}
                                 onClick={() => setBackOpen(true)}>
-                          <Undo2 className="h-3.5 w-3.5" />Send back
+                          <Undo2 className="h-3.5 w-3.5" />Send back with a note
                         </Button>
                         <Button size="sm" variant="outline" className="gap-1.5" disabled={gateBusy}
-                                onClick={() => openPrice(markedRows)}>
-                          <ShieldCheck className="h-3.5 w-3.5" />Price and clear
+                                onClick={() => rejectRows(markedIds)}>
+                          <X className="h-3.5 w-3.5" />Reject {markedIds.length}
                         </Button>
-                        {markedCleared.length > 0 && (
-                          <Button size="sm" className="gap-1.5" disabled={gateBusy}
-                                  onClick={() => openProposal(markedCleared.map(c => c.id))}>
-                            <FileText className="h-3.5 w-3.5" />Add {markedCleared.length} to a proposal
-                          </Button>
-                        )}
+                        <Button size="sm" className="gap-1.5" disabled={gateBusy}
+                                onClick={() => approveRows((markedRows as Row[]).filter(c => !c.dropped_at && !c.on_proposal))}>
+                          <Check className="h-3.5 w-3.5" />Approve {markedIds.length}
+                        </Button>
                       </>
                     )}
                   </div>
@@ -1140,6 +1234,35 @@ export default function ImdListDetailPage() {
         </div>
 
         <PasteDialog open={pasteOpen} onOpenChange={setPasteOpen} listId={listId} onDone={load} />
+        <Dialog open={!!approveFor} onOpenChange={(o: boolean) => { if (!o) setApproveFor(null) }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Sell price, then they go on</DialogTitle>
+              <DialogDescription>
+                {roundProp?.proposal?.title} is paid, so each creator needs the price the client sees (AED, per reel).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-2">
+              {(approveFor || []).map(c => (
+                <div key={c.id} className="flex items-center justify-between gap-3">
+                  <span className="truncate text-sm font-medium">@{c.username}
+                    {c.quote_agreed_aed_cents ? <span className="ml-2 text-xs text-muted-foreground">agreed {Math.round(c.quote_agreed_aed_cents / 100).toLocaleString()}</span> : null}
+                  </span>
+                  <Input className="h-8 w-32 text-right tabular-nums" inputMode="decimal" placeholder="AED"
+                         value={approvePrices[c.id] || ""}
+                         onChange={e => setApprovePrices(p => ({ ...p, [c.id]: e.target.value.replace(/[^0-9.]/g, "") }))} />
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setApproveFor(null)} disabled={gateBusy}>Cancel</Button>
+              <Button disabled={gateBusy || !(approveFor || []).every(c => Number(approvePrices[c.id]) > 0)}
+                      onClick={() => approveRows(approveFor || [], approvePrices)}>
+                {gateBusy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}Approve {(approveFor || []).length}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <PriceClearDialog open={priceOpen} onOpenChange={setPriceOpen} listId={listId}
                           rows={priceRows} onDone={() => { setMarked({}); load() }} />
         <ToProposalDialog open={proposalOpen} onOpenChange={setProposalOpen} listId={listId}
