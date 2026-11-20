@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { roleHome } from '@/lib/roleHome'
 import { useRouter } from 'next/navigation'
 import { useEnhancedAuth } from '@/contexts/EnhancedAuthContext'
@@ -9,6 +9,7 @@ import { SuperAdminInterface } from '@/components/admin/SuperAdminInterface'
 import { AdminInterface } from '@/components/admin/AdminInterface'
 import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
 import { BrandDashboardContent } from '@/components/brand/BrandDashboardContent'
+import { BrandHome } from '@/components/brand/BrandHome'
 import { UnauthorizedAccess } from '@/components/UnauthorizedAccess'
 import { MerchantHome, MerchantHomeSkeleton } from '@/components/merchant/MerchantHome'
 import { useMerchantHome } from '@/hooks/useMerchantHome'
@@ -22,11 +23,14 @@ import { useMerchantHome } from '@/hooks/useMerchantHome'
  */
 function BrandOrMerchantHome() {
   const { loading, notMerchant, failed, data } = useMerchantHome()
+  // The new brand home, behind /dashboard?home=new until the founder approves it (20 Nov 2026).
+  const [newHome, setNewHome] = useState(false)
+  useEffect(() => { setNewHome(new URLSearchParams(window.location.search).get("home") === "new") }, [])
   if (loading) return <MerchantHomeSkeleton />
   if (data && !notMerchant && !failed) return <MerchantHome data={data} />
   return (
     <BrandUserInterface>
-      <BrandDashboardContent />
+      {newHome ? <BrandHome /> : <BrandDashboardContent />}
     </BrandUserInterface>
   )
 }
