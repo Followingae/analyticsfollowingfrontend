@@ -23,14 +23,15 @@ import { useMerchantHome } from '@/hooks/useMerchantHome'
  */
 function BrandOrMerchantHome() {
   const { loading, notMerchant, failed, data } = useMerchantHome()
-  // The new brand home, behind /dashboard?home=new until the founder approves it (20 Nov 2026).
-  const [newHome, setNewHome] = useState(false)
-  useEffect(() => { setNewHome(new URLSearchParams(window.location.search).get("home") === "new") }, [])
+  // The brand home (approved by the founder, 20 Nov 2026). The previous dashboard stays
+  // reachable at /dashboard?home=classic while everyone settles in.
+  const [classic, setClassic] = useState(false)
+  useEffect(() => { setClassic(new URLSearchParams(window.location.search).get("home") === "classic") }, [])
   if (loading) return <MerchantHomeSkeleton />
   if (data && !notMerchant && !failed) return <MerchantHome data={data} />
   return (
     <BrandUserInterface>
-      {newHome ? <BrandHome /> : <BrandDashboardContent />}
+      {classic ? <BrandDashboardContent /> : <BrandHome />}
     </BrandUserInterface>
   )
 }

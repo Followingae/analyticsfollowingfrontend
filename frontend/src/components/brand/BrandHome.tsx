@@ -18,7 +18,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-  ArrowRight, FileText, Megaphone, PlayCircle, Users, Sparkles, Search, Crown, BarChart3, Send,
+  ArrowRight, FileText, Megaphone, PlayCircle, Users, Sparkles, Search, Crown, BarChart3, Send, Wallet, AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tile, LIME, FOREST, greetingWord } from '@/components/merchant/bits'
@@ -30,6 +30,8 @@ import { brandProposalViewApi } from '@/services/adminProposalMasterApi'
 import { contentBrandApi, type ContentSummary } from '@/services/contentDeliveryApi'
 import { campaignApi, type Campaign } from '@/services/campaignApiComplete'
 import { inflinkApi, type RfpSummary } from '@/services/inflinkApi'
+import { brandPoolApi } from '@/services/faAdminApi'
+import { OpenQuotesCard } from '@/components/brand/OpenQuotesCard'
 
 type Waiting = { id: string; title: string; cover?: string | null; quote: boolean; creators?: number | null }
 type Hero = { icon: typeof Users; title: string; line: string; cta: string; href: string; cover?: string | null
@@ -56,6 +58,9 @@ export function BrandHome() {
   const [rfps, setRfps] = useState<RfpSummary[] | null>(null)
   const [loaded, setLoaded] = useState({ proposals: false, content: false, campaigns: false })
   const [scene, setScene] = useState<Scene | null>(null)
+  /* The cashback pool, for brands that fund one. Only a low or empty pool is shown; a
+     failed read shows nothing here rather than a frightening zero. */
+  const [pool, setPool] = useState<{ available: number; funded: number } | null>(null)
 
   useEffect(() => {
     const s = new URLSearchParams(window.location.search).get('scene')
@@ -83,6 +88,11 @@ export function BrandHome() {
       .then(r => setCampaigns(r?.data?.campaigns ?? []))
       .catch(() => setCampaigns(null))
       .finally(() => setLoaded(l => ({ ...l, campaigns: true })))
+    brandPoolApi.balance().then((res: any) => {
+      const d = res?.success ? res.data : null
+      if (d) setPool({ available: d.available_aed ?? (d.available_cents ? d.available_cents / 100 : 0),
+                       funded: d.total_funded_aed ?? (d.total_funded_cents ? d.total_funded_cents / 100 : 0) })
+    }).catch(() => setPool(null))
     inflinkApi.listRfps()
       .then(r => setRfps(r.items))
       .catch(() => setRfps(null))
@@ -154,6 +164,8 @@ export function BrandHome() {
         ) : null}
       />
 
+      <PoolStrip pool={pool} />
+
       <section aria-label="Right now" className="flex min-h-0 flex-1 flex-col gap-4">
         {/* The cloud: one card, or up to three when several things are waiting. */}
         {!heroes ? (
@@ -206,8 +218,34 @@ export function BrandHome() {
             {liveRfps.length ? 'See quotes' : 'Post a brief'}<ArrowRight className="size-4" strokeWidth={2} />
           </span>
         </Link>}
+        <OpenQuotesCard />
       </section>
     </div>
+  )
+}
+
+function PoolStrip({ pool }: { pool: { available: number; funded: number } | null }) {
+  if (!pool || pool.funded <= 0) return null
+  const pct = (pool.available / pool.funded) * 100
+  if (pct >= 20) return null
+  const empty = pool.available <= 0
+  const money = `AED ${Math.round(pool.available).toLocaleString()}`
+  const title = empty ? 'Your cashback pool is empty' : pct < 5 ? `Cashback pool critically low, ${money} left` : `Cashback pool running low, ${money} left`
+  return (
+    <Link href="/cashback-pool/topup"
+          className={cn('flex flex-wrap items-center gap-3 rounded-[20px] border p-4 pr-5 transition-colors',
+                        pct < 5 ? 'border-destructive/40 bg-destructive/5' : 'bg-card hover:border-foreground/30')}>
+      <span className={cn('inline-flex size-10 shrink-0 items-center justify-center rounded-full', pct < 5 ? 'bg-destructive/10 text-destructive' : 'bg-muted')}>
+        {pct < 5 ? <AlertTriangle className="size-5" strokeWidth={1.75} /> : <Wallet className="size-5" strokeWidth={1.75} />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-semibold">{title}</span>
+        {pct < 5 && <span className="text-[13px] text-muted-foreground">Campaigns cannot pay cashback until it is topped up.</span>}
+      </span>
+      <span className="inline-flex h-10 items-center gap-2 rounded-full bg-foreground px-5 text-sm font-medium text-background">
+        Top up<ArrowRight className="size-4" strokeWidth={2} />
+      </span>
+    </Link>
   )
 }
 
