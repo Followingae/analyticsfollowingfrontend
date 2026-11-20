@@ -153,7 +153,7 @@ export function BrandHome() {
   const rfpQuotes = liveRfps.reduce((s, r) => s + (r.quotes_count || 0), 0)
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-5rem)] w-full max-w-6xl flex-col gap-6 p-4 sm:p-6">
+    <div className="flex min-h-[calc(100dvh-5rem)] w-full flex-col gap-6 p-4 sm:p-6">
       <ShellHeader
         lead={`${greetingWord()},`}
         accent={company || 'welcome back'}

@@ -8,7 +8,6 @@ import { LoadingScreen } from '@/components/LoadingScreen'
 import { SuperAdminInterface } from '@/components/admin/SuperAdminInterface'
 import { AdminInterface } from '@/components/admin/AdminInterface'
 import { BrandUserInterface } from '@/components/brand/BrandUserInterface'
-import { BrandDashboardContent } from '@/components/brand/BrandDashboardContent'
 import { BrandHome } from '@/components/brand/BrandHome'
 import { UnauthorizedAccess } from '@/components/UnauthorizedAccess'
 import { MerchantHome, MerchantHomeSkeleton } from '@/components/merchant/MerchantHome'
@@ -23,15 +22,11 @@ import { useMerchantHome } from '@/hooks/useMerchantHome'
  */
 function BrandOrMerchantHome() {
   const { loading, notMerchant, failed, data } = useMerchantHome()
-  // The brand home (approved by the founder, 20 Nov 2026). The previous dashboard stays
-  // reachable at /dashboard?home=classic while everyone settles in.
-  const [classic, setClassic] = useState(false)
-  useEffect(() => { setClassic(new URLSearchParams(window.location.search).get("home") === "classic") }, [])
   if (loading) return <MerchantHomeSkeleton />
   if (data && !notMerchant && !failed) return <MerchantHome data={data} />
   return (
     <BrandUserInterface>
-      {classic ? <BrandDashboardContent /> : <BrandHome />}
+      <BrandHome />
     </BrandUserInterface>
   )
 }

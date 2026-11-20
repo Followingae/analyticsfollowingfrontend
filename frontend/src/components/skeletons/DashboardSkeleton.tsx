@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
  * design the team deliberately abandoned, shown to every user on every cold load.
  *
  * A skeleton's only job is to promise the shape of what is arriving, so this one is kept in
- * step with BrandDashboardContent by hand. If the page's grid changes, change it here too.
+ * step with the superadmin dashboard by hand. If its grid changes, change it here too.
  */
 export function DashboardSkeleton() {
   return (

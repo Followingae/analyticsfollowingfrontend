@@ -1,43 +1,11 @@
+/* The brand home's shape while it loads: the greeting, the cloud, four tiles. */
 export default function DashboardLoading() {
   return (
-    <div className="w-full min-h-0">
-      <div className="w-full max-w-full space-y-6 p-4 md:p-6">
-        {/* Welcome + Metrics row */}
-        <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-12">
-          <div className="md:col-span-4">
-            <div className="rounded-xl border bg-card p-6 h-[140px]">
-              <div className="flex items-center gap-4">
-                <div className="h-20 w-20 rounded-full bg-muted animate-pulse shrink-0" />
-                <div className="flex flex-col gap-2">
-                  <div className="h-4 w-16 rounded bg-muted animate-pulse" />
-                  <div className="h-6 w-32 rounded bg-muted animate-pulse" />
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="md:col-span-8">
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="rounded-xl border bg-card p-6">
-                  <div className="h-4 w-24 rounded bg-muted animate-pulse mb-3" />
-                  <div className="h-8 w-16 rounded bg-muted animate-pulse" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        {/* Discovery + Charts row */}
-        <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-12">
-          <div className="md:col-span-6">
-            <div className="rounded-xl border bg-card h-[320px] animate-pulse" />
-          </div>
-          <div className="md:col-span-3">
-            <div className="rounded-xl border bg-card h-[320px] animate-pulse" />
-          </div>
-          <div className="md:col-span-3">
-            <div className="rounded-xl border bg-card h-[320px] animate-pulse" />
-          </div>
-        </div>
+    <div className="flex min-h-[calc(100dvh-5rem)] w-full flex-col gap-6 p-4 sm:p-6">
+      <div className="h-10 w-72 animate-pulse rounded-xl bg-muted" />
+      <div className="min-h-[44dvh] flex-[3] animate-pulse rounded-[20px] bg-muted/60" />
+      <div className="grid flex-[2] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[1, 2, 3, 4].map(i => <div key={i} className="min-h-[150px] animate-pulse rounded-[20px] bg-muted/60" />)}
       </div>
     </div>
   )
