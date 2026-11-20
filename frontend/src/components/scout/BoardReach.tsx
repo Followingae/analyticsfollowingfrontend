@@ -70,8 +70,8 @@ function Lanes({ listId, plan, canEdit, onChanged }: { listId: string; plan: Sco
     } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
   }
   return (
-    <Block title="Two lanes" aside={<WorkerPill w={plan.worker} />}>
-      <div className="flex items-start gap-2.5 text-sm">
+    <Block title={plan.kind === "inflink_models" ? "Instagram" : "Two lanes"} aside={<WorkerPill w={plan.worker} />}>
+      {plan.kind !== "inflink_models" && <div className="flex items-start gap-2.5 text-sm">
         <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <p className="min-w-0">
           <span className="font-semibold tabular-nums">{already_alerted.toLocaleString()}</span> alerted on WhatsApp
@@ -80,7 +80,7 @@ function Lanes({ listId, plan, canEdit, onChanged }: { listId: string; plan: Sco
             : to_send > 0 ? <span className="block text-xs text-muted-foreground">{to_send.toLocaleString()} more going out by themselves</span>
             : matching > 0 ? <span className="block text-xs text-muted-foreground">Everyone who fits has it</span> : null}
         </p>
-      </div>
+      </div>}
       <div className="flex items-start gap-2.5 text-sm">
         <Instagram className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">

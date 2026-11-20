@@ -37,13 +37,16 @@ function Goal({ listId, campaign, roster, canEdit, onChanged }: {
   const [busy, setBusy] = useState(false)
   const g = roster?.goal && roster.goal.status !== "done" ? roster.goal : null
   const lastDone = roster?.goal && roster.goal.status === "done" ? roster.goal : null
-  const relevant = campaign?.funnel.relevant ?? roster?.funnel.relevant ?? 0
+  const models = campaign?.kind === "inflink_models"
+  // The models campaign counts models told how to join (or on the iPhone list), not applicants.
+  const relevant = models ? (roster?.goal?.progress ?? campaign?.goal?.progress ?? 0) : (campaign?.funnel.relevant ?? roster?.funnel.relevant ?? 0)
+  const unit = models ? "models onto Inflink" : "relevant applicants"
   const target = g?.target || 0
   const start = async () => {
     setBusy(true)
     try {
       const r = await scoutApi.createGoal({ scope: "roster", list_id: listId })
-      toast.success(`Scout is on it: ${r.data.target} relevant applicants`)
+      toast.success(`Scout is on it: ${r.data.target} ${unit}`)
       onChanged()
     } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
   }
@@ -54,13 +57,13 @@ function Goal({ listId, campaign, roster, canEdit, onChanged }: {
           <span className="text-3xl font-semibold tabular-nums tracking-tight">{relevant.toLocaleString()}</span>
           {target ? <span className="text-lg tabular-nums text-muted-foreground"> / {target.toLocaleString()}</span> : null}
         </p>
-        <p className="text-right text-xs text-muted-foreground">relevant applicants{g ? ` · round ${g.round_no}` : ""}</p>
+        <p className="text-right text-xs text-muted-foreground">{unit}{g ? ` · round ${g.round_no}` : ""}</p>
       </div>
       {target ? <Bar value={relevant} target={target} className="h-1.5" /> : null}
       {canEdit && !g && (
         <Button size="sm" className="gap-1.5 self-start rounded-full bg-[#d3ff02] text-[#111] hover:bg-[#c4ef00]" disabled={busy} onClick={start}>
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : lastDone ? <RotateCcw className="h-3.5 w-3.5" /> : <Target className="h-3.5 w-3.5" />}
-          {lastDone ? "Run another round" : `Find ${roster?.suggested_target ? roster.suggested_target.toLocaleString() + " " : ""}relevant applicants`}
+          {lastDone ? "Run another round" : `Find ${roster?.suggested_target ? roster.suggested_target.toLocaleString() + " " : ""}${unit}`}
         </Button>
       )}
       {!canEdit && !g && <p className="text-xs text-muted-foreground">No round running. A founder starts one.</p>}
@@ -115,11 +118,25 @@ function WhoFits({ listId, plan, canEdit, onSaved }: { listId: string; plan: Sco
             {sample.slice(0, 5).map(s => <Face key={s.username} c={s} size={28} ring />)}
           </div>
         )}
-        <p className="text-xs text-muted-foreground">
+        {plan.kind !== "inflink_models" && <p className="text-xs text-muted-foreground">
           <span className="font-semibold tabular-nums text-foreground">{matching.toLocaleString()}</span> in our WhatsApp network fit
           {already_alerted > 0 && <>, <span className="tabular-nums">{already_alerted.toLocaleString()}</span> already alerted</>}
-        </p>
+        </p>}
       </div>
+    </Block>
+  )
+}
+
+/** The Inflink models invite as models read it, and the code it carries. */
+function Invite({ plan }: { plan: ScoutRosterPlan | null }) {
+  if (!plan) return null
+  return (
+    <Block title="The invite" aside={plan.invite ? <span className="rounded-full bg-[#d3ff02] px-2.5 py-0.5 text-[11px] font-semibold text-[#111]">{plan.invite.code}</span> : null}>
+      {plan.dm_message_preview && <p className="whitespace-pre-line rounded-xl bg-muted/40 p-3 text-sm">{plan.dm_message_preview}</p>}
+      <p className="text-xs text-muted-foreground">
+        Sent from @inflink.ae. When a model replies, ScoutAI asks iPhone or Android: Android gets the Play Store steps
+        {plan.invite ? ` and the code (${plan.invite.pro_free})` : ""}; iPhone goes on the launch list.
+      </p>
     </Block>
   )
 }
@@ -144,7 +161,9 @@ export function BoardBrief({ listId, campaign, plan, roster, oc, ocLoaded, canEd
 }) {
   return (
     <>
-      <OpenCallCard listId={listId} brand={campaign?.brand} oc={oc} loaded={ocLoaded} isSuperadmin={isSuperadmin} isFounder={canEdit} onChanged={onChanged} />
+      {plan?.kind === "inflink_models" || campaign?.kind === "inflink_models"
+        ? <Invite plan={plan} />
+        : <OpenCallCard listId={listId} brand={campaign?.brand} oc={oc} loaded={ocLoaded} isSuperadmin={isSuperadmin} isFounder={canEdit} onChanged={onChanged} />}
       <Goal listId={listId} campaign={campaign} roster={roster} canEdit={canEdit} onChanged={onChanged} />
       {plan ? (
         <>

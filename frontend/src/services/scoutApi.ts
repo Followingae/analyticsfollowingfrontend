@@ -195,6 +195,10 @@ export interface HeldAnswer {
 
 export interface ScoutRosterPlan {
   open_call: { id: string; code: string; title: string; status: string; comp_mode: string } | null
+  /** 'inflink_models' = Scout recruiting UAE models onto Inflink, not a brand campaign. */
+  kind?: 'campaign' | 'inflink_models'
+  /** The Inflink invite: the referral code and the Pro it gives. */
+  invite?: { code: string; days: number; pro_free: string } | null
   criteria: ScoutCriteria
   /** The barter default (100K) is in force because nobody set a ceiling. */
   criteria_default_ceiling: boolean
@@ -218,6 +222,7 @@ export interface ScoutCampaign {
   /** The client's logo, as the brand tile shows it. */
   logo: string | null
   open_call: { id: string; title: string; status: string; comp_mode: string | null } | null
+  kind?: 'campaign' | 'inflink_models'
   goal: { target: number; round_no: number; status: string; progress: number } | null
   need: number | null
   funnel: { contacted: number; whatsapp: number; instagram: number; clicked: number; chatting: number
@@ -321,6 +326,7 @@ export const scoutApi = {
     jfetch(`${BASE}/scout/roster/${listId}/auto-dm`, { method: 'POST', body: JSON.stringify({ auto_dm }) }),
   /** ScoutAI answers held for a person, with the creator's message beside each. */
   held: (listId: string): Promise<{ data: { items: HeldAnswer[] } }> => jfetch(`${BASE}/scout/roster/${listId}/held`),
+  modelLeads: (listId: string): Promise<{ data: ModelLeads }> => jfetch(`${BASE}/scout/roster/${listId}/models`),
   /** Release a held answer (as edited) to the bot, or drop it. Talent and founders. */
   reply: (id: string, action: 'send' | 'discard', text?: string): Promise<{ data: { status: string } }> =>
     jfetch(`${BASE}/scout/replies/${id}`, { method: 'POST', body: JSON.stringify({ action, text }) }),
@@ -349,3 +355,20 @@ export const scoutApi = {
     Promise<{ data: { queued: number; skipped: { username: string; reason: string }[] } }> =>
     jfetch(`${BASE}/scout/outreach/queue`, { method: 'POST', body: JSON.stringify({ usernames, list_id: listId }) }),
 }
+
+/* ---- Inflink models: the models who answered the invite ---- */
+export interface ModelLead {
+  id: string
+  username: string
+  device: 'iphone' | 'android' | null
+  status: 'interested' | 'android_sent' | 'ios_waitlist' | 'ios_sent' | 'already_member' | 'declined'
+  has_phone: boolean
+  full_name: string | null
+  followers: number | null
+  avatar: string | null
+  city: string | null
+  created_at: string | null
+  updated_at: string | null
+  told_at: string | null
+}
+export interface ModelLeads { items: ModelLead[]; counts: Partial<Record<ModelLead['status'], number>>; ios_live: boolean }

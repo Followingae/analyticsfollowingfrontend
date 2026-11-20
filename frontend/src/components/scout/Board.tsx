@@ -18,6 +18,8 @@ import { BoardBrief, type RosterGoal } from "./BoardBrief"
 import { BoardReach } from "./BoardReach"
 import { BoardReview, type ApplicantsData } from "./BoardReview"
 import { BoardProposal } from "./BoardProposal"
+import { BoardModels, modelsJoined } from "./BoardModels"
+import type { ModelLeads } from "@/services/scoutApi"
 import { PeopleTable } from "./PeopleTable"
 import { LiveDot } from "./outreachParts"
 
@@ -36,9 +38,10 @@ function usePoll<T>(fn: () => Promise<T | null>, ms: number, deps: unknown[]): T
   return v
 }
 
-type Col = "brief" | "reach" | "review" | "proposal"
+type Col = "brief" | "reach" | "review" | "proposal" | "models"
 const STEP: Record<Col, { n: number; title: string }> = {
   brief: { n: 1, title: "Brief and fit" }, reach: { n: 2, title: "Reach" }, review: { n: 3, title: "Review" }, proposal: { n: 4, title: "Proposal" },
+  models: { n: 3, title: "Models" },
 }
 
 function Column({ col, count, sub, children }: { col: Col; count: number | null; sub?: string; children: React.ReactNode }) {
@@ -75,11 +78,15 @@ export function Board({ listId, campaign, canEdit, isSuperAdmin, staffRole, onOp
   }, 15000, [listId, tick])
   useEffect(() => { setOcLoaded(false) }, [listId])
   const ocId = oc?.id || plan?.open_call?.id || null
-  const applicants = usePoll<ApplicantsData>(() => ocId ? openCallsApi.applicants(ocId).then(r => r.data) : Promise.resolve(null), 10000, [ocId, tick])
+  // The Inflink models campaign has no applicants or proposal: its third column is the models who answered.
+  const models = (plan?.kind || campaign?.kind) === "inflink_models"
+  const applicants = usePoll<ApplicantsData>(() => ocId && !models ? openCallsApi.applicants(ocId).then(r => r.data) : Promise.resolve(null), 10000, [ocId, models, tick])
+  const leads = usePoll<ModelLeads>(() => models ? scoutApi.modelLeads(listId).then(r => r.data) : Promise.resolve(null), 10000, [listId, models, tick])
 
   const role: "lead" | "talent" | "account" = canEdit ? "lead"
     : staffRole === "account_manager" || staffRole === "business_development" ? "account" : "talent"
-  const cols: Col[] = role === "lead" ? ["brief", "reach", "review", "proposal"] : role === "talent" ? ["brief", "reach", "review"] : ["review", "proposal"]
+  const cols: Col[] = models ? (role === "account" ? ["models"] : ["brief", "reach", "models"])
+    : role === "lead" ? ["brief", "reach", "review", "proposal"] : role === "talent" ? ["brief", "reach", "review"] : ["review", "proposal"]
 
   const counts = useMemo(() => {
     const f = campaign?.funnel
@@ -98,7 +105,7 @@ export function Board({ listId, campaign, canEdit, isSuperAdmin, staffRole, onOp
     review: `${(applicants?.applicants.filter(a => ["collecting", "countered"].includes(a.state)).length ?? 0).toLocaleString()} still chatting`,
     proposal: `${(applicants?.applicants.filter(a => a.review === "approved").length ?? campaign?.funnel.in_proposal ?? 0).toLocaleString()} on the proposal`,
   }
-  const grid = cols.length === 4 ? "xl:grid-cols-4" : cols.length === 3 ? "xl:grid-cols-3" : "xl:grid-cols-2"
+  const grid = cols.length === 4 ? "xl:grid-cols-4" : cols.length === 3 ? "xl:grid-cols-3" : cols.length === 2 ? "xl:grid-cols-2" : ""
   const title = campaign ? campaign.brand || campaign.name : oc?.title || "Campaign"
 
   return (
@@ -109,11 +116,15 @@ export function Board({ listId, campaign, canEdit, isSuperAdmin, staffRole, onOp
             <h2 className="truncate text-2xl font-semibold tracking-tight">{title}</h2>
             {(oc?.status || campaign?.open_call?.status) === "live" && <LiveDot />}
           </div>
-          <Link href={`/work/areas/${listId}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
-            {campaign && campaign.brand && campaign.name !== campaign.brand ? campaign.name : "Roster"}<ArrowUpRight className="h-3.5 w-3.5" />
-          </Link>
+          {models ? (
+            <p className="text-sm text-muted-foreground">UAE models invited onto Inflink, from @inflink.ae</p>
+          ) : (
+            <Link href={`/work/areas/${listId}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline">
+              {campaign && campaign.brand && campaign.name !== campaign.brand ? campaign.name : "Roster"}<ArrowUpRight className="h-3.5 w-3.5" />
+            </Link>
+          )}
         </div>
-        {campaign && (
+        {campaign && !models && (
           <p className="text-xs text-muted-foreground">
             {[[campaign.funnel.contacted, "reached"], [campaign.funnel.applied, "applied"], [campaign.funnel.relevant, "relevant"], [campaign.funnel.in_proposal, "on proposal"]]
               .map(([v, l]) => `${Number(v).toLocaleString()} ${l}`).join(" · ")}
@@ -136,6 +147,11 @@ export function Board({ listId, campaign, canEdit, isSuperAdmin, staffRole, onOp
         {cols.includes("review") && (
           <Column col="review" count={counts.review} sub={subs.review}>
             <BoardReview ocId={ocId} data={applicants} brand={campaign?.brand} listId={listId} onOpen={onOpen} onChanged={refresh} />
+          </Column>
+        )}
+        {cols.includes("models") && (
+          <Column col="models" count={modelsJoined(leads)} sub={`${(leads?.items.length ?? 0).toLocaleString()} answered`}>
+            <BoardModels data={leads} onOpen={onOpen} />
           </Column>
         )}
         {cols.includes("proposal") && (
