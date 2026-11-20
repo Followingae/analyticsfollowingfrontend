@@ -33,8 +33,8 @@ import { inflinkApi, type RfpSummary } from '@/services/inflinkApi'
 
 type Waiting = { id: string; title: string; cover?: string | null; quote: boolean; creators?: number | null }
 type Hero = { icon: typeof Users; title: string; line: string; cta: string; href: string; cover?: string | null
-              stats?: { value: string; label: string }[] }
-type Scene = 'quote' | 'content' | 'report' | 'live' | 'quiet'
+              stats?: { value: string; label: string }[]; soon?: string }
+type Scene = 'quote' | 'content' | 'report' | 'live' | 'quiet' | 'multi'
 const WAITING = ['sent', 'in_review', 'more_requested']
 const DASH = '–'
 const RECENT_DAYS = 30
@@ -59,7 +59,7 @@ export function BrandHome() {
 
   useEffect(() => {
     const s = new URLSearchParams(window.location.search).get('scene')
-    if (s && ['quote', 'content', 'report', 'live', 'quiet'].includes(s)) setScene(s as Scene)
+    if (s && ['quote', 'content', 'report', 'live', 'quiet', 'multi'].includes(s)) setScene(s as Scene)
 
     brandProposalViewApi.listProposals({ limit: 50 })
       .then(r => {
@@ -100,44 +100,44 @@ export function BrandHome() {
       && Date.now() - new Date(c.updated_at || c.end_date || c.created_at).getTime() < RECENT_DAYS * 86_400_000)
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0]
 
-  const real: Hero | null = !ready ? null
-    : waiting ? {
-        icon: FileText, title: waiting.quote ? 'Your quote is ready' : 'Your proposal is ready',
-        line: waiting.creators ? `${waiting.title} · ${waiting.creators} creators` : waiting.title,
-        cta: 'Review', href: `/proposals/${waiting.id}`, cover: waiting.cover,
-      }
-    : awaiting && awaiting > 0 && content?.focus ? {
-        icon: PlayCircle, title: `${awaiting} to approve`, line: content.focus.campaign_name,
-        cta: 'Review content', href: `/campaigns/${content.focus.campaign_id}/content`,
-      }
-    : finished ? {
-        icon: BarChart3, title: 'Your results are in', line: finished.name,
-        cta: 'See results', href: `/campaigns/${finished.id}`, cover: finished.brand_logo_url,
-        stats: [{ value: compact(finished.total_reach), label: 'reach' }, { value: compact(finished.posts_count), label: 'posts' },
-                { value: compact(finished.creators_count), label: 'creators' }],
-      }
-    : running ? {
-        icon: Megaphone, title: `${running.name} is live`, line: 'Results update as creators post.',
-        cta: 'Open campaign', href: `/campaigns/${running.id}`,
-        stats: [{ value: compact(running.creators_count), label: 'creators' }, { value: compact(running.posts_count), label: 'posts so far' },
-                { value: compact(running.total_reach), label: 'reach' }],
-      }
-    : {
-        icon: Search, title: 'Find your next creators', line: 'Search, analyse and shortlist in minutes.',
-        cta: 'Discover', href: '/discover',
-      }
+  /* Everything waiting, most urgent first; the top shows up to three. */
+  const QUIET: Hero = {
+    icon: Sparkles, title: "You're all caught up", line: 'Post a brief and UAE creators send you their quotes.',
+    cta: 'Post a brief', href: '/inflink/new', soon: 'Discover, coming soon',
+  }
+  const pendingList: Hero[] = []
+  if (waiting) pendingList.push({
+    icon: FileText, title: waiting.quote ? 'Your quote is ready' : 'Your proposal is ready',
+    line: waiting.creators ? `${waiting.title} · ${waiting.creators} creators` : waiting.title,
+    cta: 'Review', href: `/proposals/${waiting.id}`, cover: waiting.cover })
+  if (awaiting && awaiting > 0 && content?.focus) pendingList.push({
+    icon: PlayCircle, title: `${awaiting} to approve`, line: content.focus.campaign_name,
+    cta: 'Review content', href: `/campaigns/${content.focus.campaign_id}/content` })
+  if (finished) pendingList.push({
+    icon: BarChart3, title: 'Your results are in', line: finished.name,
+    cta: 'See results', href: `/campaigns/${finished.id}`,
+    stats: [{ value: compact(finished.total_reach), label: 'reach' }, { value: compact(finished.posts_count), label: 'posts' },
+            { value: compact(finished.creators_count), label: 'creators' }] })
+  if (running) pendingList.push({
+    icon: Megaphone, title: `${running.name} is live`, line: 'Results update as creators post.',
+    cta: 'Open campaign', href: `/campaigns/${running.id}`,
+    stats: [{ value: compact(running.creators_count), label: 'creators' }, { value: compact(running.posts_count), label: 'posts so far' },
+            { value: compact(running.total_reach), label: 'reach' }] })
+  const real: Hero[] | null = !ready ? null : pendingList.length ? pendingList.slice(0, 3) : [QUIET]
 
   /* Review-only samples, one per state. Never shown without ?home=new&scene=. */
-  const SAMPLE: Record<Scene, Hero> = {
+  const SAMPLE: Record<Exclude<Scene, 'multi'>, Hero> = {
     quote: { icon: FileText, title: 'Your quote is ready', line: 'Ramadan 2027 · 14 creators', cta: 'Review', href: '/proposals' },
     content: { icon: PlayCircle, title: '6 to approve', line: 'Summer Launch 2026', cta: 'Review content', href: '/campaigns' },
     report: { icon: BarChart3, title: 'Your results are in', line: 'National Day 2026', cta: 'See results', href: '/campaigns',
               stats: [{ value: '2.4M', label: 'reach' }, { value: '38', label: 'posts' }, { value: '12', label: 'creators' }] },
     live: { icon: Megaphone, title: 'Summer Launch 2026 is live', line: 'Results update as creators post.', cta: 'Open campaign',
             href: '/campaigns', stats: [{ value: '12', label: 'creators' }, { value: '21', label: 'posts so far' }, { value: '860K', label: 'reach' }] },
-    quiet: { icon: Search, title: 'Find your next creators', line: 'Search, analyse and shortlist in minutes.', cta: 'Discover', href: '/discover' },
+    quiet: { icon: Sparkles, title: "You're all caught up", line: 'Post a brief and UAE creators send you their quotes.', cta: 'Post a brief', href: '/inflink/new', soon: 'Discover, coming soon' },
   }
-  const hero = scene ? SAMPLE[scene] : real
+  const heroes: Hero[] | null = scene === 'multi' ? [SAMPLE.quote, SAMPLE.content, SAMPLE.live]
+    : scene ? [SAMPLE[scene]] : real
+  const quietOnly = !!heroes && heroes.length === 1 && !!heroes[0].soon
 
   const liveRfps = (rfps ?? []).filter(r => r.status === 'live')
   const rfpQuotes = liveRfps.reduce((s, r) => s + (r.quotes_count || 0), 0)
@@ -155,52 +155,25 @@ export function BrandHome() {
       />
 
       <section aria-label="Right now" className="flex min-h-0 flex-1 flex-col gap-4">
-        {/* The cloud */}
-        <Tile className="relative min-h-[44dvh] flex-[3] items-center justify-center overflow-hidden border-0 bg-card p-0 shadow-[0_1px_0_rgba(0,0,0,0.03)]">
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-            <span className="absolute -left-24 -top-28 size-[28rem] rounded-full bg-[oklch(0.9354_0.2254_121.5)]/35 blur-3xl" />
-            <span className="absolute -bottom-32 right-[-6rem] size-[30rem] rounded-full bg-primary/25 blur-3xl" />
-            <span className="absolute left-1/2 top-1/2 size-[22rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-background/70 blur-2xl" />
+        {/* The cloud: one card, or up to three when several things are waiting. */}
+        {!heroes ? (
+          <Tile className="min-h-[44dvh] flex-[3] items-center justify-center border-0 bg-card">
+            <div className="size-24 animate-pulse rounded-full bg-muted" />
+          </Tile>
+        ) : heroes.length === 1 ? (
+          <HeroCard hero={heroes[0]} size="lg" className="min-h-[44dvh] flex-[3]" />
+        ) : heroes.length === 2 ? (
+          <div className="grid min-h-[44dvh] flex-[3] grid-cols-1 gap-4 md:grid-cols-2">
+            <HeroCard hero={heroes[0]} size="md" />
+            <HeroCard hero={heroes[1]} size="md" />
           </div>
-
-          {hero ? (
-            <div className="relative flex flex-col items-center gap-6 px-6 text-center">
-              {hero.cover ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={hero.cover} alt="" className="h-28 w-48 rounded-[22px] object-cover shadow-[0_18px_50px_-24px_rgba(0,0,0,0.45)] ring-4 ring-card" />
-              ) : (
-                <span className="relative inline-flex size-24 items-center justify-center rounded-full bg-card shadow-[0_18px_50px_-24px_rgba(0,0,0,0.35)] ring-1 ring-border">
-                  <span className={cn('inline-flex size-16 items-center justify-center rounded-full', LIME)}>
-                    <hero.icon className="size-7" strokeWidth={1.6} />
-                  </span>
-                  <span className="absolute -right-1 -top-1 inline-flex size-8 items-center justify-center rounded-full bg-card text-foreground shadow-sm ring-1 ring-border">
-                    <Sparkles className="size-3.5" strokeWidth={2} />
-                  </span>
-                </span>
-              )}
-              <div className="flex flex-col items-center gap-2">
-                <h2 className="m-0 text-[30px] font-medium leading-none tracking-[-0.03em] sm:text-[36px]">{hero.title}</h2>
-                <p className="m-0 max-w-md text-sm text-muted-foreground">{hero.line}</p>
-              </div>
-              {hero.stats && (
-                <div className="flex items-center gap-8">
-                  {hero.stats.map(s => (
-                    <div key={s.label} className="flex flex-col items-center">
-                      <span className="text-[26px] font-medium leading-none tracking-[-0.03em] tabular-nums">{s.value}</span>
-                      <span className="mt-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{s.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <Link href={hero.href}
-                    className="inline-flex h-12 items-center gap-2 rounded-full bg-foreground px-6 text-sm font-medium text-background shadow-[0_14px_30px_-16px_rgba(0,0,0,0.5)] transition-opacity hover:opacity-90">
-                {hero.cta}<ArrowRight className="size-4" strokeWidth={2} />
-              </Link>
-            </div>
-          ) : (
-            <div className="relative size-24 animate-pulse rounded-full bg-muted" />
-          )}
-        </Tile>
+        ) : (
+          <div className="grid min-h-[44dvh] flex-[3] grid-cols-1 gap-4 md:grid-cols-[1.35fr_1fr] md:grid-rows-2">
+            <HeroCard hero={heroes[0]} size="md" className="md:row-span-2" />
+            <HeroCard hero={heroes[1]} size="sm" />
+            <HeroCard hero={heroes[2]} size="sm" />
+          </div>
+        )}
 
         {/* Four bold numbers, each a door */}
         <div className="grid flex-[2] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -215,8 +188,8 @@ export function BrandHome() {
                 value={profilesLoading ? null : profilesError ? DASH : String(unlockedProfilesCount ?? DASH)} />
         </div>
 
-        {/* Inflink: post a brief, creators quote you. */}
-        <Link href={liveRfps.length ? '/inflink' : '/inflink/new'}
+        {/* Inflink: post a brief, creators quote you. Not repeated when the cloud already says it. */}
+        {!(quietOnly && !liveRfps.length) && <Link href={liveRfps.length ? '/inflink' : '/inflink/new'}
               className="group flex flex-wrap items-center gap-4 rounded-[20px] border bg-card p-4 pr-5 transition-colors hover:border-foreground/30">
           <span className={cn('inline-flex size-12 shrink-0 items-center justify-center rounded-full', LIME)}>
             <Send className="size-5" strokeWidth={1.75} />
@@ -232,9 +205,64 @@ export function BrandHome() {
           <span className="inline-flex h-10 items-center gap-2 rounded-full bg-foreground px-5 text-sm font-medium text-background transition-opacity group-hover:opacity-90">
             {liveRfps.length ? 'See quotes' : 'Post a brief'}<ArrowRight className="size-4" strokeWidth={2} />
           </span>
-        </Link>
+        </Link>}
       </section>
     </div>
+  )
+}
+
+function HeroCard({ hero, size, className }: { hero: Hero; size: 'lg' | 'md' | 'sm'; className?: string }) {
+  const sm = size === 'sm'
+  return (
+    <Tile className={cn('relative items-center justify-center overflow-hidden border-0 bg-card p-0 shadow-[0_1px_0_rgba(0,0,0,0.03)]',
+                        sm ? 'min-h-[200px]' : 'min-h-[300px]', className)}>
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <span className={cn('absolute -left-24 -top-28 rounded-full bg-[oklch(0.9354_0.2254_121.5)]/35 blur-3xl', sm ? 'size-[16rem]' : 'size-[28rem]')} />
+        <span className={cn('absolute -bottom-32 right-[-6rem] rounded-full bg-primary/25 blur-3xl', sm ? 'size-[18rem]' : 'size-[30rem]')} />
+        <span className="absolute left-1/2 top-1/2 size-[18rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-background/70 blur-2xl" />
+      </div>
+      <div className={cn('relative flex flex-col items-center px-6 text-center', sm ? 'gap-3 py-5' : 'gap-6 py-8')}>
+        {hero.cover && !sm ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={hero.cover} alt="" className="h-28 w-48 rounded-[22px] object-cover shadow-[0_18px_50px_-24px_rgba(0,0,0,0.45)] ring-4 ring-card" />
+        ) : (
+          <span className={cn('relative inline-flex items-center justify-center rounded-full bg-card shadow-[0_18px_50px_-24px_rgba(0,0,0,0.35)] ring-1 ring-border', sm ? 'size-14' : 'size-24')}>
+            <span className={cn('inline-flex items-center justify-center rounded-full', LIME, sm ? 'size-10' : 'size-16')}>
+              <hero.icon className={sm ? 'size-5' : 'size-7'} strokeWidth={1.6} />
+            </span>
+            {!sm && (
+              <span className="absolute -right-1 -top-1 inline-flex size-8 items-center justify-center rounded-full bg-card text-foreground shadow-sm ring-1 ring-border">
+                <Sparkles className="size-3.5" strokeWidth={2} />
+              </span>
+            )}
+          </span>
+        )}
+        <div className="flex flex-col items-center gap-1.5">
+          <h2 className={cn('m-0 font-medium leading-none tracking-[-0.03em]', sm ? 'text-[22px]' : size === 'md' ? 'text-[28px]' : 'text-[30px] sm:text-[36px]')}>{hero.title}</h2>
+          <p className="m-0 max-w-md text-sm text-muted-foreground">{hero.line}</p>
+        </div>
+        {hero.stats && !sm && (
+          <div className="flex items-center gap-8">
+            {hero.stats.map(st => (
+              <div key={st.label} className="flex flex-col items-center">
+                <span className="text-[26px] font-medium leading-none tracking-[-0.03em] tabular-nums">{st.value}</span>
+                <span className="mt-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{st.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <Link href={hero.href}
+              className={cn('inline-flex items-center gap-2 rounded-full bg-foreground font-medium text-background shadow-[0_14px_30px_-16px_rgba(0,0,0,0.5)] transition-opacity hover:opacity-90',
+                            sm ? 'h-10 px-5 text-[13px]' : 'h-12 px-6 text-sm')}>
+          {hero.cta}<ArrowRight className="size-4" strokeWidth={2} />
+        </Link>
+        {hero.soon && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border bg-card/70 px-3 py-1 text-[12px] text-muted-foreground">
+            <Search className="size-3" strokeWidth={2} />{hero.soon}
+          </span>
+        )}
+      </div>
+    </Tile>
   )
 }
 
