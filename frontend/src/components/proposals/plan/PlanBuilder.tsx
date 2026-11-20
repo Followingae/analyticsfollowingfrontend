@@ -84,8 +84,15 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const byCount = selection.mode === "count"
   const slots = selection.slots ?? null
   const months: RetainerMonth[] = selection.periods ?? []
+  const hasBudget = budget > 0
   const showPricing = !byTier && !byCount
-    && proposal.visible_fields?.show_sell_pricing !== false && budget > 0
+    && proposal.visible_fields?.show_sell_pricing !== false
+  /* An open quote: priced per creator, no total budget (Q Mobility, 20 Nov 2026). The client
+     picks one, some or all and sees the running total; there is no budget bar, no "over
+     budget" and no optimiser filling a budget nobody set. Prices used to vanish entirely
+     here because they were shown only when a budget existed. */
+  const openQuote = showPricing && !hasBudget
+  const quotePicks = Math.min(5, data.influencers.length)
 
   const [creators, setCreators] = useState<BrandInfluencer[]>(data.influencers)
   /* What THEY have already chosen, read back from the server. This started from nothing
@@ -175,7 +182,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
      adding now. The bar measures this against the cap, so a re-opened proposal starts
      part-full instead of pretending the first round never happened. */
   const allocated = committed + spend
-  const over = showPricing && allocated > budget
+  const over = showPricing && hasBudget && allocated > budget
   const reviewed = useMemo(
     () => creators.filter(c => c.client_opened_at || c.declined_at).length,
     [creators],
@@ -252,10 +259,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
        the strongest that many. Without this the button had nothing to call on a barter
        proposal and silently did nothing. */
     if (byCount) { setRecommended(optimiseByCount(live, openSlots, strategy)); return }
+    if (openQuote) { setRecommended(optimiseByCount(live, quotePicks, strategy)); return }
     if (!showPricing) { setRecommended([]); return }
     optimise(live, spendable, strategy, undefined, 0).then(r => { if (alive) setRecommended(r.picks) })
     return () => { alive = false }
-  }, [live, spendable, strategy, showPricing, byTier, byCount, slots, openSlots, selection.allowances, costOf])
+  }, [live, spendable, strategy, showPricing, openQuote, quotePicks, byTier, byCount, slots, openSlots, selection.allowances, costOf])
   const recIds = useMemo(() => new Set(recommended.map(c => c.id)), [recommended])
 
   const sig = (ids: Set<string>, s: Strategy) => `${s}:${[...ids].sort().join(",")}`
@@ -443,7 +451,10 @@ export function PlanBuilder({ proposalId, data, onReload }: {
        question this client was never asked. */
     let picks: BrandInfluencer[]
     let closing: string
-    if (byCount) {
+    if (openQuote) {
+      picks = optimiseByCount(live, quotePicks, strategy)
+      closing = `The strongest ${picks.length}, ${aed(picks.reduce((s, c) => s + creatorCost(c), 0))} together. Add or remove anyone.`
+    } else if (byCount) {
       picks = optimiseByCount(live, openSlots, strategy)
       closing = slots
         ? (lockedList.length
@@ -580,7 +591,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
           <div className="min-w-[168px]">
             <b className="block text-base font-bold tracking-[-0.02em]">Smart pick</b>
             <span className="text-[12.5px] text-muted-foreground">
-              {building ? "Working through the list" : showPricing ? "Fills your budget, wastes nothing" : "The strongest line-up for this brief"}
+              {building ? "Working through the list" : openQuote ? "The strongest line-up, priced" : showPricing ? "Fills your budget, wastes nothing" : "The strongest line-up for this brief"}
             </span>
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-3">
@@ -876,7 +887,22 @@ export function PlanBuilder({ proposalId, data, onReload }: {
             </section>
           )}
 
-          {showPricing && (
+          {openQuote && (
+            <section className="rounded-[20px] border bg-card p-[18px]">
+              <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                <Wallet className="size-3.5" />Your selection
+              </p>
+              <div className="mt-3 text-[32px] font-extrabold leading-none tracking-[-0.04em]">{aed(spend)}</div>
+              <p className="mt-3 text-[12.5px] font-semibold text-muted-foreground">
+                {picked.length} of {live.length} creator{live.length === 1 ? "" : "s"} selected
+              </p>
+              <p className="mt-2.5 text-[11.5px] leading-relaxed text-muted-foreground">
+                Pick one, some or all. Each price is per creator for the deliverables shown.
+              </p>
+            </section>
+          )}
+
+          {showPricing && hasBudget && (
             <section className="rounded-[20px] border bg-card p-[18px]">
               <p className="flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
                 <Wallet className="size-3.5" />Your budget
@@ -1043,6 +1069,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
               {byTier
                 ? tierRows.map(r => `${r.label} ${r.picked}/${r.allowed}`).join(" · ")
                 : over ? `${aed(allocated - budget)} over budget`
+                : openQuote ? "Pick one, some or all"
                 : showPricing ? `${aed(budget - allocated)} unspent`
                 : `${reviewed} of ${creators.length} reviewed`}
             </span>
@@ -1175,7 +1202,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                    className="-ml-2.5 size-9 rounded-full object-cover ring-2 ring-background first:ml-0" />
             ))}
           </div>
-          {showPricing && budget - allocated > budget * 0.05 && (
+          {showPricing && hasBudget && budget - allocated > budget * 0.05 && (
             <p className="rounded-xl bg-muted p-3 text-[12.5px] leading-relaxed text-muted-foreground">
               {aed(budget - allocated)} of your budget stays open. Our team will put together a few
               smaller creators for it and send them over for your approval separately.
