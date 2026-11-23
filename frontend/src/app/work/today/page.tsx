@@ -68,6 +68,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
+import { TeamHome } from '@/components/console/TeamHome'
 import { ProcessFlow } from '@/components/console/ProcessFlow'
 import { Shortcuts } from '@/components/console/Shortcuts'
 import { WaitingOnYou } from '@/components/console/WaitingOnYou'
@@ -519,6 +520,11 @@ export default function Today() {
   const [allWaiting, setAllWaiting] = useState(false)
   const [allFlight, setAllFlight] = useState(false)
 
+  // The team home is Today for everyone (founder approved, 23 Nov 2026: the client home's
+  // style for the team). The previous layout stays at ?look=classic for now.
+  const [look, setLook] = useState<string | null>(null)
+  useEffect(() => { setLook(new URLSearchParams(window.location.search).get('look')) }, [])
+
   const load = async (quiet = false) => {
     if (quiet) setRefreshing(true)
     try {
@@ -578,6 +584,21 @@ export default function Today() {
   const shownWaiting = allWaiting ? waiting : waiting.slice(0, 7)
   const shownFlight = allFlight ? moving : moving.slice(0, 7)
 
+  // The team home's own loading shape, so the page does not flash the old layout first.
+  if (loading && look !== 'classic') {
+    return (
+      <SuperadminLayout>
+        <div className="flex flex-col gap-6 p-1 sm:p-2">
+          <Skeleton className="h-12 w-80 rounded-2xl" />
+          <Skeleton className="h-[40dvh] w-full rounded-[20px]" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-[150px] rounded-[20px]" />)}
+          </div>
+        </div>
+      </SuperadminLayout>
+    )
+  }
+
   if (loading) {
     return (
       <SuperadminLayout>
@@ -598,6 +619,20 @@ export default function Today() {
             <Skeleton className="col-span-12 h-[340px] rounded-ds-surface xl:col-span-4" />
           </div>
         </div>
+      </SuperadminLayout>
+    )
+  }
+
+  if (look !== 'classic' && data) {
+    const label = primary
+      ? (primary.label ?? (primary.verb
+          ? `${primary.verb} ${shortName(primary.href).toLowerCase()}` : shortName(primary.href)))
+      : null
+    return (
+      <SuperadminLayout>
+        <TeamHome data={data} firstName={first} badges={badges} refreshing={refreshing}
+                  primary={primary && label ? { label, href: primary.href } : null}
+                  onRefresh={() => { load(true); loadBadges() }} />
       </SuperadminLayout>
     )
   }
