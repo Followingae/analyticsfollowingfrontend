@@ -68,7 +68,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { TeamHome } from '@/components/console/TeamHome'
 import { ProcessFlow } from '@/components/console/ProcessFlow'
 import { Shortcuts } from '@/components/console/Shortcuts'
 import { WaitingOnYou } from '@/components/console/WaitingOnYou'
@@ -520,16 +519,10 @@ export default function Today() {
   const [allWaiting, setAllWaiting] = useState(false)
   const [allFlight, setAllFlight] = useState(false)
 
-  // Preview of the team home (founder, 23 Nov 2026): ?look=new draws the same data in the
-  // client home's style; ?as=<user id> lets a founder open a team member's screen.
-  const [look, setLook] = useState<string | null>(null)
-  const viewAs = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('as') : null
-  useEffect(() => { setLook(new URLSearchParams(window.location.search).get('look')) }, [])
-
   const load = async (quiet = false) => {
     if (quiet) setRefreshing(true)
     try {
-      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/today${viewAs ? `?as=${encodeURIComponent(viewAs)}` : ''}`)
+      const res = await fetchWithAuth(`${API_CONFIG.BASE_URL}/api/v1/admin/today`)
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Failed')
       setData((await res.json()).data)
       setFailed(false)
@@ -605,20 +598,6 @@ export default function Today() {
             <Skeleton className="col-span-12 h-[340px] rounded-ds-surface xl:col-span-4" />
           </div>
         </div>
-      </SuperadminLayout>
-    )
-  }
-
-  if (look === 'new' && data) {
-    const label = primary
-      ? (primary.label ?? (primary.verb
-          ? `${primary.verb} ${shortName(primary.href).toLowerCase()}` : shortName(primary.href)))
-      : null
-    return (
-      <SuperadminLayout>
-        <TeamHome data={data} firstName={first} badges={badges} refreshing={refreshing}
-                  primary={primary && label ? { label, href: primary.href } : null}
-                  onRefresh={() => { load(true); loadBadges() }} />
       </SuperadminLayout>
     )
   }
