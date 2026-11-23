@@ -25,7 +25,6 @@ import {
   Empty, Panel, ScoreDot, Stat, StatGrid, type Tone,
 } from '@/components/console/primitives'
 import { ClientsHubHeader } from '@/components/console/ClientsHubHeader'
-import { NewOpportunityDialog } from '@/components/superadmin/brands/NewOpportunityDialog'
 
 /* The badge skins were a fourth set of hand-picked palette steps — emerald-500/10 here,
    #E9F5E5 on Today, emerald-950/50 elsewhere — so "healthy" was three slightly different
@@ -61,10 +60,13 @@ function BrandsPage() {
   const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  // "Log a brand" on Today used to land here and stop — the actual form was a second button
-  // called something else. Arriving with ?new=1 opens it.
+  // A brand starts in the Sales pipeline and becomes a client from there ("Make them a
+  // client" on its deal). Logging one here made a client the pipeline never saw, so business
+  // development kept two lists (founder, 23 Nov 2026). Old ?new=1 links go to the pipeline.
   const params = useSearchParams()
-  const [newOpen, setNewOpen] = useState(params?.get('new') === '1')
+  useEffect(() => {
+    if (params?.get('new') === '1') router.replace('/work/sales?new=1')
+  }, [params, router])
   // Which slice you were reading. It lived in state only, so opening a brand and pressing
   // "All brands" put you back on All every time, however you had filtered.
   const asked = params?.get('tab')
@@ -153,7 +155,7 @@ function BrandsPage() {
         <ClientsHubHeader
           note="Silence is measured from activity in here. If you spoke to them, log it."
           action={
-            <Button onClick={() => setNewOpen(true)}>
+            <Button onClick={() => router.push('/work/sales?new=1')}>
               <Plus className="mr-1.5 h-4 w-4" />Log a new brand
             </Button>
           }
@@ -276,7 +278,6 @@ function BrandsPage() {
         </Panel>
       </div>
 
-      <NewOpportunityDialog open={newOpen} onOpenChange={setNewOpen} onCreated={load} />
     </SuperadminLayout>
   )
 }

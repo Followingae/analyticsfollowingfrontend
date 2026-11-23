@@ -24,10 +24,10 @@
  * talent's judgement.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
-  Banknote, Building2, Calendar, Loader2, Plus, Search, Send, Sparkles, Users2,
+  Banknote, Building2, Calendar, Handshake, Loader2, Plus, Search, Send, Sparkles, Users2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { AuthGuard } from '@/components/AuthGuard'
@@ -72,20 +72,26 @@ const when = (iso: string | null) =>
 export default function SalesPage() {
   return (
     <AuthGuard requireAuth>
-      <SuperadminLayout><Pipeline /></SuperadminLayout>
+      {/* Reading ?new and ?deal needs a boundary in Next 15. */}
+      <SuperadminLayout><Suspense fallback={null}><Pipeline /></Suspense></SuperadminLayout>
     </AuthGuard>
   )
 }
 
 function Pipeline() {
   const router = useRouter()
+  const params = useSearchParams()
+  // Today links every row here as ?deal=<id>, and its "New deal" button as ?new=1.
+  const focus = params?.get('deal') || null
   const [board, setBoard] = useState<Board | null>(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
   const [q, setQ] = useState('')
-  const [closed, setClosed] = useState(false)
+  // A deal opened from Today may already be won, so arriving at one shows closed deals too.
+  const [closed, setClosed] = useState(!!focus)
   const [asking, setAsking] = useState<Deal | null>(null)
-  const [adding, setAdding] = useState(false)
+  const [adding, setAdding] = useState(params?.get('new') === '1')
+  const scrolled = useRef(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -99,6 +105,30 @@ function Pipeline() {
   }, [closed])
 
   useEffect(() => { void load() }, [load])
+
+  useEffect(() => {
+    if (!focus || !board || scrolled.current) return
+    const el = document.getElementById(`deal-${focus}`)
+    if (el) {
+      scrolled.current = true
+      el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+    }
+  }, [focus, board])
+
+  /** "Log a brand" lives here now: a brand in the pipeline becomes a client when it is won,
+   *  from its own card, instead of being typed into a second list (founder, 23 Nov 2026). */
+  const makeClient = async (d: Deal) => {
+    try {
+      const r = await crmApi.makeClient(d.brand_id)
+      toast.success(r.already ? `${r.name} is already a client`
+        : r.linked ? `${r.name} linked to the existing client` : `${r.name} is now a client`, {
+        action: { label: 'Open', onClick: () => router.push(`/work/brands/${r.team_id}`) },
+      })
+      load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not make them a client')
+    }
+  }
 
   const stages = useMemo(() => {
     const n = q.trim().toLowerCase()
@@ -114,7 +144,14 @@ function Pipeline() {
   const move = async (d: Deal, stage: Stage) => {
     try {
       await crmApi.updateDeal(d.id, { stage })
-      toast.success(`${d.brand} → ${STAGE_LABEL[stage]}`)
+      if (stage === 'won' && !d.team_id) {
+        toast.success(`${d.brand} won`, {
+          description: 'Make them a client so the team can run it.',
+          action: { label: 'Make them a client', onClick: () => { void makeClient(d) } },
+        })
+      } else {
+        toast.success(`${d.brand} → ${STAGE_LABEL[stage]}`)
+      }
       load()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not move it')
@@ -197,8 +234,10 @@ function Pipeline() {
               <div className="space-y-2">
                 {s.deals.map((d) => (
                   <DealCard key={d.id} deal={d} canEdit={!!board?.can_edit} canAsk={!!board?.can_ask_talent}
+                            focused={d.id === focus}
                             onMove={(st) => move(d, st)}
                             onAsk={() => setAsking(d)}
+                            onMakeClient={() => makeClient(d)}
                             /* The brand record is keyed by the client's team. This pushed
                                /work/sales/{brand_id}, a page that does not exist, so every card
                                was a 404. A brand not yet signed up has no team and no record
@@ -222,8 +261,10 @@ function Pipeline() {
   )
 }
 
-function DealCard({ deal, canEdit, canAsk, onMove, onAsk, onOpen }: {
+function DealCard({ deal, canEdit, canAsk, focused, onMove, onAsk, onMakeClient, onOpen }: {
   canAsk?: boolean
+  focused?: boolean
+  onMakeClient?: () => void
   deal: Deal
   canEdit: boolean
   onMove: (s: Stage) => void
@@ -240,7 +281,9 @@ function DealCard({ deal, canEdit, canAsk, onMove, onAsk, onOpen }: {
     </>
   )
   return (
-    <article className={cn(CARD, 'group space-y-2 bg-card p-3')}>
+    <article id={`deal-${deal.id}`}
+             className={cn(CARD, 'group space-y-2 bg-card p-3',
+                           focused && 'ring-2 ring-[var(--console-lime)]')}>
       {onOpen ? (
         <button type="button" onClick={onOpen} className="block w-full text-left hover:underline">
           {name}
@@ -295,6 +338,12 @@ function DealCard({ deal, canEdit, canAsk, onMove, onAsk, onOpen }: {
         <div className="flex flex-wrap gap-1.5 pt-0.5">
           {/* Asking is offered until it has been asked, at any stage. The whole point is
               that it can happen before the deal is won. */}
+          {/* Signed or won and not yet a client: this is where a brand becomes one. */}
+          {onMakeClient && !deal.team_id && (deal.stage === 'agreement_signed' || deal.stage === 'won') && (
+            <Button size="sm" className="h-7 flex-1 px-2 text-ds-caption" onClick={onMakeClient}>
+              <Handshake className="mr-1 h-3 w-3" /> Make them a client
+            </Button>
+          )}
           {canAsk && !asked && !deal.closed_at && (
             <Button size="sm" variant="outline" className="h-7 flex-1 px-2 text-ds-caption"
                     onClick={onAsk}>

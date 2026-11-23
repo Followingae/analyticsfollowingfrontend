@@ -106,6 +106,11 @@ export const crmApi = {
   updateDeal: (id: string, body: Record<string, unknown>) =>
     call<{ id: string; stage: Stage }>(`/api/v1/admin/crm/deals/${id}`, send('PATCH', body)),
 
+  /** A pipeline brand becomes a client (links an existing client of the same name). */
+  makeClient: (brandId: string) =>
+    call<{ team_id: string; name: string; already: boolean; linked?: boolean }>(
+      `/api/v1/admin/crm/brands/${brandId}/client`, send('POST')),
+
   /** The button that closes the lapse: raises a request AND opens a roster. */
   askTalent: (dealId: string, brief: string, ownerId?: string, dueOn?: string) =>
     call<{ request_id: string; roster_id: string }>(

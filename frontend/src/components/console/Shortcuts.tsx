@@ -22,7 +22,7 @@ import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Banknote, BarChart3, Building2, ClipboardCheck, Coins, Database, FileSignature,
-  FileText, Map, Megaphone, Send, Users2, Wallet, type LucideIcon,
+  FileText, Map, Megaphone, Send, Target, Users2, Wallet, type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { shortName, hintFor } from '@/lib/destinations'
@@ -58,10 +58,12 @@ const BY_SCOPE: Record<string, Shortcut[]> = {
     { href: '/work/campaigns', icon: Megaphone },
     { href: '/work/chasing', icon: ClipboardCheck, badge: 'chasing' },
   ],
+  // Her pipeline first. It was missing altogether, so the screen she lives in was not one
+  // of her shortcuts (founder, 23 Nov 2026).
   business_development: [
-    { href: '/work/brands', icon: Building2, badge: 'brands' },
-    { href: '/work/share', icon: Send },
+    { href: '/work/sales', icon: Target },
     { href: '/work/proposals', icon: FileText, badge: 'proposals' },
+    { href: '/work/share', icon: Send },
     { href: '/work/clients', icon: Building2 },
   ],
 }

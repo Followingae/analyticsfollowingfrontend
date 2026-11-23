@@ -167,14 +167,17 @@ const FLOWS: Record<string, { key: string; label: string }[]> = {
  * that is how one screen ended up with three: the sidebar said "Coverage" because it reads
  * the register, while this page still said "Where we're thin" because it did not.
  */
-const PRIMARY: Record<string, { verb?: string; href: string }> = {
+const PRIMARY: Record<string, { verb?: string; label?: string; href: string }> = {
   leadership: { href: '/work/approvals' },
   // A talent manager had no primary action at all, on the one screen whose whole job for
   // them is finding people. Adding costs nothing, which is exactly why it should be here.
   talent: { verb: 'Add', href: '/work/influencers?new=1' },
   // The clients list holds no owner filter, so this opens everybody's book.
   account: { href: '/work/clients' },
-  business_development: { verb: 'Add', href: '/work/brands?new=1' },
+  // Her work is the Sales pipeline, so her one action is a new brand there (it opens with its
+  // first deal). It used to log a CLIENT on the Brands list, a second list the pipeline never
+  // saw (founder, 23 Nov 2026). A brand becomes a client from inside the pipeline.
+  business_development: { label: 'New deal', href: '/work/sales?new=1' },
 }
 
 /* The tone tokens are defined once in the .console-shell block in globals.css, so amber is
@@ -548,6 +551,10 @@ export default function Today() {
   const target = data?.target as { value: number; of: number } | null | undefined
   const role: string = data?.role || data?.scope || 'leadership'
   const primary = PRIMARY[role]
+  // The company-wide process picture (business development, talent, approvals, client,
+  // delivery) is not hers to read every morning: four of its five stages are other people's
+  // work, which is why talent's stops showed on her screen (founder, 23 Nov 2026).
+  const showProcess = role !== 'business_development'
 
   /* The uncapped truth. `waiting` and `moving` are sliced to fourteen rows server-side, so
      anything that states a total or draws a distribution reads these instead of the arrays.
@@ -624,9 +631,10 @@ export default function Today() {
                     className="h-11 rounded-full px-5 font-semibold"
                     onClick={() => router.push(primary.href)}
                   >
-                    {primary.verb
-                      ? `${primary.verb} ${shortName(primary.href).toLowerCase()}`
-                      : shortName(primary.href)}
+                    {primary.label
+                      ?? (primary.verb
+                        ? `${primary.verb} ${shortName(primary.href).toLowerCase()}`
+                        : shortName(primary.href))}
                   </Button>
                 )}
               </>
@@ -698,7 +706,7 @@ export default function Today() {
               /* No sequence holds enough of this person's work to draw honestly, so the slot
                  goes to the drawing that is always true: who holds the work company-wide, in
                  the order it changes hands, at live counts. */
-              <ProcessFlow scope={role} />
+              showProcess ? <ProcessFlow scope={role} /> : null
             )}
           </div>
 
@@ -762,7 +770,7 @@ export default function Today() {
             this person's desk but who holds the work across the company, in the order it
             changes hands, with the pile-up named. It renders here only when slot 3 took the
             columns, so the drawing appears exactly once on the page. */}
-        {chart && (
+        {chart && showProcess && (
           <section>
             <SectionHead
               icon={GitBranch}
