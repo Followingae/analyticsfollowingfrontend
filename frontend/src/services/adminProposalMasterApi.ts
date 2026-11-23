@@ -6,6 +6,7 @@
 
 import { API_CONFIG, getAuthHeaders } from '@/config/api'
 import { fetchWithAuth } from '@/utils/apiInterceptor'
+import type { ProposalBadgeData } from '@/components/proposals/ProposalBadge'
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -183,6 +184,8 @@ export interface AdminProposalInfluencer {
   /** The house's own pick for this client. Floats to the top of the client's wall. */
   recommended?: boolean
   recommended_note?: string | null
+  /** A label on the card, e.g. "Truth and Dare Event". */
+  badge?: ProposalBadgeData | null
   selected_by_user: boolean
   selected_at?: string
   admin_notes?: string
@@ -350,6 +353,8 @@ export interface BrandInfluencer {
   /** We put our name on this one for this client, with the one-line reason. */
   recommended?: boolean
   recommended_note?: string | null
+  /** A label on the card, e.g. "Truth and Dare Event". */
+  badge?: ProposalBadgeData | null
   batch_number?: number
   added_at?: string
   selected_by_user: boolean
@@ -875,6 +880,23 @@ export class AdminProposalApiService {
       { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) },
     )
     if (!response.ok) throw new Error(await errorMessage(response, 'Could not change the recommendation'))
+    return await response.json()
+  }
+
+  // ---------------------------------------------------------------------------
+  // PUT /api/v1/admin/proposals/{id}/influencers/badge
+  // One label for the rows given (e.g. "Truth and Dare Event"); an empty label clears it.
+  // ---------------------------------------------------------------------------
+  async setBadge(proposalId: string, body: {
+    influencer_ids: string[]
+    label: string
+    color?: string
+  }): Promise<{ data: { updated: number; label: string | null; color: string | null } }> {
+    const response = await fetchWithAuth(
+      `${this.baseUrl}/${proposalId}/influencers/badge`,
+      { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) },
+    )
+    if (!response.ok) throw new Error(await errorMessage(response, 'Could not change the badge'))
     return await response.json()
   }
 

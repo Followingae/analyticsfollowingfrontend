@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { cdnAvatar } from "@/lib/avatar"
 import { ProductBarter } from '@/components/proposals/ProductBarter'
+import { ProposalBadge, type ProposalBadgeData } from '@/components/proposals/ProposalBadge'
 import { PlatformIcon } from '@/components/icons/PlatformIcon'
 import { describeIncludes, describeLine, isBundleKey, platformsOfLine } from '@/lib/deliverables'
 
@@ -79,6 +80,7 @@ interface QuoteInfluencer {
   /** We put our name on this one for this client. Reads first, and wears the only badge. */
   recommended?: boolean
   recommended_note?: string | null
+  badge?: ProposalBadgeData | null
   deliverables: Line[]
   subtotal: number
   total: number
@@ -487,6 +489,7 @@ function CreatorQuoteCard({
           <span className="truncate">{inf.recommended_note || 'Recommended by us'}</span>
         </div>
       )}
+      {inf.badge && <ProposalBadge badge={inf.badge} className={inf.recommended ? 'mb-4 ml-2' : 'mb-4'} />}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           {priced.length > 0 && (

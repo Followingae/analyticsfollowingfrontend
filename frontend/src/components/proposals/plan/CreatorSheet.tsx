@@ -26,6 +26,7 @@ import { creatorCost, whyFor } from "./optimiser"
 import { PlatformIcon, TikTokGlyph } from "@/components/icons/PlatformIcon"
 import { PLATFORM_LABEL, describeIncludes, describeLine, isBundleKey, platformsOfLine, type Platform } from "@/lib/deliverables"
 import { PlatformPanel } from "./PlatformPanel"
+import { ProposalBadge } from "@/components/proposals/ProposalBadge"
 import { InstagramPanel, StandingChip } from "./InstagramPanel"
 
 const fmt = (n?: number | null) =>
@@ -97,6 +98,7 @@ export function CreatorSheet({
         </SheetHeader>
 
         <div className="flex flex-col gap-5">
+          <ProposalBadge badge={c.badge} />
           {/* Our recommendation reads in full here, and where it stands the optimiser's chip
               stands down — the same order of precedence the tile keeps. */}
           {c.recommended && (

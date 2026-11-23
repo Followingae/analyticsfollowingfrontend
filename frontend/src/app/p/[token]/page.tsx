@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner'
 import { QuoteView } from './QuoteView'
 import { cdnAvatar } from "@/lib/avatar"
+import { ProposalBadge } from '@/components/proposals/ProposalBadge'
 
 const PUBLIC = `${API_CONFIG.BASE_URL}/api/v1/public/proposals`
 
@@ -493,6 +494,7 @@ export default function PublicProposalPage() {
                         {inf.full_name && <div className="text-sm text-muted-foreground truncate">{inf.full_name}</div>}
                       </div>
                     </div>
+                    <ProposalBadge badge={inf.badge} className="mt-3" />
                     {/* One chip, and ours outranks the rest: a person here put their name on
                         this creator for this client, where the others are the system
                         describing itself. */}

@@ -63,7 +63,9 @@ import {
   TrendingUp,
   Loader2,
   Star,
+  PartyPopper,
 } from "lucide-react"
+import { ProposalBadge, BADGE_COLORS, type ProposalBadgeColor } from "@/components/proposals/ProposalBadge"
 import { SellingMode } from '@/components/superadmin/proposals/SellingMode'
 import { ConfirmationPanel } from '@/components/superadmin/proposals/ConfirmationPanel'
 import { ReopenProposal } from '@/components/superadmin/proposals/ReopenProposal'
@@ -119,6 +121,36 @@ export default function ProposalDetailPage() {
   const [recFor, setRecFor] = useState<AdminProposalInfluencer | null>(null)
   const [recNote, setRecNote] = useState("")
   const [recSaving, setRecSaving] = useState(false)
+  /* A label on some of the roster, e.g. "Truth and Dare Event" for the creators booked for
+     an event on top of the main campaign. The client sees it on the card. */
+  const [badgeFor, setBadgeFor] = useState<string[] | null>(null)
+  const [badgeLabel, setBadgeLabel] = useState("")
+  const [badgeColor, setBadgeColor] = useState<ProposalBadgeColor>("pink")
+  const [badgeSaving, setBadgeSaving] = useState(false)
+
+  function openBadge(ids: string[], current?: AdminProposalInfluencer["badge"]) {
+    setBadgeFor(ids)
+    setBadgeLabel(current?.label || "")
+    setBadgeColor(((current?.color as ProposalBadgeColor) || "pink"))
+  }
+
+  async function saveBadge(ids: string[], label: string, color: ProposalBadgeColor) {
+    setBadgeSaving(true)
+    try {
+      const res = await adminProposalApi.setBadge(id, { influencer_ids: ids, label: label.trim(), color })
+      const n = res.data.updated
+      toast.success(label.trim()
+        ? `"${label.trim()}" on ${n} creator${n === 1 ? "" : "s"}`
+        : `Badge removed from ${n} creator${n === 1 ? "" : "s"}`)
+      setBadgeFor(null)
+      setPicked(new Set())
+      loadDetail()
+    } catch (err: any) {
+      toast.error(err.message || "Could not save the badge")
+    } finally {
+      setBadgeSaving(false)
+    }
+  }
 
   async function loadDetail() {
     try {
@@ -507,10 +539,16 @@ export default function ProposalDetailPage() {
             {/* Only once something is ticked, so the destructive action is never the
                 resting state of the header. */}
             {picked.size > 0 && (
-              <Button size="sm" variant="destructive" onClick={() => setRemoveOpen(true)}>
-                <Trash2 className="mr-1.5 h-4 w-4" />
-                Remove {picked.size}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => openBadge([...picked])}>
+                  <PartyPopper className="mr-1.5 h-4 w-4 text-pink-500" />
+                  Badge {picked.size}
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => setRemoveOpen(true)}>
+                  <Trash2 className="mr-1.5 h-4 w-4" />
+                  Remove {picked.size}
+                </Button>
+              </div>
             )}
           </CardHeader>
           <CardContent>
@@ -599,6 +637,7 @@ export default function ProposalDetailPage() {
                                     {inf.full_name}
                                   </span>
                                 ) : null}
+                                <ProposalBadge badge={inf.badge} className="mt-1 px-2 py-0.5 text-[10px]" />
                               </div>
                             </div>
                           </TableCell>
@@ -681,6 +720,16 @@ export default function ProposalDetailPage() {
                                   <DropdownMenuItem onClick={() => { setRecFor(inf); setRecNote("") }}>
                                     <Star className="mr-2 h-4 w-4" />
                                     Recommend to client
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onClick={() => openBadge([inf.id], inf.badge)}>
+                                  <PartyPopper className="mr-2 h-4 w-4 text-pink-500" />
+                                  {inf.badge ? "Edit the badge" : "Add a badge"}
+                                </DropdownMenuItem>
+                                {inf.badge && (
+                                  <DropdownMenuItem onClick={() => saveBadge([inf.id], "", "pink")}>
+                                    <PartyPopper className="mr-2 h-4 w-4" />
+                                    Remove the badge
                                   </DropdownMenuItem>
                                 )}
                                 <DropdownMenuItem
@@ -772,6 +821,61 @@ export default function ProposalDetailPage() {
               <Button onClick={saveRecommendation} disabled={recSaving}>
                 {recSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {recFor?.recommended ? "Save" : "Recommend"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!badgeFor} onOpenChange={(o: boolean) => !badgeSaving && !o && setBadgeFor(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                Badge {badgeFor?.length ?? 0} creator{badgeFor?.length === 1 ? "" : "s"}
+              </DialogTitle>
+              <DialogDescription>
+                A label on their card, e.g. what they are booked for. The client sees it.
+                Only on this proposal.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="badge-label">Label</Label>
+                <Input
+                  id="badge-label"
+                  value={badgeLabel}
+                  maxLength={40}
+                  autoFocus
+                  placeholder="Truth and Dare Event"
+                  onChange={e => setBadgeLabel(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && !badgeSaving && badgeFor) saveBadge(badgeFor, badgeLabel, badgeColor)
+                  }}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {BADGE_COLORS.map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setBadgeColor(c)}
+                    className={`rounded-full p-0.5 ring-2 ${badgeColor === c ? "ring-foreground" : "ring-transparent"}`}
+                    aria-label={c}
+                  >
+                    <ProposalBadge badge={{ label: badgeLabel.trim() || "Label", color: c }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setBadgeFor(null)} disabled={badgeSaving}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => badgeFor && saveBadge(badgeFor, badgeLabel, badgeColor)}
+                disabled={badgeSaving || !badgeLabel.trim()}
+              >
+                {badgeSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save
               </Button>
             </DialogFooter>
           </DialogContent>

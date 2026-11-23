@@ -25,6 +25,7 @@ import type { BrandInfluencer } from "@/services/adminProposalMasterApi"
 import { creatorCost } from "./optimiser"
 import { PlatformIcon } from "@/components/icons/PlatformIcon"
 import { PLATFORM_LABEL, platformsOfLine, type Platform } from "@/lib/deliverables"
+import { ProposalBadge } from "@/components/proposals/ProposalBadge"
 
 const fmt = (n?: number | null) =>
   n == null ? "—" : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}K` : `${n}`
@@ -127,6 +128,7 @@ export const CreatorTile = memo(function CreatorTile({
         </span>
 
         <div className="absolute inset-x-0 bottom-0 z-[2] flex flex-col gap-2 p-4 pb-[54px] text-white">
+          <ProposalBadge badge={c.badge} />
           <h3 className="flex items-center gap-1.5 text-base font-bold leading-tight tracking-[-0.03em] [text-shadow:0_2px_14px_rgba(0,0,0,.5)]">
             {c.full_name || c.username}
             {c.is_verified && <BadgeCheck className="size-4 shrink-0 opacity-85" />}
