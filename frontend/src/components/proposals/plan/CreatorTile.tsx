@@ -188,7 +188,9 @@ export const CreatorTile = memo(function CreatorTile({
           onClick={() => onOpen(c)}
           className="absolute inset-x-0 bottom-0 z-[5] flex items-center justify-center gap-1.5 bg-emerald-600 px-3 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700"
         >
-          <Lock className="size-3.5" />Confirmed · Analytics
+          <Lock className="size-3.5" />
+          {/* On an agreement proposal the client confirms, then we book: until we do, it says so. */}
+          {c.booked === false ? "Confirmed by you · Booking" : "Confirmed · Analytics"}
         </button>
       )}
 

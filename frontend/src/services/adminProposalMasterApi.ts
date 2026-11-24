@@ -97,6 +97,17 @@ async function errorMessage(response: Response, fallback: string): Promise<strin
   }
 }
 
+/** A client agreement (master proposal): allowance, usage and its proposals. */
+export interface AgreementInfo {
+  id: string
+  name: string
+  allowance: number | null
+  period: string | null
+  period_label: string | null
+  used: number
+  left: number | null
+  proposals: { id: string; title: string; status: string; confirmed: number; booked: number; campaign_id: string | null; current: boolean }[]
+}
 export interface ProposalSubCampaign { id: string; name: string; date?: string | null; target?: number | null; rows?: number; confirmed?: number }
 export interface ProposalCampaigns { main: { id: string; name: string } | null; subs: ProposalSubCampaign[] }
 
@@ -155,6 +166,7 @@ export interface AdminProposalDetail {
   }
   influencers: AdminProposalInfluencer[]
   campaigns?: ProposalCampaigns
+  agreement?: AgreementInfo | null
   /** The caller's money scope, from the backend's `app/core/field_policy.py`. Only
    *  'leadership' is served cost and margin — for everyone else those fields come back
    *  null and the screen leaves the columns out rather than showing empty ones. */
@@ -192,6 +204,9 @@ export interface AdminProposalInfluencer {
   badge?: ProposalBadgeData | null
   /** Which campaign this row books: a sub-campaign (e.g. an event), or null for the main one. */
   sub_campaign?: { id: string; name?: string | null } | null
+  /** In the campaign (team booked them). On an agreement proposal a confirmed row can be not yet booked. */
+  booked?: boolean
+  awaiting_booking?: boolean
   selected_by_user: boolean
   selected_at?: string
   admin_notes?: string
@@ -265,6 +280,7 @@ export interface BrandProposalView {
   }
   influencers: BrandInfluencer[]
   campaigns?: ProposalCampaigns
+  agreement?: AgreementInfo | null
   summary: {
     total_influencers: number
     selected_count: number
@@ -364,6 +380,9 @@ export interface BrandInfluencer {
   badge?: ProposalBadgeData | null
   /** Which campaign this row books: a sub-campaign (e.g. an event), or null for the main one. */
   sub_campaign?: { id: string; name?: string | null } | null
+  /** In the campaign (team booked them). On an agreement proposal a confirmed row can be not yet booked. */
+  booked?: boolean
+  awaiting_booking?: boolean
   batch_number?: number
   added_at?: string
   selected_by_user: boolean
@@ -904,6 +923,20 @@ export class AdminProposalApiService {
   async bookIntoCampaign(proposalId: string, body: { influencer_ids: string[]; sub_campaign_id: string | null }): Promise<{ message: string; data: { moved: number; offered: number; skipped: number; campaigns: ProposalCampaigns } }> {
     const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}/influencers/campaign`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) })
     if (!response.ok) throw new Error(await errorMessage(response, 'Could not change the campaign'))
+    return await response.json()
+  }
+
+  // POST /api/v1/admin/proposals/{id}/agreement  - put this proposal under a client agreement
+  async startAgreement(proposalId: string, body: { allowance: number; period: "month" | "total"; name?: string }): Promise<{ data: { agreement: AgreementInfo } }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}/agreement`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(body) })
+    if (!response.ok) throw new Error(await errorMessage(response, "Could not start the agreement"))
+    return await response.json()
+  }
+
+  // POST /api/v1/admin/proposals/{id}/agreement/proposals  - a new proposal in the same agreement
+  async addAgreementProposal(proposalId: string, body: { title: string }): Promise<{ data: { id: string } }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}/agreement/proposals`, { method: "POST", headers: getAuthHeaders(), body: JSON.stringify(body) })
+    if (!response.ok) throw new Error(await errorMessage(response, "Could not add the proposal"))
     return await response.json()
   }
 

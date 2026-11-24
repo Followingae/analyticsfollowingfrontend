@@ -66,6 +66,7 @@ import {
   Loader2,
   Star,
   PartyPopper,
+  Layers,
 } from "lucide-react"
 import { ProposalBadge, BADGE_COLORS, type ProposalBadgeColor } from "@/components/proposals/ProposalBadge"
 import { SellingMode } from '@/components/superadmin/proposals/SellingMode'
@@ -137,6 +138,40 @@ export default function ProposalDetailPage() {
   const [subDate, setSubDate] = useState("")
   const [subTarget, setSubTarget] = useState("")
   const [subSaving, setSubSaving] = useState(false)
+  const [agrOpen, setAgrOpen] = useState(false)
+  const [agrAllowance, setAgrAllowance] = useState("")
+  const [agrPeriod, setAgrPeriod] = useState<"month" | "total">("month")
+  const [newPropOpen, setNewPropOpen] = useState(false)
+  const [newPropTitle, setNewPropTitle] = useState("")
+  const [agrSaving, setAgrSaving] = useState(false)
+
+  async function startAgreement() {
+    setAgrSaving(true)
+    try {
+      await adminProposalApi.startAgreement(id, { allowance: Number(agrAllowance), period: agrPeriod })
+      toast.success("Agreement started. This proposal now stays open until its allowance is used")
+      setAgrOpen(false)
+      loadDetail()
+    } catch (err: any) {
+      toast.error(err.message || "Could not start the agreement")
+    } finally {
+      setAgrSaving(false)
+    }
+  }
+
+  async function addAgreementProposal() {
+    setAgrSaving(true)
+    try {
+      const res = await adminProposalApi.addAgreementProposal(id, { title: newPropTitle.trim() })
+      toast.success("New proposal added to the agreement")
+      setNewPropOpen(false)
+      router.push(`/work/proposals/${res.data.id}`)
+    } catch (err: any) {
+      toast.error(err.message || "Could not add the proposal")
+    } finally {
+      setAgrSaving(false)
+    }
+  }
 
   async function createSub() {
     setSubSaving(true)
@@ -341,7 +376,10 @@ export default function ProposalDetailPage() {
   // Confirmed creators are booked - the backend refuses to remove them, so they are not
   // offered. Everyone else on the roster can go.
   const camps = data.campaigns
-  const subs = camps?.subs ?? []
+  // Sub-campaign tabs only while rows are actually booked into one (agreements replaced them).
+  const subs = influencers.some(i => i.sub_campaign) ? (camps?.subs ?? []) : []
+  const agreement = data.agreement ?? null
+  const awaitingBooking = influencers.filter(i => i.awaiting_booking).length
   const rowsShown = campTab === "all" ? influencers
     : campTab === "main" ? influencers.filter(i => !i.sub_campaign)
     : influencers.filter(i => i.sub_campaign?.id === campTab)
@@ -577,7 +615,19 @@ export default function ProposalDetailPage() {
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-            {camps?.main && (
+            {!agreement && (
+              <Button size="sm" variant="outline" onClick={() => setAgrOpen(true)}>
+                <Layers className="mr-1.5 h-4 w-4" />
+                Start an agreement
+              </Button>
+            )}
+            {agreement && (
+              <Button size="sm" variant="outline" onClick={() => setNewPropOpen(true)}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                New proposal in agreement
+              </Button>
+            )}
+            {subs.length > 0 && camps?.main && (
               <Button size="sm" variant="outline" onClick={() => setSubOpen(true)}>
                 <Plus className="mr-1.5 h-4 w-4" />
                 New sub-campaign
@@ -613,6 +663,31 @@ export default function ProposalDetailPage() {
             </div>
           </CardHeader>
           <CardContent>
+            {agreement && (
+              <div className="mb-4 rounded-lg border bg-muted/30 p-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Agreement</div>
+                    <div className="truncate text-sm font-semibold">{agreement.name}</div>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {agreement.period_label ? `${agreement.period_label}: ` : ""}
+                    <b className="text-foreground">{agreement.used} of {agreement.allowance ?? "?"}</b> confirmed
+                    {agreement.left != null && <> · {agreement.left} left</>}
+                    {awaitingBooking > 0 && <> · <b className="text-amber-600">{awaitingBooking} waiting to be booked</b></>}
+                  </div>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {agreement.proposals.map(p => (
+                    <a key={p.id} href={`/work/proposals/${p.id}`}
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition ${p.current ? "border-foreground bg-foreground text-background" : "hover:border-foreground/40"}`}>
+                      <span className="max-w-[220px] truncate">{p.title}</span>
+                      <span className="font-normal opacity-70">{p.confirmed} confirmed · {p.booked} booked</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
             {subs.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-2">
                 {[{ key: "all", label: "Everything", rows: influencers }, { key: "main", label: camps?.main?.name || "Main campaign", rows: influencers.filter(i => !i.sub_campaign) },
@@ -711,6 +786,11 @@ export default function ProposalDetailPage() {
                                   </span>
                                 ) : null}
                                 <ProposalBadge badge={inf.badge} className="mt-1 px-2 py-0.5 text-[10px]" />
+                                {inf.awaiting_booking && (
+                                  <span className="mt-1 w-fit rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                                    Client confirmed · book into campaign
+                                  </span>
+                                )}
                                 {subs.length > 0 && (
                                   <span className="mt-1 w-fit rounded-full border px-2 py-0.5 text-[10px] text-muted-foreground">
                                     {inf.sub_campaign ? (inf.sub_campaign.name || "Sub-campaign") : (camps?.main?.name || "Main campaign")}
@@ -906,6 +986,57 @@ export default function ProposalDetailPage() {
               <Button onClick={saveRecommendation} disabled={recSaving}>
                 {recSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {recFor?.recommended ? "Save" : "Recommend"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={agrOpen} onOpenChange={(o: boolean) => !agrSaving && setAgrOpen(o)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Start an agreement</DialogTitle>
+              <DialogDescription>
+                For a client who buys creators by the month. This proposal becomes the first in the agreement; it stays
+                open after each confirmation until the allowance is used, and new proposals (an event, the next brief)
+                share the same allowance.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label htmlFor="agr-n">Creators</Label>
+                <Input id="agr-n" type="number" min={1} value={agrAllowance} autoFocus onChange={e => setAgrAllowance(e.target.value)} /></div>
+              <div className="space-y-1.5"><Label>Per</Label>
+                <div className="flex gap-2">
+                  {(["month", "total"] as const).map(p => (
+                    <Button key={p} type="button" size="sm" variant={agrPeriod === p ? "default" : "outline"} onClick={() => setAgrPeriod(p)}>
+                      {p === "month" ? "Month" : "Whole agreement"}
+                    </Button>
+                  ))}
+                </div></div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setAgrOpen(false)} disabled={agrSaving}>Cancel</Button>
+              <Button onClick={startAgreement} disabled={agrSaving || !(Number(agrAllowance) > 0)}>
+                {agrSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Start
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={newPropOpen} onOpenChange={(o: boolean) => !agrSaving && setNewPropOpen(o)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>New proposal in this agreement</DialogTitle>
+              <DialogDescription>
+                Same client, deal and product. It starts as a draft with no creators; whatever the client confirms on it
+                counts against the same allowance, and its campaign sits under the agreement&apos;s main campaign.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5"><Label htmlFor="np-title">Title</Label>
+              <Input id="np-title" value={newPropTitle} maxLength={200} autoFocus placeholder="Truth & Dare Night · 29 Nov" onChange={e => setNewPropTitle(e.target.value)} /></div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setNewPropOpen(false)} disabled={agrSaving}>Cancel</Button>
+              <Button onClick={addAgreementProposal} disabled={agrSaving || !newPropTitle.trim()}>
+                {agrSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create
               </Button>
             </DialogFooter>
           </DialogContent>

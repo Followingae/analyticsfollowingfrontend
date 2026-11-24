@@ -296,7 +296,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
      it). The same creator can be offered for both, so each card belongs to exactly one of
      them, and the client reads the two as separate bookings. Slots stay shared. */
   const campaignsInfo = data.campaigns
-  const hasSubs = !!campaignsInfo?.subs?.length
+  const hasSubs = !!campaignsInfo?.subs?.length && creators.some(c => c.sub_campaign)
   const [scope, setScope] = useState<string>("all")
   const inScope = (c: BrandInfluencer) =>
     scope === "all" ? true : scope === "main" ? !c.sub_campaign : c.sub_campaign?.id === scope
@@ -660,6 +660,35 @@ export function PlanBuilder({ proposalId, data, onReload }: {
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_356px]">
         {/* the wall */}
         <div>
+          {data.agreement && (
+            <div className="mb-4 rounded-2xl border bg-card p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Your agreement</div>
+                  <div className="truncate text-[15px] font-bold">{data.agreement.name}</div>
+                </div>
+                {data.agreement.allowance != null && (
+                  <div className="text-[13px] text-muted-foreground">
+                    {data.agreement.period_label ? `${data.agreement.period_label}: ` : ""}
+                    <b className="text-foreground">{data.agreement.used} of {data.agreement.allowance}</b> creators confirmed
+                    {data.agreement.left != null && <> · {data.agreement.left} left</>}
+                  </div>
+                )}
+              </div>
+              {data.agreement.proposals.length > 1 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {data.agreement.proposals.map(p => (
+                    <a key={p.id} href={`/proposals/${p.id}`}
+                      className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-semibold transition",
+                        p.current ? "border-foreground bg-foreground text-background" : "hover:border-foreground/40")}>
+                      <span className="max-w-[240px] truncate">{p.title}</span>
+                      <span className={cn("text-[12px] font-medium", p.current ? "text-background/70" : "text-muted-foreground")}>{p.confirmed} confirmed</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {hasSubs && (
             <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Campaigns in this agreement">
               {scopeTabs.map(t => (
