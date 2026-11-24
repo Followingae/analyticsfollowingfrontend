@@ -194,6 +194,8 @@ interface BackendCampaignDetails {
   master_campaign_id?: string | null;
   master_name?: string | null;
   sub_count?: number;
+  /** Sub-campaigns inside this one (an event inside the client's agreement). */
+  sub_campaigns?: { id: string; name: string; start_date?: string | null; creators?: number }[];
   brand_excluded?: boolean;
 }
 
@@ -623,6 +625,7 @@ export default function CampaignDetailsPage() {
         master_campaign_id: processedCampaignData.master_campaign_id ?? null,
         master_name: processedCampaignData.master_name ?? null,
         sub_count: processedCampaignData.sub_count ?? 0,
+        sub_campaigns: processedCampaignData.sub_campaigns ?? [],
         brand_excluded: processedCampaignData.brand_excluded ?? false,
       };
 
@@ -1976,6 +1979,23 @@ export default function CampaignDetailsPage() {
                   </Button>
                 )}
               </div>
+              {/* Where this campaign sits in the agreement: the main campaign lists the
+                  sub-campaigns inside it (an event night), a sub links back to its main. */}
+              {(campaign.master_campaign_id || (campaign.sub_campaigns?.length ?? 0) > 0) && (
+                <div className="flex flex-wrap items-center gap-2 text-ds-body-sm">
+                  {campaign.master_campaign_id && (
+                    <a href={`/campaigns/${campaign.master_campaign_id}/posts`} className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] text-muted-foreground transition hover:border-foreground/40 hover:text-foreground">
+                      Part of <span className="font-semibold text-foreground">{campaign.master_name || "the main campaign"}</span>
+                    </a>
+                  )}
+                  {(campaign.sub_campaigns ?? []).map(sc => (
+                    <a key={sc.id} href={`/campaigns/${sc.id}/posts`} className="inline-flex items-center gap-1.5 rounded-full border border-pink-200 bg-pink-50 px-2.5 py-1 text-[12px] font-semibold text-pink-700 transition hover:border-pink-400 dark:border-pink-900 dark:bg-pink-950/40 dark:text-pink-300">
+                      {sc.name}
+                      <span className="font-normal opacity-70">{sc.creators ?? 0} creator{(sc.creators ?? 0) === 1 ? "" : "s"}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
               {/* One line of facts, separated by space rather than by a badge each. */}
               <div className="flex flex-wrap items-center gap-x-ds-3 gap-y-1 text-ds-body-sm text-muted-foreground">
                 <span>{campaign.brand_name}</span>

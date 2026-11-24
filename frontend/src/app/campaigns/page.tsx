@@ -707,6 +707,12 @@ function AllCampaignsTab({
                           <Layers className="h-3 w-3 shrink-0" /> Part of: <span className="truncate font-medium text-foreground">{c.master_name}</span>
                         </div>
                       )}
+                      {!c.is_master && (c.sub_count || 0) > 0 && (
+                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <Layers className="h-3 w-3 shrink-0 text-pink-500" />
+                          Includes {c.sub_count} sub-campaign{c.sub_count === 1 ? "" : "s"}
+                        </div>
+                      )}
                       {c.is_master ? (
                         <div className="flex items-center gap-1.5 rounded-md bg-primary/5 px-2.5 py-2 text-[11px] text-muted-foreground">
                           <Layers className="h-3.5 w-3.5 shrink-0 text-primary" />

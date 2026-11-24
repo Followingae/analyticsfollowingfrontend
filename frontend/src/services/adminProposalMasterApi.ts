@@ -97,6 +97,9 @@ async function errorMessage(response: Response, fallback: string): Promise<strin
   }
 }
 
+export interface ProposalSubCampaign { id: string; name: string; date?: string | null; target?: number | null; rows?: number; confirmed?: number }
+export interface ProposalCampaigns { main: { id: string; name: string } | null; subs: ProposalSubCampaign[] }
+
 export interface AdminProposalDetail {
   proposal: {
     id: string
@@ -151,6 +154,7 @@ export interface AdminProposalDetail {
     barter_allowance?: { slots: number | null; product: string | null; value_aed: number | null } | null
   }
   influencers: AdminProposalInfluencer[]
+  campaigns?: ProposalCampaigns
   /** The caller's money scope, from the backend's `app/core/field_policy.py`. Only
    *  'leadership' is served cost and margin — for everyone else those fields come back
    *  null and the screen leaves the columns out rather than showing empty ones. */
@@ -186,6 +190,8 @@ export interface AdminProposalInfluencer {
   recommended_note?: string | null
   /** A label on the card, e.g. "Truth and Dare Event". */
   badge?: ProposalBadgeData | null
+  /** Which campaign this row books: a sub-campaign (e.g. an event), or null for the main one. */
+  sub_campaign?: { id: string; name?: string | null } | null
   selected_by_user: boolean
   selected_at?: string
   admin_notes?: string
@@ -258,6 +264,7 @@ export interface BrandProposalView {
     reopened_at?: string | null
   }
   influencers: BrandInfluencer[]
+  campaigns?: ProposalCampaigns
   summary: {
     total_influencers: number
     selected_count: number
@@ -355,6 +362,8 @@ export interface BrandInfluencer {
   recommended_note?: string | null
   /** A label on the card, e.g. "Truth and Dare Event". */
   badge?: ProposalBadgeData | null
+  /** Which campaign this row books: a sub-campaign (e.g. an event), or null for the main one. */
+  sub_campaign?: { id: string; name?: string | null } | null
   batch_number?: number
   added_at?: string
   selected_by_user: boolean
@@ -884,6 +893,20 @@ export class AdminProposalApiService {
   }
 
   // ---------------------------------------------------------------------------
+  // POST /api/v1/admin/proposals/{id}/sub-campaigns  - an event inside the proposal's campaign
+  async createSubCampaign(proposalId: string, body: { name: string; date?: string; target?: number }): Promise<{ data: { id: string; campaigns: ProposalCampaigns } }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}/sub-campaigns`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) })
+    if (!response.ok) throw new Error(await errorMessage(response, 'Could not create the sub-campaign'))
+    return await response.json()
+  }
+
+  // PUT /api/v1/admin/proposals/{id}/influencers/campaign  - book ticked rows into a sub (or null = main)
+  async bookIntoCampaign(proposalId: string, body: { influencer_ids: string[]; sub_campaign_id: string | null }): Promise<{ message: string; data: { moved: number; offered: number; skipped: number; campaigns: ProposalCampaigns } }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${proposalId}/influencers/campaign`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(body) })
+    if (!response.ok) throw new Error(await errorMessage(response, 'Could not change the campaign'))
+    return await response.json()
+  }
+
   // PUT /api/v1/admin/proposals/{id}/influencers/badge
   // One label for the rows given (e.g. "Truth and Dare Event"); an empty label clears it.
   // ---------------------------------------------------------------------------

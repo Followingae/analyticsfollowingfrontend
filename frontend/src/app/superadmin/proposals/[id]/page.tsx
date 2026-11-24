@@ -32,6 +32,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
@@ -127,6 +129,39 @@ export default function ProposalDetailPage() {
   const [badgeLabel, setBadgeLabel] = useState("")
   const [badgeColor, setBadgeColor] = useState<ProposalBadgeColor>("pink")
   const [badgeSaving, setBadgeSaving] = useState(false)
+  /* Sub-campaigns: an event inside the client's agreement. Which campaign the roster shows,
+     and the dialog that creates one. */
+  const [campTab, setCampTab] = useState<string>("all")
+  const [subOpen, setSubOpen] = useState(false)
+  const [subName, setSubName] = useState("")
+  const [subDate, setSubDate] = useState("")
+  const [subTarget, setSubTarget] = useState("")
+  const [subSaving, setSubSaving] = useState(false)
+
+  async function createSub() {
+    setSubSaving(true)
+    try {
+      await adminProposalApi.createSubCampaign(id, { name: subName.trim(), date: subDate || undefined, target: subTarget ? Number(subTarget) : undefined })
+      toast.success(`"${subName.trim()}" created inside this campaign`)
+      setSubOpen(false); setSubName(""); setSubDate(""); setSubTarget("")
+      loadDetail()
+    } catch (err: any) {
+      toast.error(err.message || "Could not create the sub-campaign")
+    } finally {
+      setSubSaving(false)
+    }
+  }
+
+  async function bookFor(ids: string[], subId: string | null) {
+    try {
+      const res = await adminProposalApi.bookIntoCampaign(id, { influencer_ids: ids, sub_campaign_id: subId })
+      toast.success(res.message)
+      setPicked(new Set())
+      loadDetail()
+    } catch (err: any) {
+      toast.error(err.message || "Could not change the campaign")
+    }
+  }
 
   function openBadge(ids: string[], current?: AdminProposalInfluencer["badge"]) {
     setBadgeFor(ids)
@@ -305,6 +340,11 @@ export default function ProposalDetailPage() {
 
   // Confirmed creators are booked - the backend refuses to remove them, so they are not
   // offered. Everyone else on the roster can go.
+  const camps = data.campaigns
+  const subs = camps?.subs ?? []
+  const rowsShown = campTab === "all" ? influencers
+    : campTab === "main" ? influencers.filter(i => !i.sub_campaign)
+    : influencers.filter(i => i.sub_campaign?.id === campTab)
   const removable = influencers.filter(i => !i.locked)
   const allPicked = removable.length > 0 && removable.every(i => picked.has(i.id))
   const pickedList = influencers.filter(i => picked.has(i.id))
@@ -536,6 +576,26 @@ export default function ProposalDetailPage() {
                 )}
               </CardDescription>
             </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+            {camps?.main && (
+              <Button size="sm" variant="outline" onClick={() => setSubOpen(true)}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                New sub-campaign
+              </Button>
+            )}
+            {picked.size > 0 && subs.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline">Book {picked.size} for…</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Confirmed creators stay booked and are offered again</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => bookFor([...picked], null)}>{camps?.main?.name || "Main campaign"}</DropdownMenuItem>
+                  {subs.map(sc => (<DropdownMenuItem key={sc.id} onClick={() => bookFor([...picked], sc.id)}>{sc.name}</DropdownMenuItem>))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             {/* Only once something is ticked, so the destructive action is never the
                 resting state of the header. */}
             {picked.size > 0 && (
@@ -550,8 +610,21 @@ export default function ProposalDetailPage() {
                 </Button>
               </div>
             )}
+            </div>
           </CardHeader>
           <CardContent>
+            {subs.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {[{ key: "all", label: "Everything", rows: influencers }, { key: "main", label: camps?.main?.name || "Main campaign", rows: influencers.filter(i => !i.sub_campaign) },
+                  ...subs.map(sc => ({ key: sc.id, label: sc.name, rows: influencers.filter(i => i.sub_campaign?.id === sc.id) }))].map(t => (
+                  <button key={t.key} type="button" onClick={() => setCampTab(t.key)}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition ${campTab === t.key ? "border-foreground bg-foreground text-background" : "hover:border-foreground/40"}`}>
+                    <span className="max-w-[200px] truncate">{t.label}</span>
+                    <span className="font-normal opacity-70">{t.rows.filter(r => r.locked).length} confirmed · {t.rows.length}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -591,7 +664,7 @@ export default function ProposalDetailPage() {
                     colSpan={9 + (showCost ? 2 : 0) - (showSell ? 0 : 1)}
                     nothing="No influencers added yet"
                   >
-                    {influencers.map((inf) => {
+                    {rowsShown.map((inf) => {
                       const sell = showSell ? getSellPrice(inf) : 0
                       const cost = showCost ? getCostPrice(inf) : 0
                       /* No sell price means there is no margin to state, not a margin of
@@ -638,6 +711,11 @@ export default function ProposalDetailPage() {
                                   </span>
                                 ) : null}
                                 <ProposalBadge badge={inf.badge} className="mt-1 px-2 py-0.5 text-[10px]" />
+                                {subs.length > 0 && (
+                                  <span className="mt-1 w-fit rounded-full border px-2 py-0.5 text-[10px] text-muted-foreground">
+                                    {inf.sub_campaign ? (inf.sub_campaign.name || "Sub-campaign") : (camps?.main?.name || "Main campaign")}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </TableCell>
@@ -722,6 +800,13 @@ export default function ProposalDetailPage() {
                                     Recommend to client
                                   </DropdownMenuItem>
                                 )}
+                                {[...(inf.sub_campaign ? [{ id: null as string | null, name: camps?.main?.name || "Main campaign" }] : []),
+                                  ...subs.filter(sc => sc.id !== inf.sub_campaign?.id).map(sc => ({ id: sc.id as string | null, name: sc.name }))].map(t => (
+                                  <DropdownMenuItem key={t.id ?? "main"} onClick={() => bookFor([inf.id], t.id)}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    {inf.locked || inf.selected_by_user ? `Also offer for ${t.name}` : `Move to ${t.name}`}
+                                  </DropdownMenuItem>
+                                ))}
                                 <DropdownMenuItem onClick={() => openBadge([inf.id], inf.badge)}>
                                   <PartyPopper className="mr-2 h-4 w-4 text-pink-500" />
                                   {inf.badge ? "Edit the badge" : "Add a badge"}
@@ -821,6 +906,32 @@ export default function ProposalDetailPage() {
               <Button onClick={saveRecommendation} disabled={recSaving}>
                 {recSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {recFor?.recommended ? "Save" : "Recommend"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={subOpen} onOpenChange={(o: boolean) => !subSaving && setSubOpen(o)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>New sub-campaign</DialogTitle>
+              <DialogDescription>
+                Inside {camps?.main?.name || "this campaign"}, e.g. an event night. It shares the agreement&apos;s slots, and
+                the client sees it as its own tab on the proposal and on their campaigns page.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1.5"><Label htmlFor="sub-name">Name</Label>
+                <Input id="sub-name" value={subName} maxLength={120} autoFocus placeholder="Truth & Dare Night · 29 Nov" onChange={e => setSubName(e.target.value)} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5"><Label htmlFor="sub-date">Date</Label><Input id="sub-date" type="date" value={subDate} onChange={e => setSubDate(e.target.value)} /></div>
+                <div className="space-y-1.5"><Label htmlFor="sub-target">Creators</Label><Input id="sub-target" type="number" min={1} value={subTarget} onChange={e => setSubTarget(e.target.value)} /></div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setSubOpen(false)} disabled={subSaving}>Cancel</Button>
+              <Button onClick={createSub} disabled={subSaving || !subName.trim()}>
+                {subSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create
               </Button>
             </DialogFooter>
           </DialogContent>

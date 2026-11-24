@@ -292,13 +292,32 @@ export function PlanBuilder({ proposalId, data, onReload }: {
      the optimiser, so a client searching for one creator cannot accidentally change what
      they have chosen. Handle and display name both match, because they have one or the
      other and rarely both. */
+  /* Which campaign the wall shows, when the agreement has sub-campaigns (an event inside
+     it). The same creator can be offered for both, so each card belongs to exactly one of
+     them, and the client reads the two as separate bookings. Slots stay shared. */
+  const campaignsInfo = data.campaigns
+  const hasSubs = !!campaignsInfo?.subs?.length
+  const [scope, setScope] = useState<string>("all")
+  const inScope = (c: BrandInfluencer) =>
+    scope === "all" ? true : scope === "main" ? !c.sub_campaign : c.sub_campaign?.id === scope
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return sorted
-    return sorted.filter(c =>
+    const base = hasSubs ? sorted.filter(inScope) : sorted
+    if (!q) return base
+    return base.filter(c =>
       (c.username ?? "").toLowerCase().includes(q)
       || (c.full_name ?? "").toLowerCase().includes(q))
-  }, [sorted, query])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorted, query, scope, hasSubs])
+  const scopeTabs = hasSubs ? [
+    { key: "all", label: "Everything", n: creators.length, done: creators.filter(c => c.locked).length, target: null as number | null },
+    { key: "main", label: campaignsInfo!.main?.name || "Main campaign",
+      n: creators.filter(c => !c.sub_campaign).length,
+      done: creators.filter(c => !c.sub_campaign && c.locked).length, target: null as number | null },
+    ...campaignsInfo!.subs.map(s => ({
+      key: s.id, label: s.name, n: creators.filter(c => c.sub_campaign?.id === s.id).length,
+      done: creators.filter(c => c.sub_campaign?.id === s.id && c.locked).length, target: s.target ?? null })),
+  ] : []
 
   /* ---------- actions ---------- */
   const save = useCallback(async (ids: Set<string>, mods?: Set<string>) => {
@@ -641,9 +660,31 @@ export function PlanBuilder({ proposalId, data, onReload }: {
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_356px]">
         {/* the wall */}
         <div>
+          {hasSubs && (
+            <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Campaigns in this agreement">
+              {scopeTabs.map(t => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={scope === t.key}
+                  onClick={() => setScope(t.key)}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[13px] font-semibold transition",
+                    scope === t.key ? "border-foreground bg-foreground text-background" : "border-border bg-card hover:border-foreground/40",
+                  )}
+                >
+                  <span className="max-w-[220px] truncate">{t.label}</span>
+                  <span className={cn("text-[12px] font-medium", scope === t.key ? "text-background/70" : "text-muted-foreground")}>
+                    {t.done} confirmed{t.target ? ` of ${t.target}` : ""}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           <div className="mb-4 flex items-center gap-3">
             <h2 className="text-[17px] font-bold tracking-[-0.022em]">
-              {query.trim() ? `${shown.length} of ${creators.length} creators` : `${creators.length} creators`}
+              {query.trim() || (hasSubs && scope !== "all") ? `${shown.length} of ${creators.length} creators` : `${creators.length} creators`}
             </h2>
             <div className="relative ml-auto w-[220px]">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
