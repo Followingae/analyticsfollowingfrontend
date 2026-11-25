@@ -24,7 +24,7 @@ import { useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import {
   Banknote, BadgeCheck, CircleDollarSign, Wallet, Plus, Loader2, Check, Download,
-  ChevronRight, CheckCircle2, X, Mail, Phone, MapPin, Landmark, FileText, ExternalLink,
+  ChevronRight, CheckCircle2, X, Mail, Phone, MapPin, Landmark, FileText, ExternalLink, Copy,
 } from 'lucide-react'
 import { PayoutRunsPanel } from '@/components/money/PayoutRuns'
 import { Aed, Stat, StatGrid } from '@/components/console/primitives'
@@ -767,8 +767,18 @@ function CreatorCard({ card, onRetry }: { card: any; onRetry: () => void }) {
           <div className="mt-2 space-y-1 text-sm">
             <p className="flex items-center gap-2 font-semibold">
               <Landmark className="h-3.5 w-3.5 text-muted-foreground" />{bank.holder || 'No account holder name'}
+              {bank.iban && bank.holder && <CopyButton value={bank.holder} what="Account holder" />}
             </p>
-            <p className="font-mono tabular-nums tracking-wide">IBAN •••• {bank.last4 || '----'}</p>
+            {bank.iban ? (
+              <div className="flex items-center gap-2">
+                <p className="font-mono text-[13px] tabular-nums tracking-wide">
+                  {String(bank.iban).replace(/\s+/g, '').replace(/(.{4})/g, '$1 ').trim()}
+                </p>
+                <CopyButton value={String(bank.iban).replace(/\s+/g, '')} what="IBAN" />
+              </div>
+            ) : (
+              <p className="font-mono tabular-nums tracking-wide">IBAN •••• {bank.last4 || '----'}</p>
+            )}
             <p className="text-xs text-muted-foreground">
               {[bank.bank_name, bank.country, bank.swift ? `SWIFT ${bank.swift}` : null].filter(Boolean).join(' · ') || 'Bank not named'}
             </p>
@@ -820,5 +830,20 @@ function CreatorCard({ card, onRetry }: { card: any; onRetry: () => void }) {
         </div>
       </div>
     </div>
+  )
+}
+
+function CopyButton({ value, what }: { value: string; what: string }) {
+  return (
+    <button type="button" title={`Copy ${what.toLowerCase()}`} aria-label={`Copy ${what.toLowerCase()}`}
+            className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+            onClick={() => {
+              navigator.clipboard.writeText(value).then(
+                () => toast.success(`${what} copied`),
+                () => toast.error('Could not copy'),
+              )
+            }}>
+      <Copy className="h-3.5 w-3.5" />
+    </button>
   )
 }
