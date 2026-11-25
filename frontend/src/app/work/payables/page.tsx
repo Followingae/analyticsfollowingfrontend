@@ -24,8 +24,9 @@ import { useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import {
   Banknote, BadgeCheck, CircleDollarSign, Wallet, Plus, Loader2, Check, Download,
-  ChevronRight, CheckCircle2, X,
+  ChevronRight, CheckCircle2, X, Mail, Phone, MapPin, Landmark, FileText, ExternalLink,
 } from 'lucide-react'
+import { PayoutRunsPanel } from '@/components/money/PayoutRuns'
 import { Aed, Stat, StatGrid } from '@/components/console/primitives'
 import { Owner } from '@/components/console/surfaces'
 import { useConfirm } from '@/components/console/confirm'
@@ -161,7 +162,7 @@ export default function PayablesPage() {
 function Payables() {
   const router = useRouter()
   const confirm = useConfirm()
-  const { isSuperAdmin, isFullAccessStaff, canSeeCost } = useAdminAccess()
+  const { isSuperAdmin, isFullAccessStaff, canSeeCost, canSeeMargin } = useAdminAccess()
   const canPay = isSuperAdmin || isFullAccessStaff
 
   const [items, setItems] = useState<any[]>([])
@@ -173,6 +174,18 @@ function Payables() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   /* Creators ticked for a bulk approve or pay. Founders only. */
   const [picked, setPicked] = useState<Set<string>>(new Set())
+  /* Each creator's card (contact, enrolment, bank, payout lines), read the first time the
+     row is opened and kept for the visit. */
+  const [cards, setCards] = useState<Record<string, any>>({})
+  const loadCard = async (handle: string) => {
+    setCards(c => ({ ...c, [handle]: 'loading' }))
+    try {
+      const res = await api(`/creator/${encodeURIComponent(handle)}`)
+      setCards(c => ({ ...c, [handle]: res.data }))
+    } catch {
+      setCards(c => ({ ...c, [handle]: 'error' }))
+    }
+  }
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
     title: '', creator_username: '', what_for: '', agreed_amount_aed: '', due_date: '', notes: '',
@@ -309,11 +322,22 @@ function Payables() {
       i.paid_at ? new Date(i.paid_at).toLocaleDateString('en-GB') : '',
     ]))
 
-  const toggle = (k: string) => setExpanded(p => {
-    const n = new Set(p)
-    if (n.has(k)) n.delete(k); else n.add(k)
-    return n
-  })
+  const toggle = (k: string) => {
+    const c = creators.find(x => x.key === k)
+    if (c?.handle && !expanded.has(k) && cards[c.handle] === undefined) loadCard(c.handle)
+    setExpanded(p => {
+      const n = new Set(p)
+      if (n.has(k)) n.delete(k); else n.add(k)
+      return n
+    })
+  }
+
+  /* /work/payouts forwards to #runs: land on the runs once the page has drawn them. */
+  useEffect(() => {
+    if (loading || typeof window === 'undefined' || window.location.hash !== '#runs') return
+    document.getElementById('runs')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [loading])
+  const showRuns = canPay && canSeeMargin
 
   const openCount = creators.filter(c => c.left > 0).length
 
@@ -325,8 +349,9 @@ function Payables() {
           sub="What we agreed with each creator, what has gone out, and what is left."
           action={
             <>
-              {canPay && (
-                <Button variant="outline" onClick={() => router.push('/work/payouts')}>
+              {showRuns && (
+                <Button variant="outline"
+                        onClick={() => document.getElementById('runs')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
                   <Banknote className="mr-1.5 h-4 w-4" />Payout runs
                 </Button>
               )}
@@ -528,6 +553,8 @@ function Payables() {
 
                       {isOpen && (
                         <div className={cn('border-b bg-muted/20 px-5 py-3 last:border-b-0', canPay ? 'md:pl-[5.75rem]' : 'md:pl-[4.5rem]')}>
+                          {c.handle && <CreatorCard card={cards[c.handle]} onRetry={() => loadCard(c.handle!)} />}
+                          <p className="mb-1 mt-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">Payments</p>
                           {c.rows.map(r => (
                             <div key={r.id} className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-dashed py-2.5 text-sm last:border-b-0">
                               <div className="min-w-0 flex-1">
@@ -581,6 +608,12 @@ function Payables() {
                   )
                 })}
               </div>
+            )}
+
+            {showRuns && (
+              <section id="runs" className="scroll-mt-6 border-t pt-ds-5">
+                <PayoutRunsPanel onChanged={load} />
+              </section>
             )}
           </>
         )}
@@ -653,6 +686,139 @@ function Money({ label, value, strong, className }: {
       <span className={cn('tabular-nums', strong ? 'text-base font-semibold' : 'text-sm', className)}>
         <Aed>{aedNum(value)}</Aed>
       </span>
+    </div>
+  )
+}
+
+const ENROL_WORD: Record<string, string> = {
+  pending_approval: 'Waiting for approval', live: 'Sent, not signed yet', completed: 'Signed',
+  rejected: 'Rejected', retracted: 'Withdrawn', expired: 'Expired',
+}
+const BANK_TONE: Record<string, string> = {
+  confirmed: 'border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]',
+  pending: 'border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]',
+  rejected: 'border-transparent bg-[var(--tone-bad-wash)] text-[var(--tone-bad-ink)]',
+}
+const RUN_WORD: Record<string, string> = {
+  draft: 'Run being built', file_generated: 'Bank file made', executed: 'Paid out', cancelled: 'Run cancelled',
+}
+
+/**
+ * One creator: who they are, how to reach them, their paperwork, and where we pay them.
+ * The bank block never carries a full account number, only the last four digits; the bank
+ * file stays the one place the whole IBAN appears.
+ */
+function CreatorCard({ card, onRetry }: { card: any; onRetry: () => void }) {
+  if (card === undefined || card === 'loading') {
+    return (
+      <p className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />Reading their details
+      </p>
+    )
+  }
+  if (card === 'error') {
+    return (
+      <p className="py-3 text-sm text-muted-foreground">
+        Could not read this creator&apos;s details.{' '}
+        <button type="button" className="underline underline-offset-2 hover:text-foreground" onClick={onRetry}>Try again</button>
+      </p>
+    )
+  }
+  const bank = card.bank
+  const where = [card.city, card.country].filter(Boolean).join(', ')
+  return (
+    <div className="grid gap-4 pt-2 md:grid-cols-3">
+      <div className="rounded-ds-xl border bg-card p-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Creator</p>
+        <p className="mt-2 text-sm font-semibold">{card.name || `@${card.handle}`}</p>
+        <p className="text-xs text-muted-foreground">
+          @{card.handle}{card.followers != null ? ` · ${Number(card.followers).toLocaleString('en')} followers` : ''}
+        </p>
+        <div className="mt-3 space-y-1.5 text-sm">
+          {card.email && (
+            <a href={`mailto:${card.email}`} className="flex items-center gap-2 hover:underline">
+              <Mail className="h-3.5 w-3.5 text-muted-foreground" />{card.email}
+            </a>
+          )}
+          {card.phone && (
+            <a href={`tel:${card.phone}`} className="flex items-center gap-2 hover:underline">
+              <Phone className="h-3.5 w-3.5 text-muted-foreground" />{card.phone}
+            </a>
+          )}
+          {where && (
+            <p className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-muted-foreground" />{where}</p>
+          )}
+          {!card.email && !card.phone && !where && (
+            <p className="text-xs text-muted-foreground">No contact details on file yet.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-ds-xl border bg-card p-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Bank details</p>
+          {bank && (
+            <Badge variant="outline" className={cn('capitalize', BANK_TONE[bank.status] || BANK_TONE.pending)}>
+              {bank.status === 'confirmed' ? 'Confirmed' : bank.status === 'rejected' ? 'Sent back' : 'Not confirmed'}
+            </Badge>
+          )}
+        </div>
+        {bank ? (
+          <div className="mt-2 space-y-1 text-sm">
+            <p className="flex items-center gap-2 font-semibold">
+              <Landmark className="h-3.5 w-3.5 text-muted-foreground" />{bank.holder || 'No account holder name'}
+            </p>
+            <p className="font-mono tabular-nums tracking-wide">IBAN •••• {bank.last4 || '----'}</p>
+            <p className="text-xs text-muted-foreground">
+              {[bank.bank_name, bank.country, bank.swift ? `SWIFT ${bank.swift}` : null].filter(Boolean).join(' · ') || 'Bank not named'}
+            </p>
+            <p className="text-xs text-muted-foreground">From their {String(bank.source).toLowerCase()}</p>
+            {bank.rejected_reason && (
+              <p className="text-xs text-[var(--tone-bad-ink)]">{bank.rejected_reason}</p>
+            )}
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-[var(--tone-warn-ink)]">
+            No bank details yet. They give them in their enrolment link.
+          </p>
+        )}
+      </div>
+
+      <div className="rounded-ds-xl border bg-card p-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agreement and payouts</p>
+        <div className="mt-2 space-y-2 text-sm">
+          {(card.enrolments || []).length === 0 && (
+            <p className="text-xs text-muted-foreground">No enrolment link raised for them.</p>
+          )}
+          {(card.enrolments || []).map((e: any) => (
+            <div key={e.link_id} className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate font-medium">{e.campaign || 'Enrolment'}</p>
+                <p className="text-xs text-muted-foreground">
+                  {ENROL_WORD[e.status] || e.status}
+                  {e.signed_at ? ` · signed ${day(e.signed_at)}` : ''}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {e.agreement_url && (
+                  <a href={e.agreement_url} target="_blank" rel="noreferrer" title="The signed agreement"
+                     className="text-muted-foreground hover:text-foreground"><FileText className="h-4 w-4" /></a>
+                )}
+                <a href={`/work/enrolments/${e.link_id}`} title="Open the enrolment"
+                   className="text-muted-foreground hover:text-foreground"><ExternalLink className="h-4 w-4" /></a>
+              </div>
+            </div>
+          ))}
+          {(card.payout_lines || []).map((l: any, i: number) => (
+            <p key={`${l.run_id}-${i}`} className="text-xs text-muted-foreground">
+              {RUN_WORD[l.run_status] || l.run_status} · {l.reference} · <Aed>{aedNum(l.amount_aed)}</Aed>
+              {l.line_status === 'blocked' && l.block_reason && (
+                <span className="text-[var(--tone-bad-ink)]"> · blocked: {l.block_reason}</span>
+              )}
+            </p>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
