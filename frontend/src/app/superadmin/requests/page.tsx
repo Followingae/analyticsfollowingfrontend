@@ -109,9 +109,13 @@ function Requests() {
       <PageHead
         title="Requests"
         sub="What clients and colleagues have asked for, and who owes it."
-        action={<Button onClick={() => setAdding(true)}>
-          <Plus className="mr-1.5 h-3.5 w-3.5" /> Raise one
-        </Button>}
+        action={<div className="flex gap-2">
+          {/* Brand briefs come back here as client requests; the links are made and worked there. */}
+          <Button variant="outline" asChild><a href="/work/briefs">Brand briefs</a></Button>
+          <Button onClick={() => setAdding(true)}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" /> Raise one
+          </Button>
+        </div>}
       />
 
       <div className="flex flex-wrap items-center gap-2">
