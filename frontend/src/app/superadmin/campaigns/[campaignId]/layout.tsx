@@ -27,7 +27,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
 import { Hub, type HubTab } from '@/components/console/Hub'
@@ -48,6 +48,10 @@ type Header = {
   }
   can_see_money: boolean
   counts: { roster: number; posts_live: number; posts_waiting: number }
+  /** An app campaign (creator-app barter / paid deal / cashback, or merchant-built) has its
+   *  own page. This shell reads proposals, rosters and invoices, which it does not have. */
+  app_campaign?: boolean
+  app_url?: string | null
 }
 
 /** The campaign's state, in the words somebody would actually use for it. */
@@ -61,24 +65,35 @@ const STATUS: Record<string, string> = {
 
 export default function CampaignLayout({ children }: { children: React.ReactNode }) {
   const campaignId = useParams().campaignId as string
+  const router = useRouter()
   const [head, setHead] = useState<Header | null>(null)
   const [failed, setFailed] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
+    let leaving = false
     try {
       const res = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/admin/campaigns/${campaignId}/header`)
       const json = await res.json()
       if (!res.ok) throw new Error(json?.detail || 'Could not read the campaign')
+      /* Every list links campaigns to /work/campaigns/{id}/timeline. An app campaign opened
+         there showed an empty story (no proposal, no roster, no invoices) while 18 creators
+         were waiting on it, so it is sent to its own page from here, whichever link led in. */
+      if (json.data?.app_campaign && json.data?.app_url) {
+        leaving = true
+        router.replace(json.data.app_url)
+        return
+      }
       setHead(json.data)
       setFailed(false)
     } catch {
       setFailed(true)
     } finally {
-      setLoading(false)
+      // Stay on "Opening the campaign" while leaving, so the empty story never flashes.
+      if (!leaving) setLoading(false)
     }
-  }, [campaignId])
+  }, [campaignId, router])
 
   useEffect(() => { if (campaignId) void load() }, [campaignId, load])
 
