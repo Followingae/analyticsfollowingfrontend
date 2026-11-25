@@ -1,66 +1,41 @@
 'use client'
 
 /**
- * Creator payables: the book, not a ledger.
+ * Creator payments, one row per creator.
  *
- * Anyone internal can record a payment; only the founders approve one and only the founders
- * mark one paid. The amount agreed is frequently below the cost price we hold on a creator,
- * because rates get negotiated campaign by campaign, so when the two differ the screen says
- * so rather than hiding it.
+ * WHAT THIS REPLACED (25 Nov 2026). The screen was a flat book of payment rows under three
+ * stat cards, a strip of four filter chips saying the same four words again, a density toggle
+ * and a tick-box column. The founder's verdict: too much going on, and the one question he
+ * opens it with, "what have we paid this creator and what is left", had no answer anywhere
+ * on it, because a creator with two instalments was two unrelated rows.
  *
- * Three things this screen got wrong for a long time.
+ * Now the creator is the row: what we agreed, what has gone out, what is left, a bar, and the
+ * one next step (approve what is owed, then mark it paid). The payments themselves, with
+ * their instalments, dates and single-row actions, open underneath the creator.
  *
- * A failed read drew an empty book. The three totals were taught to print a dash when they
- * did not arrive, and the table underneath them was not: it kept rendering "Nothing recorded
- * here yet" off an `items` array that a 403 or a 500 had left empty. So the top of the screen
- * said "we do not know" while the bottom said "we owe nobody anything", on the one page whose
- * whole job is saying what we owe creators. Failure is held apart from absence now.
- *
- * The due date was collected in the dialog, written to the CSV, and never once shown on
- * screen. A book you cannot sort by "who is overdue" is a ledger, not a worklist.
- *
- * And the rows were a hand-rolled table with their own borders, their own row height and their
- * own idea of what a missing figure looks like. They are now the console's shared surfaces:
- * the shadcn table inside `TableShell`, `FilterBar` chips named after who is blocking, `Age`
- * for the two clocks, `Dash` for the three kinds of nothing, and `BulkBar` for the thing a
- * founder actually comes here to do, which is clear several payments at once.
- *
- * The confirmation host is `src/app/work/layout.tsx`, which is above this page by
- * construction, so `useConfirm()` resolves here whatever shape this file takes. It did not
- * used to be: the shells mounted the provider around their own children, so a page that
- * called the hook and then rendered the shell sat above its own provider, the hook failed
- * closed, and a money dialog never opened. The split below is no longer load bearing. It is
- * kept because the wrapper is the right place for the layout and the density, and the screen
- * itself stays one component.
+ * The rules did not move. Recording is open to anyone internal; approving and paying are a
+ * founder's, and the server refuses both to anybody else, so for anybody else no button is
+ * drawn. Money leaving the account goes through the money dialog, which names every creator
+ * and every amount. A failed read is not an empty book. Cost is never printed for a reader
+ * who may not see it.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SuperadminLayout } from '@/components/layouts/SuperadminLayout'
-import { Banknote, BadgeCheck, CircleDollarSign, Wallet, Plus, Loader2, Check, Download } from 'lucide-react'
-import { Aed, Stat, StatGrid, type Tone } from '@/components/console/primitives'
 import {
-  Age,
-  BulkBar,
-  Dash,
-  DENSITY,
-  DensityProvider,
-  DensityToggle,
-  FilterBar,
-  NoMatches,
-  Owner,
-  TableShell,
-  useDensity,
-  type FilterChip,
-} from '@/components/console/surfaces'
-import { EntityTile } from '@/components/console/Glyph'
+  Banknote, BadgeCheck, CircleDollarSign, Wallet, Plus, Loader2, Check, Download,
+  ChevronRight, CheckCircle2, X,
+} from 'lucide-react'
+import { Aed, Stat, StatGrid } from '@/components/console/primitives'
+import { Owner } from '@/components/console/surfaces'
 import { useConfirm } from '@/components/console/confirm'
 import { MoneyHubHeader } from '@/components/console/MoneyHubHeader'
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -84,83 +59,101 @@ async function api(path = '', init?: RequestInit) {
   return res.json()
 }
 
-/**
- * The figure only. The dirham mark is the `Aed` primitive's job, in the font that carries it.
- *
- * This file used to build the mark itself, as a bare codepoint inside a template string. No
- * system font carries that codepoint and only the primitive names the face that does, so
- * every amount on the screen rendered the mark as an empty box.
- */
+/** The figure only; the dirham mark is the `Aed` primitive's job. */
 const aedNum = (n: number | null | undefined) =>
   n == null ? null : Number(n).toLocaleString('en-AE', { maximumFractionDigits: 0 })
-
-/** Where a plain string is needed: a CSV cell, a tooltip, a dialog description. */
-const aedText = (n: number | null | undefined) => (n == null ? '' : `AED ${aedNum(n)}`)
 
 const day = (iso?: string | null) =>
   !iso ? '' : new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 
-/* These were a fifth set of hand-picked palette steps, so "owed" was a slightly different
-   amber here than the amber on Today. They now name the console tone tokens: decided once,
-   and scoped to the console shell by construction. */
 const TONE: Record<string, string> = {
   owed: 'border-transparent bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]',
   approved: 'border-transparent bg-[var(--tone-info-wash)] text-[var(--tone-info-ink)]',
   paid: 'border-transparent bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]',
   cancelled: 'border-transparent bg-black/[0.05] text-muted-foreground dark:bg-white/[0.08]',
 }
-
-/** Colour never travels without the word, so the status is always spelled out beside it. */
 const WORD: Record<string, string> = {
-  owed: 'Owed', approved: 'Approved', paid: 'Paid', cancelled: 'Cancelled',
+  owed: 'To approve', approved: 'To pay', paid: 'Paid', cancelled: 'Cancelled',
 }
 
-const INK: Record<Tone, string> = {
-  neutral: 'text-muted-foreground',
-  good: 'text-[var(--tone-good-ink)]',
-  warn: 'text-[var(--tone-warn-ink)]',
-  bad: 'text-[var(--tone-bad-ink)]',
-  info: 'text-[var(--tone-info-ink)]',
-}
-
-type Filter = 'all' | 'owed' | 'approved' | 'paid'
-
-/** A row is actionable while it is still moving. Paid and cancelled are finished. */
 const OPEN = new Set(['owed', 'approved'])
-
 const DAY_MS = 86_400_000
-const midnight = () => {
-  const t = new Date()
-  t.setHours(0, 0, 0, 0)
-  return t.getTime()
+
+/** Days past the due date, only while the payment is still open. */
+function lateDays(row: any): number {
+  if (!row.due_date || !OPEN.has(row.status)) return 0
+  const t = new Date(); t.setHours(0, 0, 0, 0)
+  const due = new Date(`${String(row.due_date).slice(0, 10)}T00:00:00`).getTime()
+  if (Number.isNaN(due)) return 0
+  return Math.max(0, Math.floor((t.getTime() - due) / DAY_MS))
 }
 
-/**
- * The two clocks, kept apart the way `Age` keeps them apart.
- *
- * `ageDays` is how long the row has sat in the book. `lateDays` is how far past the date we
- * promised, and it only exists while the payment is still open: a payment that has gone out
- * is not late, whatever its due date said. Amber at four days and red when late are the
- * component's business, not this file's.
- */
-function clocks(row: any): { ageDays: number; lateDays?: number } {
-  const created = row.created_at ? new Date(row.created_at).getTime() : NaN
-  const age = Number.isNaN(created) ? 0 : Math.max(0, Math.floor((midnight() - created) / DAY_MS))
-  if (!row.due_date || !OPEN.has(row.status)) return { ageDays: age }
-  const due = new Date(`${String(row.due_date).slice(0, 10)}T00:00:00`).getTime()
-  if (Number.isNaN(due)) return { ageDays: age }
-  const late = Math.floor((midnight() - due) / DAY_MS)
-  return { ageDays: age, lateDays: late > 0 ? late : undefined }
+/** Days a still-open payment has sat in the book since it was recorded. */
+function waitingDays(row: any): number {
+  if (!OPEN.has(row.status) || !row.created_at) return 0
+  const t = new Date(); t.setHours(0, 0, 0, 0)
+  const c = new Date(row.created_at).getTime()
+  return Number.isNaN(c) ? 0 : Math.max(0, Math.floor((t.getTime() - c) / DAY_MS))
+}
+
+const amt = (r: any) => Number(r.agreed_amount_aed || 0)
+const handleOf = (r: any) => (r.creator_username ? String(r.creator_username).replace(/^@/, '') : null)
+
+type Creator = {
+  key: string
+  handle: string | null
+  name: string
+  campaigns: { id: string | null; name: string }[]
+  rows: any[]
+  agreed: number
+  paid: number
+  toApprove: number
+  toPay: number
+  left: number
+  late: number
+}
+
+/** Payments folded into one line per creator. A payment with no creator stands alone. */
+function byCreator(items: any[]): Creator[] {
+  const map = new Map<string, Creator>()
+  for (const r of items) {
+    const handle = handleOf(r)
+    const key = handle ? handle.toLowerCase() : `row:${r.id}`
+    let c = map.get(key)
+    if (!c) {
+      c = { key, handle, name: handle ? `@${handle}` : (r.title || 'Unnamed payment'), campaigns: [],
+            rows: [], agreed: 0, paid: 0, toApprove: 0, toPay: 0, left: 0, late: 0 }
+      map.set(key, c)
+    }
+    c.rows.push(r)
+    if (r.campaign_name && !c.campaigns.some(x => x.name === r.campaign_name)) {
+      c.campaigns.push({ id: r.campaign_id || null, name: r.campaign_name })
+    }
+    if (r.status === 'cancelled') continue
+    c.agreed += amt(r)
+    if (r.status === 'paid') c.paid += amt(r)
+    if (r.status === 'owed') c.toApprove += amt(r)
+    if (r.status === 'approved') c.toPay += amt(r)
+    c.late = Math.max(c.late, lateDays(r))
+  }
+  for (const c of map.values()) {
+    c.left = c.toApprove + c.toPay
+    const rank = (s: string) => (s === 'owed' ? 0 : s === 'approved' ? 1 : s === 'paid' ? 2 : 3)
+    c.rows.sort((a, b) => rank(a.status) - rank(b.status)
+      || String(a.due_date || a.created_at || '').localeCompare(String(b.due_date || b.created_at || '')))
+  }
+  /* Late first, then whoever we owe most, then the settled ones by name. */
+  return [...map.values()].sort((a, b) =>
+    (b.late > 0 ? 1 : 0) - (a.late > 0 ? 1 : 0)
+    || (b.left > 0 ? 1 : 0) - (a.left > 0 ? 1 : 0)
+    || b.left - a.left
+    || a.name.localeCompare(b.name))
 }
 
 export default function PayablesPage() {
-  /* Dense by default. This is a money grid with several numeric columns, which is the tier
-     dense exists for; the toggle in the toolbar remembers whatever the reader prefers. */
   return (
     <SuperadminLayout>
-      <DensityProvider id="payables" initial="dense">
-        <Payables />
-      </DensityProvider>
+      <Payables />
     </SuperadminLayout>
   )
 }
@@ -172,112 +165,90 @@ function Payables() {
   const canPay = isSuperAdmin || isFullAccessStaff
 
   const [items, setItems] = useState<any[]>([])
-  const [totals, setTotals] = useState<Record<string, any> | null>(null)
-  const [tab, setTab] = useState<Filter>('all')
   const [loading, setLoading] = useState(true)
+  const [failure, setFailure] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [open, setOpen] = useState(false)
+  /* Still owed and All are the switch; the three figures above narrow it further. */
+  const [view, setView] = useState<'open' | 'all' | 'approve' | 'pay' | 'paid'>('open')
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  /* Creators ticked for a bulk approve or pay. Founders only. */
   const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
     title: '', creator_username: '', what_for: '', agreed_amount_aed: '', due_date: '', notes: '',
   })
 
-  /**
-   * A refused read and an empty book are different facts, and on this screen the difference
-   * is the difference between "we owe nobody" and "we never managed to ask".
-   */
-  const [failure, setFailure] = useState<string | null>(null)
-
+  /* The whole book in one read: per-creator totals need every status at once. */
   const load = async () => {
     setLoading(true)
     setFailure(null)
     try {
-      const res = await api(tab === 'all' ? '' : `?status=${tab}`)
+      const res = await api('')
       setItems(res.data?.items || [])
-      setTotals(res.data?.totals || {})
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Could not load creator payments'
       setFailure(msg)
       setItems([])
-      setTotals(null)
       toast.error(msg)
     } finally { setLoading(false) }
   }
-  useEffect(() => { load() }, [tab])   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [])   // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* A tick means nothing once the rows underneath it have been replaced. */
+  const creators = useMemo(() => byCreator(items), [items])
+  const shown = creators.filter(c =>
+    view === 'open' ? c.left > 0
+    : view === 'approve' ? c.toApprove > 0
+    : view === 'pay' ? c.toPay > 0
+    : view === 'paid' ? c.paid > 0
+    : true)
   useEffect(() => { setPicked(new Set()) }, [items])
-
-  const record = async () => {
-    if (!form.title.trim()) { toast.error('Give the payment a title'); return }
-    if (!form.agreed_amount_aed) { toast.error('Enter the amount agreed'); return }
-    setBusy(true)
-    try {
-      await api('', { method: 'POST', body: JSON.stringify({
-        ...form,
-        agreed_amount_aed: Number(form.agreed_amount_aed),
-        due_date: form.due_date || undefined,
-      }) })
-      toast.success('Payment recorded')
-      setOpen(false)
-      setForm({ title: '', creator_username: '', what_for: '', agreed_amount_aed: '', due_date: '', notes: '' })
-      load()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not record the payment')
-    } finally { setBusy(false) }
+  const pickedCreators = creators.filter(c => picked.has(c.key))
+  const pickedOwed = pickedCreators.flatMap(c => c.rows.filter(r => r.status === 'owed'))
+  const pickedApproved = pickedCreators.flatMap(c => c.rows.filter(r => r.status === 'approved'))
+  const pickTotal = (rows: any[]) => rows.reduce((a, r) => a + amt(r), 0)
+  const togglePick = (k: string) => setPicked(p => {
+    const n = new Set(p)
+    if (n.has(k)) n.delete(k); else n.add(k)
+    return n
+  })
+  const VIEW_NAME: Record<string, string> = {
+    approve: 'creators with payments to approve',
+    pay: 'creators with payments to pay',
+    paid: 'creators we have paid',
   }
 
-  const move = async (id: string, status: string) => {
-    setBusy(true)
-    try {
-      await api(`/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) })
-      toast.success(status === 'paid' ? 'Marked paid' : `Marked ${status}`)
-      load()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not update')
-    } finally { setBusy(false) }
-  }
+  const sum = (s: string) => items.filter(r => r.status === s).reduce((a, r) => a + amt(r), 0)
+  const count = (s: string) => items.filter(r => r.status === s).length
+  const owedRows = items.filter(r => r.status === 'owed')
+  const approvedRows = items.filter(r => r.status === 'approved')
 
-  const who = (r: any) =>
-    r.creator_username ? `@${String(r.creator_username).replace(/^@/, '')}` : r.title
+  const who = (r: any) => (handleOf(r) ? `@${handleOf(r)}` : r.title)
 
-  /**
-   * Several payments at once, through the money dialog.
-   *
-   * The dialog restates the total and NAMES every creator, because "approve 9" is not a fact
-   * anybody can check and "Aisha 4,000, Noor 2,500, and seven more" is. One request per row
-   * rather than a bulk endpoint: the server refuses individually, for an unconfirmed payee or
-   * an unfunded campaign, and those refusals have to survive as "seven went, two did not, and
-   * here is why" rather than as one failed call.
-   */
+  /** Approve or pay several payments through the money dialog, one request per row. */
   const clear = async (rows: any[], status: 'approved' | 'paid') => {
     if (!rows.length) return
     const many = rows.length !== 1
-    const total = rows.reduce((a, r) => a + Number(r.agreed_amount_aed || 0), 0)
-    const creators = new Set(rows.map(r => who(r))).size
+    const total = rows.reduce((a, r) => a + amt(r), 0)
+    const people = new Set(rows.map(who)).size
     const ok = await confirm({
       kind: 'money',
       title: status === 'paid'
         ? `Mark ${rows.length} payment${many ? 's' : ''} paid`
         : `Approve ${rows.length} payment${many ? 's' : ''}`,
       subtitle: status === 'paid'
-        ? 'The bank has already moved, so this cannot be taken back.'
+        ? 'Only once the bank transfer has gone. This cannot be taken back.'
         : 'Approving clears these for payment. It does not pay them.',
       amountAed: total,
-      amountNote: `${rows.length} payment${many ? 's' : ''} to ${creators} creator${creators === 1 ? '' : 's'}`,
-      recipients: rows.map(r => {
-        const late = clocks(r).lateDays
-        return {
-          name: who(r),
-          detail: [r.what_for, r.campaign_name].filter(Boolean).join(' · ') || undefined,
-          amountAed: Number(r.agreed_amount_aed || 0),
-          warn: late ? `${late}d past its due date` : undefined,
-        }
-      }),
+      amountNote: `${rows.length} payment${many ? 's' : ''} to ${people} creator${people === 1 ? '' : 's'}`,
+      recipients: rows.map(r => ({
+        name: who(r),
+        detail: [r.what_for || r.title, r.campaign_name].filter(Boolean).join(' · ') || undefined,
+        amountAed: amt(r),
+        warn: lateDays(r) ? `${lateDays(r)}d past its due date` : undefined,
+      })),
       confirmLabel: status === 'paid' ? `Mark ${rows.length} paid` : `Approve ${rows.length}`,
     })
     if (!ok) return
-
     setBusy(true)
     const failed: string[] = []
     let done = 0
@@ -290,117 +261,86 @@ function Payables() {
       }
     }
     setBusy(false)
-    setPicked(new Set())
-    if (done) {
-      toast.success(status === 'paid'
-        ? `${done} payment${done === 1 ? '' : 's'} marked paid`
-        : `${done} payment${done === 1 ? '' : 's'} approved`)
-    }
-    /* Named, not counted. A row that did not move is the only thing worth reading here. */
+    if (done) toast.success(status === 'paid' ? `${done} marked paid` : `${done} approved`)
     if (failed.length) toast.error(`${failed.length} did not move. ${failed.join(' · ')}`)
     load()
   }
 
-  /** A plain CSV of what is on screen, the thing that replaces the monthly sheet. */
-  const exportCsv = () => {
-    const head = ['Title', 'Creator', 'For', 'Campaign', 'Agreed AED', 'Rate we hold AED', 'Status', 'Due', 'Paid']
-    const rows = ordered.map(i => [
-      i.title, i.creator_username || '', i.what_for || '', i.campaign_name || '',
-      i.agreed_amount_aed,
-      /* Cost leaves the building in a file nobody can scrub afterwards, so it only goes in
-         for a reader the policy already allows to see it on screen. */
-      canSeeCost ? (i.catalogue_cost_aed ?? '') : '',
-      i.status, i.due_date || '',
-      i.paid_at ? new Date(i.paid_at).toLocaleDateString('en-GB') : '',
-    ])
-    const csv = [head, ...rows]
-      .map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
-    const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
+  const record = async () => {
+    if (!form.title.trim()) { toast.error('Give the payment a title'); return }
+    if (!form.agreed_amount_aed) { toast.error('Enter the amount agreed'); return }
+    setBusy(true)
+    try {
+      await api('', { method: 'POST', body: JSON.stringify({
+        ...form, agreed_amount_aed: Number(form.agreed_amount_aed), due_date: form.due_date || undefined,
+      }) })
+      toast.success('Payment recorded. A founder approves it next.')
+      setOpen(false)
+      setForm({ title: '', creator_username: '', what_for: '', agreed_amount_aed: '', due_date: '', notes: '' })
+      load()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not record the payment')
+    } finally { setBusy(false) }
+  }
+
+  const download = (name: string, head: string[], lines: any[][]) => {
+    const csv = [head, ...lines]
+      .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
+    const url = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }))
     const a = document.createElement('a')
-    a.href = url; a.download = `creator-payments-${new Date().toISOString().slice(0, 10)}.csv`
+    a.href = url; a.download = `${name}-${new Date().toISOString().slice(0, 10)}.csv`
     a.click(); URL.revokeObjectURL(url)
   }
 
-  /**
-   * A total that never arrived is a dash, not a zero.
-   *
-   * `totals` is null until a read succeeds, so a response that came back without its totals
-   * block cannot print a confident nought against Owed. "We owe nobody anything" and "we
-   * never managed to ask" must not look the same. A real zero still prints as zero, because
-   * in that case the API sent the number.
-   */
-  const owed = totals?.owed?.amount ?? null
-  const approved = totals?.approved?.amount ?? null
-  const paid = totals?.paid?.amount ?? null
+  /** One line per creator, the way the question is asked: agreed, paid, left. */
+  const exportByCreator = () => download('creator-payments-by-creator',
+    ['Creator', 'Campaigns', 'Agreed AED', 'Paid AED', 'To approve AED', 'To pay AED', 'Left AED'],
+    creators.map(c => [c.name, c.campaigns.map(x => x.name).join('; '),
+                       c.agreed, c.paid, c.toApprove, c.toPay, c.left]))
 
-  /* Whoever is waiting longest, first. The book arrived in whatever order the query gave it,
-     which meant the row that needed chasing could be anywhere on the page. */
-  const ordered = useMemo(() => {
-    const rank = (s: string) => (s === 'owed' ? 0 : s === 'approved' ? 1 : 2)
-    return [...items].sort((a, b) => {
-      const byStatus = rank(a.status) - rank(b.status)
-      if (byStatus) return byStatus
-      if (!a.due_date && !b.due_date) return 0
-      if (!a.due_date) return 1
-      if (!b.due_date) return -1
-      return a.due_date < b.due_date ? -1 : a.due_date > b.due_date ? 1 : 0
-    })
-  }, [items])
+  /** Every payment, as the monthly sheet had it. The rate we hold only goes in for a reader
+      the policy already lets see it on screen. */
+  const exportEveryPayment = () => download('creator-payments',
+    ['Title', 'Creator', 'For', 'Campaign', 'Instalment', 'Agreed AED', 'Rate we hold AED', 'Status', 'Due', 'Paid'],
+    items.map(i => [
+      i.title, i.creator_username || '', i.what_for || '', i.campaign_name || '', i.instalment_seq || '',
+      i.agreed_amount_aed, canSeeCost ? (i.catalogue_cost_aed ?? '') : '',
+      WORD[i.status] ?? i.status, i.due_date || '',
+      i.paid_at ? new Date(i.paid_at).toLocaleDateString('en-GB') : '',
+    ]))
 
-  const lateCount = useMemo(() => items.filter(i => clocks(i).lateDays).length, [items])
-
-  /**
-   * The chips are named after who is blocking, which on this screen is always a founder: the
-   * server refuses both the approval and the payment to anybody else. So the words change with
-   * the viewer. For a founder these are two queues of her own; for everyone else they are two
-   * ways of saying "chase a founder", and which rung it is stuck on is the useful part.
-   *
-   * Counts come from `totals`, not from `items`, because `items` is already filtered to the
-   * selected status and counting it would make every chip read the size of the current view.
-   * A count is a fact, so it shows at zero.
-   */
-  const n = (k: string) => Number(totals?.[k]?.count ?? 0)
-  const chips: FilterChip[] = [
-    { key: 'all', label: 'Everything', n: n('owed') + n('approved') + n('paid') + n('cancelled') },
-    { key: 'owed', label: canPay ? 'For you to approve' : 'Waiting on a founder to approve', n: n('owed') },
-    { key: 'approved', label: canPay ? 'For you to pay' : 'Waiting on a founder to pay', n: n('approved') },
-    { key: 'paid', label: 'Paid', n: n('paid') },
-  ]
-
-  /* Only a founder can move a row, so only a founder has anything to tick. */
-  const selectable = canPay ? ordered.filter(r => OPEN.has(r.status)) : []
-  const selected = ordered.filter(r => picked.has(r.id))
-  const selectedOwed = selected.filter(r => r.status === 'owed')
-  const selectedApproved = selected.filter(r => r.status === 'approved')
-  const selectedTotal = selected.reduce((a, r) => a + Number(r.agreed_amount_aed || 0), 0)
-
-  const toggle = (id: string) => setPicked(p => {
-    const next = new Set(p)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    return next
+  const toggle = (k: string) => setExpanded(p => {
+    const n = new Set(p)
+    if (n.has(k)) n.delete(k); else n.add(k)
+    return n
   })
-  const toggleAll = () => setPicked(p =>
-    p.size === selectable.length ? new Set() : new Set(selectable.map(r => r.id)))
+
+  const openCount = creators.filter(c => c.left > 0).length
 
   return (
     <>
       <div className="space-y-ds-5">
         <MoneyHubHeader
           title="Creator payments"
-          sub="Recording a payment is not paying it. A founder approves it, and a founder marks it paid."
+          sub="What we agreed with each creator, what has gone out, and what is left."
           action={
             <>
-              {/* Approved payments leave through a payout run. The screen existed and nothing
-                  here pointed at it. */}
               {canPay && (
                 <Button variant="outline" onClick={() => router.push('/work/payouts')}>
                   <Banknote className="mr-1.5 h-4 w-4" />Payout runs
                 </Button>
               )}
-              <Button variant="outline" onClick={exportCsv} disabled={!items.length}>
-                <Download className="mr-1.5 h-4 w-4" />Export
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" disabled={!items.length}>
+                    <Download className="mr-1.5 h-4 w-4" />Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={exportByCreator}>One line per creator</DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportEveryPayment}>Every payment</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button onClick={() => setOpen(true)}>
                 <Plus className="mr-1.5 h-4 w-4" />Record a payment
               </Button>
@@ -409,106 +349,238 @@ function Payables() {
         />
 
         {failure ? (
-          /* An error is not an empty book. Nothing below is known, so nothing below is drawn:
-             no totals, no list, and above all no "nothing recorded here yet". */
           <div className="space-y-3">
             <p className="text-sm font-medium">Could not load creator payments.</p>
             <p className="max-w-[65ch] text-sm text-muted-foreground">
-              {failure}. This is not an empty book, and nothing here is known: there may be a
-              creator owed money today who is not on screen.
+              {failure}. This is not an empty book: there may be a creator owed money today who
+              is not on screen.
             </p>
             <Button variant="outline" size="sm" onClick={load}>Try again</Button>
           </div>
+        ) : loading ? (
+          <p className="py-8 text-sm text-muted-foreground">Loading...</p>
         ) : (
           <>
-            {/* The three figures ARE the filter, and used to be drawn twice: once here and
-                once as a tab strip underneath saying the same four words. The chips in the
-                table's toolbar are the one control now; these stay as the figures. */}
             <StatGrid cols={3}>
-              <Stat label="Owed" value={<Total value={owed} />} icon={CircleDollarSign}
-                    tone={owed == null ? 'neutral' : owed ? 'warn' : 'good'}
-                    hint={tab === 'owed' ? 'Showing these' : 'Recorded, not yet approved'}
-                    onClick={() => setTab('owed')} />
-              <Stat label="Approved" value={<Total value={approved} />} icon={BadgeCheck}
-                    tone={approved == null ? 'neutral' : 'info'}
-                    hint={tab === 'approved' ? 'Showing these' : 'Cleared, not yet sent'}
-                    onClick={() => setTab('approved')} />
-              <Stat label="Paid" value={<Total value={paid} />} icon={Wallet}
-                    tone={paid == null ? 'neutral' : 'good'}
-                    hint={tab === 'paid' ? 'Showing these' : 'Out of the account'}
-                    onClick={() => setTab('paid')} />
+              <Stat label="To approve" icon={CircleDollarSign}
+                    value={<Aed>{aedNum(sum('owed'))}</Aed>}
+                    tone={count('owed') ? 'warn' : 'good'}
+                    onClick={() => setView(v => (v === 'approve' ? 'open' : 'approve'))}
+                    hint={count('owed')
+                      ? `${count('owed')} payment${count('owed') === 1 ? '' : 's'}, recorded and waiting`
+                      : 'Nothing waiting'} />
+              <Stat label="To pay" icon={BadgeCheck}
+                    value={<Aed>{aedNum(sum('approved'))}</Aed>}
+                    tone="info"
+                    onClick={() => setView(v => (v === 'pay' ? 'open' : 'pay'))}
+                    hint={count('approved')
+                      ? `${count('approved')} approved, not yet sent`
+                      : 'Nothing approved and unpaid'} />
+              <Stat label="Paid" icon={Wallet}
+                    value={<Aed>{aedNum(sum('paid'))}</Aed>}
+                    tone="good"
+                    onClick={() => setView(v => (v === 'paid' ? 'all' : 'paid'))}
+                    hint={`${count('paid')} payment${count('paid') === 1 ? '' : 's'} sent`} />
             </StatGrid>
 
-            {loading ? (
-              <p className="py-8 text-sm text-muted-foreground">Loading...</p>
-            ) : items.length === 0 && tab === 'all' ? (
-              /* Genuinely nothing in the book: no table, no placeholder and no invitation.
-                 The way to add the first payment is already in the header. */
-              null
-            ) : (
-              <TableShell
-                toolbar={
-                  /* A grid child stretches, so the chips get the full width and the density
-                     toggle keeps the right edge the FilterBar reserves for it. */
-                  <div className="grid w-full">
-                    <FilterBar chips={chips} value={tab} onChange={k => setTab(k as Filter)}
-                               right={<DensityToggle />} />
-                  </div>
-                }
-                footer={
-                  <span className="text-ds-caption tabular-nums">
-                    {ordered.length} payment{ordered.length === 1 ? '' : 's'} here
-                    {lateCount > 0 && (
-                      <span className={cn('ml-1', INK.bad)}>
-                        · {lateCount} past its due date
-                      </span>
-                    )}
-                  </span>
-                }
-                bulk={
-                  <BulkBar
-                    count={selected.length}
-                    summary={<>Worth <Aed>{aedNum(selectedTotal)}</Aed> together</>}
-                    /* Nothing to tick for anyone who cannot approve or pay, so the bar says
-                       who can rather than inviting a selection that leads nowhere. */
-                    idleHint={canPay
-                      ? 'Tick rows to approve or pay several at once'
-                      : 'Only a founder can approve or pay these'}
-                  >
-                    {canPay && selectedOwed.length > 0 && (
-                      <Button size="sm" variant="secondary" disabled={busy}
-                              onClick={() => clear(selectedOwed, 'approved')}>
-                        Approve {selectedOwed.length}
-                      </Button>
-                    )}
-                    {canPay && selectedApproved.length > 0 && (
-                      <Button size="sm" variant="secondary" disabled={busy}
-                              onClick={() => clear(selectedApproved, 'paid')}>
-                        <Check className="mr-1 h-3.5 w-3.5" />Mark {selectedApproved.length} paid
-                      </Button>
-                    )}
-                  </BulkBar>
-                }
-              >
-                {ordered.length === 0 ? (
-                  <NoMatches onClear={() => setTab('all')} />
-                ) : (
-                  <Rows
-                    rows={ordered}
-                    canPay={canPay}
-                    canSeeCost={canSeeCost}
-                    busy={busy}
-                    picked={picked}
-                    selectableCount={selectable.length}
-                    onToggle={toggle}
-                    onToggleAll={toggleAll}
-                    onApprove={id => move(id, 'approved')}
-                    onPay={row => clear([row], 'paid')}
-                    onCampaign={id => router.push(`/work/campaigns/${id}/timeline`)}
-                    onCreator={u => router.push(`/creator-analytics/${u}`)}
-                  />
+            {canPay && (owedRows.length > 0 || approvedRows.length > 0) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {owedRows.length > 0 && (
+                  <Button size="sm" variant="outline" disabled={busy}
+                          onClick={() => clear(owedRows, 'approved')}>
+                    Approve all {owedRows.length} · <Aed>{aedNum(sum('owed'))}</Aed>
+                  </Button>
                 )}
-              </TableShell>
+                {approvedRows.length > 0 && (
+                  <Button size="sm" variant="outline" disabled={busy}
+                          onClick={() => clear(approvedRows, 'paid')}>
+                    <Check className="mr-1 h-3.5 w-3.5" />Mark all {approvedRows.length} paid ·{' '}
+                    <Aed>{aedNum(sum('approved'))}</Aed>
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {items.length > 0 && (
+              <div className="rounded-ds-2xl border bg-card">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+                  <div className="inline-flex rounded-full bg-muted p-0.5 text-sm">
+                    {([['open', `Still owed (${openCount})`], ['all', `All creators (${creators.length})`]] as const)
+                      .map(([k, label]) => (
+                        <button key={k} type="button" onClick={() => setView(k)}
+                                className={cn('rounded-full px-3.5 py-1.5 font-medium transition-colors',
+                                  view === k ? 'bg-background text-foreground shadow-sm'
+                                             : 'text-muted-foreground hover:text-foreground')}>
+                          {label}
+                        </button>
+                      ))}
+                  </div>
+                  {VIEW_NAME[view] ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                      Showing {VIEW_NAME[view]}
+                      <button type="button" aria-label="Clear the filter"
+                              className="rounded-full p-0.5 hover:bg-muted hover:text-foreground"
+                              onClick={() => setView('open')}><X className="h-3.5 w-3.5" /></button>
+                    </span>
+                  ) : (
+                    <span className="hidden text-xs text-muted-foreground sm:block">
+                      Click a creator to see each payment
+                    </span>
+                  )}
+                </div>
+
+                {canPay && picked.size > 0 && (
+                  <div className="flex flex-wrap items-center gap-3 border-b bg-muted/40 px-5 py-3 text-sm">
+                    <span className="font-medium">{picked.size} creator{picked.size === 1 ? '' : 's'} ticked</span>
+                    {pickedOwed.length > 0 && (
+                      <Button size="sm" variant="outline" disabled={busy}
+                              onClick={() => clear(pickedOwed, 'approved')}>
+                        Approve <span className="ml-1"><Aed>{aedNum(pickTotal(pickedOwed))}</Aed></span>
+                      </Button>
+                    )}
+                    {pickedApproved.length > 0 && (
+                      <Button size="sm" disabled={busy} onClick={() => clear(pickedApproved, 'paid')}>
+                        <Check className="mr-1 h-3.5 w-3.5" />Pay <span className="ml-1"><Aed>{aedNum(pickTotal(pickedApproved))}</Aed></span>
+                      </Button>
+                    )}
+                    <button type="button" className="ml-auto text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                            onClick={() => setPicked(new Set())}>Clear</button>
+                  </div>
+                )}
+
+                <div className="hidden grid-cols-[minmax(0,1fr)_110px_110px_120px_minmax(150px,170px)] gap-6 border-b px-5 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground md:grid">
+                  <span>Creator</span>
+                  <span className="text-right">Agreed</span>
+                  <span className="text-right">Paid</span>
+                  <span className="text-right">Left to pay</span>
+                  <span className="text-right">Next step</span>
+                </div>
+
+                {shown.length === 0 ? (
+                  <div className="flex items-center gap-2 px-5 py-10 text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-4 w-4 text-[var(--tone-good-ink)]" />
+                    Every creator is paid in full.
+                    <button type="button" className="underline underline-offset-2 hover:text-foreground"
+                            onClick={() => setView('all')}>Show all creators</button>
+                  </div>
+                ) : shown.map(c => {
+                  const isOpen = expanded.has(c.key)
+                  const pct = c.agreed > 0 ? Math.round((c.paid / c.agreed) * 100) : 0
+                  const owed = c.rows.filter(r => r.status === 'owed')
+                  const approved = c.rows.filter(r => r.status === 'approved')
+                  return (
+                    <Fragment key={c.key}>
+                      <div
+                        role="button" tabIndex={0}
+                        onClick={() => toggle(c.key)}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(c.key) } }}
+                        className={cn('grid cursor-pointer grid-cols-1 gap-3 border-b px-5 py-4 last:border-b-0 hover:bg-muted/40 md:grid-cols-[minmax(0,1fr)_110px_110px_120px_minmax(150px,170px)] md:items-center md:gap-6',
+                          isOpen && 'bg-muted/30')}>
+                        <div className="flex min-w-0 items-center gap-3">
+                          {canPay && (
+                            <span className="flex w-4 shrink-0" onClick={e => e.stopPropagation()}>
+                              {c.left > 0 && (
+                                <Checkbox aria-label={`Tick ${c.name}`} checked={picked.has(c.key)}
+                                          onCheckedChange={() => togglePick(c.key)} />
+                              )}
+                            </span>
+                          )}
+                          <ChevronRight className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isOpen && 'rotate-90')} />
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold uppercase">
+                            {c.name.replace(/^@/, '').slice(0, 2)}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{c.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {c.campaigns.map(x => x.name).join(', ') || 'No campaign'}
+                              {' · '}{c.rows.length} payment{c.rows.length === 1 ? '' : 's'}
+                              {c.late > 0 && (
+                                <span className="text-[var(--tone-bad-ink)]"> · {c.late}d late</span>
+                              )}
+                            </p>
+                            <div className="mt-1.5 h-1.5 w-full max-w-[220px] overflow-hidden rounded-full bg-muted">
+                              <div className="h-full rounded-full bg-[var(--tone-good-ink)]" style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                        <Money label="Agreed" value={c.agreed} />
+                        <Money label="Paid" value={c.paid} className="text-[var(--tone-good-ink)]" />
+                        <Money label="Left to pay" value={c.left} strong
+                               className={c.left > 0 ? (c.late > 0 ? 'text-[var(--tone-bad-ink)]' : '') : 'text-muted-foreground'} />
+                        <div className="flex justify-start md:justify-end" onClick={e => e.stopPropagation()}>
+                          {c.left === 0 ? (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--tone-good-ink)]">
+                              <CheckCircle2 className="h-4 w-4" />Paid in full
+                            </span>
+                          ) : !canPay ? (
+                            <Owner name="a founder" waiting />
+                          ) : owed.length ? (
+                            <Button size="sm" variant="outline" disabled={busy} onClick={() => clear(owed, 'approved')}>
+                              Approve <span className="ml-1"><Aed>{aedNum(c.toApprove)}</Aed></span>
+                            </Button>
+                          ) : (
+                            <Button size="sm" disabled={busy} onClick={() => clear(approved, 'paid')}>
+                              <Check className="mr-1 h-3.5 w-3.5" />Pay <span className="ml-1"><Aed>{aedNum(c.toPay)}</Aed></span>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {isOpen && (
+                        <div className={cn('border-b bg-muted/20 px-5 py-3 last:border-b-0', canPay ? 'md:pl-[5.75rem]' : 'md:pl-[4.5rem]')}>
+                          {c.rows.map(r => (
+                            <div key={r.id} className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-dashed py-2.5 text-sm last:border-b-0">
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate font-medium">
+                                  {r.what_for || r.title}
+                                  {r.instalment_seq ? (
+                                    <span className="ml-2 text-xs font-normal text-muted-foreground">Instalment {r.instalment_seq}</span>
+                                  ) : null}
+                                </p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {r.campaign_name && (r.campaign_id ? (
+                                    <button type="button" className="underline underline-offset-2 hover:text-foreground"
+                                            onClick={() => router.push(`/work/campaigns/${r.campaign_id}/timeline`)}>
+                                      {r.campaign_name}
+                                    </button>
+                                  ) : r.campaign_name)}
+                                  {r.campaign_name ? ' · ' : ''}
+                                  {r.status === 'paid'
+                                    ? `Paid ${day(r.paid_at)}`
+                                    : lateDays(r) ? <span className="text-[var(--tone-bad-ink)]">{lateDays(r)}d past due ({day(r.due_date)})</span>
+                                    : r.due_date ? `Due ${day(r.due_date)}` : 'No due date'}
+                                  {waitingDays(r) > 0 && ` · waiting ${waitingDays(r)}d`}
+                                  {canSeeCost && r.catalogue_cost_aed != null && Number(r.catalogue_cost_aed) !== amt(r) && (
+                                    <> · our rate <Aed>{aedNum(r.catalogue_cost_aed)}</Aed></>
+                                  )}
+                                </p>
+                              </div>
+                              <span className="w-24 text-right font-medium tabular-nums"><Aed>{aedNum(amt(r))}</Aed></span>
+                              <Badge variant="outline" className={cn('w-24 justify-center whitespace-nowrap', TONE[r.status])}>
+                                {WORD[r.status] ?? r.status}
+                              </Badge>
+                              <div className="w-28 text-right">
+                                {canPay && r.status === 'owed' && (
+                                  <Button size="sm" variant="ghost" disabled={busy} onClick={() => clear([r], 'approved')}>Approve</Button>
+                                )}
+                                {canPay && r.status === 'approved' && (
+                                  <Button size="sm" variant="ghost" disabled={busy} onClick={() => clear([r], 'paid')}>Mark paid</Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          {c.handle && (
+                            <button type="button" className="mt-1 py-1 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                                    onClick={() => router.push(`/creator-analytics/${c.handle}`)}>
+                              Open {c.name}&apos;s profile
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </Fragment>
+                  )
+                })}
+              </div>
             )}
           </>
         )}
@@ -519,7 +591,7 @@ function Payables() {
           <DialogHeader>
             <DialogTitle>Record a payment</DialogTitle>
             <DialogDescription>
-              What we agreed for this piece of work. It can differ from the rate we hold.
+              What we agreed for this piece of work. A founder approves it, then marks it paid.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -571,197 +643,16 @@ function Payables() {
   )
 }
 
-/** A headline figure that did not arrive. Never a zero: the API did not send a number. */
-function Total({ value }: { value: number | null }) {
-  return value == null
-    ? <Dash reason="unmeasured" what="this total" />
-    : <Aed>{aedNum(value)}</Aed>
-}
-
-/* ══ The rows ═════════════════════════════════════════════════════════════════════════════ */
-
-/**
- * A payments list is tabular data, so it is a table: a screen reader is told how many columns
- * there are and which header each figure sits under, which a grid of divs cannot say. Density
- * is read from the view rather than passed down, and only padding and row height move with it.
- */
-function Rows({
-  rows, canPay, canSeeCost, busy, picked, selectableCount,
-  onToggle, onToggleAll, onApprove, onPay, onCampaign, onCreator,
-}: {
-  rows: any[]
-  canPay: boolean
-  canSeeCost: boolean
-  busy: boolean
-  picked: Set<string>
-  selectableCount: number
-  onToggle: (id: string) => void
-  onToggleAll: () => void
-  onApprove: (id: string) => void
-  onPay: (row: any) => void
-  onCampaign: (id: string) => void
-  onCreator: (username: string) => void
+/** A money cell: right-aligned on wide screens, labelled on narrow ones. */
+function Money({ label, value, strong, className }: {
+  label: string; value: number; strong?: boolean; className?: string
 }) {
-  const d = DENSITY[useDensity()]
-  const head = cn(d.cell, 'sticky top-0 z-10 h-auto whitespace-nowrap bg-card')
-
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className={d.row}>
-          <TableHead className={cn(head, 'w-0')}>
-            <Checkbox
-              aria-label="Tick every payment that can still move"
-              checked={selectableCount > 0 && picked.size === selectableCount}
-              disabled={selectableCount === 0}
-              onCheckedChange={onToggleAll}
-            />
-          </TableHead>
-          <TableHead className={head}>Payment</TableHead>
-          <TableHead className={head}>Creator</TableHead>
-          <TableHead className={cn(head, 'text-right')}>Agreed</TableHead>
-          <TableHead className={head}>Waiting</TableHead>
-          <TableHead className={head}>Status</TableHead>
-          <TableHead className={cn(head, 'w-0 text-right')}>
-            <span className="sr-only">What you can do</span>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map(i => {
-          const { ageDays, lateDays } = clocks(i)
-          const cat = i.catalogue_cost_aed
-          const delta = cat != null && Number(cat) !== Number(i.agreed_amount_aed)
-            ? Number(i.agreed_amount_aed) - Number(cat)
-            : null
-          const movable = OPEN.has(i.status)
-          const handle = i.creator_username ? String(i.creator_username).replace(/^@/, '') : null
-          const ticked = picked.has(i.id)
-
-          return (
-            <TableRow key={i.id} className={d.row} data-state={ticked ? 'selected' : undefined}>
-              <TableCell className={cn(d.cell, 'w-0')}>
-                {movable && canPay ? (
-                  <Checkbox
-                    aria-label={`Tick ${i.title}`}
-                    checked={ticked}
-                    onCheckedChange={() => onToggle(i.id)}
-                  />
-                ) : null}
-              </TableCell>
-
-              <TableCell className={d.cell}>
-                <div className={cn('flex items-center', d.gap)}>
-                  <EntityTile kind="payout" size="row" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium leading-tight">{i.title}</p>
-                    <p className="truncate text-xs leading-tight text-muted-foreground">
-                      {i.what_for}
-                      {i.what_for && i.campaign_name ? ' · ' : ''}
-                      {i.campaign_name && (
-                        i.campaign_id ? (
-                          <button type="button" className="underline underline-offset-2 hover:text-foreground"
-                                  onClick={() => onCampaign(i.campaign_id)}>
-                            {i.campaign_name}
-                          </button>
-                        ) : i.campaign_name
-                      )}
-                      {!i.what_for && !i.campaign_name && (
-                        <Dash reason="unset" what="what this payment is for" />
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </TableCell>
-
-              <TableCell className={d.cell}>
-                {handle ? (
-                  <button type="button"
-                          className="whitespace-nowrap text-sm underline underline-offset-2 hover:text-foreground"
-                          onClick={() => onCreator(handle)}>
-                    @{handle}
-                  </button>
-                ) : <Dash reason="unset" what="a creator" />}
-              </TableCell>
-
-              <TableCell className={cn(d.cell, 'text-right tabular-nums')}>
-                <span className="whitespace-nowrap font-medium">
-                  {i.agreed_amount_aed == null
-                    ? <Dash reason="unset" what="the amount agreed" />
-                    : <Aed>{aedNum(i.agreed_amount_aed)}</Aed>}
-                </span>
-                {/* The rate we hold is cost, and it is only interesting where it differs from
-                    what we agreed. What makes it interesting is the gap rather than the second
-                    figure, so it stays one badge and never becomes a column. A reader who may
-                    not see cost gets the dash instead: that gap IS the cost, reached by
-                    subtraction, so printing it would hand over the figure the policy hides. */}
-                {cat != null && !canSeeCost && (
-                  <span className="ml-2"><Dash reason="unseen" what="the rate we hold" /></span>
-                )}
-                {delta != null && canSeeCost && (
-                  <span
-                    title={`We hold ${aedText(cat)} for this creator`}
-                    className={cn(
-                      'ml-2 inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums',
-                      delta < 0
-                        ? 'bg-[var(--tone-good-wash)] text-[var(--tone-good-ink)]'
-                        : 'bg-[var(--tone-warn-wash)] text-[var(--tone-warn-ink)]',
-                    )}
-                  >
-                    {delta > 0 ? '+' : ''}{aedNum(delta)} vs our rate
-                  </span>
-                )}
-              </TableCell>
-
-              <TableCell className={d.cell}>
-                {movable ? (
-                  <span className={cn('flex items-center whitespace-nowrap', d.gap)}>
-                    <Age days={ageDays} lateDays={lateDays} />
-                    {!lateDays && (
-                      i.due_date
-                        ? <span className="text-xs text-muted-foreground">due {day(i.due_date)}</span>
-                        : <Dash reason="unset" what="a due date" />
-                    )}
-                  </span>
-                ) : i.paid_at ? (
-                  <span className="whitespace-nowrap text-xs text-muted-foreground">
-                    Paid {day(i.paid_at)}
-                  </span>
-                ) : <Dash reason="unset" what="a payment date" />}
-              </TableCell>
-
-              <TableCell className={d.cell}>
-                <Badge variant="outline" className={cn('whitespace-nowrap', TONE[i.status])}>
-                  {WORD[i.status] ?? i.status}
-                </Badge>
-              </TableCell>
-
-              <TableCell className={cn(d.cell, 'w-0 text-right')}>
-                {/* One promoted action per row. Marking paid is money leaving the account, so
-                    it goes through the money dialog even for a single row; approving does not,
-                    because approving is a step towards paying and not the payment.
-
-                    BOTH are a founder's act: the server refuses `approved` and `paid` to
-                    anyone else. So for anyone else neither button is drawn, and the cell says
-                    where the ball is instead. Approve used to be drawn for everybody and
-                    answered 403, which is the worst of the three options: a control that
-                    exists only to refuse you teaches people the screen is lying. */}
-                {movable && canPay && (
-                  i.status === 'owed' ? (
-                    <Button size="sm" variant="outline" disabled={busy}
-                            onClick={() => onApprove(i.id)}>Approve</Button>
-                  ) : (
-                    <Button size="sm" disabled={busy} onClick={() => onPay(i)}>
-                      <Check className="mr-1 h-3.5 w-3.5" />Mark paid
-                    </Button>
-                  )
-                )}
-                {movable && !canPay && <Owner name="a founder" waiting />}
-              </TableCell>
-            </TableRow>
-          )
-        })}
-      </TableBody>
-    </Table>
+    <div className="flex items-baseline justify-between gap-2 md:block md:text-right">
+      <span className="text-xs text-muted-foreground md:hidden">{label}</span>
+      <span className={cn('tabular-nums', strong ? 'text-base font-semibold' : 'text-sm', className)}>
+        <Aed>{aedNum(value)}</Aed>
+      </span>
+    </div>
   )
 }
