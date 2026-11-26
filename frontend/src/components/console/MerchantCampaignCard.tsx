@@ -221,15 +221,12 @@ export function MerchantCampaignCard({ c, onChanged, showMerchantLink = true, cl
             </div>
             {c.barter_items.length > 0 && (
               <ul className="space-y-0.5 text-[12.5px]">
-                {c.barter_items.slice(0, 4).map((b, i) => (
+                {c.barter_items.map((b, i) => (
                   <li key={i} className="flex justify-between gap-2">
                     <span className="truncate">{b.name}</span>
                     {b.value_aed > 0 && <span className="shrink-0 tabular-nums text-muted-foreground">{fmt(b.value_aed)}</span>}
                   </li>
                 ))}
-                {c.barter_items.length > 4 && (
-                  <li className="text-muted-foreground">and {c.barter_items.length - 4} more</li>
-                )}
               </ul>
             )}
             <div className="space-y-1 border-t pt-2.5 text-[12.5px] text-muted-foreground">
