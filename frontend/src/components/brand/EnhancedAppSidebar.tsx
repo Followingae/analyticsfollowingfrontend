@@ -6,6 +6,7 @@ import { useTheme } from "next-themes"
 import { useEnhancedAuth } from "@/contexts/EnhancedAuthContext"
 import { useCommercialAccount } from "@/hooks/useCommercialAccount"
 import { brandProposalViewApi } from "@/services/adminProposalMasterApi"
+import { useViewOnly } from "@/lib/viewOnly"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -105,6 +106,10 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
 
   // Which modules this account holds. Drives what is in the menu at all.
   const { owns } = useCommercialAccount()
+
+  // A viewer login (one client's proposal, read only) gets the dashboard and its
+  // proposals and nothing else: every other item would lead somewhere it may not go.
+  const { scoped: viewerOnly } = useViewOnly()
 
   /* Proposals waiting on this client, as a count on the nav item.
    *
@@ -241,6 +246,10 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
   }
 
   const data = getNavigationData()
+  const viewerItems = viewerOnly
+    ? [...data.searchAnalytics.filter((i) => i.url === "/dashboard"),
+       ...data.management.filter((i) => i.url === "/proposals")]
+    : []
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -257,6 +266,14 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
       </SidebarHeader>
 
       <SidebarContent>
+        {viewerOnly ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>View only</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <NavMain items={viewerItems} />
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : (<>
         {/* Search & Analytics Section */}
         <SidebarGroup>
           {/* Was "Search & Analytics", which promised a search this group does not contain:
@@ -284,6 +301,7 @@ export function EnhancedAppSidebar({ ...props }: React.ComponentProps<typeof Sid
             <NavMain items={data.more} />
           </SidebarGroupContent>
         </SidebarGroup>
+        </>)}
       </SidebarContent>
       
       <SidebarFooter>

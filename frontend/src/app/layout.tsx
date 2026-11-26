@@ -15,6 +15,7 @@ import { QueryProvider } from "@/components/providers/QueryProvider";
 import { UserStoreProvider } from "@/components/providers/UserStoreProvider";
 import { ServiceWorkerProvider } from "@/components/ServiceWorkerProvider";
 import { WhatsNewModal } from "@/components/notifications/WhatsNewModal";
+import { ViewOnlyGuard } from "@/components/ViewOnlyGuard";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -79,6 +80,7 @@ export default function RootLayout({
                       <ServiceWorkerProvider>
                         {children}
                         <WhatsNewModal />
+                        <ViewOnlyGuard />
                         <Toaster />
                       </ServiceWorkerProvider>
                     </ProcessingToastProvider>
