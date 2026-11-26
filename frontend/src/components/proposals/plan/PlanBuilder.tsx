@@ -48,6 +48,7 @@ import { planBuilderApi } from "@/services/planBuilderApi"
 import { CreatorTile } from "./CreatorTile"
 import { SmartPickModal } from "./SmartPickModal"
 import { CreatorSheet } from "./CreatorSheet"
+import { announceViewOnly, useViewOnly } from "@/lib/viewOnly"
 import {
   creatorCost, optimise, optimiseByPlaces, optimiseByCount, whyFor, STRATEGIES, type Strategy,
   modifierEligible, modifierExtra, lineEligible, tookModifier, type PriceModifier,
@@ -119,6 +120,16 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   const [tested, setTested] = useState({ n: 0, total: 0, best: [] as BrandInfluencer[], spend: 0 })
   const [smartOpen, setSmartOpen] = useState(false)
   const [declining, setDeclining] = useState<BrandInfluencer | null>(null)
+
+  /* A view-only login reads the proposal and its analytics and changes nothing. Every
+     action below stops here and says so, before any line-up state moves; the server
+     refuses the same writes on its own. */
+  const { view_only: readOnly } = useViewOnly()
+  const blocked = useCallback(() => {
+    if (!readOnly) return false
+    announceViewOnly()
+    return true
+  }, [readOnly])
   const [askOpen, setAskOpen] = useState(false)
   const [askText, setAskText] = useState("")
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -346,18 +357,20 @@ export function PlanBuilder({ proposalId, data, onReload }: {
 
   /* Taking the add-on, or dropping it, for one creator. */
   const toggleMod = useCallback((c: BrandInfluencer) => {
+    if (blocked()) return
     setWithMod(prev => {
       const next = new Set(prev)
       next.has(c.id) ? next.delete(c.id) : next.add(c.id)
       save(chosen, next)
       return next
     })
-  }, [chosen, save])
+  }, [chosen, save, blocked])
 
   /* With or without, across the whole line-up. Applies to everyone eligible, so a creator
      added afterwards still has to be ticked deliberately rather than silently inheriting a
      price the client never agreed to. */
   const setModAll = useCallback((on: boolean) => {
+    if (blocked()) return
     const target = live.filter(c => modifierEligible(c) && chosen.has(c.id))
     setWithMod(prev => {
       const next = new Set(prev)
@@ -365,9 +378,10 @@ export function PlanBuilder({ proposalId, data, onReload }: {
       save(chosen, next)
       return next
     })
-  }, [live, chosen, save])
+  }, [live, chosen, save, blocked])
 
   const toggle = useCallback((c: BrandInfluencer) => {
+    if (blocked()) return
     /* Already booked. Not an error they made — the tile says so — but tapping it must do
        nothing rather than silently drop somebody who is briefed and shooting. */
     if (c.locked) {
@@ -415,7 +429,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
       return next
     })
     setBuiltSig(null)
-  }, [save, chosen, byTier, tierRows, byCount, slots, slotsTaken, barterCap, barterTaken])
+  }, [save, chosen, byTier, tierRows, byCount, slots, slotsTaken, barterCap, barterTaken, blocked])
 
   const markOpened = useCallback((c: BrandInfluencer) => {
     if (c.client_opened_at || shownRef.current.has(c.id)) return
@@ -444,6 +458,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   }
 
   const undecline = async (c: BrandInfluencer) => {
+    if (blocked()) return
     try {
       await planBuilderApi.undecline(proposalId, c.id)
       setCreators(prev => prev.map(x => x.id === c.id ? { ...x, declined_at: null, declined_reason: null } : x))
@@ -453,6 +468,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   /* The search, run in the open. It reads the shortlist back to them first, because a
      marketing team should finish this knowing people built the list, not a machine. */
   const runBuild = async () => {
+    if (blocked()) return
     setBuilding(true); setBuildLog([])
     const posts = live.reduce((s, c) => s + (c.measured?.posts_analysed ?? 0), 0)
     const strong = live.filter(c => c.measured?.standing === "exceptional" || (c.measured?.engagement_rate ?? 0) >= 1).length
@@ -500,6 +516,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   /* A retainer month is confirmed whole and on its own — approving the proposal would
      book the entire deal, which is not what this client was sold. */
   const confirmMonth = async () => {
+    if (blocked()) return
     if (!month) return
     setConfirmingMonth(true)
     try {
@@ -523,6 +540,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
   }
 
   const confirm = async () => {
+    if (blocked()) return
     setSaving(true)
     try {
       const res = await brandProposalViewApi.approveProposal(proposalId, { selected_influencer_ids: [...chosen] })
@@ -581,10 +599,11 @@ export function PlanBuilder({ proposalId, data, onReload }: {
     return out.slice(0, 3)
   }, [over, allocated, budget, picked, live, chosen])   // eslint-disable-line react-hooks/exhaustive-deps
 
-  const askForMore = () => { covered ? setAskOpen(true) : setSmartOpen(true) }
+  const askForMore = () => { if (blocked()) return; covered ? setAskOpen(true) : setSmartOpen(true) }
 
   /** The list, as a file. It never carries our prices — in any status. */
   const exportList = async () => {
+    if (blocked()) return
     try {
       const res = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/campaigns/proposals/${proposalId}/export?format=xlsx`,
@@ -768,7 +787,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                   showPricing={showPricing}
                   onToggle={toggle}
                   onOpen={openAnalytics}
-                  onDecline={setDeclining}
+                  onDecline={(c: BrandInfluencer) => { if (!blocked()) setDeclining(c) }}
                   onUndecline={undecline}
                 />
               ))}
@@ -1009,7 +1028,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                 <AlertTriangle className="size-4" />{aed(allocated - budget)} over budget
               </div>
               {moves.map(m => (
-                <button key={m.key} onClick={m.run}
+                <button key={m.key} onClick={() => { if (!blocked()) m.run() }}
                         className="flex w-full items-center gap-3 rounded-[14px] border bg-card p-2.5 text-left transition hover:border-foreground">
                   <span className="min-w-0 flex-1">
                     <b className="block text-[12.5px] font-bold tracking-[-0.01em]">{m.title}</b>
@@ -1180,7 +1199,7 @@ export function PlanBuilder({ proposalId, data, onReload }: {
                 : barterCap && barterTaken > barterCap.slots
                   ? `${barterTaken} on product, your plan includes ${barterCap.slots}`
                   : undefined}
-              onClick={() => setConfirmOpen(true)}
+              onClick={() => { if (!blocked()) setConfirmOpen(true) }}
             >
               <Check className="size-4" />
               {months.length ? `Confirm ${openMonth?.label ?? "this month"}` : "Confirm"}

@@ -12,8 +12,9 @@ import { API_CONFIG } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { installViewOnlyNotice, setViewOnly, useViewOnly } from "@/lib/viewOnly"
 
-// Where a scoped viewer may go. Everything else sends it to its proposals.
-const SCOPED_ALLOWED = ["/dashboard", "/proposals", "/campaigns", "/creator-analytics", "/auth", "/login"]
+// Where a scoped viewer may go. Any other address, including one that does not exist,
+// sends it to the dashboard rather than to an error page.
+const SCOPED_ALLOWED = ["/dashboard", "/proposals", "/creator-analytics", "/auth", "/login"]
 
 export function ViewOnlyGuard() {
   const { user, isAuthenticated } = useEnhancedAuth()
@@ -43,7 +44,7 @@ export function ViewOnlyGuard() {
   useEffect(() => {
     if (!viewOnly.scoped || !pathname) return
     const ok = pathname === "/" || SCOPED_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + "/"))
-    if (!ok) router.replace("/proposals")
+    if (!ok) router.replace("/dashboard")
   }, [viewOnly.scoped, pathname, router])
 
   return null

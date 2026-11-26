@@ -32,6 +32,7 @@ import { campaignApi, type Campaign } from '@/services/campaignApiComplete'
 import { inflinkApi, type RfpSummary } from '@/services/inflinkApi'
 import { brandPoolApi } from '@/services/faAdminApi'
 import { OpenQuotesCard } from '@/components/brand/OpenQuotesCard'
+import { useViewOnly } from '@/lib/viewOnly'
 
 type Waiting = { id: string; title: string; cover?: string | null; quote: boolean; creators?: number | null }
 type Hero = { icon: typeof Users; title: string; line: string; cta: string; href: string; cover?: string | null
@@ -61,6 +62,9 @@ export function BrandHome() {
   /* The cashback pool, for brands that fund one. Only a low or empty pool is shown; a
      failed read shows nothing here rather than a frightening zero. */
   const [pool, setPool] = useState<{ available: number; funded: number } | null>(null)
+  /* A viewer login (one client's proposal, read only) gets the cloud and nothing else:
+     every tile and card below it opens a part of the platform it cannot use. */
+  const { scoped: viewer } = useViewOnly()
 
   useEffect(() => {
     const s = new URLSearchParams(window.location.search).get('scene')
@@ -157,14 +161,14 @@ export function BrandHome() {
       <ShellHeader
         lead={`${greetingWord()},`}
         accent={company || 'welcome back'}
-        right={tier ? (
+        right={tier && !viewer ? (
           <span className="inline-flex h-9 items-center gap-1.5 rounded-full border bg-card px-3.5 text-[13px] font-medium">
             <Crown className="size-3.5" strokeWidth={1.75} />{tier}
           </span>
         ) : null}
       />
 
-      <PoolStrip pool={pool} />
+      {!viewer && <PoolStrip pool={pool} />}
 
       <section aria-label="Right now" className="flex min-h-0 flex-1 flex-col gap-4">
         {/* The cloud: one card, or up to three when several things are waiting. */}
@@ -188,6 +192,7 @@ export function BrandHome() {
         )}
 
         {/* Four bold numbers, each a door */}
+        {!viewer && <>
         <div className="grid flex-[2] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Fact href="/proposals" icon={FileText} tone="lime" label="waiting on you"
                 value={!loaded.proposals ? null : pending == null ? DASH : String(pending)} />
@@ -219,6 +224,7 @@ export function BrandHome() {
           </span>
         </Link>}
         <OpenQuotesCard />
+        </>}
       </section>
     </div>
   )

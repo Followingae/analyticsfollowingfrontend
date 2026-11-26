@@ -23,6 +23,7 @@ import { PlatformIcon } from "@/components/icons/PlatformIcon"
 import { PLATFORM_LABEL, type Platform } from "@/lib/deliverables"
 import type { PlatformMeasured } from "@/services/adminProposalMasterApi"
 import { cn } from "@/lib/utils"
+import { useViewOnly } from "@/lib/viewOnly"
 
 /**
  * Creator Analytics, v2.
@@ -48,6 +49,7 @@ export function CreatorAnalyticsV2({
   username, shareToken,
 }: { username: string; shareToken?: string }) {
   const isPublic = !!shareToken
+  const { view_only: readOnly } = useViewOnly()
   const [data, setData] = useState<Payload | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -227,7 +229,9 @@ export function CreatorAnalyticsV2({
                   </Tooltip>
                 </TooltipProvider>
               )}
-              {!isPublic && (
+              {/* A view-only login reads the analytics; Refresh spends money and Recompute
+                  writes, so neither is offered (the server refuses both anyway). */}
+              {!isPublic && !readOnly && (
                 <>
                   {/* The free one first, because it is the one to try first. Refresh buys
                       the same posts again; this applies everything the derive layer has

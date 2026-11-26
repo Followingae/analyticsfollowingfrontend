@@ -58,8 +58,9 @@ export function announceViewOnly(message?: string) {
 }
 
 /* Writes the app makes on its own, not because somebody pressed something (marking a
- * creator as opened). Refused like every other write, but nobody asked, so nobody is told. */
-const QUIET = /\/(opened|seen|heartbeat|presence|track)(\/|\?|$)/
+ * creator as opened, a notification as read). Refused like every other write, but nobody
+ * asked, so nobody is told. */
+const QUIET = /\/(opened|seen|heartbeat|presence|track|mark-read[a-z-]*|mark-all-read)(\/|\?|$)/
 
 let installed = false
 

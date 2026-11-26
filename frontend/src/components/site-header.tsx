@@ -35,6 +35,7 @@ import {
 import { NotificationBell } from '@/components/ui/notification'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { getRouteTrail } from '@/lib/routeRegistry'
+import { useViewOnly } from '@/lib/viewOnly'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -50,6 +51,8 @@ export function SiteHeader() {
   const router = useRouter()
   const isDashboard = pathname === '/' || pathname === '/dashboard'
   const { user, isBrandUser, logout } = useEnhancedAuth()
+  // A viewer login (one shared proposal, read only): no search, credits, plan or walkthroughs.
+  const { scoped: viewer } = useViewOnly()
   const { notifications, unreadCounts, markAsRead, markAllAsRead } = useNotifications()
 
   // Registry-driven breadcrumb trail (covers brand + operator routes)
@@ -190,9 +193,9 @@ export function SiteHeader() {
         {/* Right side: badges + actions */}
         <div className="ml-auto flex items-center gap-2">
           {/* Guided walkthroughs — re-runnable, role-aware. */}
-          <HelpLifebuoy />
+          {!viewer && <HelpLifebuoy />}
           {/* Command-palette entry point — visible affordance for the ⌘K palette */}
-          <button
+          {!viewer && <button
             type="button"
             data-tour="search"
             onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
@@ -204,7 +207,7 @@ export function SiteHeader() {
             <kbd className="hidden lg:inline-flex h-5 items-center rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
               ⌘K
             </kbd>
-          </button>
+          </button>}
 
           {/* Superadmin Badge */}
           {user && (user.role === 'superadmin' || user.role === 'admin') && (
@@ -214,7 +217,7 @@ export function SiteHeader() {
           )}
 
           {/* Credit Balance */}
-          {isBrandUser && user && creditBalance != null && (
+          {isBrandUser && user && creditBalance != null && !viewer && (
             <TooltipProvider delayDuration={300}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -244,7 +247,7 @@ export function SiteHeader() {
           )}
 
           {/* Subscription Tier Badge */}
-          {isBrandUser && user && !contextLoading && tierLabel && (
+          {isBrandUser && user && !contextLoading && tierLabel && !viewer && (
             <Badge variant="outline" className="hidden sm:inline-flex text-xs transition-colors duration-150">
               <Crown className="w-3 h-3 mr-1 text-muted-foreground" />
               {tierLabel}

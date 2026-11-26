@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 
 import { UserAvatar } from "@/components/UserAvatar"
+import { useViewOnly } from "@/lib/viewOnly"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,7 @@ export function NavUser({
   const { logout, hasRole } = useEnhancedAuth()
   // Billing/Notifications are brand-only; operators (admin/super_admin) shouldn't see them.
   const isOperator = hasRole('admin') || hasRole('super_admin')
+  const { scoped: viewer } = useViewOnly()
 
   return (
     <SidebarMenu>
@@ -103,6 +105,8 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {/* A viewer login (one shared proposal, read only) has no account pages to open. */}
+            {!viewer && <>
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
                 <a href="/settings" className="cursor-pointer">
@@ -128,6 +132,7 @@ export function NavUser({
               )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            </>}
             <DropdownMenuItem onClick={logout} className="cursor-pointer text-muted-foreground">
               <LogOut className="size-4" />
               Log out

@@ -5,12 +5,15 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { EnhancedAppSidebar } from '@/components/brand/EnhancedAppSidebar'
 import { SiteHeader } from '@/components/site-header'
 import { GlobalCommandPalette } from '@/components/GlobalCommandPalette'
+import { useViewOnly } from '@/lib/viewOnly'
 
 interface BrandUserInterfaceProps {
   children?: ReactNode
 }
 
 export function BrandUserInterface({ children }: BrandUserInterfaceProps) {
+  // A viewer login has two pages; a palette that jumps anywhere has nothing to offer it.
+  const { scoped: viewer } = useViewOnly()
   return (
     <SidebarProvider
       style={
@@ -21,7 +24,7 @@ export function BrandUserInterface({ children }: BrandUserInterfaceProps) {
       }
     >
       <EnhancedAppSidebar variant="inset" />
-      <GlobalCommandPalette />
+      {!viewer && <GlobalCommandPalette />}
       <SidebarInset className="min-w-0">
         <SiteHeader />
         <main className="flex-1 min-h-0 bg-background">
