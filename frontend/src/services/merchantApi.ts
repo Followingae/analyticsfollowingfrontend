@@ -137,6 +137,50 @@ export interface MerchantHomeData {
   settings: { creator_approval_mode: ApprovalMode }
 }
 
+/** When creators should come in. null on a dine-in campaign reads as 'anytime'. */
+export interface VisitSchedule {
+  mode: 'anytime' | 'slots'
+  /** Only when mode is 'slots'. */
+  slots: VisitSlot[]
+  /** Free text, e.g. "It's our grand opening". */
+  note: string | null
+}
+
+/** One window the place can host creators in. */
+export interface VisitSlot {
+  /** Short random id, stable once saved. */
+  id: string
+  /** YYYY-MM-DD */
+  date: string
+  /** HH:MM, 24 hour */
+  start: string
+  /** HH:MM, 24 hour */
+  end: string
+  /** Most creators in this window. null is no limit. */
+  capacity: number | null
+}
+
+/** Per slot: how many creators confirmed it, and how many were offered it. */
+export type SlotBookings = Record<string, { confirmed: number; offered: number }>
+
+/** Where one approved creator is with their visit time. */
+export interface CampaignVisit {
+  participant_id: string
+  slot_id: string | null
+  offered_slot_ids: string[]
+  confirmed_at: string | null
+}
+
+/** A creator who left the campaign and whose spot has not been filled yet. */
+export interface CampaignDropout {
+  participant_id: string
+  handle: string | null
+  name: string | null
+  avatar_url: string | null
+  reason: 'cant_make_it' | 'backed_out' | 'no_reply'
+  at: string
+}
+
 export interface BarterItem {
   name: string
   value_aed: number
@@ -165,6 +209,7 @@ export interface CampaignBrief {
   reference_links?: string[]
   hero_image_url?: string | null
   swap_reel_for_tiktok?: boolean | null
+  visit_schedule?: VisitSchedule | null
 }
 
 export interface CampaignProblem {
@@ -183,6 +228,12 @@ export interface MerchantCampaign extends CampaignBrief {
   deliverable_tier?: string | null
   problems?: CampaignProblem[]
   tier?: ProgrammeTier | null
+  /** Creators who dropped out and have not been replaced yet. */
+  dropouts?: CampaignDropout[]
+  /** Booked counts per slot id, when the campaign has set times. */
+  slot_bookings?: SlotBookings
+  /** The visit time each approved creator was offered or confirmed. */
+  visits?: CampaignVisit[]
 }
 
 export interface SaveCampaignResult {
@@ -420,6 +471,76 @@ export function deliverablesLine(counts: DeliverableCount[] | undefined | null):
   const parts = counts.map((c) => (c.qty > 1 ? `${c.qty} ${deliverableName(c.type, c.qty)}` : deliverableName(c.type, 1)))
   if (parts.length === 1) return capitalise(parts[0])
   return capitalise(`${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`)
+}
+
+/** "Fri 5 Dec" from "2026-12-05", read as a local day so it never slips across midnight. */
+export function visitDayLabel(ymd: string): string {
+  const [y, m, d] = ymd.split('-').map(Number)
+  if (!y || !m || !d) return ymd
+  return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+/** "7pm", "7:30pm", "12pm" from "19:00". */
+export function timeLabel(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number)
+  if (Number.isNaN(h)) return hhmm
+  const suffix = h >= 12 && h < 24 ? 'pm' : 'am'
+  const h12 = h % 12 === 0 ? 12 : h % 12
+  return m ? `${h12}:${String(m).padStart(2, '0')}${suffix}` : `${h12}${suffix}`
+}
+
+/** "7pm to 9pm" */
+export function slotTimeLabel(s: Pick<VisitSlot, 'start' | 'end'>): string {
+  return `${timeLabel(s.start)} to ${timeLabel(s.end)}`
+}
+
+/** "Wed 26 Nov, 7pm to 9pm" */
+export function slotLine(s: VisitSlot): string {
+  return `${visitDayLabel(s.date)}, ${slotTimeLabel(s)}`
+}
+
+/** A slot's start as a local moment. */
+export function slotStart(s: Pick<VisitSlot, 'date' | 'start'>): Date {
+  const [y, mo, d] = s.date.split('-').map(Number)
+  const [h, mi] = s.start.split(':').map(Number)
+  return new Date(y, (mo || 1) - 1, d || 1, h || 0, mi || 0)
+}
+
+export function slotIsPast(s: Pick<VisitSlot, 'date' | 'start'>, now = new Date()): boolean {
+  return slotStart(s).getTime() <= now.getTime()
+}
+
+/** Earliest first. */
+export function sortSlots<T extends Pick<VisitSlot, 'date' | 'start'>>(slots: T[]): T[] {
+  return [...slots].sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
+}
+
+export function newSlotId(): string {
+  const c = typeof crypto !== 'undefined' ? crypto : null
+  if (c && 'randomUUID' in c) return c.randomUUID().slice(0, 8)
+  return Math.random().toString(36).slice(2, 10)
+}
+
+/** One line for a visit schedule: "3 slots, Wed 26 Nov to Fri 28 Nov", or the any-time line. */
+export function visitScheduleLine(s: VisitSchedule | null | undefined): string {
+  if (!s || s.mode !== 'slots' || !s.slots?.length) return 'Any day while it runs'
+  const slots = sortSlots(s.slots)
+  if (slots.length === 1) return slotLine(slots[0])
+  const first = visitDayLabel(slots[0].date)
+  const last = visitDayLabel(slots[slots.length - 1].date)
+  return first === last ? `${slots.length} slots on ${first}` : `${slots.length} slots, ${first} to ${last}`
+}
+
+/** "Visiting Wed 26 Nov, 7pm to 9pm", or "Offered 3 times, waiting". null when there is nothing to say. */
+export function visitStatusLine(visit: CampaignVisit | null | undefined, schedule: VisitSchedule | null | undefined): string | null {
+  if (!visit) return null
+  if (visit.confirmed_at && visit.slot_id) {
+    const slot = schedule?.slots?.find((s) => s.id === visit.slot_id)
+    return slot ? `Visiting ${slotLine(slot)}` : 'Visit confirmed'
+  }
+  const n = visit.offered_slot_ids?.length ?? 0
+  if (!n) return null
+  return n === 1 ? 'Offered one time, waiting' : `Offered ${n} times, waiting`
 }
 
 export function capitalise(text: string): string {

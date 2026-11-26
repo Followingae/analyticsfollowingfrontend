@@ -5,10 +5,10 @@
  * what they post, where to go. The review step and the campaign page both show
  * this so the merchant signs off on the same card a creator will tap.
  */
-import { MapPin, Truck, Package, Users } from 'lucide-react'
+import { MapPin, Truck, Package, Users, CalendarDays } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { CampaignBrief, ProgrammeTier } from '@/services/merchantApi'
-import { deliverablesLine, totalValue } from '@/services/merchantApi'
+import { deliverablesLine, totalValue, visitScheduleLine } from '@/services/merchantApi'
 import { Cover, Face, Money } from './bits'
 
 export function CreatorCard({
@@ -96,6 +96,18 @@ export function CreatorCard({
             </span>
           ) : null}
         </div>
+
+        {brief.fulfilment_mode === 'dine_in' ? (
+          <div className="-mt-2 flex items-start gap-2 text-[13px] text-muted-foreground">
+            <CalendarDays className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
+            <span className="flex min-w-0 flex-col">
+              <span>{visitScheduleLine(brief.visit_schedule)}</span>
+              {brief.visit_schedule?.mode === 'slots' && brief.visit_schedule.note?.trim() ? (
+                <span className="text-xs">{brief.visit_schedule.note.trim()}</span>
+              ) : null}
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   )

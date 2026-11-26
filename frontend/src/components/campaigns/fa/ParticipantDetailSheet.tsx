@@ -22,6 +22,8 @@ import { FirstPartyAudienceAnalytics } from "@/components/analytics/FirstPartyAu
 import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
 import { toast } from "sonner"
+import { OfferSlotsDialog } from "@/components/visits/OfferSlotsDialog"
+import type { SlotBookings, VisitSchedule } from "@/services/merchantApi"
 
 type CampaignType = "cashback" | "paid_deal" | "barter"
 
@@ -190,9 +192,14 @@ interface Props {
   campaignType: CampaignType
   participant: ParticipantLike | null
   onChanged?: () => void
+  /** The campaign's visit times. With set times, approving asks which ones to offer. */
+  visitSchedule?: VisitSchedule | null
+  slotBookings?: SlotBookings | null
 }
 
-export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaignType, participant, onChanged }: Props) {
+export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaignType, participant, onChanged, visitSchedule, slotBookings }: Props) {
+  const slotsMode = visitSchedule?.mode === 'slots'
+  const [offerOpen, setOfferOpen] = useState(false)
   const [deliverables, setDeliverables] = useState<Deliverable[]>([])
   const [loadingDel, setLoadingDel] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
@@ -361,22 +368,27 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
 
   useEffect(() => { if (open && participant) loadDeliverables() }, [open, participant, loadDeliverables])
 
-  const participantAction = async (action: "approve" | "reject", reason?: string) => {
-    if (!participant) return
+  /** `offeredSlotIds`: with set visit times, the one to three times offered to the creator. */
+  const participantAction = async (action: "approve" | "reject", reason?: string, offeredSlotIds?: string[]): Promise<boolean> => {
+    if (!participant) return false
     setBusy(action)
     try {
       const res = await fetchWithAuth(
         `${API_CONFIG.BASE_URL}/api/v1/campaigns/${campaignId}/participants/${participant.participant_id}/${action}`,
         action === "reject"
           ? { method: "POST", headers: { ...getAuthHeaders(), "Content-Type": "application/json" }, body: JSON.stringify({ reason: reason || null }) }
-          : { method: "POST", headers: getAuthHeaders() }
+          : offeredSlotIds
+            ? { method: "POST", headers: { ...getAuthHeaders(), "Content-Type": "application/json" }, body: JSON.stringify({ offered_slot_ids: offeredSlotIds }) }
+            : { method: "POST", headers: getAuthHeaders() }
       )
       if (!res.ok) throw new Error(await res.text())
       toast.success(action === "approve" ? "Approved, the creator has been notified" : "Rejected")
       onChanged?.()
       onOpenChange(false)
+      return true
     } catch (e: any) {
       toast.error(e.message || `${action} failed`)
+      return false
     } finally {
       setBusy(null)
     }
@@ -702,6 +714,24 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                   <div className="flex items-center gap-2 mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5">
                     <Sparkles className="h-4 w-4 text-amber-600 shrink-0" />
                     <span className="text-xs text-amber-600 dark:text-amber-400 flex-1">Awaiting your approval. Review their analytics, then decide.</span>
+                    {/* Set visit times: approving is picking which times to offer them. */}
+                    {slotsMode ? (
+                      <>
+                        <Button size="sm" disabled={!!busy} onClick={() => setOfferOpen(true)}>
+                          {busy === "approve" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5 mr-1" />Approve</>}
+                        </Button>
+                        <OfferSlotsDialog
+                          open={offerOpen}
+                          onOpenChange={setOfferOpen}
+                          who={username ? `@${username}` : null}
+                          slots={visitSchedule?.slots || []}
+                          bookings={slotBookings}
+                          onConfirm={async (ids) => {
+                            if (!(await participantAction("approve", undefined, ids))) throw new Error("not approved")
+                          }}
+                        />
+                      </>
+                    ) : (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" disabled={!!busy}>
@@ -719,6 +749,7 @@ export function ParticipantDetailSheet({ open, onOpenChange, campaignId, campaig
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                    )}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button size="sm" variant="outline" disabled={!!busy}><X className="h-3.5 w-3.5 mr-1" />Reject</Button>

@@ -13,6 +13,7 @@ import Link from "next/link"
 import { faCampaignApi } from "@/services/faAdminApi"
 import { toast } from "sonner"
 import { AutoApproveCard } from '@/components/superadmin/fa/AutoApproveCard'
+import { AgentPanel } from '@/components/superadmin/fa/agent/AgentPanel'
 import { ParticipantDetailSheet, type ParticipantLike } from "@/components/campaigns/fa/ParticipantDetailSheet"
 import { API_CONFIG, getAuthHeaders } from "@/config/api"
 import { fetchWithAuth } from "@/utils/apiInterceptor"
@@ -180,6 +181,9 @@ export default function FACampaignFunnelPage() {
 
           <AutoApproveCard campaignId={id} />
 
+          {/* The WhatsApp visit agent: who confirmed, who asked, who is not coming. */}
+          <AgentPanel campaignId={id} />
+
           {/* Funnel strip — click a stage to filter the list below.
               Each stage used to be its own bordered, padded box, so reading this row of
               eight meant crossing sixteen edges to compare two numbers. The edges said
@@ -335,6 +339,8 @@ export default function FACampaignFunnelPage() {
               campaignType={sheetType}
               participant={selected}
               onChanged={load}
+              visitSchedule={campaign?.visit_schedule ?? null}
+              slotBookings={campaign?.slot_bookings ?? null}
             />
           )}
         </FaPage>

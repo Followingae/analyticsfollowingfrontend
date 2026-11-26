@@ -332,8 +332,9 @@ export const brandCampaignApi = {
     get(`/api/v1/campaigns/${id}/participants`),
   getApplications: (id: string) =>
     get(`/api/v1/campaigns/${id}/applications`),
-  acceptApplication: (campaignId: string, appId: string) =>
-    post(`/api/v1/campaigns/${campaignId}/applications/${appId}/accept`),
+  /** `offered_slot_ids`: on a campaign with set visit times, the one to three times offered. */
+  acceptApplication: (campaignId: string, appId: string, body?: { offered_slot_ids: string[] }) =>
+    post(`/api/v1/campaigns/${campaignId}/applications/${appId}/accept`, body),
   rejectApplication: (campaignId: string, appId: string) =>
     post(`/api/v1/campaigns/${campaignId}/applications/${appId}/reject`),
   // Two-stage proof-of-post flow:

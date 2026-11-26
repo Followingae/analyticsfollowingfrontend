@@ -45,7 +45,9 @@ import {
   totalValue,
   deliverableName,
   deliverablesLine,
+  slotIsPast,
   type BarterItem,
+  type VisitSchedule,
   type CampaignBrief,
   type CampaignProblem,
   type Programme,
@@ -54,6 +56,7 @@ import {
 import { Money, Face, DirhamSign } from '../bits'
 import { CreatorCard } from '../CreatorCard'
 import { Question, Field, TextInput, TextArea, Choice, Pills, ListEditor, Note, Badge, Chips, INPUT, INPUT_BAD } from './ui'
+import { VisitSlotsEditor } from '@/components/visits/VisitSlotsEditor'
 
 export interface StepProps {
   brief: CampaignBrief
@@ -72,7 +75,7 @@ export function stepForField(field: string | null | undefined): number | null {
   const f = field.toLowerCase()
   if (['name', 'category', 'visit_location', 'hero_image_url', 'logo'].includes(f)) return 0
   if (f.startsWith('barter') || f.includes('value')) return 1
-  if (['fulfilment_mode', 'guests_allowed', 'entitlement_cap_aed', 'visit_required'].includes(f)) return 2
+  if (['fulfilment_mode', 'guests_allowed', 'entitlement_cap_aed', 'visit_required', 'visit_schedule'].includes(f)) return 2
   if (f.includes('tiktok') || f.includes('deliverable')) return 3
   if (['mandatory_tags', 'mandatory_hashtags', 'content_requirements', 'things_to_avoid', 'reference_links', 'description'].includes(f)) return 4
   if (['start_date', 'end_date', 'max_participants', 'creator_approval_mode'].includes(f)) return 5
@@ -91,7 +94,13 @@ export function stepComplete(step: number, brief: CampaignBrief, programme: Prog
     case 1:
       return totalValue(brief.barter_items) >= programme.min_value_per_creator_aed && (brief.barter_items || []).every((i) => i.name.trim())
     case 2:
-      return !!brief.fulfilment_mode
+      if (!brief.fulfilment_mode) return false
+      // Set times need at least one, and none that has already passed.
+      if (brief.fulfilment_mode === 'dine_in' && brief.visit_schedule?.mode === 'slots') {
+        const slots = brief.visit_schedule.slots || []
+        return slots.length > 0 && !slots.some((s) => slotIsPast(s))
+      }
+      return true
     case 3:
       return !!tierFor(programme, totalValue(brief.barter_items))
     case 4:
@@ -472,21 +481,21 @@ export function StepRedeem({ brief, patch, problems }: StepProps) {
         <Choice
           icon={UtensilsCrossed}
           selected={mode === 'dine_in'}
-          onSelect={() => patch({ fulfilment_mode: 'dine_in', visit_required: true })}
+          onSelect={() => patch({ fulfilment_mode: 'dine_in', visit_required: true, visit_schedule: brief.visit_schedule ?? { ...ANYTIME } })}
           title="They come in"
           sub="Visit your place, show their code, enjoy it there"
         />
         <Choice
           icon={Truck}
           selected={mode === 'delivery'}
-          onSelect={() => patch({ fulfilment_mode: 'delivery', visit_required: false, guests_allowed: null, entitlement_cap_aed: null })}
+          onSelect={() => patch({ fulfilment_mode: 'delivery', visit_required: false, guests_allowed: null, entitlement_cap_aed: null, visit_schedule: null })}
           title="You deliver"
           sub="They order, you send it to them"
         />
         <Choice
           icon={Package}
           selected={mode === 'brand_ships'}
-          onSelect={() => patch({ fulfilment_mode: 'brand_ships', visit_required: false, guests_allowed: null, entitlement_cap_aed: null })}
+          onSelect={() => patch({ fulfilment_mode: 'brand_ships', visit_required: false, guests_allowed: null, entitlement_cap_aed: null, visit_schedule: null })}
           title="You ship a product"
           sub="A parcel to their address, anywhere in the UAE"
         />
@@ -526,6 +535,8 @@ export function StepRedeem({ brief, patch, problems }: StepProps) {
               </div>
             ) : null}
           </div>
+
+          <VisitWhen value={brief.visit_schedule ?? null} onChange={(v) => patch({ visit_schedule: v })} />
         </div>
       ) : null}
       {problemsFor(problems, 2).map((p) => (
@@ -535,6 +546,40 @@ export function StepRedeem({ brief, patch, problems }: StepProps) {
         </Badge>
       ))}
     </Question>
+  )
+}
+
+const ANYTIME: VisitSchedule = { mode: 'anytime', slots: [], note: null }
+
+/** When creators should come in: any day, or the set times the place can host them. */
+function VisitWhen({ value, onChange }: { value: VisitSchedule | null; onChange: (v: VisitSchedule) => void }) {
+  const s: VisitSchedule = value ?? ANYTIME
+  const set = (p: Partial<VisitSchedule>) => onChange({ ...s, ...p })
+  const onSlots = s.mode === 'slots'
+  const slots = s.slots || []
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <span className="text-sm text-muted-foreground">When should they come?</span>
+      <div role="radiogroup" className="grid gap-2.5 sm:grid-cols-2">
+        <Choice selected={!onSlots} onSelect={() => set({ mode: 'anytime' })} title="Any time while it runs" sub="They pick a day within a week of approval" />
+        <Choice selected={onSlots} onSelect={() => set({ mode: 'slots', slots })} title="At set times" sub="Pick the days and times you can host them" />
+      </div>
+
+      {onSlots ? (
+        <div className="flex flex-col gap-4 pt-1">
+          <VisitSlotsEditor slots={slots} onChange={(next) => set({ slots: next })} />
+          {slots.length === 0 ? (
+            <Badge tone="muted" className="w-fit">
+              Add at least one time
+            </Badge>
+          ) : null}
+          <Field label="Anything they should know, optional">
+            <TextInput value={s.note ?? ''} onChange={(e) => set({ note: e.target.value || null })} placeholder="It's our grand opening" maxLength={120} />
+          </Field>
+        </div>
+      ) : null}
+    </div>
   )
 }
 

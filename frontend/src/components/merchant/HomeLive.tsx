@@ -5,7 +5,9 @@
  */
 import Link from 'next/link'
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { DropoutNotice } from './DropoutNotice'
 import { merchantApi, tierFor, type MerchantHomeData } from '@/services/merchantApi'
 import { useInvalidateMerchant } from '@/hooks/useMerchantHome'
 import { ShellHeader } from './MerchantShell'
@@ -18,6 +20,8 @@ export function HomeLive({ data }: { data: MerchantHomeData }) {
   const campaign = data.campaign
   const tier = campaign?.value_per_creator_aed != null ? tierFor(data.trial.programme, campaign.value_per_creator_aed) : null
   const mode = data.settings?.creator_approval_mode || campaign?.creator_approval_mode || 'manual'
+  // The home read has no dropouts; the campaign read does, and shares its cache with the campaign page.
+  const full = useQuery({ queryKey: ['merchant', 'campaign'], queryFn: merchantApi.campaign, retry: 0 })
 
   const switchMode = async () => {
     setSwitching(true)
@@ -51,6 +55,8 @@ export function HomeLive({ data }: { data: MerchantHomeData }) {
           </>
         }
       />
+
+      <DropoutNotice dropouts={full.data?.dropouts} manual={mode === 'manual' && !!campaign && ['active', 'paused'].includes(campaign.status)} href="/merchant/campaign#applications" />
 
       <section
         aria-label="Overview"

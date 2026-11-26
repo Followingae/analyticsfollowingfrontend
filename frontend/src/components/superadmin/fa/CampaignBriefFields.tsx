@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Trash2, X, Globe, Instagram, Hash, Link2, MapPin, Ticket, Camera, Video, Image as ImageIcon, Package } from "lucide-react"
+import { VisitSlotsEditor } from "@/components/visits/VisitSlotsEditor"
+import { slotIsPast, sortSlots, type VisitSlot } from "@/services/merchantApi"
 
 // ─── Deliverable presets (platform + format + how proof is submitted) ────────
 export interface DeliverableSpec {
@@ -37,6 +39,13 @@ export const DELIVERABLE_OPTIONS: Omit<DeliverableSpec, "quantity">[] = [
 ]
 
 // ─── Brief state ─────────────────────────────────────────────────────────────
+/** When creators should come. The note is a string, not null, so the input stays controlled. */
+export interface AdminVisitSchedule {
+  mode: "anytime" | "slots"
+  slots: VisitSlot[]
+  note: string
+}
+
 export interface BriefState {
   brand_website: string
   brand_instagram: string
@@ -59,6 +68,8 @@ export interface BriefState {
   mandatory_hashtags: string[]
   visit_required: boolean
   visit_location: string
+  /** When creators should come: any day, or set dates (an opening, a launch night). */
+  visit_schedule: AdminVisitSchedule
   coupon_enabled: boolean
   coupon_discount_label: string
   redemption_url: string
@@ -85,6 +96,7 @@ export const emptyBrief: BriefState = {
   reference_links: [], content_requirements: [], things_to_avoid: [],
   mandatory_tags: [], mandatory_hashtags: [],
   visit_required: false, visit_location: "",
+  visit_schedule: { mode: "anytime", slots: [], note: "" },
   coupon_enabled: false, coupon_discount_label: "", redemption_url: "", ordering_instructions: "",
   fulfilment_mode: "delivery", entitlement_label: "", entitlement_cap_aed: "",
 }
@@ -97,6 +109,10 @@ const csv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean)
  * rule depends on fulfilment_mode, and a dine-in campaign has no redemption URL by
  * definition — the creator goes to the venue, there is nothing to order from. */
 export function validateBriefFulfilment(b: BriefState): string | null {
+  if (b.visit_required && b.visit_schedule.mode === "slots") {
+    if (b.visit_schedule.slots.length === 0) return "Add at least one visit time, or choose any time"
+    if (b.visit_schedule.slots.some((s) => slotIsPast(s))) return "Remove the visit times that have passed"
+  }
   // Nothing to validate: there is no code, no redemption URL and no venue entitlement.
   // What this mode needs is the creator's address, and only the creator can give us that.
   if (b.fulfilment_mode === "brand_ships") return null
@@ -145,6 +161,12 @@ export function buildBriefPayload(b: BriefState): Record<string, any> {
   if (b.mandatory_hashtags.length) p.mandatory_hashtags = b.mandatory_hashtags
   p.visit_required = b.visit_required
   if (b.visit_required && b.visit_location.trim()) p.visit_location = b.visit_location.trim()
+  if (b.visit_required) {
+    const s = b.visit_schedule
+    p.visit_schedule = s.mode === "slots" && s.slots.length
+      ? { mode: "slots", slots: sortSlots(s.slots), note: s.note.trim() || null }
+      : { mode: "anytime", slots: [], note: s.note.trim() || null }
+  }
   // Sent WITHOUT coupon_enabled, unlike the other two modes: this one is not a coupon
   // flavour, and the server's `_clean_fulfilment_mode` will never infer it.
   if (b.fulfilment_mode === "brand_ships") {
@@ -202,6 +224,44 @@ function ChipInput({ label, placeholder, prefix, items, onChange }: {
               </button>
             </Badge>
           ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── When creators should visit ──────────────────────────────────────────────
+/** Compact: any time, or set times on a calendar, plus a note. The visit agent reads it. */
+export function VisitScheduleFields({ value, onChange }: { value: AdminVisitSchedule; onChange: (v: AdminVisitSchedule) => void }) {
+  const set = (patch: Partial<AdminVisitSchedule>) => onChange({ ...value, ...patch })
+  return (
+    <div className="space-y-3 mt-4">
+      <Label>When should they come?</Label>
+      <div className="grid grid-cols-2 gap-3">
+        {([
+          { key: "anytime", title: "Any time while it runs", blurb: "They pick a day within a week of approval" },
+          { key: "slots", title: "At set times", blurb: "Pick the days and times they can come" },
+        ] as const).map((opt) => (
+          <button
+            key={opt.key}
+            type="button"
+            onClick={() => set({ mode: opt.key })}
+            className={`rounded-lg border p-3 text-left transition-colors ${
+              value.mode === opt.key
+                ? "border-foreground/40 bg-black/[0.04] dark:bg-white/[0.07]"
+                : "border-border hover:bg-muted/50"
+            }`}
+          >
+            <p className="text-sm font-medium">{opt.title}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{opt.blurb}</p>
+          </button>
+        ))}
+      </div>
+      {value.mode === "slots" && (
+        <div className="space-y-3">
+          <VisitSlotsEditor compact slots={value.slots} onChange={(slots) => set({ slots })} />
+          {value.slots.length === 0 && <p className={`text-xs ${TONE_TEXT.warn}`}>Add at least one time.</p>}
+          <div className="space-y-2"><Label>Anything they should know (optional)</Label><Input value={value.note} onChange={(e) => set({ note: e.target.value })} placeholder="It's our grand opening" /></div>
         </div>
       )}
     </div>
@@ -369,6 +429,9 @@ export function CampaignBriefSection({ value, onChange }: { value: BriefState; o
               <Label>Location</Label>
               <Input value={value.visit_location} onChange={(e) => set({ visit_location: e.target.value })} placeholder="Dubai Mall, Dubai" />
             </div>
+          )}
+          {value.visit_required && (
+            <VisitScheduleFields value={value.visit_schedule} onChange={(visit_schedule) => set({ visit_schedule })} />
           )}
         </div>
       </Section>

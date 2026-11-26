@@ -39,6 +39,7 @@ const BRIEF_KEYS: (keyof CampaignBrief)[] = [
   'name', 'description', 'category', 'barter_items', 'fulfilment_mode', 'visit_location', 'visit_required', 'guests_allowed',
   'entitlement_cap_aed', 'start_date', 'end_date', 'max_participants', 'creator_approval_mode', 'mandatory_tags', 'mandatory_hashtags',
   'content_requirements', 'things_to_avoid', 'reference_links', 'hero_image_url', 'swap_reel_for_tiktok',
+  'visit_schedule',
 ]
 
 function briefOf(c: MerchantCampaign | null | undefined): CampaignBrief {
