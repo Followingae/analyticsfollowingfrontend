@@ -14,7 +14,8 @@ import { installViewOnlyNotice, setViewOnly, useViewOnly } from "@/lib/viewOnly"
 
 // Where a scoped viewer may go. Any other address, including one that does not exist,
 // sends it to the dashboard rather than to an error page.
-const SCOPED_ALLOWED = ["/dashboard", "/proposals", "/creator-analytics", "/auth", "/login"]
+// A creator's own analytics page, yes; the creators index behind it, no.
+const SCOPED_ALLOWED = ["/dashboard", "/proposals", "/creator-analytics/", "/auth", "/login"]
 
 export function ViewOnlyGuard() {
   const { user, isAuthenticated } = useEnhancedAuth()
@@ -43,7 +44,9 @@ export function ViewOnlyGuard() {
 
   useEffect(() => {
     if (!viewOnly.scoped || !pathname) return
-    const ok = pathname === "/" || SCOPED_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + "/"))
+    const ok = pathname === "/" || SCOPED_ALLOWED.some((p) =>
+      p.endsWith("/") ? pathname.startsWith(p) && pathname.length > p.length
+                      : pathname === p || pathname.startsWith(p + "/"))
     if (!ok) router.replace("/dashboard")
   }, [viewOnly.scoped, pathname, router])
 
